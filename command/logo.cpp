@@ -646,9 +646,10 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
                 CompareChannelName(channelName, "WDR_HD_Essen", IGNORE_NOTHING)) {
             logo.heightMax =  80;
         }
+
+        // ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
+        // ZDF_HD                  16:9 1280W  720H:->  188W  96H TOP_LEFT
         if (CompareChannelName(channelName, "ZDF_HD", IGNORE_NOTHING)) {                // ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
-            // ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
-            // ZDF_HD                  16:9 1280W  720H:->  188W  96H TOP_LEFT
             logo.widthMax =  188;
         }
 
@@ -656,10 +657,13 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         if (CompareChannelName(channelName, "ZDFinfo_HD", IGNORE_NOTHING)) {
             logo.heightMax =  86;
         }
-        if (CompareChannelName(channelName, "ANIXE+", IGNORE_NOTHING)) {                // ANIXE+                  16:9 1280W 1080H:->  294W 170H TOP_LEFT
+
+        // ANIXE+                  16:9 1280W 1080H:->  294W 172H TOP_LEFT
+        if (CompareChannelName(channelName, "ANIXE+", IGNORE_NOTHING)) {
             logo.widthMax  = 294;
-            logo.heightMax = 170;
+            logo.heightMax = 172;
         }
+
         if (CompareChannelName(channelName, "Deluxe_Music_HD", IGNORE_NOTHING)) {       // Deluxe_Music_HD         16:9 1280W 1080H:->  334W 124H TOP_RIGHT
             logo.widthMax  = 334;
         }
@@ -668,7 +672,7 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         if (logo.widthMin  == 0) logo.widthMin  =   88; // arte_HD (vertical)      16:9 1280W  720H:->   88W 134H TOP_LEFT
         if (logo.widthMax  == 0) logo.widthMax  =  334; // EinsPlus_HD             16:9 1280W  720H:->  334W  86H TOP_RIGHT
         if (logo.heightMin == 0) logo.heightMin =   66; // SRF_zwei_HD             16:9 1280W  720H:->  172W  66H TOP_RIGHT
-        if (logo.heightMax == 0) logo.heightMax =  170; // ANIXE+                  16:9 1280W 1080H:->  294W 170H TOP_LEFT
+        if (logo.heightMax == 0) logo.heightMax =  172; // ANIXE+                  16:9 1280W 1080H:->  294W 172H TOP_LEFT
         break;
 
     case 1440:
@@ -688,9 +692,9 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMin  = 217;
             logo.heightMax = 198;
         }
-        // ANIXE_HD                16:9 1920W 1080H:->  396W 180H TOP_LEFT
+        // ANIXE_HD                16:9 1920W 1080H:->  390W 178H TOP_LEFT
         if (CompareChannelName(channelName, "ANIXE_HD", IGNORE_NOTHING)) {
-            logo.heightMin = 180;
+            logo.heightMin = 178;
         }
 
         // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
