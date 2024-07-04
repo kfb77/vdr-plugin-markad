@@ -156,7 +156,7 @@ void syslog_with_tid(int priority, const char *format, ...) {
 // - before CheckStart: timer or VPS start time, negativ if recoring start after timer start
 // - after  CheckStart: real start frame
 void cMarkAdStandalone::CalculateCheckPositions(int startFrame) {
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): timer or VPS start:   %d  (%3d:%2dmin)", startFrame, static_cast<int>(startFrame / decoder->GetVideoFrameRate() / 60), startFrame /  decoder->GetVideoFrameRate() % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): timer or VPS start:  (%6d)  %3d:%2dmin", startFrame, static_cast<int>(startFrame / decoder->GetVideoFrameRate() / 60), startFrame /  decoder->GetVideoFrameRate() % 60);
 
     if (!length) {
         dsyslog("CalculateCheckPositions(): length of recording not found, set to 100h");
@@ -178,11 +178,11 @@ void cMarkAdStandalone::CalculateCheckPositions(int startFrame) {
     frameCheckStart = startA + macontext.Video.Info.framesPerSecond * (1.5 * MAX_ASSUMED) ; //  fit for later broadcast start
     frameCheckStop  = startFrame + macontext.Video.Info.framesPerSecond * (length + (1.5 * MAX_ASSUMED));
 
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording:   %4ds (%3d:%2dmin)", length, length / 60, length % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed start frame:  %5d  (%3d:%2dmin)", startA, static_cast<int>(startA / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(startA / macontext.Video.Info.framesPerSecond) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed stop frame:  %6d  (%3d:%2dmin)", stopA, static_cast<int>(stopA / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(stopA / macontext.Video.Info.framesPerSecond) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check start set to:  %6d  (%3d:%2dmin)", frameCheckStart, static_cast<int>(frameCheckStart / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(frameCheckStart / macontext.Video.Info.framesPerSecond) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check stop set to:   %6d  (%3d:%2dmin)", frameCheckStop, static_cast<int>(frameCheckStop / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(frameCheckStop / macontext.Video.Info.framesPerSecond) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording:    %4ds  %3d:%2dmin", length, length / 60, length % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed start frame: (%6d)  %3d:%2dmin", startA, static_cast<int>(startA / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(startA / macontext.Video.Info.framesPerSecond) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed stop frame:  (%6d)  %3d:%2dmin", stopA, static_cast<int>(stopA / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(stopA / macontext.Video.Info.framesPerSecond) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check start set to:  (%6d)  %3d:%2dmin", frameCheckStart, static_cast<int>(frameCheckStart / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(frameCheckStart / macontext.Video.Info.framesPerSecond) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check stop set to:   (%6d)  %3d:%2dmin", frameCheckStop, static_cast<int>(frameCheckStop / macontext.Video.Info.framesPerSecond / 60), static_cast<int>(frameCheckStop / macontext.Video.Info.framesPerSecond) % 60);
 }
 
 
