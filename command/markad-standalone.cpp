@@ -156,7 +156,7 @@ void syslog_with_tid(int priority, const char *format, ...) {
 // - before CheckStart: timer or VPS start time, negativ if recoring start after timer start
 // - after  CheckStart: real start frame
 void cMarkAdStandalone::CalculateCheckPositions(int startFrame) {
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): timer or VPS start:    %d  (%3d:%2dmin)", startFrame, static_cast<int>(startFrame / decoder->GetVideoFrameRate() / 60), startFrame /  decoder->GetVideoFrameRate() % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): timer or VPS start:   %d  (%3d:%2dmin)", startFrame, static_cast<int>(startFrame / decoder->GetVideoFrameRate() / 60), startFrame /  decoder->GetVideoFrameRate() % 60);
 
     if (!length) {
         dsyslog("CalculateCheckPositions(): length of recording not found, set to 100h");
@@ -4527,11 +4527,11 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if (criteria->GoodVPS()) maxAfter =   7020;
-                        else if (silenceAfter)                            maxAfter = 139480;
-                        else if (diffBefore == INT_MAX)                   maxAfter = 124520;  // broadcast does not have a black screen before, trust black screen after
-                        else if (lengthAfter >= 80)                       maxAfter =  20960;
-                        else                                              maxAfter =   5400;  // use only very near short black screen
+                        if (criteria->GoodVPS())        maxAfter =   7020;
+                        else if (silenceAfter)          maxAfter = 139480;
+                        else if (diffBefore == INT_MAX) maxAfter = 124520;  // broadcast does not have a black screen before, trust black screen after
+                        else if (lengthAfter >= 80)     maxAfter =  20960;
+                        else                            maxAfter =   5400;  // use only very near short black screen
                         break;
                     case MT_INTRODUCTIONSTART:
                         if (lengthAfter >= 3800) maxAfter = 3760;
@@ -4662,9 +4662,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         // rule 4: valid black screen with silence around before
                         else if (silenceBefore && !silenceAfter && (diffBefore <= 6260) && (diffAfter >= 4180)) diffAfter = INT_MAX;
 
-                        if (criteria->GoodVPS()) maxAfter =  12779;
-                        else if (lengthAfter >= 80)                       maxAfter = 231480;
-                        else                                              maxAfter =   1399;
+                        if (criteria->GoodVPS())    maxAfter =  12779;
+                        else if (lengthAfter >= 80) maxAfter = 200759;
+                        else                        maxAfter =   1399;
                         break;
                     case MT_CLOSINGCREDITSSTOP:
                         maxAfter = 11040;
