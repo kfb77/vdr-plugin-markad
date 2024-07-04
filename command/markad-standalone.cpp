@@ -4204,13 +4204,13 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     if (!decoder)                   return;
     if (!index)                     return;
     if (!criteria)                  return;
-    if (!evaluateLogoStopStartPair) {
-        esyslog("cMarkAdStandalone::LogoMarkOptimization(): evaluateLogoStopStartPair missing");
-        return;
-    }
 
     if (marks.Count(MT_LOGOCHANGE, 0xF0) == 0) {
         dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no logo marks used");
+        return;
+    }
+    if (!evaluateLogoStopStartPair) {
+        esyslog("cMarkAdStandalone::LogoMarkOptimization(): evaluateLogoStopStartPair missing");
         return;
     }
 
