@@ -56,11 +56,13 @@ void cIndex::Add(const int fileNumber, const int frameNumber, const int64_t pts,
         if (indexVector.size() == indexVector.capacity()) {
             indexVector.reserve(1000);
         }
-#ifdef DEBUG_INDEX
-        dsyslog("cIndex::Add(): fileNumber %d, frameNumber (%5d), PTS %6ld: time offset VDR %6dms", fileNumber, frameNumber, pts, frameTimeOffset_ms);
-#endif
         indexVector.push_back(newIndex);
         ALLOC(sizeof(sIndexElement), "indexVector");
+
+#ifdef DEBUG_INDEX
+        dsyslog("cIndex::Add(): fileNumber %d, frameNumber (%5d), PTS %6ld: time offset PTS %6dms, VDR %6dms", fileNumber, frameNumber, pts, GetTimeFromFrame(frameNumber, false),  GetTimeFromFrame(frameNumber, true));
+#endif
+
     }
 }
 
@@ -230,7 +232,7 @@ int cIndex::GetTimeFromFrame(const int frameNumber, const bool isVDR) {
         if (framePTS < 0 ) {
             framePTS += 0x200000000;    // libavodec restart at 0 if pts greater than 0x200000000
         }
-        int offsetTime_ms = 1000 * framePTS * av_q2d(time_base);
+        int offsetTime_ms = round(1000 * framePTS * av_q2d(time_base));
         return offsetTime_ms;
     }
 }
