@@ -153,43 +153,6 @@ int cSobel::SobelPicture(sVideoPicture *picture, sAreaT *area, const bool ignore
         if (area->valid[plane] || ignoreLogo) {
             if (SobelPlane(picture, area, plane)) {
                 processed++;
-
-#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-                if ((picture->frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (picture->frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
-                    int width  = area->logoSize.width;
-                    int height = area->logoSize.height;
-                    if (plane > 0) {
-                        width  /= 2;
-                        height /= 2;
-                    }
-                    char *fileName = nullptr;
-                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0_sobel.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
-                        ALLOC(strlen(fileName) + 1, "fileName");
-                        SaveSobelPlane(fileName, area->sobel[plane], width, height);
-                        FREE(strlen(fileName) + 1, "fileName");
-                        free(fileName);
-                    }
-                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1_logo.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
-                        ALLOC(strlen(fileName) + 1, "fileName");
-                        SaveSobelPlane(fileName, area->logo[plane], width, height);
-                        FREE(strlen(fileName) + 1, "fileName");
-                        free(fileName);
-                    }
-                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2_result.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
-                        ALLOC(strlen(fileName) + 1, "fileName");
-                        SaveSobelPlane(fileName, area->result[plane], width, height);
-                        FREE(strlen(fileName) + 1, "fileName");
-                        free(fileName);
-                    }
-                    if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_3_inverse.pgm", recDir, picture->frameNumber, plane, area->logoCorner) >= 1) {
-                        ALLOC(strlen(fileName) + 1, "fileName");
-                        SaveSobelPlane(fileName, area->inverse[plane], width, height);
-                        FREE(strlen(fileName) + 1, "fileName");
-                        free(fileName);
-                    }
-                }
-//                dsyslog("cSobel::SobelPicture(): frame (%d), plane %d: rPixel[plane] %d <-> mPixel[plane] %d", picture->frameNumber, plane, area->rPixel[plane], area->mPixel[plane]);
-#endif
             }
         }
     }

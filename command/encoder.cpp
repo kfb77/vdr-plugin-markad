@@ -1131,7 +1131,7 @@ bool cEncoder::WritePacket() {
             // check monotonically increasing pts in frame after decoding
             // prevent "AVlog(): Assertion pict_type == rce->new_pict_type failed at src/libavcodec/ratecontrol.c:939" with ffmpeg 4.2.2
             if (EncoderStatus.ptsOutBefore > avFrame->pts) {
-                 dsyslog("cEncoder::WritePacket(): frame (%d): drop non monotonically increasing pts %" PRId64 " from video decoder, pts before was %" PRId64, decoderFrameNumber, avFrame->pts, EncoderStatus.ptsOutBefore);
+                dsyslog("cEncoder::WritePacket(): frame (%d): drop non monotonically increasing pts %" PRId64 " from video decoder, pts before was %" PRId64, decoderFrameNumber, avFrame->pts, EncoderStatus.ptsOutBefore);
                 return true;
             }
             EncoderStatus.ptsOutBefore = avFrame->pts;

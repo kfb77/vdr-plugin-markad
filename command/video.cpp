@@ -319,6 +319,8 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
 
 // -----------------------------------------------------------------
 // not detected logo in bright area, also not detected with bridgtness reduction, take it as invalid
+// contrast 233, brightness 105
+//
 // contrast  28, brightness 205  -> bright background with logo
 // contrast  25, brightness 216  -> bright background with logo
 // contrast  25, brightness 195  -> bright blue sky with logo
@@ -373,7 +375,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
             ((contrastLogo  >  60) && (contrastLogo <= 140) && (brightnessLogo > 180)) ||
             ((contrastLogo  > 140) && (contrastLogo <= 180) && (brightnessLogo > 181)) ||
             ((contrastLogo  > 180) && (contrastLogo <= 194) && (brightnessLogo > 120)) ||
-            ((contrastLogo  > 194) &&                          (brightnessLogo > 110))) {
+            ((contrastLogo  > 194) &&                          (brightnessLogo > 104))) {
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): contrast/brightness in logo area is invalid for brightness reduction", frameNumber);
 #endif
@@ -416,6 +418,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
     if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+        // save corrected full picture
         char *fileName = nullptr;
         if (asprintf(&fileName,"%s/F__%07d_corrected.pgm", recDir, frameNumber) >= 1) {
             ALLOC(strlen(fileName) + 1, "fileName");
@@ -601,12 +604,47 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
     processed = sobel->SobelPicture(recDir, picture, &area, false);  // don't ignore logo
     if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+        // current full picture
         char *fileName = nullptr;
         if (asprintf(&fileName,"%s/F__%07d.pgm", recDir, frameNumber) >= 1) {
             ALLOC(strlen(fileName) + 1, "fileName");
             SaveVideoPicture(fileName, decoder->GetVideoPicture());
             FREE(strlen(fileName) + 1, "fileName");
             free(fileName);
+        }
+        // sobel transformed pictures of all proccesed planes
+        for (int plane = 0; plane < processed; plane++) {
+            int width  = area.logoSize.width;
+            int height = area.logoSize.height;
+            if (plane > 0) {
+                width  /= 2;
+                height /= 2;
+            }
+            char *fileName = nullptr;
+            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0_sobel.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                ALLOC(strlen(fileName) + 1, "fileName");
+                sobel->SaveSobelPlane(fileName, area.sobel[plane], width, height);
+                FREE(strlen(fileName) + 1, "fileName");
+                free(fileName);
+            }
+            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1_logo.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                ALLOC(strlen(fileName) + 1, "fileName");
+                sobel->SaveSobelPlane(fileName, area.logo[plane], width, height);
+                FREE(strlen(fileName) + 1, "fileName");
+                free(fileName);
+            }
+            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2_result.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                ALLOC(strlen(fileName) + 1, "fileName");
+                sobel->SaveSobelPlane(fileName, area.result[plane], width, height);
+                FREE(strlen(fileName) + 1, "fileName");
+                free(fileName);
+            }
+            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_3_inverse.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                ALLOC(strlen(fileName) + 1, "fileName");
+                sobel->SaveSobelPlane(fileName, area.inverse[plane], width, height);
+                FREE(strlen(fileName) + 1, "fileName");
+                free(fileName);
+            }
         }
     }
 #else
