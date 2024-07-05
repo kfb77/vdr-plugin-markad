@@ -1680,6 +1680,19 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
     while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, &isStartMarkInBroadcast, endRange)) {
         if (abortNow) return;
         if (!marks.Get(startPosition) || !marks.Get(stopPosition)) continue;  // at least one of the mark from pair was deleted, nothing to do
+
+        // check if seek is possible
+        int frameNumber = decoder->GetFrameNumber();
+        if (frameNumber >= stopPosition) {
+            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): overlapping pairs from info logo merge, skip pair logo stop (%d) start (%d)", stopPosition, startPosition);
+            continue;
+        }
+        int iFrameBefore = index->GetIFrameBefore(stopPosition);
+        if (frameNumber >= iFrameBefore) {
+            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): decoder read position (%d) after i-frame before (%d), skip pair logo stop (%d) start (%d)", frameNumber, iFrameBefore, stopPosition, startPosition);
+            continue;
+        }
+
         LogSeparator();
         // free from loop before
         if (indexToHMSFStop) {
