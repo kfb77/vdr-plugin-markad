@@ -72,7 +72,6 @@ public:
         evaluateLogoStopStartPair = nullptr;
         duplicate                 = origin.duplicate,
         framecnt                  = origin.framecnt;
-        gotendmark                = origin.gotendmark;
         waittime                  = origin.waittime;
         iwaittime                 = origin.iwaittime;
         bLiveRecording            = origin.bLiveRecording;
@@ -110,7 +109,6 @@ public:
         osd                       = nullptr;
         duplicate                 = origin->duplicate,
         framecnt                  = origin->framecnt;
-        gotendmark                = origin->gotendmark;
         waittime                  = origin->waittime;
         iwaittime                 = origin->iwaittime;
         bLiveRecording            = origin->bLiveRecording;
@@ -416,8 +414,6 @@ private:
     bool duplicate                   = false;    //!< true if another markad is running on the same recording
     //!<
     int framecnt                     = 0;        //!< processed frames of 1nd pass (detect marks)
-    //!<
-    bool gotendmark                  = false;    //!< true if a valid end mark was found, false otherwise
     //!<
     int waittime                     = 0;        //!< time waited for more frames if markad runs during recording
     //!<

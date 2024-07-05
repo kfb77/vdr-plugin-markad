@@ -58,6 +58,12 @@ public:
     int GetIFrameAfterPTS(const int64_t pts);
 
     /**
+     * get last frame number from index
+     * @return last frame number of index
+     */
+    int GetLastFrame();
+
+    /**
      * get frame number after frame
      * @param frameNumber number of frame
      * @return if fullDecode frame number direct after frameNumber, else i-frame number after

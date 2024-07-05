@@ -117,7 +117,7 @@ int cIndex::GetIFrameAfterPTS(const int64_t pts) {
 
 int cIndex::GetFrameBefore(int frameNumber) {
     if (frameNumber == 0) return 0;
-    if (fullDecode) return (frameNumber - 1);
+    if (fullDecode) return frameNumber - 1;
     else {
         int iFrameBefore = GetIFrameBefore(frameNumber - 1);  // if frameNumber is i-frame, GetIFrameBefore() will return same frameNumber
         if (iFrameBefore < 0) {
@@ -142,6 +142,15 @@ int cIndex::GetFrameAfter(int frameNumber) {
 }
 
 
+int cIndex::GetLastFrame() {
+    if (indexVector.empty()) {
+        esyslog("cIndex::GetLast(): frame index not initialized");
+        return -1;
+    }
+    return indexVector.back().frameNumber;
+}
+
+
 // get iFrame before given frame
 // if frame is a iFrame, i-frame before will be returned
 // return: iFrame number, -1 if index is not initialized
@@ -161,7 +170,8 @@ int cIndex::GetIFrameBefore(int frameNumber) {
         else before_iFrame = frameIterator->frameNumber;
     }
     if (iFrameBefore < 0) {
-        esyslog("cIndex::GetFrameBefore(): frame (%d): GetIFrameAfter() failed", frameNumber);
+        dsyslog("cIndex::GetIFrameBefore(): frame (%d): failed", frameNumber);
+        dsyslog("cIndex::GetIFrameBefore(): index content: first frame (%d), last frame (%d)", indexVector.front().frameNumber, indexVector.back().frameNumber);
         return -1;
     }
     return iFrameBefore; // frame not (yet) in index

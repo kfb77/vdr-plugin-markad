@@ -1538,11 +1538,17 @@ void cMarkAdStandalone::CheckStop() {
             end = markBefore;
         }
         else {
+            int lastFrame = index->GetLastFrame();
+            int stopPos   = stopA;
+            if (stopPos > lastFrame) {
+                dsyslog("cMarkAdStandalone::CheckStop(): assumed stop (%d) after recording end (%d), use recording end", stopA, lastFrame);
+                stopPos = lastFrame;
+            }
             sMarkAdMark mark = {};
-            mark.position = stopA;  // we are lost, add a end mark at assumed end
+            mark.position = stopPos;  // we are lost, add a end mark at assumed end
             mark.type     = MT_ASSUMEDSTOP;
             AddMark(&mark);
-            end = marks.Get(stopA);
+            end = marks.Get(stopPos);
         }
     }
 
@@ -1565,8 +1571,6 @@ void cMarkAdStandalone::CheckStop() {
     // cleanup detection failures (e.g. very long dark scenes), keep start end end mark, they can be from different type
     if (criteria->GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_UNAVAILABLE) marks.DelFromTo(marks.First()->position + 1, end->position - 1, MT_HBORDERCHANGE, 0xF0);
     if (criteria->GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_UNAVAILABLE) marks.DelFromTo(marks.First()->position + 1, end->position - 1, MT_VBORDERCHANGE, 0xF0);
-
-    gotendmark = true;
 
     DebugMarks();     //  only for debugging
     dsyslog("cMarkAdStandalone::CheckStop(): end check stop");
@@ -2915,15 +2919,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         }
 
         // if no stop mark at the end, add one
-        if (!inBroadCast || gotendmark) {  // in this case we will add a stop mark at the end of the recording
             if (((mark->type & 0x0F) == MT_START) && (!mark->Next())) {      // delete start mark at the end
                 if (marks.GetFirst()->position != mark->position) {        // do not delete start mark
-                    dsyslog("cMarkAdStandalone::CheckMarks(): START mark at the end, deleting %i", mark->position);
+                    esyslog("cMarkAdStandalone::CheckMarks(): START mark at the end, deleting %d", mark->position);
                     marks.Del(mark);
                     break;
                 }
             }
-        }
         mark = mark->Next();
     }
 
@@ -3614,7 +3616,6 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
 void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     if (!mark) return;
     if (!mark->type) return;
-    if (gotendmark) return;
     if (mark->type <= MT_UNDEFINED) {
         esyslog("cMarkAdStandalone::AddMark(): mark type 0x%X invalid", mark->type);
         return;
@@ -5738,13 +5739,6 @@ void cMarkAdStandalone::Recording() {
 // cleanup marks that make no sense
     CheckMarks();
 
-// recording stopped before end of broadcast, add end mark at end of recording
-    if ((inBroadCast) && (!gotendmark) && (decoder->GetFrameNumber() > 0)) {
-        sMarkAdMark tempmark;
-        tempmark.type = MT_RECORDINGSTOP;
-        tempmark.position = decoder->GetFrameNumber();
-        AddMark(&tempmark);
-    }
     if (!abortNow) marks.Save(directory, &macontext, false);
     dsyslog("cMarkAdStandalone::Recording(): end processing files");
 }
@@ -6281,7 +6275,6 @@ void cMarkAdStandalone::RemovePidfile() {
 cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *config) {
     setlocale(LC_MESSAGES, "");
     directory        = directoryParam;
-    gotendmark       = false;
     inBroadCast      = false;
     iStopinBroadCast = false;
     indexFile        = nullptr;
