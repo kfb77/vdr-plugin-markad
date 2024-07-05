@@ -1,15 +1,20 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
-2024-xx-xx: Version 4.0.0
+2024-xx-xx: Version 4.0.0-RC.1
 - new decoder with hardware acceleration support
 - new libavcodec minimum version: 58.54.100 (FFmpeg 4.2.7)
-- remove parameter "saveinfo"
-- remove parameter "pass1only"
-- remove parameter "pass2only"
-- remove parameter "astopoffs"
-- remove parameter "posttimer"
-- add parameter "--hwaccel=<methode>"
+- remove parameter: --saveinfo
+- remove parameter: --pass1only
+- remove parameter: --pass2only
+- remove parameter: --astopoffs
+- remove parameter: --posttimer
+- add parameter::   --hwaccel=<hardware acceleration method>
+                      use hardware acceleration for decoding
+                     <hardware acceleration method> all methods supported by FFmpeg (ffmpeg -hide_banner -hwaccels)
+                                                    e.g.: vdpau, cuda, vaapi, vulkan, ...
+- add parameter:    --perftest>\n"
+                      run decoder performance test and compare software and hardware decoder\n"
 
 2024-06-22: Version 3.6.8
 - detect long black opening credits after vborder broadcast
