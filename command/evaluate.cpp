@@ -1001,8 +1001,8 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
     while (decoder->DecodeNextFrame(false)) {
         if (abortNow) return false;
 
+        if (decoder->GetPacketNumber() >= endPos) break;  // use packet number to prevent overlapping seek (before mark, after mark)
         int frameNumber =  decoder->GetFrameNumber();
-        if (frameNumber >= endPos) break;
 
         sVideoPicture *picture = decoder->GetVideoPicture();
 
