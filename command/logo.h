@@ -146,11 +146,9 @@ private:
      * @param logoSizeFinal   logo size of final selected logo
      * @param logoAspectRatio logo from this video aspect ratio
      * @param corner          logo corner
-     * @param framenumber     frame number
-     * @param debugText       debug messaged appended to file name
      * @return                true if saved successful, false otherwise
      */
-    bool SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const sAspectRatio logoAspectRatio, const int corner, const int framenumber,  const char *debugText);
+    bool SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const sAspectRatio logoAspectRatio, const int corner);
 
     /**
      * check if logo is valid
@@ -215,7 +213,7 @@ private:
      * @param plane           pixel plane number
      * @return                true if there are no pixel, false otherwise
      */
-    static bool IsWhitePlane(const sLogoInfo *actLogoInfo, const sLogoSize *logoSizePlane, const int plane);
+    static bool IsWhitePlane(const sLogoInfo *actLogoInfo, const sLogoSize logoSizePlane, const int plane);
 
     /**
      * check of logo had a changed colour

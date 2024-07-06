@@ -34,9 +34,8 @@ extern int logoSearchTime_ms;
 
 
 cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio) {
-    recDir            = recDirParam;
-    channelName       = channelNameParam;
-
+    recDir      = recDirParam;
+    channelName = channelNameParam;
 
     // requested aspect ratio
     // requestedLogoAspectRatio = requestedAspectRatio;  avoid cppceck warning:
@@ -107,18 +106,22 @@ int cExtractLogo::GetFrameRate() {
     return decoder->GetVideoRealFrameRate();
 }
 
-bool cExtractLogo::IsWhitePlane(const sLogoInfo *actLogoInfo, const sLogoSize *logoSizePlane, const int plane) {
-    if (!actLogoInfo)                 return false;
-    if (!logoSizePlane)                   return false;
-    if (logoSizePlane->height < 1)        return false;
-    if (logoSizePlane->width  < 1)        return false;
+
+bool cExtractLogo::IsWhitePlane(const sLogoInfo *actLogoInfo, const sLogoSize logoSizePlane, const int plane) {
+    if (!actLogoInfo)                     return false;
+    if (logoSizePlane.width  <= 0)        return false;
+    if (logoSizePlane.height <= 0)        return false;
     if ((plane < 0) || (plane >= PLANES)) return false;
 
     int countBlack = 0;
-    for (int i = 0; i < logoSizePlane->height * logoSizePlane->width; i++) {
-        if (actLogoInfo->sobel[plane][i] == 0) {
-            countBlack++;
-            if (countBlack >= 60) return false;   // only if there are some pixel, changed from 5 to 60
+    for (int line = 0; line < logoSizePlane.height; line++) {
+        for (int column = 0; column < logoSizePlane.width; column++) {
+            if (actLogoInfo->sobel[plane][line * (logoSizePlane.width) + column] == 0) {
+                countBlack++;
+                if (countBlack >= 60) {
+                    return false;   // only if there are some pixel, changed from 5 to 60
+                }
+            }
         }
     }
     return true;
@@ -134,7 +137,7 @@ bool cExtractLogo::IsLogoColourChange(sLogoSize *logoSizeFinal, const int corner
     if (!logoSizeFinal) return false;
     if ((corner < 0) || (corner >= CORNERS)) return false;
 
-    sLogoSize logoSizePlane = *logoSizeFinal;
+    sLogoSize logoSizePlane = area.logoSize;   // only find logo was resized, have to heck full sobel transformed sized
     logoSizePlane.height /= 2;  // we use plane > 1 to check
     logoSizePlane.width  /= 2;
 
@@ -143,7 +146,9 @@ bool cExtractLogo::IsLogoColourChange(sLogoSize *logoSizeFinal, const int corner
 
     for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
         count++;
-        if (IsWhitePlane(&(*actLogo), &logoSizePlane, plane)) countWhite++;
+        if (IsWhitePlane(&(*actLogo), logoSizePlane, plane)) {
+            countWhite++;
+        }
     }
     if (count > 0) {
         dsyslog("cExtractLogo::isLogoColourChange(): %4d valid frames in corner %d, plane %d: %3d are white, ratio %3d%%", count, corner, plane, countWhite, countWhite * 100 / count);
@@ -153,7 +158,7 @@ bool cExtractLogo::IsLogoColourChange(sLogoSize *logoSizeFinal, const int corner
 }
 
 
-bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const sAspectRatio logoAspectRatio, const int corner, const int framenumber = -1, const char *debugText = nullptr) { // framenumber >= 0: save from debug function
+bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const sAspectRatio logoAspectRatio, const int corner) {
     if (!actLogoInfo)           return false;
     if (!logoSizeFinal)             return false;
     if (logoSizeFinal->height <= 0) return false;
@@ -163,48 +168,38 @@ bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFin
     if (!channelName)               return false;
 
     for (int plane = 0; plane < PLANES; plane++) {
-        if ((framenumber < 0) && (plane > 0)) {
-            if (IsLogoColourChange(logoSizeFinal, corner, plane)) {  // some channels have transparent or color changing logos, do not save plane > 0 in this case
-                dsyslog("cExtractLogo::Save(): logo is transparent or changed color, do not save plane %d", plane);
-                continue;
-            }
-        }
-        char *buf = nullptr;
+        // pixel count of logo
         int height = logoSizeFinal->height;
         int width  = logoSizeFinal->width;
         if (plane > 0) {
             width  /= 2;
             height /= 2;
         }
-        if (framenumber < 0) { // no debug flag, save logo to recording directory
-            int black = 0;
-            for (int i = 0; i < height * width; i++) {
-                if (actLogoInfo->sobel[plane][i] == 0) black++;
-            }
-            if (plane > 0) {
-                if (black <= 194) {  // do not increase, will loss red krone.tv logo
-                    dsyslog("cExtractLogo::Save(): not enough pixel (%d) in plane %d", black, plane);
-                    continue;
-                }
-                else dsyslog("cExtractLogo::Save(): got enough pixel (%d) in plane %d", black, plane);
-
-            }
-            else dsyslog("cExtractLogo::Save(): %d pixel in plane %d", black, plane);
-
-            if (asprintf(&buf, "%s/%s-A%d_%d-P%d.pgm", recDir, channelName, logoAspectRatio.num, logoAspectRatio.den, plane)==-1) return false;
-            ALLOC(strlen(buf)+1, "buf");
-            dsyslog("cExtractLogo::Save(): store logo plane %d in %s", plane, buf);
-            if (plane == 0) isyslog("logo found for channel: %s %d:%d %dW %dH: %dW %dH %s", channelName, logoAspectRatio.num, logoAspectRatio.den, decoder->GetVideoWidth(), decoder->GetVideoHeight(), logoSizeFinal->width, logoSizeFinal->height, aCorner[corner]);
+        int black = 0;
+        for (int i = 0; i < height * width; i++) {
+            if (actLogoInfo->sobel[plane][i] == 0) black++;
         }
-        else {  // debug function, store logo to /tmp
-            if (debugText) {
-                if (asprintf(&buf, "%s/%06d-%s-A%d_%d-P%d_%s.pgm", "/tmp/",framenumber, channelName, logoAspectRatio.num, logoAspectRatio.den, plane, debugText) == -1) return false;
+        dsyslog("cExtractLogo::Save(): %d pixel in plane %d", black, plane);
+        // if we have transparent logo do not save colored plane, they are from background
+        if (plane > 0) {
+            if (IsLogoColourChange(logoSizeFinal, corner, plane)) {
+                dsyslog("cExtractLogo::Save(): logo is transparent or changed color, do not save plane %d", plane);
+                continue;
             }
-            else {
-                if (asprintf(&buf, "%s/%06d-%s-A%d_%d-P%d.pgm", "/tmp/",framenumber, channelName, logoAspectRatio.num, logoAspectRatio.den, plane) == -1) return false;
+            // do not save planes with too less pixel, detection will not work
+            if (black <= 194) {  // do not increase, will loss red krone.tv logo
+                dsyslog("cExtractLogo::Save(): not enough pixel (%d) in plane %d", black, plane);
+                continue;
             }
-            ALLOC(strlen(buf)+1, "buf");
+            else dsyslog("cExtractLogo::Save(): got enough pixel (%d) in plane %d", black, plane);
         }
+
+        // save logo
+        char *buf = nullptr;
+        if (asprintf(&buf, "%s/%s-A%d_%d-P%d.pgm", recDir, channelName, logoAspectRatio.num, logoAspectRatio.den, plane)==-1) return false;
+        ALLOC(strlen(buf)+1, "buf");
+        dsyslog("cExtractLogo::Save(): store logo plane %d in %s", plane, buf);
+        if (plane == 0) isyslog("logo found for channel: %s %d:%d %dW %dH: %dW %dH %s", channelName, logoAspectRatio.num, logoAspectRatio.den, decoder->GetVideoWidth(), decoder->GetVideoHeight(), logoSizeFinal->width, logoSizeFinal->height, aCorner[corner]);
         // Open file
         FILE *pFile=fopen(buf, "wb");
         if (pFile==nullptr)
@@ -1445,7 +1440,8 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
     if (corner >= CORNERS) return;
 
 #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 1
-    if ((corner == DEBUG_LOGO_CORNER) Save(logoInfo, logoHeight, logoWidth, corner, logoInfo->frameNumber);
+    if ((corner == DEBUG_LOGO_CORNER) // Save(logoInfo, logoHeight, logoWidth, corner, logoInfo->frameNumber);
+            sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width, area.logoSize.height);
 #endif
 
     for (int plane = 0; plane < PLANES; plane++) {
@@ -1487,9 +1483,27 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
                 }
             }
         }
+
 #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 2
-    if (corner == DEBUG_LOGO_CORNER) Save(logoInfo, logoHeight, logoWidth, corner, logoInfo->frameNumber);
+    if (corner == DEBUG_LOGO_CORNER) {
+    for (int plane = 0; plane < PLANES; plane++) {
+            char *fileName = nullptr;
+            if (asprintf(&fileName,"%s/F__%07d-P%1d-C%1d_RemovePixelDefects.pgm", recDir, logoInfo->frameNumber, plane, corner) >= 1) {
+                ALLOC(strlen(fileName)+1, "fileName");
+                if (plane == 0) sobel->SaveSobelPlane(fileName, logoInfo->sobel[plane], area.logoSize.width, area.logoSize.height);
+                else sobel->SaveSobelPlane(fileName,  logoInfo->sobel[plane], area.logoSize.width / 2, area.logoSize.height / 2);
+                FREE(strlen(fileName)+1, "fileName");
+                free(fileName);
+            }
+        }
+    }
 #endif
+
+    /*
+    #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 2
+        if (corner == DEBUG_LOGO_CORNER) Save(logoInfo, logoHeight, logoWidth, corner, logoInfo->frameNumber);
+    #endif
+    */
 }
 
 
@@ -1713,10 +1727,10 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
             if (corner == DEBUG_LOGO_CORNER) {
                 for (int plane = 0; plane < PLANES; plane++) {
                     char *fileName = nullptr;
-                    if (asprintf(&fileName,"%s/F%07d-P%1d-C%1d_SearchLogo.pgm", recDir, frameNumber, plane, corner) >= 1) {
+                    if (asprintf(&fileName,"%s/F__%07d-P%1d-C%1d_SearchLogo.pgm", recDir, frameNumber, plane, corner) >= 1) {
                         ALLOC(strlen(fileName)+1, "fileName");
-                        if (plane == 0) SaveSobel(fileName, area.sobel[plane], area.logoSize.width, area.logoSize.height);
-                        else SaveSobel(fileName, area.sobel[plane], logoSizeFinal.width / 2, logoSizeFinal.height / 2);
+                        if (plane == 0) sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width, area.logoSize.height);
+                        else sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width / 2, area.logoSize.height / 2);
                         FREE(strlen(fileName)+1, "fileName");
                         free(fileName);
                     }

@@ -149,10 +149,6 @@ extern void syslog_with_tid(int priority, const char *format, ...) __attribute__
 #define tsyslog(a...) if (SysLogLevel > 3) fprintf(stdout, a)
 #endif
 
-#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_LOGO_RESIZE) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_LOGO_SAVE) || defined(DEBUG_FRAME_DETECTION)
-bool SaveSobel(const char *fileName, const uchar *picture, const int width, const int height);
-#endif
-
 #if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_DECODER_SEEK) || defined(DEBUG_CUT)
 void SaveVideoPicture(const char *fileName, sVideoPicture *picture);
 #endif
