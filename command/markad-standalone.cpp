@@ -639,11 +639,14 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
             int vpsOffset = vps->GetStop(); // get VPS stop mark
             if (vpsOffset >= 0) {
                 int vpsStopFrame = index->GetFrameFromOffset(vpsOffset * 1000);
-                int diffAfterVPS = (prevLogoStop->position - vpsStopFrame) / macontext.Video.Info.framesPerSecond;
-                if (diffAfterVPS >= 0) {
-                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): VPS stop event at (%d) is %ds after previous logo stop (%d), use this as end mark", vpsStopFrame, diffAfterVPS, prevLogoStop->position);
-                    end = prevLogoStop;
+                if (vpsStopFrame >= 0) {
+                    int diffAfterVPS = (prevLogoStop->position - vpsStopFrame) / macontext.Video.Info.framesPerSecond;
+                    if (diffAfterVPS >= 0) {
+                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): VPS stop event at (%d) is %ds after previous logo stop (%d), use this as end mark", vpsStopFrame, diffAfterVPS, prevLogoStop->position);
+                        end = prevLogoStop;
+                    }
                 }
+                else esyslog("cMarkAdStandalone::Check_LOGOSTOP(): get frame number to VPS stop offset at %ds failed", vpsOffset);
             }
         }
         // check if there could follow closing credits, prevent false detection of closing credits from opening creditis of next broadcast
