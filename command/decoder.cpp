@@ -835,8 +835,14 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
     }
     // seek backward is invalid
     if (packetNumber > seekPacketNumber) {
-        esyslog("cDecoder::SeekToPacket(): can not seek backwards");
+        esyslog("cDecoder::SeekToPacket(): packet (%d): can not seek backwards to (%d)", packetNumber, seekPacketNumber);
         return false;
+    }
+
+    // no seek necessary
+    if (packetNumber == seekPacketNumber) {
+        dsyslog("cDecoder::SeekToPacket(): seek packet number is identical to current position (%d)", packetNumber);
+        return true;
     }
 
     // flush decoder buffer

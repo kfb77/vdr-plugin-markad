@@ -100,39 +100,28 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
 
     int frameRate = decoder->GetVideoFrameRate();
 
-    // calculate overlap check positions
 #define OVERLAP_CHECK_BEFORE 90  // start before stop mark, max found 58s, changed from 120 to 90
 #define OVERLAP_CHECK_AFTER  90  // end after start mark,                  changed from 300 to 90
+
+    // calculate overlap check positions
     int fRangeBegin = (*mark1)->position - (frameRate * OVERLAP_CHECK_BEFORE);
     if (fRangeBegin < 0) fRangeBegin = 0;                    // not before beginning of broadcast
-    fRangeBegin = index->GetIFrameBefore(fRangeBegin);
+    fRangeBegin = index->GetIFrameAfter(fRangeBegin);
     if (fRangeBegin < 0) {
-        dsyslog("cOverlap::ProcessMarksOverlap(): GetIFrameBefore failed for frame (%d)", fRangeBegin);
+        esyslog("cOverlap::ProcessMarksOverlap(): GetIFrameAfter() failed for frame (%d)", fRangeBegin);
         return false;
     }
     int fRangeEnd = (*mark2)->position + (frameRate * OVERLAP_CHECK_AFTER);
-
-    cMark *prevStart = marks->GetPrev((*mark1)->position, MT_START, 0x0F);
-    if (prevStart) {
-        if (fRangeBegin <= (prevStart->position + ((OVERLAP_CHECK_AFTER + 1) * frameRate))) { // previous start mark less than OVERLAP_CHECK_AFTER away, prevent overlapping check
-            dsyslog("cOverlap::ProcessMarksOverlap(): previous stop mark at (%d) very near, unable to check overlap", prevStart->position);
-            return false;
-        }
+    fRangeEnd = index->GetIFrameBefore(fRangeEnd);
+    if (fRangeEnd < 0) {
+        esyslog("cOverlap::ProcessMarksOverlap(): GetIFrameBefore() failed for frame (%d)", fRangeEnd);
+        return false;
     }
 
-    cMark *nextStop = marks->GetNext((*mark2)->position, MT_STOP, 0x0F);
-    if (nextStop) {
-        if (nextStop->position != marks->GetLast()->position) {
-            if (fRangeEnd >= (nextStop->position - ((OVERLAP_CHECK_BEFORE + OVERLAP_CHECK_AFTER + 1) * frameRate))) { // next start mark less than OVERLAP_CHECK_AFTER + OVERLAP_CHECK_BEFORE away, prevent overlapping check
-                fRangeEnd = nextStop->position - ((OVERLAP_CHECK_BEFORE + 1) * frameRate);
-                if (fRangeEnd <= (*mark2)->position) {
-                    dsyslog("cOverlap::ProcessMarksOverlap(): next stop mark at (%d) very near, unable to check overlap", nextStop->position);
-                    return false;
-                }
-                dsyslog("cOverlap::ProcessMarksOverlap(): next stop mark at (%d) to near, reduce check end position", nextStop->position);
-            }
-        }
-        else if (fRangeEnd >= nextStop->position) fRangeEnd = nextStop->position - 2; // do read after last stop mark position because we want to start one frame before end mark with closing credits check
+    // check if search range is possible
+    if (decoder->GetPacketNumber() > fRangeBegin) {
+        dsyslog("cOverlap::ProcessMarksOverlap(): current framenumber (%d) greater then start frame (%d), set start to current frame", decoder->GetFrameNumber(), fRangeBegin);
+        fRangeBegin =  decoder->GetPacketNumber();
     }
 
     // seek to start frame of overlap check
