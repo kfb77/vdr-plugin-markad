@@ -1688,7 +1688,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         if (abortNow) return;
         if (!marks.Get(startPosition) || !marks.Get(stopPosition)) continue;  // at least one of the mark from pair was deleted, nothing to do
 
-        if (decoder->GetFrameNumber() >= stopPosition) {
+        if (decoder->GetPacketNumber() >= stopPosition) {
             dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): overlapping pairs from info logo merge, skip pair logo stop (%d) start (%d)", stopPosition, startPosition);
             continue;
         }
