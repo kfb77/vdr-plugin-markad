@@ -930,7 +930,9 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
     if (rc  < 0) {
         switch (rc) {
         case AVERROR(EAGAIN):
-            tsyslog("cDecoder::SendPacketToDecoder(): packet (%d), stream %d: avcodec_send_packet error EAGAIN", packetNumber, avpkt.stream_index);
+#ifdef DEBUG_DECODER
+            dsyslog("cDecoder::SendPacketToDecoder(): packet (%d), stream %d: avcodec_send_packet error EAGAIN", packetNumber, avpkt.stream_index);
+#endif
             break;
         case AVERROR(ENOMEM):
             dsyslog("cDecoder::SendPacketToDecoder(): packet (%d), stream %d: avcodec_send_packet error ENOMEM", packetNumber, avpkt.stream_index);
@@ -1032,9 +1034,12 @@ int cDecoder::ReceiveFrameFromDecoder() {
     if (rc < 0) {
         switch (rc) {
         case AVERROR(EAGAIN):   // frame not ready, expected with interlaced video
+#ifdef DEBUG_DECODER
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%5d): avcodec_receive_frame error EAGAIN", frameNumber);
+#endif
             break;
         case AVERROR(EINVAL):
-            esyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%i5d): avcodec_receive_frame error EINVAL", frameNumber);
+            esyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%5d): avcodec_receive_frame error EINVAL", frameNumber);
             break;
         case -EIO:              // I/O error
             dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%5d): I/O error (EIO)", frameNumber);
