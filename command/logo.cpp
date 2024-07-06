@@ -183,25 +183,25 @@ bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFin
             }
             if (plane > 0) {
                 if (black <= 194) {  // do not increase, will loss red krone.tv logo
-                    dsyslog("cExtractLogo::Save(): not enough pixel (%i) in plane %i", black, plane);
+                    dsyslog("cExtractLogo::Save(): not enough pixel (%d) in plane %d", black, plane);
                     continue;
                 }
-                else dsyslog("cExtractLogo::Save(): got enough pixel (%i) in plane %i", black, plane);
+                else dsyslog("cExtractLogo::Save(): got enough pixel (%d) in plane %d", black, plane);
 
             }
-            else dsyslog("cExtractLogo::Save(): %i pixel in plane %i", black, plane);
+            else dsyslog("cExtractLogo::Save(): %d pixel in plane %d", black, plane);
 
-            if (asprintf(&buf, "%s/%s-A%i_%i-P%i.pgm", recDir, channelName, logoAspectRatio.num, logoAspectRatio.den, plane)==-1) return false;
+            if (asprintf(&buf, "%s/%s-A%d_%d-P%d.pgm", recDir, channelName, logoAspectRatio.num, logoAspectRatio.den, plane)==-1) return false;
             ALLOC(strlen(buf)+1, "buf");
             dsyslog("cExtractLogo::Save(): store logo plane %d in %s", plane, buf);
             if (plane == 0) isyslog("logo found for channel: %s %d:%d %dW %dH: %dW %dH %s", channelName, logoAspectRatio.num, logoAspectRatio.den, decoder->GetVideoWidth(), decoder->GetVideoHeight(), logoSizeFinal->width, logoSizeFinal->height, aCorner[corner]);
         }
         else {  // debug function, store logo to /tmp
             if (debugText) {
-                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i_%s.pgm", "/tmp/",framenumber, channelName, logoAspectRatio.num, logoAspectRatio.den, plane, debugText) == -1) return false;
+                if (asprintf(&buf, "%s/%06d-%s-A%d_%d-P%d_%s.pgm", "/tmp/",framenumber, channelName, logoAspectRatio.num, logoAspectRatio.den, plane, debugText) == -1) return false;
             }
             else {
-                if (asprintf(&buf, "%s/%06d-%s-A%i_%i-P%i.pgm", "/tmp/",framenumber, channelName, logoAspectRatio.num, logoAspectRatio.den, plane) == -1) return false;
+                if (asprintf(&buf, "%s/%06d-%s-A%d_%d-P%d.pgm", "/tmp/",framenumber, channelName, logoAspectRatio.num, logoAspectRatio.den, plane) == -1) return false;
             }
             ALLOC(strlen(buf)+1, "buf");
         }
