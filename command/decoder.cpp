@@ -484,18 +484,12 @@ int cDecoder::GetVideoFrameRate() {
     // frame rate can not change, ignore this and use cacheid frame rate from first TS file
     if (frameRate > 0) return frameRate;
 
-    if (IsInterlacedFrame() && (GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264) && (GetVideoAvgFrameRate() == 25) && (GetVideoRealFrameRate() == 50)) {
-        frameRate = GetVideoRealFrameRate();
-        dsyslog("cDecoder::GetVideoFrameRate() use real frame rate %d", frameRate);
-    }
-    else {
-        frameRate = GetVideoAvgFrameRate();
-        dsyslog("cDecoder::GetVideoFrameRate() use avg frame rate %d", frameRate);
-    }
+    frameRate = GetVideoRealFrameRate();
     return frameRate;
 }
 
 
+/*
 int cDecoder::GetVideoAvgFrameRate() {
     if (!avctx) return 0;
     for (unsigned int i=0; i<avctx->nb_streams; i++) {
@@ -510,6 +504,7 @@ int cDecoder::GetVideoAvgFrameRate() {
     dsyslog("cDecoder::GetVideoAvgFrameRate(): could not find average frame rate");
     return 0;
 }
+*/
 
 
 int cDecoder::GetVideoRealFrameRate() {

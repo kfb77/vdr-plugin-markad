@@ -165,7 +165,7 @@ public:
      * get average video frame rate taken from avctx->streams[i]->avg_frame_rate
      * @return average video frame rate (avg_frame_rate)
      */
-    int GetVideoAvgFrameRate();
+//    int GetVideoAvgFrameRate();
 
     /**
      * get real video frame rate taken from avctx->streams[i]->r_frame_rate
