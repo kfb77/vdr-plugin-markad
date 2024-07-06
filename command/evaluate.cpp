@@ -588,8 +588,8 @@ int cEvaluateLogoStopStartPair::GetIsClosingCreditsBefore(const int startPositio
 
 int cEvaluateLogoStopStartPair::GetIsClosingCreditsAfter(const int stopPosition) {
     if (logoPairVector.empty()) {
-        esyslog("cEvaluateLogoStopStartPair::GetIsClosingCreditsAfter(): logoPairVector is empty");
-        return STATUS_ERROR;
+        dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCreditsAfter(): logoPairVector is empty");
+        return STATUS_UNKNOWN;
     }
     std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [stopPosition](sLogoStopStartPair const &value) ->bool { if (value.stopPosition == stopPosition) return true; else return false; });
 
