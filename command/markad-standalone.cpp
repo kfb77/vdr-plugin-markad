@@ -2918,13 +2918,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         }
 
         // if no stop mark at the end, add one
-            if (((mark->type & 0x0F) == MT_START) && (!mark->Next())) {      // delete start mark at the end
-                if (marks.GetFirst()->position != mark->position) {        // do not delete start mark
-                    esyslog("cMarkAdStandalone::CheckMarks(): START mark at the end, deleting %d", mark->position);
-                    marks.Del(mark);
-                    break;
-                }
+        if (((mark->type & 0x0F) == MT_START) && (!mark->Next())) {      // delete start mark at the end
+            if (marks.GetFirst()->position != mark->position) {        // do not delete start mark
+                esyslog("cMarkAdStandalone::CheckMarks(): START mark at the end, deleting %d", mark->position);
+                marks.Del(mark);
+                break;
             }
+        }
         mark = mark->Next();
     }
 
