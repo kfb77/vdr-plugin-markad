@@ -1830,8 +1830,11 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
     dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): search for channel start mark");
 
     // delete very early first mark, if channels send ad with 6 channels, this can be wrong
-    cMark *channelStart = marks.GetAround(MAX_ASSUMED * macontext.Video.Info.framesPerSecond, startA, MT_CHANNELSTART);
-    if (channelStart && (channelStart->position < IGNORE_AT_START)) marks.Del(channelStart->position);
+    cMark *channelStart = marks.GetNext(-1, MT_CHANNELSTART);
+    if (channelStart) {
+        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);  // there is a 6 channel audio in broadcast, may we can use it later
+        if (channelStart->position < IGNORE_AT_START) marks.Del(channelStart->position);
+    }
 
     // search channel start mark
     channelStart = marks.GetAround(MAX_ASSUMED * macontext.Video.Info.framesPerSecond, startA, MT_CHANNELSTART);
