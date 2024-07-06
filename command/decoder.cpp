@@ -839,7 +839,7 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
         }
     }
     // seek backward is invalid
-    if (packetNumber >= seekPacketNumber) {
+    if (packetNumber > seekPacketNumber) {
         esyslog("cDecoder::SeekToPacket(): can not seek backwards");
         return false;
     }

@@ -246,10 +246,6 @@ int cIndex::GetTimeFromFrame(const int frameNumber, const bool isVDR) {
         esyslog("cIndex::GetTimeFromFrame(): frame index not initialized");
         return -1;
     }
-#ifdef DEBUG_SAVEMARKS
-    dsyslog("cIndex::GetTimeFromFrame(): frameNumber (%d), isVDR %d", frameNumber, isVDR);
-#endif
-
     if (isVDR) {  // use sum of packet duration
         return GetSumDurationFromFrame(frameNumber);
     }
