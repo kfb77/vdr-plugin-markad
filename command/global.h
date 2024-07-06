@@ -406,9 +406,6 @@ typedef struct sMarkAdContext {
         //!<
         sAspectRatio AspectRatio       = {0};      //!< set from info file and checked after chkSTART, valid for the recording
         //!<
-        bool checkedAspectRatio        = false;    //!< <b>true:</b> current video aspect ratio is verified <br>
-        //!< <b>false:</b> current video aspect ratio is not jet verified
-        //!<
         short int Channels[MAXSTREAMS] = {0};      //!< count of audio channel of each audio stream
         //!<
         char *ChannelName              = nullptr;  //!< name of the channel
@@ -434,8 +431,6 @@ typedef struct sMarkAdContext {
             int height                  = 0;      //!< height of the video in pixel
             //!<
             int pixFmt                  = 0;      //!< pixel format (see libavutil/pixfmt.h)
-            //!<
-            sAspectRatio AspectRatio    = {};     //!< current video aspect ratio, set by decoder for each frame
             //!<
             double framesPerSecond      = 0;      //!< frames per second of the recording
             //!<

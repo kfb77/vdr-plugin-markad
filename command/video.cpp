@@ -1682,12 +1682,6 @@ sMarkAdMarks *cVideo::Process() {
         if (aspectRatioFrame) {
             if (aspectRatioFrameBefore != *aspectRatioFrame) {     // change of aspect ratio
 
-                // we don't know video aspect ratio, we assume current frame aspect ratio is broadcast ascpect ratio and correct this in CheckStart()
-                if ((aspectRatioBroadcast.num == 0) && (aspectRatioBroadcast.den == 0)) {
-                    dsyslog("cVideo::Process(): unknown broadcast aspect ratio, assume %d:%d", aspectRatioFrame->num, aspectRatioFrame->den);
-                    aspectRatioBroadcast = *aspectRatioFrame;
-                }
-
                 // we assume 4:3 broadcast
                 if ((aspectRatioBroadcast.num == 4) && (aspectRatioBroadcast.den == 3)) {
                     if ((aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) AddMark(MT_ASPECTSTART, frameNumber, &aspectRatioFrameBefore, aspectRatioFrame);
