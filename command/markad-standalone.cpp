@@ -5337,7 +5337,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxBefore = 0;
                 }
                 if (diffBefore <= maxBefore) {
-                    mark = marks.Move(mark, sceneStartBefore->position, MT_SCENESTART);
+                    mark = marks.Move(mark, index->GetFrameAfter(sceneStartBefore->position - 1), MT_SCENESTART);  // adjust to i-frame if no full decoding
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -5354,7 +5354,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     break;
                 case MT_LOGOSTART:
                     if (criteria->LogoFadeInOut() & FADE_IN) maxAfter =  0; // with fade in logo, scene after is always false
-                    else                                                              maxAfter = 80; // some channels starts logo short before broadcast
+                    else                                     maxAfter = 80; // some channels starts logo short before broadcast
                     break;
                 case MT_ASPECTSTART:
                     maxAfter =  320;
@@ -5384,7 +5384,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 0;
                 }
                 if ((diffAfter <= maxAfter) && (sceneStartAfter->position != mark->position)) {
-                    mark = marks.Move(mark, sceneStartAfter->position, MT_SCENESTART);
+                    mark = marks.Move(mark, index->GetFrameAfter(sceneStartAfter->position - 1), MT_SCENESTART);  // adjust to i-frame if no full decoding
                     if (mark) {
                         save = true;
                     }
@@ -5474,7 +5474,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 0;
                 }
                 if (diffAfter <= maxAfter) {  // logo is fading out before end of broadcast scene, move forward
-                    mark = marks.Move(mark, sceneStopAfter->position, MT_SCENESTOP);
+                    mark = marks.Move(mark, index->GetFrameBefore(sceneStopAfter->position + 1), MT_SCENESTOP);  // adjust to i-frame if no full decoding
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -5520,7 +5520,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxBefore = 0;
                 }
                 if (diffBefore <= maxBefore) {
-                    mark = marks.Move(mark, sceneStopBefore->position, MT_SCENESTOP);
+                    mark = marks.Move(mark, index->GetFrameBefore(sceneStopBefore->position + 1), MT_SCENESTOP);  // adjust to i-frame if no full decoding
                     if (mark) {
                         save = true;
                     }
