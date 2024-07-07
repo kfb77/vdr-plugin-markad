@@ -770,6 +770,8 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
 
         // send next packet to decoder
         switch (decoderSendState) {
+        case AAC_AC3_PARSE_ERROR_SYNC:
+            dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC", packetNumber, avpkt.stream_index);
         case AVERROR_INVALIDDATA:
             dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: invalid", packetNumber, avpkt.stream_index);
         case 0:  // we had successful send last packet and we can send next packet
@@ -804,10 +806,10 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
             return false;
             break;
         }
-
         // retry receive
         decoderReceiveState = ReceiveFrameFromDecoder();  // retry receive
     }
+
     // now we have received a frame or an error
     switch (decoderReceiveState) {
     case 0:
@@ -984,11 +986,9 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
         case AVERROR_EOF:
             dsyslog("cDecoderWER::SendPacketToDecoder(): packet (%5d): end of file (AVERROR_EOF)", frameNumber);
             break;
-#if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
         case AAC_AC3_PARSE_ERROR_SYNC:
             dsyslog("cDecoder::SendPacketToDecoder(): packet (%5d), stream %d: avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC", packetNumber, avpkt.stream_index);
             break;
-#endif
         default:
             esyslog("cDecoder::SendPacketToDecoder(): packet (%5d), stream %d: avcodec_send_packet failed with rc=%d: %s", packetNumber, avpkt.stream_index, rc, av_err2str(rc));
             break;

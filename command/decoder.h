@@ -35,7 +35,8 @@ extern "C" {
 
 #define AVLOGLEVEL AV_LOG_ERROR
 
-#if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)   // error codes from AC3 parser
+
+// error codes from AC3 parser
 #define AAC_AC3_PARSE_ERROR_SYNC         -0x1030c0a
 #define AAC_AC3_PARSE_ERROR_BSID         -0x2030c0a
 #define AAC_AC3_PARSE_ERROR_SAMPLE_RATE  -0x3030c0a
@@ -43,7 +44,6 @@ extern "C" {
 #define AAC_AC3_PARSE_ERROR_FRAME_TYPE   -0x5030c0a
 #define AAC_AC3_PARSE_ERROR_CRC          -0x6030c0a
 #define AAC_AC3_PARSE_ERROR_CHANNEL_CFG  -0x7030c0a
-#endif
 
 
 // supported libavcodec versions
