@@ -41,7 +41,7 @@ public:
      * @param pts                frame PTS
      * @param frameTimeOffset_ms offset in ms from recording start based sum of duration
      */
-    void Add(const int fileNumber, const int frameNumber, const int64_t pts, const int frameTimeOffset_ms);
+    void Add(const int fileNumber, const int packetNumber, const int64_t pts, const int frameTimeOffset_ms);
 
     /**
      * get frameNumber before PTS

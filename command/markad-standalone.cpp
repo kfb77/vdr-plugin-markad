@@ -5593,6 +5593,18 @@ bool cMarkAdStandalone::ProcessFrame() {
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
         if ((frameNumber > (DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) && (frameNumber < (DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE))) {
+
+            char *fileName = nullptr;
+            if (asprintf(&fileName,"%s/F__%07d.pgm", macontext.Config->recDir, frameNumber) >= 1) {
+                ALLOC(strlen(fileName)+1, "fileName");
+                SaveVideoPicture(fileName, decoder->GetVideoPicture());
+                FREE(strlen(fileName)+1, "fileName");
+                free(fileName);
+            }
+        }
+#endif
+#ifdef DEBUG_PICTURE
+        if ((frameNumber > (DEBUG_PICTURE - DEBUG_PICTURE_RANGE)) && (frameNumber < (DEBUG_PICTURE + DEBUG_PICTURE_RANGE))) {
             char *fileName = nullptr;
             if (asprintf(&fileName,"%s/F__%07d.pgm", macontext.Config->recDir, frameNumber) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
@@ -6419,6 +6431,29 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         delete extractLogo;
         return;
     }
+
+    // check if requested decoding parameter are valid for this video codec
+    char hwaccel[1] = {0};      //!< no hardware acceleration
+    cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, macontext.Config->threads, true, hwaccel, false, nullptr); // full decocode, no hwaccel, no index
+    ALLOC(sizeof(*decoderTest), "decoderTest");
+    decoderTest->DecodeNextFrame(false);  // decode one video frame to get video info
+    if ((decoderTest->IsInterlacedFrame()) && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
+        isyslog("H.264 interlaced video need full decoding");
+        macontext.Config->fullDecode = true;
+    }
+    // H.264 interlaced need FFmpeg 6.1.1 for hwaccel
+#if LIBAVCODEC_VERSION_INT < ((60<<16)+( 31<<8)+102)   // FFmpeg 6.1.1  (e.g. Ubuntu 24.04)
+    if (macontext.Config->hwaccel[0] != 0) {
+        if ((decoderTest->IsInterlacedFrame()) && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
+            isyslog("FFmpeg version does not support hwaccel with H.264 interlaced video, need at least FFmpeg 6.1.1");
+            macontext.Config->hwaccel[0] = 0;
+            macontext.Config->forceHW   = false;
+        }
+
+    }
+#endif
+    FREE(sizeof(*decoderTest), "decoderTest");
+    delete decoderTest;
 
     // check if we have a logo or we can extract it from recording
     if (!CheckLogo() && (config->autoLogo == 0)) {

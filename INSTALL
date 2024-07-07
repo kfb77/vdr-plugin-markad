@@ -2,11 +2,13 @@ Basic Installation
 ==================
 
 Prerequisite:
-- build-essential (gcc >= 4.8.4)
-- git
+- build-essential
 - pkgconf or pkg-config
-- vdr-dev         (>= version 2.2)
-- libavcodec-dev  (>= 58.54.100 FFmpeg 4.2.7)
+- gcc             >= 4.8.4)
+- git
+- vdr-dev         >= 2.2
+- libavcodec-dev  >= 58.54.100 (FFmpeg 4.2.7)
+                  for decoding H.264 interlaced video with hwaccel at least 60.31.102 (FFmpeg 6.1.1)
 - libavformat-dev
 - libavfilter-dev
 - libswresample-dev

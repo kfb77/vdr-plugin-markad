@@ -41,15 +41,15 @@ void cIndex::SetStartPTS(const int64_t start_time_param, const AVRational time_b
 
 
 // add a new entry to the list of frame timestamps
-void cIndex::Add(const int fileNumber, const int frameNumber, const int64_t pts, const int frameTimeOffset_ms) {
-    if ((frameNumber > 0) && (frameTimeOffset_ms == 0)) {
-        esyslog("cIndex::Add(): invalid index entry at frame (%5d): frameTimeOffset_ms %d", frameNumber, frameTimeOffset_ms);
+void cIndex::Add(const int fileNumber, const int packetNumber, const int64_t pts, const int frameTimeOffset_ms) {
+    if ((packetNumber > 0) && (frameTimeOffset_ms == 0)) {
+        esyslog("cIndex::Add(): invalid index entry at packet (%5d): frameTimeOffset_ms %d", packetNumber, frameTimeOffset_ms);
     }
-    if (indexVector.empty() || (frameNumber > indexVector.back().frameNumber)) {
+    if (indexVector.empty() || (packetNumber > indexVector.back().frameNumber)) {
         // add new frame timestamp to vector
         sIndexElement newIndex;
         newIndex.fileNumber         = fileNumber;
-        newIndex.frameNumber        = frameNumber;
+        newIndex.frameNumber        = packetNumber;
         newIndex.pts                = pts;
         newIndex.frameTimeOffset_ms = frameTimeOffset_ms;
 
@@ -60,7 +60,7 @@ void cIndex::Add(const int fileNumber, const int frameNumber, const int64_t pts,
         ALLOC(sizeof(sIndexElement), "indexVector");
 
 #ifdef DEBUG_INDEX
-        dsyslog("cIndex::Add(): fileNumber %d, frameNumber (%5d), PTS %6ld: time offset PTS %6dms, VDR %6dms", fileNumber, frameNumber, pts, GetTimeFromFrame(frameNumber, false),  GetTimeFromFrame(frameNumber, true));
+        dsyslog("cIndex::Add(): fileNumber %d, packetNumber (%5d), PTS %6ld: time offset PTS %6dms, VDR %6dms", fileNumber, packetNumber, pts, GetTimeFromFrame(packetNumber, false),  GetTimeFromFrame(packetNumber, true));
 #endif
 
     }

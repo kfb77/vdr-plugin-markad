@@ -17,6 +17,11 @@
 #define LOG_TRACE 8
 
 
+// write full picture from recording
+// from <framenumber> - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE to <framenumber> + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE
+// #define DEBUG_PICTURE <framenumber>
+// #define DEBUG_PICTURE_RANGE <count frames>
+
 // write full picture from recording and all sobel pictures from logo corner to recording directory
 // from <framenumber> - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE to <framenumber> + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE
 // #define DEBUG_LOGO_DETECT_FRAME_CORNER <framenumber>
@@ -36,7 +41,7 @@
 // #define DEBUG_OVERLAP_FRAME_BEFORE <framenumber>
 // #define DEBUG_OVERLAP_FRAME_AFTER  <framenumber>
 
-// debug logo detection of logo.cpp
+// debug logo extraction of logo.cpp
 // #define DEBUG_LOGO_CORNER TOP_LEFT
 // #define DEBUG_LOGO_CORNER TOP_RIGHT
 // #define DEBUG_LOGO_CORNER BOTTOM_LEFT

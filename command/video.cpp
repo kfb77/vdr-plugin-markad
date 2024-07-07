@@ -418,6 +418,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
 #endif
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+    int frameNumber = decoder->GetFrameNumber();
     if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
         // save corrected full picture
         char *fileName = nullptr;
