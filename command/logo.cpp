@@ -52,7 +52,7 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
     // open first file to init decoder
     if (decoder->ReadNextFile()) {
         // create object for sobel transformation
-        sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 5);  // boundary 5
+        sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 6);  // boundary 6
         ALLOC(sizeof(*sobel), "sobel");
 
         hBorder = new cHorizBorderDetect(decoder, criteria);
