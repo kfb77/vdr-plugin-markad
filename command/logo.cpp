@@ -381,6 +381,12 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMin =  64;
         }
 
+        // krone_tv                16:9  720W  576H:->   64W  74H TOP_RIGHT
+        if (CompareChannelName(channelName, "krone_tv", IGNORE_NOTHING)) {
+            logo.widthMax  =  64;
+            logo.heightMax =  74;
+        }
+
         // NICK_CC+1               16:9  720W  576H:->  146W  88H TOP_LEFT
         // NICK_CC+1               16:9  720W  576H:->  146W  92H TOP_LEFT
         // NICK_CC+1               16:9  720W  576H:->  148W  92H TOP_LEFT
