@@ -77,11 +77,11 @@ public:
      * @param recDir            recording directory
      * @param threadsParam      count threads of FFmpeg decoder
      * @param fullDecodeParam   true if full decode, fals if only decode i-frames
-     * @param hwaccel           true if we use hwaccel
+     * @param hwaccelParam      true if we use hwaccel
      * @param forceHWparam      true if force use of hwaccel on MPEG2 codec
      * @param indexParam        recording index class
      */
-    explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccel, const bool forceHWparam, cIndex *indexParam);
+    explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccelParam, const bool forceHWparam, cIndex *indexParam);
 
     ~cDecoder();
 
@@ -95,12 +95,25 @@ public:
     */
     bool GetFullDecode() const;
 
-#ifdef DEBUG_FRAME_DETECTION
+    /**
+    * get FFmpeg threads
+    */
+    int GetThreads() const;
+
     /**
     * get recording directory
     */
-    const char* GetRecordingDir();
-#endif
+    const char *GetRecordingDir() const;
+
+    /**
+    * get hwaccel method
+    */
+    char *GetHWaccel() const;
+
+    /**
+    * get force hwaccel
+    */
+    bool GetForceHWaccel() const;
 
     /**
     * get decoder thread count
@@ -396,9 +409,11 @@ private:
     //!<
     bool fullDecode                    = false;                   //!< false if we decode only i-frames, true if we decode all frames
     //!<
+    char *hwaccel                      = nullptr;                 //!< hardware accelerated methode
+    //!<
     bool useHWaccel                    = false;                   //!< enable hardware accelerated video decode and encode
     //!<
-    bool forceHW                       = false;                   //!< force use of hardware accelerated video decode and encode for MEPG2
+    bool forceHWaccel                  = false;                   //!< force use of hardware accelerated video decode and encode for MEPG2
     //!<
     enum AVHWDeviceType hwDeviceType   = AV_HWDEVICE_TYPE_NONE ;  //!< hardware device type
     //!<

@@ -84,10 +84,9 @@ public:
      * @param decoderParam          decoder
      * @param indexParam            index
      * @param criteriaParam         detection critaria
-     * @param recDirParam           recording directory
      * @param logoCacheDirParam     logo cache directory
      */
-    explicit cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
+    explicit cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *logoCacheDirParam);
 
     ~cLogoDetect();
 
@@ -176,6 +175,12 @@ private:
      * @return true on success, false otherwise
      */
     bool LoadLogo();
+
+    /**
+     * load logo with new aspect ratio, try to extract from recording if not found
+     * @return true on success, false otherwise
+     */
+    bool ChangeLogoAspectRatio(sAspectRatio *aspectRatio);
 
     /**
      * load logo from file in directory

@@ -5921,7 +5921,7 @@ bool cMarkAdStandalone::CheckLogo() {
 
         // write an early start mark for running recordings to provide a guest start mark for direct play, marks file will be overridden by save of first real mark
         if (macontext.Info.isRunningRecording) {
-            dsyslog("cExtractLogo::SearchLogo(): recording is aktive, now save dummy start mark at pre timer position %ds", macontext.Info.tStart);
+            dsyslog("cMarkAdStandalone::CheckLogo(): recording is aktive, now save dummy start mark at pre timer position %ds", macontext.Info.tStart);
             cMarks marksTMP;
             marksTMP.SetFrameRate(extractLogo->GetFrameRate());
             marksTMP.Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, macontext.Info.tStart, "timer start", true);

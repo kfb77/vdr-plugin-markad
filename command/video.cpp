@@ -18,12 +18,13 @@
 extern bool abortNow;
 
 
-cLogoDetect::cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
+cLogoDetect::cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *logoCacheDirParam) {
     decoder      = decoderParam;
     index        = indexParam;
     criteria     = criteriaParam;
-    recDir       = recDirParam;
     logoCacheDir = logoCacheDirParam;
+
+    recDir       = decoder->GetRecordingDir();
 
     // create object for sobel transformation
     sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);  // boundary = 0
@@ -537,7 +538,6 @@ void cLogoDetect::LogoGreyToColour() {
 }
 
 
-// notice: if we are called by logo detection, <framenumber> is last iFrame before, otherwise it is current frame
 int cLogoDetect::Detect(int *logoFrameNumber) {
     int rPixel       =  0;
     int mPixel       =  0;
@@ -549,15 +549,15 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
 
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
-        dsyslog("cVertBorderDetect::Process(): picture not valid");
+        dsyslog("cLogoDetect::Detect(): picture not valid");
         return VBORDER_ERROR;
     }
     if(!picture->plane[0]) {
-        dsyslog("cVertBorderDetect::Process(): picture plane 0 not valid");
+        dsyslog("cLogoDetect::Detect(): picture plane 0 not valid");
         return VBORDER_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
+        dsyslog("cLogoDetect::Detect(): picture planeLineSize[0] valid");
         return VBORDER_ERROR;
     }
 
@@ -884,18 +884,33 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
 }
 
 
+bool cLogoDetect::ChangeLogoAspectRatio(sAspectRatio *aspectRatio) {
+    if (LoadLogo()) return true;
+    // no logo in cache or recording directory, try to extract from recording
+    dsyslog("cLogoDetect::ChangeLogoAspectRatio(): no logo found in recording directory or logo cache, try to extract from recording");
+    cExtractLogo *extractLogo = new cExtractLogo(recDir, criteria->GetChannelName(), decoder->GetThreads(), decoder->GetHWaccel(), decoder->GetForceHWaccel(), *aspectRatio);
+    ALLOC(sizeof(*extractLogo), "extractLogo");
+    int endPos = extractLogo->SearchLogo(decoder->GetFrameNumber(), true);
+    if (endPos > 0) extractLogo->SearchLogo(endPos, true);                    // no logo found, retry
+    FREE(sizeof(*extractLogo), "extractLogo");
+    delete extractLogo;
+    if (endPos == LOGO_FOUND) return LoadLogo();   // logo in recording found und stored in recording directory
+    return false;
+}
+
+
 int cLogoDetect::Process(int *logoFrameNumber) {
     int frameNumber = decoder->GetFrameNumber();
-
-    if (area.logoAspectRatio != *decoder->GetFrameAspectRatio()) {
-        dsyslog("cLogoDetect::Process(): frame (%d): aspect ratio changed from %d:%d to %d:%d, reload logo", frameNumber, area.logoAspectRatio.num, area.logoAspectRatio.den, decoder->GetFrameAspectRatio()->num, decoder->GetFrameAspectRatio()->den);
-        if (!LoadLogo()) {
-            isyslog("no valid logo found for %s %d:%d, disable logo detection", criteria->GetChannelName(), decoder->GetFrameAspectRatio()->num, decoder->GetFrameAspectRatio()->den);
+    sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
+    if (area.logoAspectRatio != *aspectRatio) {
+        dsyslog("cLogoDetect::Process(): frame (%d): aspect ratio changed from %d:%d to %d:%d, reload logo", frameNumber, area.logoAspectRatio.num, area.logoAspectRatio.den, aspectRatio->num, aspectRatio->den);
+        if (!ChangeLogoAspectRatio(aspectRatio)) {
+            isyslog("no valid logo found for %s %d:%d, disable logo detection", criteria->GetChannelName(), aspectRatio->num, aspectRatio->den);
             criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED);
             area.status = LOGO_UNINITIALIZED;
             return LOGO_ERROR;
         }
-        area.logoAspectRatio = *decoder->GetFrameAspectRatio();
+        area.logoAspectRatio = *aspectRatio;
     }
     return Detect(logoFrameNumber);
 }
@@ -1482,7 +1497,7 @@ cVideo::cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaPa
     vBorderDetect = new cVertBorderDetect(decoder, criteria);
     ALLOC(sizeof(*vBorderDetect), "vBorderDetect");
 
-    logoDetect = new cLogoDetect(decoder, index, criteria, recDir, logoCacheDir);
+    logoDetect = new cLogoDetect(decoder, index, criteria, logoCacheDir);
     ALLOC(sizeof(*logoDetect), "logoDetect");
 }
 

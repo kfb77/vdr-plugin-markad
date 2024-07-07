@@ -75,7 +75,7 @@ static enum AVPixelFormat get_hw_format(__attribute__((unused)) AVCodecContext *
 }
 
 
-cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccel, const bool forceHWparam, cIndex *indexParam) {
+cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccelParam, const bool forceHWparam, cIndex *indexParam) {
     dsyslog("cDecoder::cDecoder(): create decoder object");
     // recording directory
     if (!recordingDir) {
@@ -94,10 +94,11 @@ cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodePa
     if (threads <  1) threads =  1;
     if (threads > 16) threads = 16;
 
-    fullDecode = fullDecodeParam;
-    index      = indexParam;     // index can be nullptr if we use no index (used in logo search)
-    forceHW    = forceHWparam;
-    dsyslog("cDecoder::cDecoder(): init with %d threads, %s, hwaccel: %s %s", threads, (fullDecode) ? "full decode" : "i-frame decode", hwaccel, (forceHW) ? "(force)" : "");
+    fullDecode   = fullDecodeParam;
+    index        = indexParam;     // index can be nullptr if we use no index (used in logo search)
+    hwaccel      = hwaccelParam;
+    forceHWaccel = forceHWparam;
+    dsyslog("cDecoder::cDecoder(): init with %d threads, %s, hwaccel: %s %s", threads, (fullDecode) ? "full decode" : "i-frame decode", hwaccel, (forceHWaccel) ? "(force)" : "");
 
     av_frame_unref(&avFrame);    // reset all fields to default
 
@@ -191,11 +192,24 @@ bool cDecoder::GetFullDecode() const {
 }
 
 
-#ifdef DEBUG_FRAME_DETECTION
-const char* cDecoder::GetRecordingDir() {
+int cDecoder::GetThreads() const {
+    return threads;
+}
+
+
+char *cDecoder::GetHWaccel() const {
+    return hwaccel;
+}
+
+
+bool cDecoder::GetForceHWaccel() const {
+    return forceHWaccel;
+}
+
+
+const char* cDecoder::GetRecordingDir() const {
     return recordingDir;
 }
-#endif
 
 
 int cDecoder::GetThreadCount() const {
@@ -323,7 +337,7 @@ bool cDecoder::InitDecoder(const char *filename) {
         }
 
         dsyslog("cDecoder::InitDecoder(): using decoder for stream %i: codec id %5i -> %s", streamIndex, codec_id, codec->long_name);
-        if (useHWaccel && !forceHW && (codec_id == AV_CODEC_ID_MPEG2VIDEO)) {
+        if (useHWaccel && !forceHWaccel && (codec_id == AV_CODEC_ID_MPEG2VIDEO)) {
             dsyslog("cDecoder::InitDecoder(): hwaccel is slower than software decoding with this codec, disable hwaccel");
             useHWaccel = false;
         }
