@@ -206,13 +206,15 @@ enum eLogoStatus {
  * AC3 audio channel change
  */
 typedef struct sAudioAC3Channels {
-    int channelCount     = 0;     //!< channel count
+    int channelCountAfter  = 0;     //!< channel count after channel change
     //!<
-    int64_t pts          = 0;     //!< packet pts of last change
+    int channelCountBefore = 0;     //!< channel count before channel change
     //!<
-    int videoFrameNumber = -1;    //!< associated video frame number from PTS ring buffer
+    int64_t pts            = -1;     //!< packet pts of last change
     //!<
-    bool processed       = true;  //!< true if channel change is processed by audio channel mark detection
+    int videoFrameNumber   = -1;    //!< associated video frame number from PTS ring buffer
+    //!<
+    bool processed         = true;  //!< true if channel change is processed by audio channel mark detection
     //!<
 } sAudioAC3Channels;
 

@@ -139,6 +139,15 @@ void cDecoder::Reset() {
         sws_freeContext(nv12_to_yuv_ctx);
         nv12_to_yuv_ctx = nullptr;
     }
+    if (avctx) {
+        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
+            audioAC3Channels[streamIndex].channelCountBefore = 0;
+            audioAC3Channels[streamIndex].channelCountAfter  = 0;
+            audioAC3Channels[streamIndex].pts                = -1;
+            audioAC3Channels[streamIndex].videoFrameNumber   = -1;
+            audioAC3Channels[streamIndex].processed          = true;
+        }
+    }
     if (avctx && codecCtxArray) {
         for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
             if (codecCtxArray[streamIndex]) {
@@ -608,16 +617,20 @@ bool cDecoder::ReadPacket() {
 #else
             channelCount = avctx->streams[avpkt.stream_index]->codec->channels;
 #endif
-            if ((channelCount != 2) && (channelCount != 6)) { // only accept valid channel counts
-                dsyslog("cDecoder::ReadPacket(): packet (%d), stream %d: ignore invalid channel count %d", packetNumber, avpkt.stream_index, channelCount);
+            if ((channelCount != 2) && (channelCount != 5) && (channelCount != 6)) { // only accept valid channel counts
+                esyslog("cDecoder::ReadPacket(): packet (%d), stream %d: ignore invalid channel count %d", packetNumber, avpkt.stream_index, channelCount);
             }
             else {
-                if (channelCount != audioAC3Channels[avpkt.stream_index].channelCount) {
-                    dsyslog("cDecoder::ReadPacket(): packet (%d), stream %d: audio channels changed from %d to %d at PTS %" PRId64, packetNumber, avpkt.stream_index, audioAC3Channels[avpkt.stream_index].channelCount, channelCount, avpkt.pts);
-                    if ((channelCount != 2) || (audioAC3Channels[avpkt.stream_index].channelCount != 0)) audioAC3Channels[avpkt.stream_index].processed = false;  // ignore 0 -> 2 at recording start
-                    audioAC3Channels[avpkt.stream_index].channelCount     = channelCount;
-                    audioAC3Channels[avpkt.stream_index].pts              = avpkt.pts;
-                    audioAC3Channels[avpkt.stream_index].videoFrameNumber = -1;
+                if ((channelCount != 0) && (audioAC3Channels[avpkt.stream_index].channelCountBefore == 0)) {  // init with channel start
+                    dsyslog("cDecoder::ReadPacket(): packet (%2d), stream %d: audio channels start with %d channels", packetNumber, avpkt.stream_index, channelCount);
+                    audioAC3Channels[avpkt.stream_index].channelCountBefore = channelCount;
+                }
+                if (audioAC3Channels[avpkt.stream_index].processed && (channelCount != audioAC3Channels[avpkt.stream_index].channelCountBefore)) {  // if we do not use channel mark detection ignore channel changes
+                    dsyslog("cDecoder::ReadPacket(): packet (%d), stream %d: audio channels changed from %d to %d at PTS %" PRId64, packetNumber, avpkt.stream_index, audioAC3Channels[avpkt.stream_index].channelCountBefore, channelCount, avpkt.pts);
+                    audioAC3Channels[avpkt.stream_index].processed          = false;
+                    audioAC3Channels[avpkt.stream_index].channelCountAfter  = channelCount;
+                    audioAC3Channels[avpkt.stream_index].pts                = avpkt.pts;
+                    audioAC3Channels[avpkt.stream_index].videoFrameNumber   = -1;
                 }
             }
         }
@@ -696,13 +709,13 @@ sAudioAC3Channels *cDecoder::GetChannelChange() {
                 dsyslog("cDecoder::GetChannelChange(): stream %d: calculate video from number for PTS %ld", streamIndex, audioAC3Channels[streamIndex].pts);
                 if (fullDecode) {   // use PTS ring buffer to get exact video frame number
                     // 6 -> 2 channel, this will result in stop  mark, use nearest video i-frame with PTS before
-                    if (audioAC3Channels[streamIndex].channelCount == 2) audioAC3Channels[streamIndex].videoFrameNumber = index->GetFrameBeforePTS(audioAC3Channels[streamIndex].pts);
+                    if (audioAC3Channels[streamIndex].channelCountAfter == 2) audioAC3Channels[streamIndex].videoFrameNumber = index->GetFrameBeforePTS(audioAC3Channels[streamIndex].pts);
                     // 2 -> 6 channel, this will result in start mark, use nearest video i-frame with PTS after
                     else audioAC3Channels[streamIndex].videoFrameNumber = index->GetIFrameAfterPTS(audioAC3Channels[streamIndex].pts);
                 }
                 else {              // use i-frame index
                     // 6 -> 2 channel, this will result in stop  mark, use nearest video i-frame with PTS before
-                    if (audioAC3Channels[streamIndex].channelCount == 2) audioAC3Channels[streamIndex].videoFrameNumber = index->GetIFrameBeforePTS(audioAC3Channels[streamIndex].pts);
+                    if (audioAC3Channels[streamIndex].channelCountAfter == 2) audioAC3Channels[streamIndex].videoFrameNumber = index->GetIFrameBeforePTS(audioAC3Channels[streamIndex].pts);
                     // 2 -> 6 channel, this will result in start mark, use nearest video i-frame with PTS after
                     else audioAC3Channels[streamIndex].videoFrameNumber = index->GetIFrameAfterPTS(audioAC3Channels[streamIndex].pts);
                 }

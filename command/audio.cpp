@@ -78,19 +78,15 @@ void cAudio::Silence() {
 
 void cAudio::ChannelChange() {
     // check channel change
-    sAudioAC3Channels *audioAC3 = decoder->GetChannelChange();   // check channel change
-    if (audioAC3) {   // we have unprocessed channel change
-        switch (audioAC3->channelCount) {
-        case 2:  // channel stop
-            AddMark(MT_CHANNELSTOP, audioAC3->videoFrameNumber, 6, 2);
-            break;
-        case 6:   // channel start
-            AddMark(MT_CHANNELSTART,  audioAC3->videoFrameNumber, 2, 6);
-            break;
-        default:
-            esyslog("cAudio::Process(): invalid channel count %d", audioAC3->channelCount);
-        }
-        audioAC3->processed = true;
+    sAudioAC3Channels *channelChange = decoder->GetChannelChange();   // check channel change
+    if (channelChange) {   // we have unprocessed channel change
+        dsyslog("cAudio::ChannelChange(): frame (%d): AC3 audio stream changed channel from %d to %d", channelChange->videoFrameNumber, channelChange->channelCountBefore, channelChange->channelCountAfter);
+
+        if (channelChange->channelCountAfter == 2) AddMark(MT_CHANNELSTOP, channelChange->videoFrameNumber, channelChange->channelCountBefore, channelChange->channelCountAfter);
+        else if ((channelChange->channelCountAfter == 5) || (channelChange->channelCountAfter == 6)) AddMark(MT_CHANNELSTART, channelChange->videoFrameNumber, channelChange->channelCountBefore, channelChange->channelCountAfter);
+        else esyslog("cAudio::Process(): invalid channel count %d", channelChange->channelCountAfter);
+        channelChange->channelCountBefore = channelChange->channelCountAfter;
+        channelChange->processed          = true;
     }
 }
 
