@@ -439,7 +439,6 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
 
 // redo sobel transformation with reduced brightness and verfy result picture
     // redo sobel transformation
-    int rPixelBefore = area.rPixel[0];
     area.rPixel[0] = 0;
     sobel->SobelPlane(picture, &area, 0);       // only plane 0
     int rPixel = area.rPixel[0];
@@ -478,52 +477,14 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
 #endif
 
     // check background pattern
-    int black = 0;
-    for (int i = 0; i < area.logoSize.height * area.logoSize.width; i++) {
-        if (area.sobel[0][i] == 0) black++;
-    }
-    int quoteBlack   = 100 * black  /  (area.logoSize.height * area.logoSize.width);
-    int quoteInverse = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);
+    int quoteInverse  = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);  // quote of pixel from background
+    int rPixelWithout = rPixel * (100 - quoteInverse) / 100;
+
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): area intensity %3d, black quote: %d%%, inverse quote %d%%", frameNumber, area.intensity, quoteBlack, quoteInverse);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", frameNumber, rPixel, quoteInverse, rPixelWithout);
 #endif
 
-    // prevent to miss logo stop from background pattern
-    // check if we have new matches after brightness reduction only from backbround patten
-    // current state logo visable, no logo before brightness reduction, unclear result after, hight backgrund patten quote
-    //
-    // exmample no logo visible
-    // area intensity 80, black quote: 32%, inverse quote 32%
-    // area intensity 41, black quote: 27%, inverse quote 24%
-    // area intensity 37, black quote: 25%, inverse quote 23%
-    // area intensity 32, black quote: 25%, inverse quote 22%
-    if ((area.status == LOGO_VISIBLE) && (area.intensity <= 86) && (rPixelBefore <= logo_imark) && (rPixel > logo_imark) && (rPixel < logo_vmark) &&
-            (quoteBlack >= 25) && (quoteInverse >= 22)) {
-#ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): inverse quote above limit, assume matches only from patten and logo is invisible", frameNumber);
-#endif
-        area.rPixel[0] = logo_imark;  // set logo machtes to invisible
-        return true;
-    }
-
-    // prevent get false logo start detection from patten background
-    // check if we have new matches after brightness reduction only from backbround patten
-    // current state logo invisable, unclear result before brightness reduction, logo visable after, hight backgrund patten quote
-    //
-    // example no logo visibale
-    // area intensity 122, black quote: 37%, inverse quote 35%
-    // area intensity  93, black quote: 52%, inverse quote 51%
-    // area intensity  31, black quote: 22%, inverse quote 19%
-    // area intensity  30, black quote: 21%, inverse quote 18%
-    // area intensity  30, black quote: 20%, inverse quote 18%
-    // area intensity  29, black quote: 20%, inverse quote 18%
-    // area intensity  29, black quote: 20%, inverse quote 17%
-    // area intensity  27, black quote: 18%, inverse quote 15%
-    // area intensity  27, black quote: 18%, inverse quote 15%
-    if ((area.status == LOGO_INVISIBLE) && (rPixelBefore < logo_vmark) && (rPixel > logo_vmark) &&
-            (area.intensity >= 27) && (quoteBlack >= 18) && (quoteInverse >= 15)) {
-        return false; // there is a pattern on the backbround, no logo detection possible
-    }
+    rPixel = rPixelWithout; // now use this result for detection
 
     // now we trust logo visible
     if (rPixel >= logo_vmark) {
@@ -709,43 +670,36 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
             return LOGO_NOCHANGE;
         }
 
-        // background pattern can mess up soble transformation result
+        // background pattern can mess up soble transformation result, double check logo state changes
         if (((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark)) || // logo state was invisible, new logo state visible
                 // prevent to detect background pattern as new logo start
                 // logo state was visible, new state unclear result
                 // ignore very bright pictures, we can have low logo result even on pattern background, better do brighntness reduction before to get a clear result
-                ((area.status == LOGO_VISIBLE) && (rPixel > logo_imark) && (rPixel < logo_vmark) && area.intensity <= 141)) {
-            int black   = 0;
-            for (int i = 0; i < area.logoSize.height * area.logoSize.width; i++) {
-                if (area.sobel[0][i]     == 0) black++;
-            }
-            int quoteInverse = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);
-#ifdef DEBUG_LOGO_DETECTION
-            int quoteBlack   = 100 * black  /  (area.logoSize.height * area.logoSize.width);
-            dsyslog("cLogoDetect::Detect(): frame (%6d): area intensity %3d, black quote: %d%%, inverse quote %d%%", frameNumber, area.intensity, quoteBlack, quoteInverse);
-#endif
+                ((area.status == LOGO_VISIBLE) && (rPixel > logo_imark) && area.intensity <= 141)) {
+            int quoteInverse  = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);  // quote of pixel from background
             int rPixelWithout = rPixel * (100 - quoteInverse) / 100;
+
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d): rPixel without pattern quote %d, trust logo visible", frameNumber, rPixelWithout);
+            dsyslog("cLogoDetect::Detect():           frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", frameNumber, rPixel, quoteInverse, rPixelWithout);
 #endif
+
             rPixel = rPixelWithout; // now use this result for detection
         }
 
-// if current state is logo visible or uninitialized (to get an early logo start) and we have a lot of matches, now we trust logo is still there
-        if (!logoStatus &&
-                ((area.status == LOGO_VISIBLE) ||  (area.status == LOGO_UNINITIALIZED)) &&
-                (rPixel > logo_imark)) {
+// if current state is logo uninitialized (to get an early logo start) and we have a lot of matches, trust logo is there
+        if (!logoStatus && (area.status == LOGO_UNINITIALIZED) && (rPixel > logo_imark)) {
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d) high machtes, trust logo still visible", frameNumber);
+            dsyslog("cLogoDetect::Detect(): frame (%6d) state uninitialized and some machtes, trust logo visible", frameNumber);
 #endif
             logoStatus = true;
         }
 
         // check if we have a valid logo visible/invisible result
 #define MAX_AREA_INTENSITY  56    // limit to reduce brightness
-        if (!logoStatus && (area.intensity <= MAX_AREA_INTENSITY) && (rPixel <= logo_imark)) logoStatus = true;  // we have no bright picture so we have a valid logo invisible result
+        if ((area.intensity <= MAX_AREA_INTENSITY) && (rPixel <= logo_imark)) logoStatus = true; // we have no bright picture so we have a valid logo invisible result
+        if (rPixel >= logo_vmark) logoStatus = true;                                             // trust logo visible even on bright background
 
-        // if we have still no match, try to copy colour planes into grey planes
+        // if we have still no valid match, try to copy colour planes into grey planes
         // some channel use coloured logo at broadcast start
         // for performance reason we do this only for the known channel
         if (!logoStatus && criteria->LogoColorChange()) {
@@ -766,15 +720,13 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
                 sobel->SobelPlane(picture, &area, 0);  // plane 0
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
                 if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
-                    /* TODO
-                            char *fileName = nullptr;
-                            if (asprintf(&fileName,"%s/F__%07d_corrected.pgm", recDir, frameNumber) >= 1) {
-                                ALLOC(strlen(fileName) + 1, "fileName");
-                                SaveVideoPicture(fileName, decoder->GetVideoPicture());
-                                FREE(strlen(fileName) + 1, "fileName");
-                                free(fileName);
-                            }
-                    */
+                    char *fileName = nullptr;
+                    if (asprintf(&fileName,"%s/F__%07d_corrected.pgm", recDir, frameNumber) >= 1) {
+                        ALLOC(strlen(fileName) + 1, "fileName");
+                        SaveVideoPicture(fileName, decoder->GetVideoPicture());
+                        FREE(strlen(fileName) + 1, "fileName");
+                        free(fileName);
+                    }
                 }
 #endif
                 rPixel += area.rPixel[plane];
