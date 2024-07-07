@@ -1329,6 +1329,9 @@ sAspectRatio *cDecoder::GetFrameAspectRatio() {
     DAR.den = avFrame.sample_aspect_ratio.den;
     if ((DAR.num == 0) || (DAR.den == 0)) {
         esyslog("cDecoder::GetAspectRatio(): packet (%d), frame (%d): invalid aspect ratio (%d:%d)", packetNumber, frameNumber, DAR.num, DAR.den);
+        if ((beforeDAR.num != 0) && (beforeDAR.den != 0)) {  // maybe packet error, use DAR from frame before
+            return &beforeDAR;
+        }
         return nullptr;
     }
     if ((DAR.num == 1) && (DAR.den == 1)) {
@@ -1379,5 +1382,6 @@ sAspectRatio *cDecoder::GetFrameAspectRatio() {
             return nullptr;
         }
     }
+    beforeDAR = DAR;
     return &DAR;
 }

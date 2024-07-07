@@ -445,6 +445,8 @@ private:
     //!<
     sAspectRatio DAR                   = {0};                     //!< display aspect ratio of current frame
     //!<
+    sAspectRatio beforeDAR             = {0};                     //!< display aspect ratio of frame before
+    //!<
     int64_t sumDuration                =  0;                      //!< current offset from recording start, sum duration of all video packets in AVStream->time_base
     //!<
     int64_t offsetTime_ms_LastFile     =  0;                      //!< offset from recording start of last file in ms

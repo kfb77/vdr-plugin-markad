@@ -1662,6 +1662,10 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
 
         // stop search if different aspect ratio
         sAspectRatio *videoAspectRatio = decoder->GetFrameAspectRatio();
+        if (!videoAspectRatio) {
+            esyslog("cExtractLogo::SearchLogo(): frame (%d): aspect ratio invalid", frameNumber);
+            break;
+        }
         if (logoAspectRatio != *videoAspectRatio) {
             dsyslog("cExtractLogo::SearchLogo(): frame (%d): aspect ratio requested %d:%d but video aspect ration %d:%d", frameNumber, logoAspectRatio.num, logoAspectRatio.den, videoAspectRatio->num, videoAspectRatio->den);
             break;

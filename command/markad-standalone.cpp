@@ -2449,8 +2449,7 @@ void cMarkAdStandalone::CheckStart() {
     bool checkedAspectRatio = false;
     sAspectRatio *aspectRatioFrame = decoder->GetFrameAspectRatio();
     // end of start part can not be 4:3 if broadcast is 16:9
-    if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9) &&
-            (aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) {
+    if (aspectRatioFrame && (macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9) && (aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) {
         dsyslog("cMarkAdStandalone::CheckStart(): broadcast at end of start part is 4:3, VDR info tells 16:9, info file is wrong");
         SwapAspectRatio();
         checkedAspectRatio = true;  // now we are sure, aspect ratio is correct
