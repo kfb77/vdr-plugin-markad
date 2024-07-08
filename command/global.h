@@ -442,19 +442,6 @@ typedef struct sMarkAdContext {
         //!<
 
         /**
-         * logo info structure
-         */
-        struct sLogo {
-            int width          = 0;       //!< width of logo
-            //!<
-            int height         = 0;       //!< height of logo
-            //!<
-            int corner         = -1;      //!< corner of logo, -1 for undefined
-            //!<
-        } Logo;                           //!< logo infos
-        //!<
-
-        /**
          * video picture data
          */
         struct sData {
