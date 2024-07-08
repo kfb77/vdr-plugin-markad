@@ -415,8 +415,6 @@ typedef struct sMarkAdContext {
         bool timerVPS                  = false;    //!< <b>true:</b> recording is from a VPS controlled timer <br>
         //!< <b>false:</b> recording is not from a VPS controlled timer
         //!<
-        int vPidType                   = 0;        //!< video packet identifier type
-        //!<
     } Info; //!< global markad state infos
     //!<
 } sMarkAdContext;

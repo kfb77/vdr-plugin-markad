@@ -2551,7 +2551,7 @@ void cMarkAdStandalone::CheckStart() {
     }
 
     // log video infos
-    if (macontext.Info.vPidType == MARKAD_PIDTYPE_VIDEO_H264) isyslog("HD video with aspect ratio of %d:%d detected", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
+    if (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264) isyslog("HD video with aspect ratio of %d:%d detected", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
     else isyslog("SD video with aspect ratio of %d:%d detected", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
 
     // before we can check border marks, we have to check with is valid
@@ -5690,9 +5690,8 @@ void cMarkAdStandalone::Recording() {
     audio = new cAudio(decoder, index, criteria);
     ALLOC(sizeof(*audio), "audio");
 
-    // video tyoe
-    macontext.Info.vPidType = decoder->GetVideoType();
-    if (macontext.Info.vPidType == 0) {
+    // video type
+    if (decoder->GetVideoType() == 0) {
         dsyslog("cMarkAdStandalone::Recording(): video type not set");
         abortNow = true;
         return;
