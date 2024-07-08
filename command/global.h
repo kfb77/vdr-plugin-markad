@@ -331,6 +331,36 @@ typedef struct sMarkAdConfig {
 
 
 /**
+ * markad context structure
+ */
+typedef struct sMarkAdContext {
+    sMarkAdConfig *Config; //!< markad configuration
+    //!<
+
+    /**
+     * global markad state structure
+     */
+    struct sInfo {
+        bool isRunningRecording        = false;    //!< <b>true:</b> markad is running during recording <br>
+        //!< <b>false:</b>  markad is running after recording
+        //!<
+        int tStart                     = -1;       //!< offset of timer start to recording start (pre timer)
+        //!<
+        sAspectRatio AspectRatio       = {0};      //!< set from info file and checked after chkSTART, valid for the broadcast
+        //!<
+//        short int Channels[MAXSTREAMS] = {0};      //!< count of audio channel of each audio stream
+        //!<
+        char *ChannelName              = nullptr;  //!< name of the channel
+        //!<
+        bool timerVPS                  = false;    //!< <b>true:</b> recording is from a VPS controlled timer <br>
+        //!< <b>false:</b> recording is not from a VPS controlled timer
+        //!<
+    } Info; //!< global markad state infos
+    //!<
+} sMarkAdContext;
+
+
+/**
  * frame overlap start and stop positions
  */
 typedef struct sOverlapPos {
@@ -381,7 +411,6 @@ typedef struct sMarkAdMarks {
 } sMarkAdMarks;
 
 
-
 #define MARKAD_PIDTYPE_VIDEO_H262 0x10
 #define MARKAD_PIDTYPE_VIDEO_H264 0x11
 #define MARKAD_PIDTYPE_VIDEO_H265 0x12
@@ -389,33 +418,4 @@ typedef struct sMarkAdMarks {
 #define MARKAD_PIDTYPE_AUDIO_AC3  0x20
 #define MARKAD_PIDTYPE_AUDIO_MP2  0x21
 
-
-/**
- * markad context structure
- */
-typedef struct sMarkAdContext {
-    sMarkAdConfig *Config; //!< markad configuration
-    //!<
-
-    /**
-     * global markad state structure
-     */
-    struct sInfo {
-        bool isRunningRecording        = false;    //!< <b>true:</b> markad is running during recording <br>
-        //!< <b>false:</b>  markad is running after recording
-        //!<
-        int tStart                     = -1;       //!< offset of timer start to recording start (pre timer)
-        //!<
-        sAspectRatio AspectRatio       = {0};      //!< set from info file and checked after chkSTART, valid for the recording
-        //!<
-        short int Channels[MAXSTREAMS] = {0};      //!< count of audio channel of each audio stream
-        //!<
-        char *ChannelName              = nullptr;  //!< name of the channel
-        //!<
-        bool timerVPS                  = false;    //!< <b>true:</b> recording is from a VPS controlled timer <br>
-        //!< <b>false:</b> recording is not from a VPS controlled timer
-        //!<
-    } Info; //!< global markad state infos
-    //!<
-} sMarkAdContext;
 #endif

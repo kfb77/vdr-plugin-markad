@@ -6088,12 +6088,10 @@ void cMarkAdStandalone::LoadInfo() {
                         // if we have DolbyDigital 2.0 disable AC3
                         if (strchr(descr, '2')) {
                             dsyslog("broadcast with DolbyDigital2.0 (from vdr info)");
-                            macontext.Info.Channels[stream] = 2;
                         }
                         // if we have DolbyDigital 5.1 disable video decoding
                         if (strchr(descr, '5')) {
                             dsyslog("broadcast with DolbyDigital5.1 (from vdr info)");
-                            macontext.Info.Channels[stream] = 6;
                         }
                     }
                 }
