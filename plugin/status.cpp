@@ -744,7 +744,7 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
             esyslog("markad: asprintf hwaccelOption ouf of memory");
             return false;
         }
-        ALLOC(strlen(autoLogoOption)+1, "hwaccelOption");
+        ALLOC(strlen(hwaccelOption) + 1, "hwaccelOption");
     }
 
     cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
@@ -763,13 +763,17 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
                                    logodir,
                                    cmdOption,
                                    FileName);
-    FREE(strlen(autoLogoOption)+1, "autoLogoOption");
+    FREE(strlen(autoLogoOption) + 1, "autoLogoOption");
     free(autoLogoOption);
-    FREE(strlen(svdrPortOption)+1, "svdrPortOption");
+    FREE(strlen(svdrPortOption) + 1, "svdrPortOption");
     free(svdrPortOption);
     if (cmdOption) {
         FREE(strlen(cmdOption) + 1, "cmdOption");
         free(cmdOption);
+    }
+    if (hwaccelOption) {
+        FREE(strlen(hwaccelOption) + 1, "hwaccelOption");
+        free(hwaccelOption);
     }
 
     usleep(1000000); // wait 1 second
