@@ -455,6 +455,12 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         return nullptr;  // no logo stop mark around assumed stop
     }
 
+    // if not used until now, init object
+    if (!evaluateLogoStopStartPair) {
+        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
+        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    }
+
     cMark *lEnd = nullptr;
     // try to select best logo end mark based on closing credits follow
     if (criteria->IsClosingCreditsChannel()) {
