@@ -419,52 +419,5 @@ typedef struct sMarkAdContext {
         //!<
     } Info; //!< global markad state infos
     //!<
-
-    /**
-     * audio structure
-     */
-    struct sAudio {
-        /**
-         * audio stream info structure
-         */
-        struct sInfo {
-            short int Channels[MAXSTREAMS] = {0};    //!< number of audio channels from each AC3 streams
-            //!<
-            int volume                     = -1;     //!< current volume of first MP2 audio stream
-            //!<
-            int64_t PTS                    = -1;     //!< current PTS of packet from first MP2 audio stream
-            //!<
-            int codec_id[MAXSTREAMS]       = {0};    //!< codec id of the audio stream
-            //!<
-            int SampleRate                 = 0;      //!< audio sample rate
-            //!<
-            bool channelChange             = false;  //!< a valid channel change is detected in this recording
-            //!<
-            int channelChangeFrame         = -1;     //!< frame number of last channel change
-            //!<
-            int64_t channelChangePTS       = -1;     //!< presentation timestamp of last audio channel change
-            //!<
-        } Info; //!< audio stream infos
-        //!<
-
-        /**
-         * audio data structure
-         */
-        struct sData {
-            bool Valid;  //!< <b>true:</b> audio sample buffer contains valid data <br>
-            //!< <b>false:</b> audio sample buffer is not valid
-            //!<
-
-            short *SampleBuf; //!< audio sample buffer
-            //!<
-
-            int SampleBufLen; //!< length of audio sample buffer
-            //!<
-
-        } Data;  //!< audio data
-        //!<
-    } Audio;  //!< audio stream infos, options and data
-    //!<
-
 } sMarkAdContext;
 #endif

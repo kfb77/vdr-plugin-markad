@@ -2435,7 +2435,7 @@ void cMarkAdStandalone::CheckStart() {
         cMark *stopMark = marks.GetNext(0, MT_CHANNELSTOP);
         if (stopMark) {
             int diff = stopMark->position / decoder->GetVideoFrameRate();
-            if ((diff < 30) && (marks.Count(MT_CHANNELSTART) == 0)) {
+            if ((diff < 30) && (marks.Count(MT_CHANNELSTART, 0xFF) == 0)) {
                 dsyslog("cMarkAdStandalone::CheckStart(): delete stop mark (%d) without start mark", stopMark->position);
                 marks.Del(stopMark->position);
             }
@@ -3754,13 +3754,12 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
-        if (!macontext.Audio.Info.channelChange && (mark->position > stopA / 2)) {
+        if ((marks.Count(MT_CHANNELSTART, 0xFF) == 0) && (mark->position > stopA / 2)) {
             dsyslog("AddMark(): first channel start at frame (%d) after half of assumed recording length at frame (%d), this is start mark of next braoscast", mark->position, stopA / 2);
         }
-        else macontext.Audio.Info.channelChange = true;
         break;
     case MT_CHANNELSTOP:
-        if ((mark->position > frameCheckStart) && (mark->position < stopA * 2 / 3) && !macontext.Audio.Info.channelChange) {
+        if ((mark->position > frameCheckStart) && (mark->position < stopA * 2 / 3) && (marks.Count(MT_CHANNELSTART, 0xFF) == 0)) {
             dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after frameCheckStart, disable video decoding detection now");
             // disable all video detection
             video->ClearBorder();
@@ -3776,7 +3775,6 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             }
             if (doneCheckStart) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we have selected a start mark
         }
-        macontext.Audio.Info.channelChange = true;
         if (asprintf(&comment, "audio channel change from %d to %d (%d) ", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");

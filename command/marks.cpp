@@ -152,8 +152,8 @@ void cMarks::Debug() {           // write all marks to log file
 
 
 int cMarks::Count(const int type, const int mask) const {
-    if (type == 0xFF) return count;
     if (!first) return 0;
+    if (type == 0xFF) return count;
 
     int ret = 0;
     cMark *mark = first;
