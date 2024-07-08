@@ -5291,7 +5291,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 int maxBefore = 0;
                 switch (mark->type) {
                 case MT_ASSUMEDSTART:
-                    maxBefore = 600;   // changed from 360 to 600
+                    maxBefore = 600;
                     break;
                 case MT_LOGOSTART:
                     // rule 1: logo start very short before broadcast start
@@ -5301,11 +5301,11 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     else if ((criteria->LogoFadeInOut() & FADE_IN) && (diffBefore >= 1700) && (diffAfter <= 20)) diffBefore = INT_MAX;
 
                     if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 4800;
-                    else                                                               maxBefore = 1599;
+                    else                                     maxBefore = 1599;
                     break;
                 case MT_CHANNELSTART:
-                    if (diffAfter <= 1060) diffBefore = INT_MAX;
-                    maxBefore = 1060;   // chnaged from 1040 to 1060
+                    if (diffAfter <= 460) diffBefore = INT_MAX;
+                    maxBefore = 1060;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
@@ -5316,7 +5316,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         // rule 2: scene blend around silence, both are invalid
                         else if ((diffBefore >= 4120) && (diffAfter >= 1160)) {
                             diffBefore = INT_MAX;
-                            diffAfter = INT_MAX;
+                            diffAfter  = INT_MAX;
                         }
                         maxBefore = 1180;
                         break;
@@ -5360,7 +5360,10 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter =  320;
                     break;
                 case MT_CHANNELSTART:
-                    maxAfter = 1800;  // changed from 1020 to 1800
+                    maxAfter = 1800;
+                    break;
+                case MT_TYPECHANGESTART:
+                    maxAfter =   40;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
