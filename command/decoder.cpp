@@ -834,6 +834,7 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
 
 
 sVideoPicture *cDecoder::GetVideoPicture() {
+    if (!frameValid) return nullptr;
     bool valid = true;
     for (int i = 0; i < PLANES; i++) {
         if (avFrame.data[i]) {
@@ -1014,11 +1015,8 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
 
 
 int cDecoder::ReceiveFrameFromDecoder() {
+    frameValid = false;
     if (!avctx) return AVERROR_EXIT;
-
-#ifdef DEBUG_DECODER
-//   dsyslog("cDecoder::ReceiveFrameFromDecoder(): avpkt.stream_index %d", avpkt.stream_index);
-#endif
 
     // init avFrame for new frame
     av_frame_unref(&avFrame);
@@ -1163,7 +1161,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
         dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%d), stream %d: frame corrupt: decode_error_flags %d, decoding errors %d", frameNumber, avpkt.stream_index, avFrame.decode_error_flags, decodeErrorCount);
         av_frame_unref(&avFrame);
         avcodec_flush_buffers(codecCtxArray[avpkt.stream_index]);
-        rc = -EAGAIN;   // no valid frame, try decode next
+        return -EAGAIN;   // no valid frame, try decode next
     }
 
 // we got a video frame, set new frame number and offset from start adn build index
@@ -1183,7 +1181,9 @@ int cDecoder::ReceiveFrameFromDecoder() {
         }
     }
     Time(false);
-    return rc;
+    // decoding successful, frame is valid
+    frameValid = true;
+    return 0;
 }
 
 
@@ -1357,10 +1357,11 @@ bool cDecoder::IsInterlacedFrame() const {
 
 
 sAspectRatio *cDecoder::GetFrameAspectRatio() {
+    if (!frameValid) return &beforeDAR;
     DAR.num = avFrame.sample_aspect_ratio.num;
     DAR.den = avFrame.sample_aspect_ratio.den;
     if ((DAR.num == 0) || (DAR.den == 0)) {
-        esyslog("cDecoder::GetAspectRatio(): packet (%d), frame (%d): invalid aspect ratio (%d:%d)", packetNumber, frameNumber, DAR.num, DAR.den);
+        esyslog("cDecoder::GetFrameAspectRatio(): packet (%d), frame (%d): invalid aspect ratio (%d:%d)", packetNumber, frameNumber, DAR.num, DAR.den);
         if ((beforeDAR.num != 0) && (beforeDAR.den != 0)) {  // maybe packet error, use DAR from frame before
             return &beforeDAR;
         }
@@ -1374,7 +1375,7 @@ sAspectRatio *cDecoder::GetFrameAspectRatio() {
             DAR.den = 9;
         }
         else {
-            esyslog("cDecoder::GetAspectRatio(): unknown aspect ratio to video width %d hight %d at frame %d)", avFrame.width, avFrame.height, frameNumber);
+            esyslog("cDecoder::GetFrameAspectRatio(): packet (%d), frame (%d): unknown aspect ratio to video width %d hight %d", packetNumber, frameNumber, avFrame.width, avFrame.height);
             return nullptr;
         }
     }
@@ -1410,7 +1411,7 @@ sAspectRatio *cDecoder::GetFrameAspectRatio() {
             DAR.den =  9;
         }
         else {
-            esyslog("cDecoder::GetAspectRatio(): unknown aspect ratio (%d:%d) at frame (%d)", DAR.num, DAR.den, frameNumber);
+            esyslog("cDecoder::GetFrameAspectRatio(): packet (%d), frame (%d): unknown aspect ratio (%d:%d)", packetNumber, frameNumber, DAR.num, DAR.den);
             return nullptr;
         }
     }

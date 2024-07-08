@@ -438,6 +438,8 @@ private:
     //!<
     AVFrame avFrame                    = {};                      //!< decoded frame
     //!<
+    bool frameValid                    = false;                   //!< decoding was successful, current avFrame content is valid
+    //!<
     AVCodecContext **codecCtxArray     = nullptr;                 //!< codec context per stream
     //!<
     int packetNumber                   = -1;                      //!< current read video packet number
