@@ -421,47 +421,6 @@ typedef struct sMarkAdContext {
     //!<
 
     /**
-     * video structure
-     */
-    struct sVideo {
-        /**
-         * video stream infos
-         */
-        struct sInfo {
-            int width                   = 0;      //!< width of the video in pixel
-            //!<
-            int height                  = 0;      //!< height of the video in pixel
-            //!<
-            int pixFmt                  = 0;      //!< pixel format (see libavutil/pixfmt.h)
-            //!<
-            double framesPerSecond      = 0;      //!< frames per second of the recording
-            //!<
-            bool interlaced             = false;  //!< <b>true:</b>  video is interlaced <br>
-            //!< <b>false:</b> video is progressive
-        } Info; //!< video stream infos
-        //!<
-
-        /**
-         * video picture data
-         */
-        struct sData {
-            bool valid = false; //!< <b>true:</b>  video data planes are valid <br>
-            //!< <b>false:</b> video data planes are not valid
-            //!<
-
-            uchar *Plane[PLANES];  //!< array of picture planes (YUV420)
-            //!<
-
-            int PlaneLinesize[PLANES]; //!< size int bytes of each picture plane line
-            //!<
-
-        } Data;  //!< video picture data
-        //!<
-
-    } Video; //!< video stream infos
-    //!<
-
-    /**
      * audio structure
      */
     struct sAudio {
