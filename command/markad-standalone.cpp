@@ -4213,16 +4213,16 @@ void cMarkAdStandalone::LogoMarkOptimization() {
         dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no logo marks used");
         return;
     }
-    if (!evaluateLogoStopStartPair) {
-        esyslog("cMarkAdStandalone::LogoMarkOptimization(): evaluateLogoStopStartPair missing");
-        return;
-    }
 
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): start logo mark optimization");
+    if (!evaluateLogoStopStartPair) {  // init in RemoveLogoChangeMarks(), but maybe not used
+        evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
+        ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
+    }
 
     // init objects for logo mark optimization
-    if (!detectLogoStopStart) {  // init in RemoveLogoChangeMarks(), but maybe not used
+    if (!detectLogoStopStart) {        // init in RemoveLogoChangeMarks(), but maybe not used
         detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, evaluateLogoStopStartPair, video->GetLogoCorner());
         ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
     }
