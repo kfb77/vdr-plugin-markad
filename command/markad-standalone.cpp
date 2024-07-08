@@ -5773,44 +5773,6 @@ bool cMarkAdStandalone::SetFileUID(char *file) {
 }
 
 
-bool cMarkAdStandalone::IsVPSTimer() {
-    if (!directory) return false;
-
-    bool timerVPS = false;
-    char *fpath   = nullptr;
-
-    if (asprintf(&fpath, "%s/%s", directory, "markad.vps") == -1) return false;
-    ALLOC(strlen(fpath)+1, "fpath");
-
-    FILE *mf;
-    mf = fopen(fpath, "r");
-    if (!mf) {
-        dsyslog("cMarkAdStandalone::isVPSTimer(): markad.vps not found");
-        FREE(strlen(fpath)+1, "fpath");
-        free(fpath);
-        return false;
-    }
-    FREE(strlen(fpath)+1, "fpath");
-    free(fpath);
-
-    size_t size = 0;
-    char   *line        = nullptr;
-    char   vpsTimer[13] = "";
-
-    while (getline(&line, &size, mf) != -1) {
-        sscanf(line, "%12s", reinterpret_cast<char *>(&vpsTimer));
-        if (strcmp(vpsTimer, "VPSTIMER=YES") == 0) {
-            timerVPS = true;
-            break;
-        }
-    }
-
-    if (line) free(line);
-    fclose(mf);
-    return timerVPS;
-}
-
-
 time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
     // get recording start from atime of directory (if the volume is mounted with noatime)
     struct mntent *ent;
@@ -6111,7 +6073,6 @@ void cMarkAdStandalone::LoadInfo() {
     if ((macontext.Info.AspectRatio.num == 0) && (macontext.Info.AspectRatio.den == 0)) isyslog("no aspect ratio found in vdr info");
     if (line) free(line);
 
-    macontext.Info.timerVPS = IsVPSTimer();
     if ((length) && (startTime)) {
         time_t rStart = GetRecordingStart(startTime, fileno(f));
         if (rStart) {
@@ -6157,7 +6118,7 @@ void cMarkAdStandalone::LoadInfo() {
                     }
                 }
             }
-            if (macontext.Info.timerVPS) { //  VPS controlled recording start, we guess assume broascast start 45s after recording start
+            if (vps->IsVPSTimer()) { //  VPS controlled recording start, we guess assume broascast start 45s after recording start
                 isyslog("VPS controlled recording start");
                 if (macontext.Info.tStart < 0) {
                     dsyslog("cMarkAdStandalone::LoadInfo(): no VPS start event found");
@@ -6458,7 +6419,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     }
 
     if (macontext.Info.tStart > 1) {
-        if ((macontext.Info.tStart < 60) && (!macontext.Info.timerVPS)) macontext.Info.tStart = 60;
+        if ((macontext.Info.tStart < 60) && (!vps->IsVPSTimer())) macontext.Info.tStart = 60;
     }
     isyslog("pre-timer:        %2d:%02d:%02dh", macontext.Info.tStart / 60 / 60, abs((macontext.Info.tStart / 60) % 60), abs(macontext.Info.tStart % 60));
 

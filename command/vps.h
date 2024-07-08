@@ -66,6 +66,14 @@ public:
     };
 
     /**
+     * status of VPD timer recording
+     * @return true if recorded was controlled by VPS timer
+     */
+    bool IsVPSTimer() const {
+        return isVPStimer;
+    }
+
+    /**
      * get length of broadcast based on VPS events
      * @return length of recording in s
      */
@@ -79,13 +87,15 @@ public:
     void LogMatch(char *channel, cMarks *marks) const;
 
 private:
-    int vpsStart      = -1;  //!< VPS start event offset from recodering start in s
+    int vpsStart      = -1;    //!< VPS start event offset from recodering start in s
     //!<
-    int vpsStop       = -1;  //!< VPS stop event offset from recodering start in s
+    int vpsStop       = -1;    //!< VPS stop event offset from recodering start in s
     //!<
-    int vpsPauseStart = -1;  //!< VPS pause start event offset from recodering start in s
+    int vpsPauseStart = -1;    //!< VPS pause start event offset from recodering start in s
     //!<
-    int vpsPauseStop  = -1;  //!< VPS pause start event offset from recodering start in s
+    int vpsPauseStop  = -1;    //!< VPS pause start event offset from recodering start in s
+    //!<
+    bool isVPStimer   = false; //!< recorded by VPS controlled timer
     //!<
 };
 #endif

@@ -11,6 +11,7 @@
 #include "vps.h"
 #include "debug.h"
 
+
 cVPS::cVPS(const char *directory) {
     if (!directory) return;
 
@@ -48,6 +49,10 @@ cVPS::cVPS(const char *directory) {
             vpsPauseStop = offsetVPS;
             dsyslog("cVPS::cVPS(): VPS PAUSE STOP  event at offset %5ds", vpsPauseStop);
         };
+        if (strcmp(typeVPS, "VPSTIMER=YES") == 0) {
+            isVPStimer = true;
+            dsyslog("cVPS::cVPS(): VPS controlled timer");
+        }
     }
     if (line) free(line);
     fclose(mf);

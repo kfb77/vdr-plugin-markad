@@ -289,12 +289,6 @@ private:
     void CalculateCheckPositions(int startFrame);
 
     /**
-     * check if timer is VPS controlled
-     * @return true if timer is VPS controlled, false otherwise
-     */
-    bool IsVPSTimer();
-
-    /**
      * get start time of the recording from: <br>
      * -# file access time (atime) of recording directory, if the volume is mounted with noatime (no change of atime after creation)
      * -# file modification time (mtime) from VDR info file
