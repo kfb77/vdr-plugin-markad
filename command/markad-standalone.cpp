@@ -4248,6 +4248,11 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 LogSeparator(false);
                 int searchStartPosition = markLogo->position - (30 * decoder->GetVideoFrameRate()); // introduction logos are usually 10s, somettimes longer, changed from 12 to 30
                 if (searchStartPosition < 0) searchStartPosition = 0;
+                cMark *stopBefore = marks.GetPrev(markLogo->position, MT_STOP, 0x0F);
+                if (stopBefore && (stopBefore->position > searchStartPosition)) {
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): move start of search from (%d) to stop mark before (%d)", searchStartPosition, stopBefore->position);
+                    searchStartPosition = stopBefore->position;
+                }
 
                 char *indexToHMSFSearchStart = marks.IndexToHMSF(searchStartPosition, false);
                 if (indexToHMSFSearchStart) {
