@@ -133,7 +133,7 @@ bool cExtractLogo::IsWhitePlane(const sLogoInfo *actLogoInfo, const sLogoSize lo
 // return: true if only some frames have pixels in plane >=1, a channel with logo coulor change is detected
 //         false if almost all frames have pixel in plane >=1, this is realy a coloured logo
 //
-bool cExtractLogo::IsLogoColourChange(sLogoSize *logoSizeFinal, const int corner, const int plane) {
+bool cExtractLogo::IsLogoColourChange(const sLogoSize *logoSizeFinal, const int corner, const int plane) {
     if (!logoSizeFinal) return false;
     if ((corner < 0) || (corner >= CORNERS)) return false;
 
@@ -152,7 +152,7 @@ bool cExtractLogo::IsLogoColourChange(sLogoSize *logoSizeFinal, const int corner
     }
     if (count > 0) {
         dsyslog("cExtractLogo::isLogoColourChange(): %4d valid frames in corner %d, plane %d: %3d are white, ratio %3d%%", count, corner, plane, countWhite, countWhite * 100 / count);
-        if ((100 * countWhite / count) >= 30) return true;  // changed from 40 to 30
+        if ((100 * countWhite / count) >= 27) return true;  // changed from 30 to 27
     }
     return false;
 }

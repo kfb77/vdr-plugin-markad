@@ -222,7 +222,7 @@ private:
      * @param plane          number of plane
      * @return               true if logo changed colour, false otherwise
      */
-    bool IsLogoColourChange(sLogoSize *logoSizeFinal, const int corner, const int plane);
+    bool IsLogoColourChange(const sLogoSize *logoSizeFinal, const int corner, const int plane);
 
     /**
      * delete frames from logo list
