@@ -747,16 +747,33 @@ int cDetectLogoStopStart::FindFrameFirstPixel(const uchar *picture, const int co
 }
 
 
+// search for corner of frame
 int cDetectLogoStopStart::FindFrameStartPixel(const uchar *picture, const int width, const int height,  int startX, int startY, const int offsetX, const int offsetY) {
+    int pixelError  = 0;   // accept missing pixel in the frame from detection errors
     int firstPixelX = startX;
     int firstPixelY = startY;
     while ((startX > 0) && (startX < width - 1)) {
         if (picture[startY * width + startX + offsetX] == 0) startX += offsetX;  // next position has pixel
-        else break;
+        else {
+            pixelError++;
+            if (pixelError > 1) {
+                startX -= offsetX;  // back to last valid position
+                break;
+            }
+            startX += offsetX;
+        }
     }
+    pixelError  = 0;   // accept missing pixel in the frame from detection errors
     while ((startY > 0) && (startY < height - 1)) {
         if (picture[(startY + offsetY) * width + startX] == 0) startY += offsetY;  // next position has pixel
-        else break;
+        else {
+            pixelError++;
+            if (pixelError > 1) {
+                startY -= offsetY;  // back to last valid position
+                break;
+            }
+            startY += offsetY;
+        }
     }
     if (abs(firstPixelX - startX) > abs(firstPixelY - startY)) {
         startY = firstPixelY;  // prevent to get out of line from a single pixel, only one coordinate can change
@@ -855,13 +872,18 @@ int cDetectLogoStopStart::DetectFrame(const uchar *picture, const int width, con
 
     case TOP_RIGHT:
         portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, 0, -1, 1); // search from top right to bottom left
-        if (portion <= 275) {  // maybe we have a text under frame or the logo
+        if (portion <= 275) {
+            // try to get top line of frame
+            int portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, 0, 1, 1); // search from top left to bottom right
+            if (portionTMP > portion) portion = portionTMP;
+        }
+        if (portion <= 275) {  // maybe we have a text right of frame
             int portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, -1, 1); // search from top mid to bottom left
             if (portionTMP > portion) portion = portionTMP;
-            if (portion <= 275) {  // maybe we have a text right of frame
-                portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height, 1, -1); // search from bottom left to top right
-                if (portionTMP > portion) portion = portionTMP;
-            }
+        }
+        if (portion <= 275) {  // maybe we have a text right of frame
+            int portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height, 1, -1); // search from bottom left to top right
+            if (portionTMP > portion) portion = portionTMP;
         }
         break;
 
@@ -886,13 +908,17 @@ int cDetectLogoStopStart::DetectFrame(const uchar *picture, const int width, con
         break;
 
     case BOTTOM_RIGHT:
-        portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height - 1, -1, -1);         // search from buttom right to top left
-        if (portion <= 205) {  // maybe we have a text under frame
-            portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height / 2, -1, -1);     // search from mid right to top left
-            if (portion <= 205) {  // maybe we have a text under frame
-                portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, -1, -1); // search from buttom mid right to top left
-                if (portion <= 205) {  // maybe we have a logo under frame (e.g. SAT.1)
-                    portion = FindFrameFirstPixel(picture, corner, width, height, width * 2 / 3, 0, -1, 1);   // search from 2/3 right top to left button
+        portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height - 1, -1, -1);                 // search from buttom right to top left
+        if (portion <= 205) {  // maybe we have a text right from frame
+            portion = FindFrameFirstPixel(picture, corner, width, height, 0, height - 1, 1, -1);                      // search from buttom left to top right
+            if (portion <= 205) {
+                // sixx, text and timer right from frame
+                portion = FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, -1);                  // search from mid left to topright
+                if (portion <= 205) {  // maybe we have a text under frame
+                    portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height / 2, -1, -1);     // search from mid right to top left
+                    if (portion <= 205) {  // maybe we have a text under frame
+                        portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, -1, -1); // search from buttom mid to top left
+                    }
                 }
             }
         }
@@ -903,7 +929,7 @@ int cDetectLogoStopStart::DetectFrame(const uchar *picture, const int width, con
     } // case
 
 #ifdef DEBUG_FRAME_DETECTION
-    dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: portion %3d", frameNumber, corner, portion);
+    dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: portion %3d", decoder->GetFrameNumber(), corner, portion);
 #endif
 
     return portion;
@@ -1566,7 +1592,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
         return -1;
     }
 
-    if (isStartMark) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): start search advertising in frame between logo start mark (%d) and (%d)", startPos, endPos);
+    if (isStartMark) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): start search advertising in frame between i-frame after logo start mark (%d) and (%d)", startPos, endPos);
     else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): start search advertising in frame between (%d) and logo stop mark at (%d)", startPos, endPos);
     int frameRate = decoder->GetVideoFrameRate();
 
@@ -1677,9 +1703,18 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
             if ((AdInFrame.start != -1) && (AdInFrame.end != -1)) {  // we have a new pair
                 int startOffset = 1000 * (AdInFrame.start - startPos) / frameRate;
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined (DEBUG_ADINFRAME)
-                dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): ad in frame start (%d) end (%d), isStartMark %d, startOffset %dms",  AdInFrame.start, AdInFrame.end, isStartMark, startOffset);
-                for (int corner = 0; corner < CORNERS; corner++) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %d: AdInFrame.sumFramePortion %7d", corner, AdInFrame.sumFramePortion[corner]);
+                dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): ad in frame start (%d) end (%d), isStartMark %d, length %dms, startOffset %dms",  AdInFrame.start, AdInFrame.end, isStartMark, 1000 * (AdInFrame.end - AdInFrame.start) / frameRate, startOffset);
 #endif
+                // if we search for ad in frame after start mark, we end search after first valid match
+                if (isStartMark && ((1000 * (AdInFrame.end - AdInFrame.start) / frameRate) >= AD_IN_FRAME_LENGTH_MIN)) {
+                    AdInFrame.startFinal      = AdInFrame.start;
+                    AdInFrame.endFinal        = AdInFrame.end;
+                    AdInFrame.frameCountFinal = AdInFrame.frameCount;
+                    for (int corner = 0; corner < CORNERS; corner++) AdInFrame.sumFramePortionFinal[corner] = AdInFrame.sumFramePortion[corner];
+                    break;
+                }
+
+                // if we search for ad in frame before stop mark, continue try until stop mark reached
                 if (((AdInFrame.end - AdInFrame.start) > (AdInFrame.endFinal - AdInFrame.startFinal)) && // new range if longer
                         ((isStartMark && (startOffset < AD_IN_FRAME_START_OFFSET_MAX)) ||  // adinframe after logo start must be near logo start
                          (!isStartMark && (startOffset > 1000)))) { // a valid ad in frame before stop mark has a start offset, drop invalid pair
@@ -1736,118 +1771,28 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
     }
 
     // check if we have a frame
-    int firstSumFramePortion  =  0;
-    int secondSumFramePortion =  0;
     int allSumFramePortion    =  0;
-    int firstFrameCorner      = -1;
-    int secondFrameCorner     = -1;
     for (int corner = 0; corner < CORNERS; corner++) {
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of frame portion from corner %-12s: %7d", aCorner[corner], AdInFrame.sumFramePortionFinal[corner]);
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of frame portion from corner %-12s: %7d, avg %d", aCorner[corner], AdInFrame.sumFramePortionFinal[corner], AdInFrame.sumFramePortionFinal[corner] / AdInFrame.frameCountFinal);
         allSumFramePortion += AdInFrame.sumFramePortionFinal[corner];
-        if (corner ==logoCorner) continue;  // ignore logo corner, we have a static picture in that corner
-        if (AdInFrame.sumFramePortionFinal[corner] > firstSumFramePortion) {
-            firstSumFramePortion  = AdInFrame.sumFramePortionFinal[corner];
-            firstFrameCorner      = corner;
-        }
-    }
-    for (int corner = 0; corner < CORNERS; corner++) {
-        if ((corner ==logoCorner) || (corner == firstFrameCorner)) continue;
-        if (AdInFrame.sumFramePortionFinal[corner] > secondSumFramePortion) {
-            secondSumFramePortion = AdInFrame.sumFramePortionFinal[corner];
-            secondFrameCorner     = corner;
-        }
     }
 
-    int allFramePortionQuote = 0;
     if (AdInFrame.frameCountFinal > 0) {
-        allFramePortionQuote = allSumFramePortion / AdInFrame.frameCountFinal / 4;
+        int allFramePortionQuote = allSumFramePortion / AdInFrame.frameCountFinal / 4;
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): average of all corners portion quote in possible ad in frame range: %3d", allFramePortionQuote);
-        int firstFramePortionQuote  = firstSumFramePortion  / AdInFrame.frameCountFinal;
-        int secondFramePortionQuote = secondSumFramePortion / AdInFrame.frameCountFinal;
-        if (firstFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of        best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[firstFrameCorner], firstSumFramePortion, AdInFrame.frameCountFinal, firstFramePortionQuote);
-        if (secondFrameCorner >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of second best frame portion from best corner %-12s: %7d from %4d frames, quote %3d", aCorner[secondFrameCorner], secondSumFramePortion, AdInFrame.frameCountFinal, secondFramePortionQuote);
-        // prevent to detect closing banner as ad in frame
-        // example of bottom closing banner:
-        // average of all corners portion 307, TOP_LEFT 8,  TOP_RIGHT 0, BOTTOM_LEFT 932, BOTTOM_LEFT 932
-        int topleftQuote     = AdInFrame.sumFramePortionFinal[TOP_LEFT]    / AdInFrame.frameCountFinal;
-        int toprightQuote    = AdInFrame.sumFramePortionFinal[TOP_RIGHT]   / AdInFrame.frameCountFinal;
-        int bottomLeftQuote  = AdInFrame.sumFramePortionFinal[BOTTOM_LEFT] / AdInFrame.frameCountFinal;
-        int bottomRightQuote = AdInFrame.sumFramePortionFinal[BOTTOM_LEFT] / AdInFrame.frameCountFinal;
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): check closing banner: average of all corners portion %d, TOP_LEFT %d,  TOP_RIGHT %d, BOTTOM_LEFT %d, BOTTOM_LEFT %d", allFramePortionQuote, topleftQuote, toprightQuote, bottomLeftQuote, bottomRightQuote);
-        if (isEndMark && (allFramePortionQuote <= 307) && (topleftQuote <= 8) && (toprightQuote <= 0) && (bottomLeftQuote >= 932) && (bottomRightQuote >= 287)) {
-            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): bottom closing banner found");
-            return -1;
-        }
 
         // example of ad in frame
-        // best corner 568, second best corner 377, average of all corners 449
-        // best corner 570, second best corner 378, average of all corners 458
+        // average of all corners 445
         //
         // example for no ad in frame (static scene with vertial or horizontal lines, blinds, windows frames or stairs):
-        // best corner 714, second best corner 360, average of all corners 471   static scene with frame in background
+        // average of all corners 442   door frame
         //
-        // best corner 787, second best corner 191, average of all corners 245   car in foreground
-        // best corner 782, second best corner 269, average of all corners 328   news ticker on buttom
-        // best corner 768, second best corner 442, average of all corners 420   static scene with blinds in background
-        // best corner 619, second best corner 392, average of all corners 442   door frame
-        // best corner 618, second best corner 563, average of all corners 385   door frame
-        // best corner 607, second best corner   0, average of all corners 163
-        // best corner 504, second best corner  85, average of all corners 196
-        // best corner 500, second best corner  87, average of all corners 173
-        // best corner 328, second best corner 300, average of all corners 180
-        // best corner 326, second best corner 102, average of all corners 199
-        // best corner 318, second best corner 318, average of all corners 258
-        // best corner 309, second best corner 281, average of all corners 189
-        // best corner 277, second best corner 190, average of all corners 186
-        // best corner 265, second best corner 139, average of all corners 136
-        // best corner 258, second best corner 200, average of all corners 231
-        // best corner 249, second best corner  81, average of all corners 208
-        //
-        if (((allFramePortionQuote < 449) && (firstFramePortionQuote <= 787) && (secondFramePortionQuote <= 563)) ||
-                ((allFramePortionQuote >= 449) && ((allFramePortionQuote <= 471) && (firstFramePortionQuote <= 714) && (secondFramePortionQuote <= 360)))) {
+        if (allFramePortionQuote <= 442) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enough frame pixel found on best corner found, advertising in frame not valid");
             return -1;
         }
     }
     else return -1;
-
-    // check if we have more than one logo
-    // no ad in frame, second logo:
-    // high matches quote 998, corner portion quote: 557, all corners portion quote: 296
-    // high matches quote 997, corner portion quote: 642, all corners portion quote: 262
-    // high matches quote 997, corner portion quote: 274, all corners portion quote: 376
-    // high matches quote 998, corner portion quote: 417, all corners portion quote: 274
-    // high matches quote 994, corner portion quote: 644, all corners portion quote: 285
-    // high matches quote 994, corner portion quote: 366, all corners portion quote: 472 NEW
-    // high matches quote 993, corner portion quote: 764, all corners portion quote: 401
-    // high matches quote 992, corner portion quote: 525, all corners portion quote: 274
-    // high matches quote 991, corner portion quote: 507, all corners portion quote: 245
-    // high matches quote 982, corner portion quote: 712, all corners portion quote: 252
-    // high matches quote 975, corner portion quote: 447, all corners portion quote: 199
-    // high matches quote 947, corner portion quote: 134, all corners portion quote: 111
-    // high matches quote 855, corner portion quote: 265, all corners portion quote: 154
-    //
-    // ad in frame, no second logo:
-    // high matches quote 975, corner portion quote: 242, all corners portion quote: 770
-    //
-    //
-    int countLogo = 0;
-    for (int corner = 0; corner < CORNERS; corner++) {
-        int logoQuote         = 1000 * isCornerLogo[corner] / countFrames;
-        int framePortionQuote = 0;
-        if (AdInFrame.frameCountFinal > 0) framePortionQuote = AdInFrame.sumFramePortionFinal[corner] / AdInFrame.frameCountFinal;
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %-12s: %4d high matches, high matches quote %3d: (of %2d frames)", aCorner[corner], isCornerLogo[corner], logoQuote, countFrames);
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo():                    : corner portion quote: %3d (of %3d frames)", framePortionQuote, AdInFrame.frameCountFinal);
-        if (corner == logoCorner) continue;  // in logo corner we expect logo
-        if ((logoQuote >= 855) && (framePortionQuote <= 764) && (allFramePortionQuote <= 472)) {
-            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): additional logo found in corner %s", aCorner[corner]);
-            countLogo++;
-        }
-    }
-    if (countLogo > 0) {
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): found more than one logo, this is not a advertising in frame");
-        return -1;
-    }
 
     // check still image
     if ((StillImage.end - StillImage.start) > (StillImage.endFinal - StillImage.startFinal)) {
@@ -1888,6 +1833,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
 
     return retFrame;
 }
+
 
 // check for inroduction logo before start mark
 // we should find:
