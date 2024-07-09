@@ -1004,10 +1004,11 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         dsyslog("cDetectLogoStopStart::Detect(): channel not in list for special logo detection");
         return false;
     }
-    bool status = true;
-    startPos = index->GetIFrameAfter(startFrame);
-    endPos   = index->GetIFrameBefore(endFrame);
-    dsyslog("cDetectLogoStopStart::Detect(): detect from i-frame (%d) to i-frame (%d)", startPos, endPos);
+    dsyslog("cDetectLogoStopStart::Detect(): detect from (%d) to (%d)", startFrame, endFrame);
+    if (!decoder->SeekToFrame(startFrame)) {
+        esyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startFrame);
+        return false;
+    }
 
     sLogoInfo *logo1[CORNERS];
     sLogoInfo *logo2[CORNERS];
@@ -1015,19 +1016,12 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         logo1[corner] = new sLogoInfo;
         ALLOC(sizeof(*logo1[corner]), "logo");
     }
-
-
     dsyslog("cDetectLogoStopStart::Detect(): use logo size %dWx%dH", area.logoSize.width, area.logoSize.height);
-
-    if (!decoder->SeekToPacket(startPos)) {  // one frame before startPos because we start loop with GetNextPacket
-        dsyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startPos);
-        status = false;
-    }
 
     while (decoder->DecodeNextFrame(false)) {
         if (abortNow) return false;
 
-        if (decoder->GetPacketNumber() >= endPos) break;  // use packet number to prevent overlapping seek (before mark, after mark)
+        if (decoder->GetPacketNumber() >= endFrame) break;  // use packet number to prevent overlapping seek (before mark, after mark)
         int frameNumber =  decoder->GetFrameNumber();
 
         sVideoPicture *picture = decoder->GetVideoPicture();
@@ -1043,9 +1037,9 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 #ifdef DEBUG_MARK_OPTIMIZATION
             // save plane 0 of sobel transformation
             char *fileName = nullptr;
-            if (asprintf(&fileName,"%s/F__%07d-P0-C%1d.pgm", maContext->Config->recDir, frameNumber, corner) >= 1) {
+            if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_Detect.pgm", decoder->GetRecordingDir(), frameNumber, corner) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
-                SaveSobel(fileName, area->sobel[0], logoWidth, logoHeight);
+                sobel->SaveSobelPlane(fileName, area.sobel[0], area.logoSize.width, area.logoSize.height);
                 FREE(strlen(fileName)+1, "fileName");
                 free(fileName);
             }
@@ -1105,11 +1099,11 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         FREE(sizeof(*logo1[corner]), "logo");
         delete logo1[corner];
     }
-    return status;
+    return true;
 }
 
 
-bool cDetectLogoStopStart::IsInfoLogo() {
+bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos) {
     if (!decoder) return false;
     if (compareResult.empty()) return false;
 
@@ -1304,13 +1298,13 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 
     // check if it is a closing credit, we may not delete this because it contains end mark
     if (found) {
-        if (ClosingCredit(true) >= 0) {
+        if (ClosingCredit(startPos, endPos, true) >= 0) {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): stop/start part is closing credit, no info logo");
             found = false;
         }
     }
     else { // we have to check for closing credits anyway, because we use this info to select start or end mark
-        if (evaluateLogoStopStartPair && (staticQuote < MAX_STATIC_QUOTE)) ClosingCredit();  // do not check if detected static pictures
+        if (evaluateLogoStopStartPair && (staticQuote < MAX_STATIC_QUOTE)) ClosingCredit(startPos, endPos);  // do not check if detected static pictures
     }
     return found;
 }
@@ -1324,7 +1318,7 @@ bool cDetectLogoStopStart::IsInfoLogo() {
 // return: true  if the given part is detected as logo change part
 //         false if not
 //
-bool cDetectLogoStopStart::IsLogoChange() {
+bool cDetectLogoStopStart::IsLogoChange(int startPos, int endPos) {
     if (!decoder) return false;
     if (!index) return false;
     if (compareResult.empty()) return false;
@@ -1423,7 +1417,7 @@ bool cDetectLogoStopStart::IsLogoChange() {
 
 
 // search for closing credits in frame without logo after broadcast end
-int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
+int cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, const bool noLogoCorner) {
     if (!criteria->IsClosingCreditsChannel()) return -1;
 
     if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startPos, endPos) == STATUS_NO) {
@@ -1582,7 +1576,7 @@ int cDetectLogoStopStart::ClosingCredit(const bool noLogoCorner) {
 // start search at current position, end at stopPosition
 // return first/last of advertising in frame with logo
 //
-int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool isEndMark) {
+int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool isStartMark, const bool isEndMark) {
     if (!decoder)         return -1;
     if (compareResult.empty()) return -1;
 
@@ -1840,7 +1834,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(const bool isStartMark, const bool i
 // - a separator frame
 // - a range of similar frames in the logo corner, but no still image
 // - no separator frame after similar logo corner frames
-int cDetectLogoStopStart::IntroductionLogo() {
+int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
     if (!decoder) return -1;
     if (compareResult.empty()) return -1;
 

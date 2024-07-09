@@ -210,8 +210,6 @@ public:
         memcpy(aCorner, origin.aCorner, sizeof(origin.aCorner));
         evaluateLogoStopStartPair = origin.evaluateLogoStopStartPair;
         compareResult = origin.compareResult;
-        startPos = origin.startPos;
-        endPos = origin.endPos;
         sobel = nullptr;
         logoCorner = origin.logoCorner;
         criteria = origin.criteria;
@@ -226,8 +224,6 @@ public:
         memcpy(aCorner, origin->aCorner, sizeof(origin->aCorner));
         evaluateLogoStopStartPair = origin->evaluateLogoStopStartPair;
         compareResult = origin->compareResult;
-        startPos = origin->startPos;
-        endPos = origin->endPos;
         sobel = origin->sobel;
         logoCorner = origin->logoCorner;
         criteria = origin->criteria;
@@ -299,20 +295,20 @@ public:
      * fade in/out is possible
      * @return true if part is info logo, false otherwise
      */
-    bool IsInfoLogo();
+    bool IsInfoLogo(int startPos, int endPos);
 
 /// check for logo change
     /**
      * logo change parts contains dynamic changing alternative logos (used only by TELE5)
      * @return true if part contains a logo change, false otherwise
      */
-    bool IsLogoChange();
+    bool IsLogoChange(int startPos, int endPos);
 
     /**
      * check for closing credits without logo and for closing still image
      * @return frame number of end of closing credits or closing still image
      */
-    int ClosingCredit(const bool noLogoCorner = false);
+    int ClosingCredit(int startPos, int endPos, const bool noLogoCorner = false);
 
     /**
      * check if current range is an advertising in frame with logo
@@ -321,13 +317,13 @@ public:
      * @return first frame of advertising in frame with logo before logo stop mark or last frame of advertising in frame with logo after logo start mark <br>
      *         -1 if no advertising in frame with logo was found
      */
-    int AdInFrameWithLogo(const bool isStartMark, const bool isEndMark);
+    int AdInFrameWithLogo(int startPos, int endPos, const bool isStartMark, const bool isEndMark);
 
     /**
      * check if current range is a introduction logo
      * @return last frame of the introduction logo after logo start mark
      */
-    int IntroductionLogo();
+    int IntroductionLogo(int startPos, int endPos);
 
 private:
     /**
@@ -353,10 +349,6 @@ private:
     int logoCorner            = -1;       //!< index of logo corner
     //!<
     cSobel *sobel             = nullptr;  //!< class for sobel transformation
-    //!<
-    int startPos              = 0;        //!< frame number of start position to compare
-    //!<
-    int endPos                = 0;        //!< frame number of end position to compare
     //!<
     /**
      * compare two frames

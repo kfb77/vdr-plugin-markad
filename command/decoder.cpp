@@ -886,7 +886,8 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
         if (abortNow) return false;
         if (packetNumber >= seekPacketNumber) break;
     }
-    frameNumber = packetNumber;
+    frameNumber = packetNumber - 1;          // next decoded frame will be from this packet
+    if (IsInterlacedFrame()) frameNumber--;  // for interlaced video we need 2 packet to get a decoded frame
     dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d) successful", packetNumber, seekPacketNumber);
     return true;
 }
@@ -898,13 +899,26 @@ bool cDecoder::SeekToFrame(int seekFrameNumber) {
         esyslog("cDecoder::SeekToFrame(): no index available");
         return false;
     }
-    // seek to i-frame packet before
-    int seekPacket = index->GetIFrameBefore(seekFrameNumber - 1);  // if seekFrameNumber is i-frame we want i-frame before, we need some frames to preload
-    if (!SeekToPacket(seekPacket)) {
-        esyslog("cDecoder::SeekToFrame(): seek to i-frame packet (%d) before seek frame (%d) failed", seekPacket, seekFrameNumber);
+    // seek frame number is identical to current position
+    dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d)", packetNumber, frameNumber, seekFrameNumber);
+    if (seekFrameNumber == frameNumber) {
+        dsyslog("cDecoder::SeekToFrame(): seek frame number is identical to current position (%d)", frameNumber);
+        return true;
+    }
+    // seek backward is invalid
+    if (frameNumber > seekFrameNumber) {
+        esyslog("cDecoder::SeekToFrame(): frame (%d): can not seek backwards to (%d)", frameNumber, seekFrameNumber);
         return false;
     }
 
+    // seek to i-frame packet before
+    int seekPacket = index->GetIFrameBefore(seekFrameNumber - 1);  // if seekFrameNumber is i-frame we want i-frame before, we need some frames to preload
+    if (packetNumber < seekPacket) {    // prevent seek backward read position if frameNumber is near by target
+        if (!SeekToPacket(seekPacket)) {
+            esyslog("cDecoder::SeekToFrame(): seek to i-frame packet (%d) before seek frame (%d) failed", seekPacket, seekFrameNumber);
+            return false;
+        }
+    }
     // fill decoder queue from i-frame before to startPos
     while (true) {
         if (abortNow) return false;

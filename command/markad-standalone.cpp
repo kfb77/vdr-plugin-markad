@@ -1611,7 +1611,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     int endPos = stopMark->position + (25 * decoder->GetVideoFrameRate());  // try till 25s after stopMarkPosition
     int newPosition = -1;
     if (detectLogoStopStart->Detect(stopMark->position, endPos)) {
-        newPosition = detectLogoStopStart->ClosingCredit();
+        newPosition = detectLogoStopStart->ClosingCredit(stopMark->position, endPos);
     }
 
     if (newPosition > stopMark->position) {
@@ -1726,7 +1726,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         if (detectLogoStopStart->Detect(stopPosition, startPosition)) {
             bool doInfoCheck = true;
             // check for closing credits if no other checks will be done, only part of the loop elements in recording end range
-            if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) detectLogoStopStart->ClosingCredit();
+            if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) detectLogoStopStart->ClosingCredit(stopPosition, startPosition);
 
             // check for info logo if  we are called by CheckStart and we are in broadcast
             if ((startA > 0) && criteria->IsIntroductionLogoChannel() && (isStartMarkInBroadcast == STATUS_YES)) {
@@ -1743,7 +1743,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
                     }
                 }
             }
-            if (doInfoCheck && (isInfoLogo >= STATUS_UNKNOWN) && detectLogoStopStart->IsInfoLogo()) {
+            if (doInfoCheck && (isInfoLogo >= STATUS_UNKNOWN) && detectLogoStopStart->IsInfoLogo(stopPosition, startPosition)) {
                 // found info logo part
                 if (indexToHMSFStop && indexToHMSFStart) {
                     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
@@ -1752,7 +1752,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
                 marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE, 0xF0);  // maybe there a false start/stop inbetween
             }
             // check logo change
-            if ((isLogoChange >= STATUS_UNKNOWN) && detectLogoStopStart->IsLogoChange()) {
+            if ((isLogoChange >= STATUS_UNKNOWN) && detectLogoStopStart->IsLogoChange(stopPosition, startPosition)) {
                 if (indexToHMSFStop && indexToHMSFStart) {
                     isyslog("logo change between frame (%6d) at %s and (%6d) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
                 }
@@ -4260,7 +4260,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                     free(indexToHMSFSearchStart);
                 }
                 if (detectLogoStopStart->Detect(searchStartPosition, markLogo->position)) {
-                    introductionStartPosition = detectLogoStopStart->IntroductionLogo();
+                    introductionStartPosition = detectLogoStopStart->IntroductionLogo(searchStartPosition, markLogo->position);
                 }
             }
 
@@ -4283,7 +4283,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                     free(indexToHMSFSearchEnd);
                 }
                 if (detectLogoStopStart->Detect(markLogo->position, searchEndPosition)) {
-                    adInFrameEndPosition = detectLogoStopStart->AdInFrameWithLogo(true, false);
+                    adInFrameEndPosition = detectLogoStopStart->AdInFrameWithLogo(markLogo->position, searchEndPosition, true, false);
                 }
                 if (adInFrameEndPosition >= 0) {
                     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
@@ -4348,7 +4348,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             if ((evaluateLogoStopStartPair->GetIsAdInFrame(markLogo->position) >= STATUS_UNKNOWN) && (detectLogoStopStart->Detect(searchStartPosition, markLogo->position))) {
                 bool isEndMark = false;
                 if (markLogo->position == marks.GetLast()->position) isEndMark = true;
-                int newStopPosition = detectLogoStopStart->AdInFrameWithLogo(false, isEndMark);
+                int newStopPosition = detectLogoStopStart->AdInFrameWithLogo(searchStartPosition, markLogo->position, false, isEndMark);
                 if (newStopPosition >= 0) {
                     dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", newStopPosition, markLogo->position);
                     if (evaluateLogoStopStartPair->IncludesInfoLogo(newStopPosition, markLogo->position)) {
