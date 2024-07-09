@@ -466,10 +466,6 @@ private:
     //!<
     int64_t sumDuration                =  0;                      //!< current offset from recording start, sum duration of all video packets in AVStream->time_base
     //!<
-    int64_t offsetTime_ms_LastFile     =  0;                      //!< offset from recording start of last file in ms
-    //!<
-    int64_t offsetTime_ms_LastRead     =  0;                      //!< offset from recodring start of last frame in ms
-    //!<
     int firstMP2Index                  = -1;                      //!< stream index for first MP2 audio stream
     //!<
     int frameRate                      = 0;                       //!< video stream real frame rate

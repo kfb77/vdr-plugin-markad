@@ -422,11 +422,10 @@ bool cDecoder::InitDecoder(const char *filename) {
         if (IsVideoStream(streamIndex)) {
             dsyslog("cDecoder::InitDecoder(): average framerate %d/%d", avctx->streams[streamIndex]->avg_frame_rate.num, avctx->streams[streamIndex]->avg_frame_rate.den);
             dsyslog("cDecoder::InitDecoder(): real    framerate %d/%d", avctx->streams[streamIndex]->r_frame_rate.num, avctx->streams[streamIndex]->r_frame_rate.den);
-            if (index) index->SetStartPTS(avctx->streams[streamIndex]->start_time, avctx->streams[streamIndex]->time_base);  // register stream infos in index
+            if (index && (fileNumber == 1)) index->SetStartPTS(avctx->streams[streamIndex]->start_time, avctx->streams[streamIndex]->time_base);  // register stream infos in index
         }
     }
     dsyslog("cDecoder::InitDecoder(): first MP2 audio stream index: %d", firstMP2Index);
-    if (fileNumber <= 1) offsetTime_ms_LastFile = 0;
 
     LogSeparator(false);
     return true;
@@ -637,8 +636,7 @@ bool cDecoder::ReadPacket() {
         return true;
     }
 // end of file reached
-    offsetTime_ms_LastFile = offsetTime_ms_LastRead;
-    dsyslog("cDecoder::ReadPacket(): last frame of filenumber %d is (%d), end time %" PRId64 "ms (%3d:%02dmin)", fileNumber, packetNumber, offsetTime_ms_LastFile, static_cast<int> (offsetTime_ms_LastFile / 1000 / 60), static_cast<int> (offsetTime_ms_LastFile / 1000) % 60);
+    dsyslog("cDecoder::ReadPacket(): packet (%d), frame (%d): end of of filenumber %d ", packetNumber, frameNumber, fileNumber);
     if (decodeErrorFrame == packetNumber) decodeErrorCount--; // ignore malformed last frame of a file
     av_packet_unref(&avpkt);
     return false;
