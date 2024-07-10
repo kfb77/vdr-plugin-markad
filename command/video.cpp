@@ -980,8 +980,8 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
 
 #define DIFF_SCENE_NEW         400   // new scene during blend, force new scene stop/start, changed from 500 to 400
 #define DIFF_SCENE_CHANGE      110
-#define DIFF_SCENE_BLEND_START  60
-#define DIFF_SCENE_BLEND_STOP   46   // changed from 40 to 46
+#define DIFF_SCENE_BLEND_START  76   // changed from 60 to 76, prevent to detect foreground movements as scene blend
+#define DIFF_SCENE_BLEND_STOP   51   // changed from 46 to 51, prevent to detect foreground movements as scene blend
 #define SCENE_BLEND_FRAMES       5
 // end of scene during active scene blend
     if ((diffQuote >= DIFF_SCENE_NEW) && (sceneStatus == SCENE_BLEND)) {
