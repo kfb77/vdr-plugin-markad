@@ -2749,8 +2749,13 @@ void cMarkAdStandalone::CheckStartMark() {
 // MT_LOGOSTART ( 4621) ->   1s -> MT_LOGOSTOP ( 4660) ->  325s ->  MT_LOGOSTART (12786) -> 1173s -> MT_LOGOSTOP (42121) -> Disney Channel, ad with false detected logo
 // MT_LOGOSTART ( 3448) ->   3s -> MT_LOGOSTOP ( 3533) ->  370s ->  MT_LOGOSTART (12786) -> 1126s -> MT_LOGOSTOP (40948) -> Disney Channel, ad with false detected logo
 // MT_LOGOSTART ( 7249) ->   7s -> MT_LOGOSTOP ( 7435) ->  460s ->  MT_LOGOSTART (18940) ->  718s -> MT_LOGOSTOP (36895) -> RTL Television, delayed broadcast start
-
-                        if ((lengthBroadcast1 <= 25)  && (lengthAd >= 50) &&
+// MT_LOGOSTART ( 3828) ->  28s -> MT_LOGOSTOP ( 4549) ->   37s ->  MT_LOGOSTART ( 5487) -> 1237s -> MT_LOGOSTOP (36427) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 3785) ->  28s -> MT_LOGOSTOP ( 4507) ->   31s ->  MT_LOGOSTART ( 5285) -> 1202s -> MT_LOGOSTOP (35355) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 2979) ->  33s -> MT_LOGOSTOP ( 3824) ->   54s ->  MT_LOGOSTART ( 5183) ->  955s -> MT_LOGOSTOP (29081) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 2870) ->  56s -> MT_LOGOSTOP ( 4276) ->   50s ->  MT_LOGOSTART ( 5532) -> 1218s -> MT_LOGOSTOP (35991) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 3867) ->  34s -> MT_LOGOSTOP ( 4718) ->   29s ->  MT_LOGOSTART ( 5458) -> 1229s -> MT_LOGOSTOP (36205) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 1015) ->  63s -> MT_LOGOSTOP ( 2611) ->   87s ->  MT_LOGOSTART ( 4804) -> 1236s -> MT_LOGOSTOP (35723) -> SIXX, start of preview before broadcast
+                        if ((lengthBroadcast1 <= 63)  && (lengthAd >= 29) &&
                                 (lengthBroadcast2 >= 718)) {   // if second broadcast part is very long, this maybe the valid first part
                             dsyslog("cMarkAdStandalone::CheckStartMark(): current start mark invalid, delete start (%d) and stop (%d) mark", startMark->position, logoStop1->position);
                             marks.Del(startMark->position);
