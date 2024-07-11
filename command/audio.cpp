@@ -49,19 +49,19 @@ void cAudio::Silence() {
 
     if (normVolume >= 0) {
         // set start/end
-        if ((normVolume == 0) && (audioMP2Silence.startPTS < 0)) audioMP2Silence.startPTS = decoder->GetPacketPTS();                                 // start of silence
+        if ((normVolume == 0) && (audioMP2Silence.startPTS < 0)) audioMP2Silence.startPTS = decoder->GetPacketPTS();                                  // start of silence
         if ((normVolume > 0) && (audioMP2Silence.startPTS >= 0) && (audioMP2Silence.stopPTS < 0)) audioMP2Silence.stopPTS = decoder->GetPacketPTS();  // end of silence
 
         // get frame number
         if ((audioMP2Silence.startPTS >= 0) && (audioMP2Silence.startFrameNumber < 0)) audioMP2Silence.startFrameNumber = index->GetFrameBeforePTS(audioMP2Silence.startPTS);
         if ((audioMP2Silence.stopPTS  >= 0) && (audioMP2Silence.stopFrameNumber  < 0)) audioMP2Silence.stopFrameNumber = index->GetFrameAfterPTS(audioMP2Silence.stopPTS);
-#ifdef DEBUG_VOLUME
-        if (normVolume == 0) dsyslog("cAudio::Silence(): silence detected");
-        dsyslog("cAudio::Silence(): frameNumber %d, stream %d: startPTS %ld, startFrameNumber %d, stopPTS %ld, stopFrameNumber %d", frameNumber, avpkt.stream_index, audioMP2Silence.startPTS, audioMP2Silence.startFrameNumber, audioMP2Silence.stopPTS, audioMP2Silence.stopFrameNumber);
-#endif
         // return result
         if ((audioMP2Silence.startFrameNumber >= 0) && (audioMP2Silence.stopFrameNumber >= 0)) {  // silence ready, can be processed
 
+#ifdef DEBUG_VOLUME
+            if (normVolume == 0) dsyslog("cAudio::Silence(): silence detected");
+            dsyslog("cAudio::Silence(): packet (%d), frame (%d): startPTS %ld, startFrameNumber %d, stopPTS %ld, stopFrameNumber %d", decoder->GetPacketNumber(), decoder->GetFrameNumber(), audioMP2Silence.startPTS, audioMP2Silence.startFrameNumber, audioMP2Silence.stopPTS, audioMP2Silence.stopFrameNumber);
+#endif
             // add marks
             AddMark(MT_SOUNDSTOP,  audioMP2Silence.startFrameNumber, 0, 0);
             AddMark(MT_SOUNDSTART, audioMP2Silence.stopFrameNumber,  0, 0);

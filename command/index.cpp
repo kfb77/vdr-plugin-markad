@@ -348,7 +348,7 @@ int cIndex::GetFrameBeforePTS(const int64_t pts) {
 
     for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
 #ifdef DEBUG_RING_PTS_LOOKUP
-        dsyslog("cIndex::GetFrameBeforePTS(): frame (%6d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
+//        dsyslog("cIndex::GetFrameBeforePTS(): frame (%6d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
         ptsMin = std::min(ptsMin, ptsIterator->pts);
         ptsMax = std::max(ptsMax, ptsIterator->pts);
 #endif
@@ -379,7 +379,7 @@ int cIndex::GetFrameAfterPTS(const int64_t pts) {
     }
     struct sFrameType {
         int frameNumber = -1;
-        int64_t pts     =  INT_MAX;
+        int64_t pts     = INT64_MAX;
     } frame;
 #ifdef DEBUG_RING_PTS_LOOKUP
     int64_t ptsMin =  INT64_MAX;
@@ -389,7 +389,7 @@ int cIndex::GetFrameAfterPTS(const int64_t pts) {
 
     for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
 #ifdef DEBUG_RING_PTS_LOOKUP
-        dsyslog("cIndex::GetFrameAfterPTS(): frame (%6d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
+//        dsyslog("cIndex::GetFrameAfterPTS(): frame (%6d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
         ptsMin = std::min(ptsMin, ptsIterator->pts);
         ptsMax = std::max(ptsMax, ptsIterator->pts);
 #endif
@@ -404,10 +404,11 @@ int cIndex::GetFrameAfterPTS(const int64_t pts) {
     dsyslog("cIndex::GetFrameAfterPTS(): PTS searched: %" PRId64, pts);
     dsyslog("cIndex::GetFrameAfterPTS(): PTS      max: %" PRId64, ptsMax);
     dsyslog("cIndex::GetFrameAfterPTS(): index size %lu", ptsRing.size());
-    dsyslog("cIndex::GetFrameAfterPTS(): found video frame (%d) PTS %" PRId64 " after PTS %" PRId64, frame.frameNumber, frame.pts, pts);
+    if (frame.frameNumber == -1) dsyslog("cIndex::GetFrameAfterPTS(): video frame after PTS %ld not found", pts);
+    else    dsyslog("cIndex::GetFrameAfterPTS(): found video frame (%d) PTS %" PRId64 " after PTS %" PRId64, frame.frameNumber, frame.pts, pts);
     dsyslog("----------------------------------------------------------------------------------------------------------------------");
     // missing audio PTS in index can happen if audio PTS is after video PTS
-    dsyslog("cIndex::GetFrameAfterPTS(): pts %ld: not found, index contains from %ld to %ld", pts, ptsMin, ptsMax);
+    dsyslog("cIndex::GetFrameAfterPTS(): PTS %ld: not found, index contains from %ld to %ld", pts, ptsMin, ptsMax);
 #endif
     return frame.frameNumber;
 }
