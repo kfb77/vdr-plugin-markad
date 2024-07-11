@@ -377,6 +377,11 @@ public:
      */
     bool IsSubtitlePacket();
 
+    /** get pixel format of video stream
+     * @return enum AVPixelFormat of video stream
+     */
+    enum AVPixelFormat GetVideoPixelFormat() const;
+
 private:
     /** set start and end time of decoding, use for statitics
      * @param start true for start decoding, false otherwise

@@ -6446,6 +6446,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, macontext.Config->threads, true, hwaccel, false, nullptr); // full decocode, no hwaccel, no index
     ALLOC(sizeof(*decoderTest), "decoderTest");
     decoderTest->DecodeNextFrame(false);  // decode one video frame to get video info
+    dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: interlaced %d, type %d, pixel format %d", decoderTest->IsInterlacedFrame(), decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
+    // pixel format yuv420p10le (from UHD) does not work with hwaccel
+    if (decoderTest->GetVideoPixelFormat() == AV_PIX_FMT_YUV420P10LE) {
+        isyslog("FFmpeg does not support hwaccel with pixel format yuv420p10le");
+        macontext.Config->hwaccel[0] = 0;
+        macontext.Config->forceHW   = false;
+    }
+    // H.264 interlaced video need full decoding
     if ((decoderTest->IsInterlacedFrame()) && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
         isyslog("H.264 interlaced video need full decoding");
         macontext.Config->fullDecode = true;

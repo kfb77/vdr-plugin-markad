@@ -432,6 +432,16 @@ bool cDecoder::InitDecoder(const char *filename) {
 }
 
 
+enum AVPixelFormat cDecoder::GetVideoPixelFormat() const {
+    if (!avctx) return AV_PIX_FMT_NONE;
+    for (unsigned int i = 0; i < avctx->nb_streams; i++) {
+        if (codecCtxArray[avpkt.stream_index]->codec_type == AVMEDIA_TYPE_VIDEO) return codecCtxArray[avpkt.stream_index]->pix_fmt;
+    }
+    dsyslog("cDecoder::cDecoder::GetVideoPixelFormat(): failed");
+    return AV_PIX_FMT_NONE;
+}
+
+
 int cDecoder::GetVideoType() {
     if (!avctx) return 0;
     for (unsigned int i = 0; i < avctx->nb_streams; i++) {
