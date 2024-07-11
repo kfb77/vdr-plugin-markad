@@ -168,7 +168,7 @@ private:
      * @param  logo_imark   count of pixel matches to accept logo invisible
      * @return true if we got a valid result, fasle otherwise
      */
-    bool ReduceBrightness(const int logo_vmark, const int logo_imark);
+    bool ReduceBrightness(const int logo_vmark, int *logo_imark);
 
     /**
      * load logo from file in directory

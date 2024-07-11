@@ -191,7 +191,7 @@ int cLogoDetect::GetLogoCorner() const {
 // reduce brightness and increase contrast
 // return true if we now have a valid detection result
 //
-bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {  // frameNumber used only for debugging
+bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cLogoDetect::ReduceBrightness picture not valid");
@@ -299,8 +299,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
     int brightnessLogo = sumPixel / ((logo_yend - logo_ystart + 1) * (logo_xend - logo_xstart + 1));
     int contrastLogo = maxPixel - minPixel;
 #ifdef DEBUG_LOGO_DETECTION
-    int frameNumber = decoder->GetFrameNumber();
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area before reduction: contrast %3d, brightness %3d", frameNumber, contrastLogo, brightnessLogo);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area before reduction: contrast %3d, brightness %3d", decoder->GetFrameNumber(), contrastLogo, brightnessLogo);
 #endif
 
 // check if contrast and brightness is valid
@@ -313,7 +312,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
     // contrast 200, brightness  85
     if ((contrastLogo > 202) && (brightnessLogo < 85)) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): very high contrast with not very high brightness in logo area, trust detection", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): very high contrast with not very high brightness in logo area, trust detection", decoder->GetFrameNumber());
 #endif
         return true; // if the is a logo should had detected it
     }
@@ -335,14 +334,17 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
 // contrast  14, brightness 218  -> bright background with logo
 // contrast  13, brightness 216  -> bright background with logo
 //
+// contrast  10, brightness 203  -> bright background with logo
+// contrast  10, brightness 204  -> bright background with logo
 // contrast  10, brightness 216  -> bright background with logo
 // contrast   9, brightness 229  -> bright background with logo
 // contrast   9, brightness 218  -> bright background with logo
 // contrast   9, brightness 217  -> bright background with logo
+// contrast   9, brightness 206  -> bright background with logo
 // contrast   8, brightness 221  -> bright background with logo
 // contrast   8, brightness 228  -> bright background with logo
 // contrast   8, brightness 218  -> bright background with logo
-//
+// contrast   4, brightness 205  -> bright background with logo
 // -----------------------------------------------------------------
 // logo or no logo in bright area, not detected without brightness reduction, detected with brightness reduction, take it as valid
 // contrast 170, brightness 141  -> bright background without logo
@@ -358,7 +360,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
 // contrast  19, brightness 197  -> bright separator without logo
 // contrast  14, brightness 195  -> bright scene without logo
 //
-// contrast   8, brightness 207  -> no logo on bright background
+// contrast   8, brightness 207  -> no logo on bright background   (conflict)
 //
 // contrast   3, brightness 218  -> bright separator without logo
 // contrast   2, brightness 213  -> bright separator without logo
@@ -368,8 +370,8 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
 
     // build the curve for invalid contrast/brightness
     if ((    (contrastLogo  ==  0) &&                          (brightnessLogo > 235)) ||
-            ((contrastLogo  >   0) && (contrastLogo <=   5) && (brightnessLogo > 218)) ||
-            ((contrastLogo  >   5) && (contrastLogo <=  10) && (brightnessLogo > 207)) ||
+            ((contrastLogo  >   0) && (contrastLogo <=   3) && (brightnessLogo > 218)) ||
+            ((contrastLogo  >   3) && (contrastLogo <=  10) && (brightnessLogo > 202)) ||
             ((contrastLogo  >  10) && (contrastLogo <=  20) && (brightnessLogo > 197)) ||
             ((contrastLogo  >  20) && (contrastLogo <=  50) && (brightnessLogo > 192)) ||
             ((contrastLogo  >  50) && (contrastLogo <=  60) && (brightnessLogo > 189)) ||
@@ -378,7 +380,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
             ((contrastLogo  > 180) && (contrastLogo <= 194) && (brightnessLogo > 120)) ||
             ((contrastLogo  > 194) &&                          (brightnessLogo > 104))) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): contrast/brightness in logo area is invalid for brightness reduction", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): contrast/brightness in logo area is invalid for brightness reduction", decoder->GetFrameNumber());
 #endif
         return false; //  nothing we can work with
     }
@@ -414,7 +416,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
     int brightnessReduced = sumPixel / ((logo_yend - logo_ystart + 1) * (logo_xend - logo_xstart + 1));
 
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area after  reduction: contrast %3d, brightness %3d", frameNumber, contrastReduced, brightnessReduced);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area after  reduction: contrast %3d, brightness %3d", decoder->GetFrameNumber(), contrastReduced, brightnessReduced);
 #endif
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
@@ -434,7 +436,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
 // if we have a comple white picture after brightness reduction, we can not decide if there is a logo or not
     if ((contrastReduced == 0) && (brightnessReduced == 255)) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): detection impossible on white picture", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): detection impossible on white picture", decoder->GetFrameNumber());
 #endif
         return false;
     }
@@ -447,11 +449,14 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
     int mPixel = area.mPixel[0];
     int iPixel = area.iPixel[0];
 
+    // liftup logo invisible threshold for dark picture after brightness reduction
+    if (area.intensity <= 32) *logo_imark *= 1.5;
+
 #ifdef DEBUG_LOGO_DETECTION
     char detectStatus[] = "o";
     if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
-    if (rPixel <= logo_imark) strcpy(detectStatus, "-");
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameNumber, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, 1, detectStatus);
+    if (rPixel <= *logo_imark) strcpy(detectStatus, "-");
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", decoder->GetFrameNumber(), rPixel, iPixel, mPixel, logo_vmark, *logo_imark, area.intensity, area.counter, area.status, 1, detectStatus);
 #endif
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
@@ -481,40 +486,40 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, const int logo_imark) {
     // check background pattern
     int quoteInverse  = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);  // quote of pixel from background
     int rPixelWithout = rPixel * (100 - quoteInverse) / 100;
-
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", frameNumber, rPixel, quoteInverse, rPixelWithout);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", decoder->GetFrameNumber(), rPixel, quoteInverse, rPixelWithout);
 #endif
-
-    rPixel = rPixelWithout; // now use this result for detection
+    // now use this result for further detection
+    rPixel         = rPixelWithout;
+    area.rPixel[0] = rPixelWithout;
 
     // now we trust logo visible
     if (rPixel >= logo_vmark) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): valid logo visible after brightness reducation", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): valid logo visible after brightness reducation", decoder->GetFrameNumber());
 #endif
         return true;  // we have a clear result
     }
 
     // ignore matches on still bright picture
-    if ((area.intensity > 160) && (rPixel >= logo_imark / 5)) { // still too bright, trust only very low matches
+    if ((area.intensity > 160) && (rPixel >= *logo_imark / 5)) { // still too bright, trust only very low matches
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area still too bright", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area still too bright", decoder->GetFrameNumber());
 #endif
         return false;
     }
 
     // now we trust logo invisible
-    if (rPixel <= logo_imark) {
+    if (rPixel <= *logo_imark) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): valid logo invisible after brightness reducation", frameNumber);
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): valid logo invisible after brightness reducation", decoder->GetFrameNumber());
 #endif
         return true;  // we have a clear result
     }
 
     // still no clear result
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d) no valid result after brightness reducation", frameNumber);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d) no valid result after brightness reducation", decoder->GetFrameNumber());
 #endif
     return false;
 }
@@ -768,7 +773,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
         // changed max area.intensity from 221 to 234 t detect logo invisible on white separator
         if (!logoStatus && (area.intensity > MAX_AREA_INTENSITY) && (area.intensity <= 234)) {  //  only if we don't have a valid result yet
             // reduce brightness and increase contrast
-            logoStatus = ReduceBrightness(logo_vmark, logo_imark);
+            logoStatus = ReduceBrightness(logo_vmark, &logo_imark);  // logo_imark will be increased if we got a dark picture after brightness reduction
             if (logoStatus) rPixel = area.rPixel[0];  // set new pixel result
         }
     }
