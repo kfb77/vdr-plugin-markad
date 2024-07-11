@@ -325,6 +325,8 @@ typedef struct sMarkAdConfig {
     //!<
     bool forceHW                   = false;    //!< force hwaccel for MPEG2
     //!<
+    bool forceInterlaced           = false;    //!< inform decoder who use hwaccel, the video is interlaced. In this case not possible to detect from decoder because HW deinterlaces
+    //!
     bool perftest                  = false;    //!< <b>true:</b>  run decoder performance test before detect marks<br>
     //!< <b>false:</b> otherwise
 } sMarkAdConfig;

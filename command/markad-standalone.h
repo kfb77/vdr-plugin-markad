@@ -381,7 +381,7 @@ private:
      */
     void RemovePidfile();
 
-    cIndex *index                    = nullptr; //!< pointer to index object
+    cIndex *index                    = nullptr;  //!< pointer to index object
     //!
     cDecoder *decoder                = nullptr;  //!< pointer to main decoder
     //!

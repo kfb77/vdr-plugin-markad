@@ -75,7 +75,7 @@ public:
         gettimeofday(&startDecode, nullptr);
 
         // init decoder
-        cDecoder *decoder = new cDecoder(recDir, threads, fullDecode, hwaccel, true, nullptr);  // recording directory, threads, full decode, hwaccel methode, force hwaccel, index flag
+        cDecoder *decoder = new cDecoder(recDir, threads, fullDecode, hwaccel, true, false, nullptr);  // recording directory, threads, full decode, hwaccel methode, force hwaccel, interlaced, index
         while (decoder->DecodeNextFrame(false)) {  // no audio decode
             if (abortNow) return -1;
             if (decoder->GetFrameNumber() >= testFrames) break;

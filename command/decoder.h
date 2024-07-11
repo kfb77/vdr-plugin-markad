@@ -81,7 +81,7 @@ public:
      * @param forceHWparam      true if force use of hwaccel on MPEG2 codec
      * @param indexParam        recording index class
      */
-    explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccelParam, const bool forceHWparam, cIndex *indexParam);
+    explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccelParam, const bool forceHWparam, const bool forceInterlacedParam, cIndex *indexParam);
 
     ~cDecoder();
 
@@ -415,6 +415,8 @@ private:
     bool fullDecode                    = false;                   //!< false if we decode only i-frames, true if we decode all frames
     //!<
     char *hwaccel                      = nullptr;                 //!< hardware accelerated methode
+    //!<
+    bool forceInterlaced               = false;                   //!< inform decoder used hwaccel this video is interlaced
     //!<
     bool useHWaccel                    = false;                   //!< enable hardware accelerated video decode and encode
     //!<

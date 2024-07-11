@@ -8,7 +8,6 @@ Prerequisite:
 - git
 - vdr-dev         >= 2.2
 - libavcodec-dev  >= 58.54.100 (FFmpeg 4.2.7)
-                  for decoding H.264 interlaced video with hwaccel at least 60.31.102 (FFmpeg 6.1.1)
 - libavformat-dev
 - libavfilter-dev
 - libswresample-dev

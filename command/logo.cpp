@@ -43,7 +43,7 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
     requestedLogoAspectRatio.den = requestedAspectRatio.den;
 
     // create all used objects
-    decoder = new cDecoder(recDir, threads, false, hwaccel, forceHW, nullptr);    // recDir, threads, fullDecode, hwaccel, forceHW, index
+    decoder = new cDecoder(recDir, threads, true, hwaccel, forceHW, false, nullptr);    // recDir, threads, fullDecode, hwaccel, forceHW, forceInterlace, index
     ALLOC(sizeof(*decoder), "decoder");
 
     criteria = new cCriteria(channelName);

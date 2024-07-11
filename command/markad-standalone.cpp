@@ -1648,7 +1648,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
     // use local variables with same name as global
     cDecoder *decoder_local = decoder;
     if (checkStart) {
-        decoder_local = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, index);
+        decoder_local = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW,  macontext.Config->forceInterlaced, index);
         ALLOC(sizeof(*decoder_local), "decoder_local");
         if (!decoder_local->ReadNextFile()) { // force init decoder to get infos about video (frame rate is used by cEvaluateLogoStopStartPair)
             esyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): failed to open first video file");
@@ -6443,7 +6443,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     // check if requested decoding parameter are valid for this video codec
     char hwaccel[1] = {0};      //!< no hardware acceleration
-    cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, macontext.Config->threads, true, hwaccel, false, nullptr); // full decocode, no hwaccel, no index
+    cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, macontext.Config->threads, true, hwaccel, false, false, nullptr); // full decocode, no hwaccel, no force interlaced, no index
     ALLOC(sizeof(*decoderTest), "decoderTest");
     decoderTest->DecodeNextFrame(false);  // decode one video frame to get video info
     dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: interlaced %d, type %d, pixel format %d", decoderTest->IsInterlacedFrame(), decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
@@ -6451,24 +6451,18 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     if (decoderTest->GetVideoPixelFormat() == AV_PIX_FMT_YUV420P10LE) {
         isyslog("FFmpeg does not support hwaccel with pixel format yuv420p10le");
         macontext.Config->hwaccel[0] = 0;
-        macontext.Config->forceHW   = false;
+        macontext.Config->forceHW    = false;
     }
-    // H.264 interlaced video need full decoding
-    if ((decoderTest->IsInterlacedFrame()) && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
-        isyslog("H.264 interlaced video need full decoding");
+    // H.264 video need full decoding
+    if ((decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
+        isyslog("H.264 video need full decoding");
         macontext.Config->fullDecode = true;
     }
-    // H.264 interlaced need FFmpeg 6.1.1 for hwaccel
-#if LIBAVCODEC_VERSION_INT < ((60<<16)+( 31<<8)+102)   // FFmpeg 6.1.1  (e.g. Ubuntu 24.04)
-    if (macontext.Config->hwaccel[0] != 0) {
-        if ((decoderTest->IsInterlacedFrame()) && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
-            isyslog("FFmpeg version does not support hwaccel with H.264 interlaced video, need at least FFmpeg 6.1.1");
-            macontext.Config->hwaccel[0] = 0;
-            macontext.Config->forceHW   = false;
-        }
-
+    // inform decoder who use hwaccel, the video is interlaaced. In this case this is not possible to detect from decoder because hwaccel deinterlaces frames
+    if ((macontext.Config->hwaccel[0] != 0) && decoderTest->IsInterlacedFrame() && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
+        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): inform decoder with hwaccel about H.264 interlaced video");
+        macontext.Config->forceInterlaced = true;
     }
-#endif
     FREE(sizeof(*decoderTest), "decoderTest");
     delete decoderTest;
 
@@ -6510,7 +6504,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     marks.SetIndex(index);
 
     // create decoder object
-    decoder = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, index);
+    decoder = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Config->forceInterlaced, index);
     ALLOC(sizeof(*decoder), "decoder");
 }
 

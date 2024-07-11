@@ -75,7 +75,8 @@ static enum AVPixelFormat get_hw_format(__attribute__((unused)) AVCodecContext *
 }
 
 
-cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccelParam, const bool forceHWparam, cIndex *indexParam) {
+cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccelParam, const bool forceHWparam, const bool forceInterlacedParam, cIndex *indexParam) {
+    LogSeparator(true);
     dsyslog("cDecoder::cDecoder(): create decoder object");
     // recording directory
     if (!recordingDir) {
@@ -94,11 +95,12 @@ cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodePa
     if (threads <  1) threads =  1;
     if (threads > 16) threads = 16;
 
-    fullDecode   = fullDecodeParam;
-    index        = indexParam;     // index can be nullptr if we use no index (used in logo search)
-    hwaccel      = hwaccelParam;
-    forceHWaccel = forceHWparam;
-    dsyslog("cDecoder::cDecoder(): init with %d threads, %s, hwaccel: %s %s", threads, (fullDecode) ? "full decode" : "i-frame decode", hwaccel, (forceHWaccel) ? "(force)" : "");
+    fullDecode      = fullDecodeParam;
+    index           = indexParam;     // index can be nullptr if we use no index (used in logo search)
+    hwaccel         = hwaccelParam;
+    forceHWaccel    = forceHWparam;
+    forceInterlaced = forceInterlacedParam;
+    dsyslog("cDecoder::cDecoder(): init with %d threads, %s, hwaccel: %s %s %s", threads, (fullDecode) ? "full decode" : "i-frame decode", hwaccel, (forceHWaccel) ? "(force)" : "", (forceInterlaced) ? ", force interlaced" : "");
 
     av_frame_unref(&avFrame);    // reset all fields to default
 
@@ -764,8 +766,8 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
             if(ReadNextPacket()) {        // got a packet
                 if (!IsVideoPacket()) continue;    // start decode with first video
                 decoderSendState = SendPacketToDecoder(false);      // send packet to decoder, no flash flag
-#ifdef DEBUG_DECODER
-                dsyslog("cDecoder::DecodeNextFrame(): packet        (%5d), stream %d: avpkt.flags %d send to decoder", packetNumber, avpkt.stream_index, avpkt.flags);
+#ifdef DEBUG_DECODE_NEXT_FRAME
+                dsyslog("cDecoder::DecodeNextFrame(): packet        (%5d), stream %d: avpkt.flags %d send to decoder for init", packetNumber, avpkt.stream_index, avpkt.flags);
 #endif
             }
             break;
@@ -791,8 +793,8 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
                     if (!audioDecode     && !IsVideoPacket())  continue; // decode only video frames
                     if (!IsVideoPacket() && !IsAudioPacket())  continue; // ignore all other types (e.g. subtitle
                     decoderSendState = SendPacketToDecoder(false);      // send packet to decoder, no flash flag
-#ifdef DEBUG_DECODER
-                    dsyslog("cDecoder::DecodeNextFrame(): packet        (%5d), stream %d: avpkt.flags %d send to decoder", packetNumber, avpkt.stream_index, avpkt.flags);
+#ifdef DEBUG_DECODE_NEXT_FRAME
+                    dsyslog("cDecoder::DecodeNextFrame(): packet        (%5d), stream %d, fullDecode %d: avpkt.flags %d send to decoder", packetNumber, avpkt.stream_index, fullDecode, avpkt.flags);
 #endif
                 }
                 else {
@@ -821,7 +823,7 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
     // now we have received a frame or an error
     switch (decoderReceiveState) {
     case 0:
-#ifdef DEBUG_DECODER
+#ifdef DEBUG_DECODE_NEXT_FRAME
         dsyslog("cDecoder::DecodeNextFrame(): frame         (%5d): pict_type %d, received from decoder", frameNumber, avFrame.pict_type);
 #endif
         return true;
@@ -897,7 +899,7 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
         if (packetNumber >= seekPacketNumber) break;
     }
     frameNumber = packetNumber - 1;          // next decoded frame will be from this packet
-    if (IsInterlacedFrame()) frameNumber--;  // for interlaced video we need 2 packet to get a decoded frame
+    if (forceInterlaced || IsInterlacedFrame()) frameNumber--;  // for interlaced video we need 2 packet to get a decoded frame
     dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d) successful", packetNumber, seekPacketNumber);
     return true;
 }
@@ -972,12 +974,12 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
     Time(true);
     if (!avctx) return AVERROR_EXIT;
     if (!IsVideoPacket() && !IsAudioPacket()) {
-        esyslog("cDecoder::cDecoder::SendPacketToDecoder(): packet (%d) stream %d: type not supported", packetNumber, avpkt.stream_index);
+        esyslog("cDecoder::cDecoder::SendPacketToDecoder():     packet (%5d) stream %d: type not supported", packetNumber, avpkt.stream_index);
         return AVERROR_EXIT;
     }
 
 #ifdef DEBUG_DECODER
-    dsyslog("cDecoder::SendPacketToDecoder(): packet (%d), stream %d: avpkt.flags %d, avcodec_send_packet", packetNumber, avpkt.stream_index, avpkt.flags);
+    dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avpkt.flags %d, avcodec_send_packet", packetNumber, avpkt.stream_index, avpkt.flags);
 #endif
 
     int rc = 0;
@@ -990,30 +992,30 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
         switch (rc) {
         case AVERROR(EAGAIN):
 #ifdef DEBUG_DECODER
-            dsyslog("cDecoder::SendPacketToDecoder(): packet (%5d), stream %d: avcodec_send_packet error EAGAIN", packetNumber, avpkt.stream_index);
+            dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avcodec_send_packet error EAGAIN", packetNumber, avpkt.stream_index);
 #endif
             break;
         case AVERROR(ENOMEM):
-            dsyslog("cDecoder::SendPacketToDecoder(): packet (%5d), stream %d: avcodec_send_packet error ENOMEM", packetNumber, avpkt.stream_index);
+            dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avcodec_send_packet error ENOMEM", packetNumber, avpkt.stream_index);
             break;
         case AVERROR(EINVAL):
-            dsyslog("cDecoder::SendPacketToDecoder(): packet (%5d), stream %d: avcodec_send_packet error EINVAL", packetNumber, avpkt.stream_index);
+            dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avcodec_send_packet error EINVAL", packetNumber, avpkt.stream_index);
             break;
         case AVERROR_INVALIDDATA:
-            dsyslog("cDecoder::SendPacketToDecoder(): packet (%5d), stream %d: avcodec_send_packet error AVERROR_INVALIDDATA", packetNumber, avpkt.stream_index);
+            dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avcodec_send_packet error AVERROR_INVALIDDATA", packetNumber, avpkt.stream_index);
             avcodec_flush_buffers(codecCtxArray[avpkt.stream_index]);   // cleanup buffers after invalid packet
             break;
         case AVERROR(EIO):
-            dsyslog("cDecoderWER::SendPacketToDecoder(): packet (%5d): I/O error (EIO)", frameNumber);
+            dsyslog("cDecoderWER::SendPacketToDecoder():     packet (%5d): I/O error (EIO)", frameNumber);
             break;
         case AVERROR_EOF:
-            dsyslog("cDecoderWER::SendPacketToDecoder(): packet (%5d): end of file (AVERROR_EOF)", frameNumber);
+            dsyslog("cDecoderWER::SendPacketToDecoder():     packet (%5d): end of file (AVERROR_EOF)", frameNumber);
             break;
         case AAC_AC3_PARSE_ERROR_SYNC:
-            dsyslog("cDecoder::SendPacketToDecoder(): packet (%5d), stream %d: avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC", packetNumber, avpkt.stream_index);
+            dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC", packetNumber, avpkt.stream_index);
             break;
         default:
-            esyslog("cDecoder::SendPacketToDecoder(): packet (%5d), stream %d: avcodec_send_packet failed with rc=%d: %s", packetNumber, avpkt.stream_index, rc, av_err2str(rc));
+            esyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avcodec_send_packet failed with rc=%d: %s", packetNumber, avpkt.stream_index, rc, av_err2str(rc));
             break;
         }
         if ((frameNumber < 0)                                     &&  // we have no frame successful decoded
@@ -1021,7 +1023,7 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
                 IsVideoStream(avpkt.stream_index)                 &&  // is video stream
                 !codecCtxArray[avpkt.stream_index]->hw_frames_ctx &&  // failed to get hardware frame context
                 codecCtxArray[avpkt.stream_index]->hw_device_ctx) {   // hardware device is linked
-            dsyslog("cDecoder::SendPacketToDecoder(): packet (%5d): stream %d: hardware decoding failed, fallback to software decoding", packetNumber, avpkt.stream_index);
+            dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d): stream %d: hardware decoding failed, fallback to software decoding", packetNumber, avpkt.stream_index);
             rc = ResetToSW();
         }
     }
@@ -1090,20 +1092,20 @@ int cDecoder::ReceiveFrameFromDecoder() {
         switch (rc) {
         case AVERROR(EAGAIN):   // frame not ready, expected with interlaced video
 #ifdef DEBUG_DECODER
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%5d): avcodec_receive_frame error EAGAIN", frameNumber);
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): avcodec_receive_frame error EAGAIN", frameNumber);
 #endif
             break;
         case AVERROR(EINVAL):
-            esyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%5d): avcodec_receive_frame error EINVAL", frameNumber);
+            esyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): avcodec_receive_frame error EINVAL", frameNumber);
             break;
         case -EIO:              // I/O error
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%5d): I/O error (EIO)", frameNumber);
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): I/O error (EIO)", frameNumber);
             break;
         case AVERROR_EOF:       // end of file
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%5d): end of file (AVERROR_EOF)", frameNumber);
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): end of file (AVERROR_EOF)", frameNumber);
             break;
         default:
-            esyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%5d): avcodec_receive_frame decode failed with return code %d", frameNumber, rc);
+            esyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): avcodec_receive_frame decode failed with return code %d", frameNumber, rc);
             break;
         }
         av_frame_unref(&avFrame);
@@ -1124,7 +1126,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
                 dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): I/O error (EIO)", frameNumber);
                 break;
             default:
-                esyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%5d), pict_type %d: av_hwframe_transfer_data rc = %d: %s", frameNumber, avFrame.pict_type, rc, av_err2str(rc));
+                esyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d), pict_type %d: av_hwframe_transfer_data rc = %d: %s", frameNumber, avFrame.pict_type, rc, av_err2str(rc));
                 break;
             }
             av_frame_unref(&swFrame);
@@ -1189,9 +1191,8 @@ int cDecoder::ReceiveFrameFromDecoder() {
 // we got a video frame, set new frame number and offset from start adn build index
     if (IsVideoFrame()) {
         if (fullDecode) {
-#if LIBAVCODEC_VERSION_INT >= ((60<<16)+( 31<<8)+102)   // FFmpeg 6.1.1  (e.g. Ubuntu 24.04)
-            if ((IsInterlacedFrame()) && (GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) frameNumber++;  // from decinterlacer we get only half of video frames
-#endif
+            if (forceInterlaced ||
+                    ((IsInterlacedFrame()) && (GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264))) frameNumber++;  // from decinterlacer we get only half of video frames
             frameNumber++;
         }
         else {
