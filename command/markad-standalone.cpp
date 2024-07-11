@@ -1001,7 +1001,7 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffLogoStopBlackStart  = 1000 * (blackStart->position - stopBefore->position) / decoder->GetVideoFrameRate();
                     int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position) / decoder->GetVideoFrameRate();
                     int diffBlackStopLogoStart  = 1000 * (mark->position       - blackStop->position)  / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP(%5d)->%5dms->MT_NOBLACKSTOP(%5d)->%3dsm->MT_NOBLACKSTART(%5d)->%3dms->MT_LOGOSTART(%5d)->%dms->MT_LOGOSTOP(%5d)", stopBefore->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, mark->position, diffLogoStartLogoStop, stopAfterPosition);
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP(%6d)->%5dms->MT_NOBLACKSTOP(%5d)->%3dms->MT_NOBLACKSTART(%5d)->%3dms->MT_LOGOSTART(%5d)->%dms->MT_LOGOSTOP(%5d)", stopBefore->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, mark->position, diffLogoStartLogoStop, stopAfterPosition);
 // black screen short after end mark of previous broadcast
 // valid example
 // tbd
@@ -1015,13 +1015,13 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     }
 // black screen short before start mark of broadcast
 // valid example
-// MT_LOGOSTOP(8177) ->  31200ms -> MT_NOBLACKSTOP( 8957) -> 120ms -> MT_NOBLACKSTART( 8960) -> 680ms -> MT_LOGOSTART( 8977) -> 2147483647ms -> MT_LOGOSTOP(2147483647) Disney Channel
-// MT_LOGOSTOP(4191) ->  10800ms -> MT_NOBLACKSTOP( 4461) -> 240ms -> MT_NOBLACKSTART( 4467) -> 720ms -> MT_LOGOSTART( 4485) ->        560ms -> MT_LOGOSTOP(      4499) SIXX (conflict)
+// MT_LOGOSTOP( 8177)-> 31200ms->MT_NOBLACKSTOP( 8957)->120ms->MT_NOBLACKSTART( 8960)-> 680ms->MT_LOGOSTART( 8977)->2147483647ms->MT_LOGOSTOP(2147483647) Disney Channel
+// MT_LOGOSTOP( 6035)->  8240ms->MT_NOBLACKSTOP( 6241)->160ms->MT_NOBLACKSTART( 6245)->1400ms->MT_LOGOSTART( 6280)->2147483647ms->MT_LOGOSTOP(2147483647) DMAX
 
 // invalid example
 // logo start with black screen before preview
-// MT_LOGOSTOP( 6578) -> 165640ms -> MT_NOBLACKSTOP(10719) -> 840ms -> MT_NOBLACKSTART(10740) ->  680ms -> MT_LOGOSTART(10757) ->  27440ms -> MT_LOGOSTOP(     11443) Comedy Central
-                    if ((diffLogoStopBlackStart >= 30040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 2600) && (diffLogoStartLogoStop > 27440)) {
+// MT_LOGOSTOP( 6578)->165640ms->MT_NOBLACKSTOP(10719)->840ms->MT_NOBLACKSTART(10740)-> 680ms->MT_LOGOSTART(10757)->     27440ms->MT_LOGOSTOP(     11443) Comedy Central
+                    if ((diffLogoStopBlackStart >= 8240) && (diffBlackStartBlackStop >= 120) && (diffBlackStopLogoStart <= 1400) && (diffLogoStartLogoStop > 27440)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
