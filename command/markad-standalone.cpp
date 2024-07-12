@@ -1841,6 +1841,8 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
         criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);  // there is a 6 channel audio in broadcast, may we can use it later
         if (channelStart->position < IGNORE_AT_START) marks.Del(channelStart->position);
     }
+    // 6 channel double episode, there is no channel start mark
+    if (decoder->GetAC3ChannelCount() >= 5) criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);  // there is a 6 channel audio in broadcast, may we can use it later
 
     // search channel start mark
     channelStart = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_CHANNELSTART);
@@ -1878,13 +1880,11 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
         else  dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): no audio channel start mark found");
     }
 // now we have a final channel start mark
-    if (channelStart) {
-        marks.DelType(MT_LOGOCHANGE,    0xF0);
-        marks.DelType(MT_HBORDERCHANGE, 0xF0);
-        marks.DelType(MT_VBORDERCHANGE, 0xF0);
-        marks.DelWeakFromTo(0, INT_MAX, MT_CHANNELCHANGE); // we have a channel start mark, delete all weak marks
-        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
-    }
+    marks.DelType(MT_LOGOCHANGE,    0xF0);
+    marks.DelType(MT_HBORDERCHANGE, 0xF0);
+    marks.DelType(MT_VBORDERCHANGE, 0xF0);
+    marks.DelWeakFromTo(0, INT_MAX, MT_CHANNELCHANGE); // we have a channel start mark, delete all weak marks
+    criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
     return channelStart;
 }
 
