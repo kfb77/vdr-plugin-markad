@@ -313,6 +313,8 @@ typedef struct sMarkAdConfig {
     bool fullDecode                = false;    //!< <b>true:</b> decode all video frames <br>
     //!< <b>false:</b> decode only iFrames
     //!<
+    bool forceFullDecode           = false;    //!< true if codec needs full decode
+    //!<
     bool fullEncode                = false;    //!< <b>true:</b> full re-encode all frames, cut on all frame types <br>
     //!< <b>false:</b> copy frames without re-encode, cut on iframe position
     //!<

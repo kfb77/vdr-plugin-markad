@@ -5943,7 +5943,7 @@ bool cMarkAdStandalone::CheckLogo() {
         }
         isyslog("no logo for %s %d:%d found in recording directory %s, trying to extract logo from recording", macontext.Info.ChannelName, macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den, macontext.Config->recDir);
 
-        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
+        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->forceFullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
         ALLOC(sizeof(*extractLogo), "extractLogo");
 
         // write an early start mark for running recordings to provide a guest start mark for direct play, marks file will be overridden by save of first real mark
@@ -6433,7 +6433,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     // manually extract logo from recording
     if (config->logoExtraction >= 0) {
-        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
+        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->forceFullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
         ALLOC(sizeof(*extractLogo), "extractLogo");
         extractLogo->ManuallyExtractLogo(config->logoExtraction, config->logoWidth, config->logoHeight);
         ALLOC(sizeof(*extractLogo), "extractLogo");
@@ -6456,7 +6456,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     // H.264 video need full decoding
     if ((decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
         isyslog("H.264 video need full decoding");
-        macontext.Config->fullDecode = true;
+        macontext.Config->fullDecode      = true;
+        macontext.Config->forceFullDecode = true;
     }
     // inform decoder who use hwaccel, the video is interlaaced. In this case this is not possible to detect from decoder because hwaccel deinterlaces frames
     if ((macontext.Config->hwaccel[0] != 0) && decoderTest->IsInterlacedFrame() && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
