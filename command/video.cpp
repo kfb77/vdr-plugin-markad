@@ -527,7 +527,6 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
 
 // copy all black pixels from logo pane 0 into plan 1 and plane 2
 // we need this for channels with usually grey logos, but at start and end they can be red (DMAX)
-//
 void cLogoDetect::LogoGreyToColour() {
     for (int line = 0; line < area.logoSize.height; line++) {
         for (int column = 0; column < area.logoSize.width; column++) {
@@ -541,6 +540,62 @@ void cLogoDetect::LogoGreyToColour() {
             }
         }
     }
+    area.mPixel[1] = area.mPixel[0] / 4;
+    area.mPixel[2] = area.mPixel[0] / 4;
+}
+
+
+bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
+    int rPixelColour = 0;
+    int mPixelColour = 0;
+
+    // copy logo from plane 0 to plane 1 and 2
+    if (!isInitColourChange) {
+        LogoGreyToColour();
+        isInitColourChange = true;
+    }
+    // sobel transformation of colored planes
+    sVideoPicture *picture = decoder->GetVideoPicture();
+    for (int plane = 1; plane < PLANES; plane++) {
+        area.valid[plane] = true;  // only for next sobel transformation
+        sobel->SobelPlane(picture, &area, plane);
+        rPixelColour += area.rPixel[plane];
+        mPixelColour += area.mPixel[plane];
+        area.valid[plane] = false; // reset state for next normal detection
+    }
+    int logo_vmarkColour = LOGO_VMARK * mPixelColour;
+
+#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
+    dsyslog("cLogoDetect::LogoColourChange(): frame (%6d): maybe colour change, try plane 1 and plan 2", decoder->GetFrameNumber());
+    int logo_imarkColour = LOGO_IMARK * mPixelColour;
+    for (int plane = 0; plane < PLANES; plane++) {
+        // reset all planes
+        if ((decoder->GetFrameNumber() > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (decoder->GetFrameNumber() < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+            char *fileName = nullptr;
+            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_ColourChange.pgm", recDir, decoder->GetFrameNumber(), plane, area.logoCorner) >= 1) {
+                ALLOC(strlen(fileName) + 1, "fileName");
+                if (plane == 0) sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width, area.logoSize.height);
+                else sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width / 2, area.logoSize.height / 2);
+                FREE(strlen(fileName) + 1, "fileName");
+                free(fileName);
+            }
+        }
+    }
+    int iPixelColour = 0;   // not used, only for same formatted output
+    char detectStatus[] = "o";
+    if (rPixelColour >= logo_vmarkColour) strcpy(detectStatus, "+");
+    if (rPixelColour <= logo_imarkColour) strcpy(detectStatus, "-");
+    dsyslog("cLogoDetect::LogoColourChange    frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", decoder->GetFrameNumber(), rPixelColour, iPixelColour, mPixelColour, logo_vmarkColour, logo_imarkColour, area.intensity, area.counter, area.status, 2, detectStatus);
+#endif
+
+    if (rPixelColour >= logo_vmarkColour) {
+#ifdef DEBUG_LOGO_DETECTION
+        dsyslog("cLogoDetect::LogoColourChange:   frame (%6d): logo visible in plane 1 and plane 2", decoder->GetFrameNumber());
+#endif
+        *rPixel = logo_vmark;   // change result to logo visible
+        return true;           // we found colored logo
+    }
+    return false;
 }
 
 
@@ -618,9 +673,11 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
     processed = sobel->SobelPicture(picture, &area, false);  // don't ignore logo
 #endif
     for (int plane = 0; plane < PLANES; plane++) {
-        rPixel += area.rPixel[plane];
-        mPixel += area.mPixel[plane];
-        iPixel += area.iPixel[plane];
+        if (area.valid[plane]) {
+            rPixel += area.rPixel[plane];
+            mPixel += area.mPixel[plane];
+            iPixel += area.iPixel[plane];
+        }
     }
 
     if (processed == 0) return LOGO_ERROR;  // we have no plane processed
@@ -708,63 +765,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
         // if we have still no valid match, try to copy colour planes into grey planes
         // some channel use coloured logo at broadcast start
         // for performance reason we do this only for the known channel
-        if (!logoStatus && criteria->LogoColorChange()) {
-            // save state
-            int intensityOld = area.intensity;
-            int rPixelOld = rPixel;
-
-            if (!isInitColourChange) {
-                LogoGreyToColour();
-                isInitColourChange = true;
-            }
-            rPixel = 0;
-            for (int plane = 1; plane < PLANES; plane++) {
-                // reset all planes
-                area.rPixel[plane] = 0;
-                area.valid[plane]  = true;
-                area.mPixel[plane] = area.mPixel[0] / 4;
-                sobel->SobelPlane(picture, &area, 0);  // plane 0
-#ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-                if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
-                    char *fileName = nullptr;
-                    if (asprintf(&fileName,"%s/F__%07d_corrected.pgm", recDir, frameNumber) >= 1) {
-                        ALLOC(strlen(fileName) + 1, "fileName");
-                        SaveVideoPicture(fileName, decoder->GetVideoPicture());
-                        FREE(strlen(fileName) + 1, "fileName");
-                        free(fileName);
-                    }
-                }
-#endif
-                rPixel += area.rPixel[plane];
-                area.valid[plane] = false;
-                area.mPixel[plane] = 0;
-                area.rPixel[plane] = 0;
-            }
-#ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d): maybe colour change, try plane 1 and plan 2", frameNumber);
-            char detectStatus[] = "o";
-            if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
-            if (rPixel <= logo_imark) strcpy(detectStatus, "-");
-            dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", frameNumber, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
-#endif
-            if (rPixel <= logo_imark) { // we found no coloured logo here, restore old state
-                area.intensity = intensityOld;
-                rPixel = rPixelOld;
-            }
-            if (rPixel >= logo_vmark) {
-#ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cLogoDetect::Detect(): frame (%6d): logo visible in plane 1 and plan 2", frameNumber);
-#endif
-                logoStatus = true;  // we found colored logo
-            }
-            // change from very low match to unclear result
-            if ((rPixelOld <= (logo_imark / 10)) && (rPixel > logo_imark)) {
-#ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cLogoDetect::Detect(): frame (%6d): unclear result in plane 1 and plan 2", frameNumber);
-#endif
-                return LOGO_NOCHANGE;
-            }
-        }
+        if (!logoStatus && criteria->LogoColorChange()) logoStatus = LogoColourChange(&rPixel, logo_vmark);
 
         // try to reduce brightness and increase contrast
         // check area intensitiy

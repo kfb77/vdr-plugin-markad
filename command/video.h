@@ -192,8 +192,14 @@ private:
     bool LoadLogoPlane(const char *path, const char *logoName, const int plane);
 
     /**
+     * check if logo is visible in coloured plane if changel changed logo colour
+     * return true if we found a visible logo in coloured plane, false otherwise
+     */
+    bool LogoColourChange(int *rPixel, const int logo_vmark);
+
+    /**
      * copy all black pixels from logo pane 0 into plan 1 and plane 2,
-     * we need this for channels with usually grey logos, but at start and end they can be red (DMAX)
+     * we need this for channels with usually grey logos, but at start and end they can be red (e.g. DMAX)
      */
     void LogoGreyToColour();
 
