@@ -361,7 +361,7 @@ public:
      * @param force     true if to save in any cases, false if only save when not running recording
      * @return true if successfully saved, false otherwise
      */
-    bool Save(const char *directory, const sMarkAdContext *maContext, const bool force);
+    bool Save(const char *directory, const bool isRunningRecording, const bool writePTS, const bool force);
 
 
     /**

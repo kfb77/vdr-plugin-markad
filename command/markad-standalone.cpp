@@ -2698,7 +2698,7 @@ void cMarkAdStandalone::CheckStart() {
     CheckStartMark();
     LogSeparator();
     CalculateCheckPositions(marks.GetFirst()->position);
-    marks.Save(directory, &macontext, false);
+    marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
     doneCheckStart = true;
 
     // debugging infos
@@ -3922,7 +3922,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             FREE(strlen(comment)+1, "comment");
             free(comment);
         }
-        if (doneCheckStart) marks.Save(directory, &macontext, false);  // save after start mark is valid
+        if (doneCheckStart) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);  // save after start mark is valid
     }
 }
 
@@ -4430,7 +4430,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
     detectLogoStopStart = nullptr;
 
     // save marks
-    if (save) marks.Save(directory, &macontext, false);
+    if (save) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
 }
 
 
@@ -4835,7 +4835,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
         mark = mark->Next();
     }
     // save marks
-    if (save) marks.Save(directory, &macontext, false);
+    if (save) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
 }
 
 
@@ -5054,7 +5054,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
         mark = mark->Next();
     }
     // save marks
-    if (save) marks.Save(directory, &macontext, false);
+    if (save) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
 }
 
 
@@ -5310,7 +5310,7 @@ void cMarkAdStandalone::SilenceOptimization() {
         mark = mark->Next();
     }
 // save marks
-    if (save) marks.Save(directory, &macontext, false);
+    if (save) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
 }
 
 
@@ -5594,7 +5594,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
         mark = mark->Next();
     }
     // save marks
-    if (save) marks.Save(directory, &macontext, false);
+    if (save) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
 }
 
 
@@ -5639,7 +5639,7 @@ void cMarkAdStandalone::ProcessOverlap() {
         }
     }
 
-    if (save) marks.Save(directory, &macontext, false);
+    if (save) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
     dsyslog("cMarkAdStandalone::ProcessOverlap(): end");
     return;
 }
@@ -5778,7 +5778,7 @@ void cMarkAdStandalone::Recording() {
         ALLOC(sizeof(*marksTMP), "marksTMP");
         marksTMP->SetIndex(index);  // register framerate to write a guessed start position, will be overridden later
         marksTMP->Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, macontext.Info.tStart * decoder->GetVideoFrameRate(), "timer start", true);
-        marksTMP->Save(macontext.Config->recDir, &macontext, true);
+        marksTMP->Save(macontext.Config->recDir, macontext.Info.isRunningRecording, macontext.Config->pts, true);
         FREE(sizeof(*marksTMP), "marksTMP");
         delete marksTMP;
     }
@@ -5811,7 +5811,7 @@ void cMarkAdStandalone::Recording() {
 // cleanup marks that make no sense
     CheckMarks();
 
-    if (!abortNow) marks.Save(directory, &macontext, false);
+    if (!abortNow) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
     dsyslog("cMarkAdStandalone::Recording(): end processing files");
 }
 
@@ -5953,7 +5953,7 @@ bool cMarkAdStandalone::CheckLogo() {
             cMarks marksTMP;
             marksTMP.SetFrameRate(extractLogo->GetFrameRate());
             marksTMP.Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, macontext.Info.tStart, "timer start", true);
-            marksTMP.Save(macontext.Config->recDir, &macontext, true);
+            marksTMP.Save(macontext.Config->recDir, macontext.Info.isRunningRecording, macontext.Config->pts, true);
         }
 
         int startPos =  macontext.Info.tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
@@ -6514,7 +6514,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 cMarkAdStandalone::~cMarkAdStandalone() {
     dsyslog("cMarkAdStandalone::~cMarkAdStandalone(): delete object");
     if (abortNow) return;
-    marks.Save(directory, &macontext, true);
+    marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, true);
 
 
     // cleanup used objects

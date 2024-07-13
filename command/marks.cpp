@@ -866,16 +866,15 @@ int cMarks::Length() const {
 }
 
 
-bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const bool force) {
+bool cMarks::Save(const char *directory, const bool isRunningRecording, const bool writePTS, const bool force) {
     if (!directory) return false;
-    if (!maContext) return false;
     if (abortNow) return false;  // do not save marks if aborted
 
-    if (!maContext->Info.isRunningRecording && !force) {
+    if (!isRunningRecording && !force) {
 //        dsyslog("cMarks::Save(): save marks later, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
         return false;
     }
-    dsyslog("cMarks::Save(): save marks, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
+    dsyslog("cMarks::Save(): save marks, isRunningRecording=%d force=%d", isRunningRecording, force);
 
     char *fpath = nullptr;
     if (asprintf(&fpath, "%s/%s", directory, filename) == -1) return false;
@@ -924,7 +923,7 @@ bool cMarks::Save(const char *directory, const sMarkAdContext *maContext, const 
         dsyslog("cMarks::Save(): offset VDR %s", indexToHMSF_VDR);
 #endif
 
-        if (maContext->Config->pts) fprintf(mf, "%s (%6d)%s %s <- %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
+        if (writePTS) fprintf(mf, "%s (%6d)%s %s <- %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
         else fprintf(mf, "%s (%6d)%s %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");
 
         FREE(strlen(indexToHMSF_PTS)+1, "indexToHMSF_PTS");
