@@ -34,6 +34,7 @@ extern int logoSearchTime_ms;
 
 
 cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, const bool forceFullDecode, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio) {
+    LogSeparator(true);
     recDir      = recDirParam;
     channelName = channelNameParam;
 
@@ -82,7 +83,6 @@ cExtractLogo::~cExtractLogo() {
         }
         logoInfoVector[corner].clear();
     }
-
     // cleanup used objects
     FREE(sizeof(*decoder), "decoder");
     delete decoder;
@@ -99,6 +99,8 @@ cExtractLogo::~cExtractLogo() {
 
     FREE(sizeof(*vborder), "vborder");
     delete vborder;
+
+    LogSeparator(true);
 }
 
 
@@ -1928,10 +1930,6 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         else logoFound = true;
     }
 
-    if (logoFound) dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %i", frameNumber);
-    else dsyslog("cExtractLogo::SearchLogo(): failed, last frame %i", frameNumber);
-
-    dsyslog("----------------------------------------------------------------------------");
     struct timeval stopTime;
     gettimeofday(&stopTime, nullptr);
     time_t sec = stopTime.tv_sec - startTime.tv_sec;
@@ -1947,8 +1945,12 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         return LOGO_ERROR;
     }
 
-    if (logoFound) return LOGO_FOUND;
+    if (logoFound) {
+        dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %d", frameNumber);
+        return LOGO_FOUND;
+    }
     else {
+        dsyslog("cExtractLogo::SearchLogo(): failed, last frame %d", frameNumber);
         if (frameNumber > 0) return frameNumber;   // return last frame from search to setup new search after this
         else return LOGO_ERROR;                // nothing read, retry makes no sense
 

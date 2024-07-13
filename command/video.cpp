@@ -898,7 +898,7 @@ bool cLogoDetect::ChangeLogoAspectRatio(sAspectRatio *aspectRatio) {
     cExtractLogo *extractLogo = new cExtractLogo(recDir, criteria->GetChannelName(), decoder->GetThreads(), true, decoder->GetHWaccel(), decoder->GetForceHWaccel(), *aspectRatio);
     ALLOC(sizeof(*extractLogo), "extractLogo");
     int endPos = extractLogo->SearchLogo(decoder->GetFrameNumber(), true);
-    if (endPos > 0) extractLogo->SearchLogo(endPos, true);                    // no logo found, retry
+    if (endPos > 0) endPos = extractLogo->SearchLogo(endPos, true);                    // no logo found, retry
     FREE(sizeof(*extractLogo), "extractLogo");
     delete extractLogo;
     if (endPos == LOGO_FOUND) return LoadLogo();   // logo in recording found und stored in recording directory
