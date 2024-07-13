@@ -35,13 +35,14 @@
 #include "markad-standalone.h"
 #include "debug.h"
 #include "audio.h"
+#include "test.h"
+
 
 bool SYSLOG                    = false;
 bool LOG2REC                   = false;
 bool restartLogoDetectionDone  = false;
 int SysLogLevel                = 2;
 bool abortNow                  = false;
-
 int logoSearchTime_ms          = 0;
 long int decodeTime_us         = 0;
 
@@ -103,7 +104,6 @@ static inline int ioprio_get(int which, int who) {
 
 }
 
-#include "test.cpp"   // include test class after global variables are defined
 
 void syslog_with_tid(int priority, const char *format, ...) {
     va_list ap;
