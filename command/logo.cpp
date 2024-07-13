@@ -33,7 +33,7 @@ extern bool abortNow;
 extern int logoSearchTime_ms;
 
 
-cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, const bool forceFullDecode, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio) {
+cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio) {
     LogSeparator(true);
     recDir      = recDirParam;
     channelName = channelNameParam;
@@ -44,7 +44,7 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
     requestedLogoAspectRatio.den = requestedAspectRatio.den;
 
     // create all used objects
-    decoder = new cDecoder(recDir, threads, forceFullDecode, hwaccel, forceHW, false, nullptr);    // recDir, threads, fullDecode, hwaccel, forceHW, forceInterlace, index
+    decoder = new cDecoder(recDir, threads, true, hwaccel, forceHW, false, nullptr);    // recDir, threads, fullDecode, hwaccel, forceHW, forceInterlace, index
     ALLOC(sizeof(*decoder), "decoder");
 
     criteria = new cCriteria(channelName);
