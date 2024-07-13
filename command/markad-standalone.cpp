@@ -4590,8 +4590,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         if (criteria->GoodVPS())        maxAfter =   7020;
                         else if (silenceAfter)          maxAfter = 139480;
                         else if (diffBefore == INT_MAX) maxAfter = 124520;  // broadcast does not have a black screen before, trust black screen after
-                        else if (lengthAfter >= 80)     maxAfter =  20960;
-                        else                            maxAfter =   5400;  // use only very near short black screen
+                        else                            maxAfter =  21680;  // use only very near short black screen
                         break;
                     case MT_INTRODUCTIONSTART:
                         if (lengthAfter >= 3800) maxAfter = 3760;
