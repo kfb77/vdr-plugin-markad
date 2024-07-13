@@ -721,7 +721,7 @@ sAudioAC3Channels *cDecoder::GetChannelChange() {
                     // 6 -> 2 channel, this will result in stop  mark, use nearest video i-frame with PTS before
                     if (audioAC3Channels[streamIndex].channelCountAfter == 2) audioAC3Channels[streamIndex].videoFrameNumber = index->GetFrameBeforePTS(audioAC3Channels[streamIndex].pts);
                     // 2 -> 6 channel, this will result in start mark, use nearest video i-frame with PTS after
-                    else audioAC3Channels[streamIndex].videoFrameNumber = index->GetIFrameAfterPTS(audioAC3Channels[streamIndex].pts);
+                    else audioAC3Channels[streamIndex].videoFrameNumber = index->GetFrameAfterPTS(audioAC3Channels[streamIndex].pts);
                 }
                 else {              // use i-frame index
                     // 6 -> 2 channel, this will result in stop  mark, use nearest video i-frame with PTS before
