@@ -5161,7 +5161,8 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        maxAfter = 231440;
+                        if (criteria->GoodVPS()) maxAfter = 116959;
+                        else                     maxAfter = 231440;
                         break;
                     default:
                         maxAfter = 0;
