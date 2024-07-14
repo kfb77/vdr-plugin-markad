@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - master
-      - V02
       - V03
+      - V04
   pull_request:
     branches:
       - master
-      - V02
       - V03
+      - V04
 
 jobs:
   build:
