@@ -705,10 +705,20 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax = 130;
         }
 
+        // TV5_HD                  16:9 1920W 1080H:->  130W  82H TOP_RIGHT
+        if (CompareChannelName(channelName, "TV5_HD", IGNORE_NOTHING)) {
+            logo.heightMin = 82;
+        }
+
+        //  VOX_HD                  16:9 1920W 1080H:->  286W 124H TOP_LEFT
+        if (CompareChannelName(channelName, "VOX_HD", IGNORE_NOTHING)) {
+            logo.heightMax = 125;
+        }
+
         // default values
         if (logo.widthMin  == 0) logo.widthMin  =  130; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
         if (logo.widthMax  == 0) logo.widthMax  =  396; // ANIXE_HD                16:9 1920W 1080H:->  396W 180H TOP_LEFT
-        if (logo.heightMin == 0) logo.heightMin =   96; // münchen_tv_HD           16:9 1920W 1080H:->  336W  96H TOP_LEFT
+        if (logo.heightMin == 0) logo.heightMin =   82; // TV5_HD                  16:9 1920W 1080H:->  130W  82H TOP_RIGHT
         if (logo.heightMax == 0) logo.heightMax =  200; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
         break;
 
