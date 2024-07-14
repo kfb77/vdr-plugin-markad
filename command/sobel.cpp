@@ -152,7 +152,7 @@ int cSobel::SobelPicture(sVideoPicture *picture, sAreaT *area, const bool ignore
     for (int plane = 0; plane < PLANES; plane++) {
         if (area->valid[plane] || ignoreLogo) {
             if (SobelPlane(picture, area, plane)) {
-                processed++;
+                processed = plane + 1;   // for logo with pixel in plane 0 and plane 2 we have to return 3 to do all valid planes in logo detection
             }
         }
     }

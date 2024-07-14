@@ -636,36 +636,38 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
         }
         // sobel transformed pictures of all proccesed planes
         for (int plane = 0; plane < processed; plane++) {
-            int width  = area.logoSize.width;
-            int height = area.logoSize.height;
-            if (plane > 0) {
-                width  /= 2;
-                height /= 2;
-            }
-            char *fileName = nullptr;
-            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0_sobel.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
-                ALLOC(strlen(fileName) + 1, "fileName");
-                sobel->SaveSobelPlane(fileName, area.sobel[plane], width, height);
-                FREE(strlen(fileName) + 1, "fileName");
-                free(fileName);
-            }
-            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1_logo.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
-                ALLOC(strlen(fileName) + 1, "fileName");
-                sobel->SaveSobelPlane(fileName, area.logo[plane], width, height);
-                FREE(strlen(fileName) + 1, "fileName");
-                free(fileName);
-            }
-            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2_result.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
-                ALLOC(strlen(fileName) + 1, "fileName");
-                sobel->SaveSobelPlane(fileName, area.result[plane], width, height);
-                FREE(strlen(fileName) + 1, "fileName");
-                free(fileName);
-            }
-            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_3_inverse.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
-                ALLOC(strlen(fileName) + 1, "fileName");
-                sobel->SaveSobelPlane(fileName, area.inverse[plane], width, height);
-                FREE(strlen(fileName) + 1, "fileName");
-                free(fileName);
+            if (area.valid[plane]) {
+                int width  = area.logoSize.width;
+                int height = area.logoSize.height;
+                if (plane > 0) {
+                    width  /= 2;
+                    height /= 2;
+                }
+                char *fileName = nullptr;
+                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0_sobel.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                    ALLOC(strlen(fileName) + 1, "fileName");
+                    sobel->SaveSobelPlane(fileName, area.sobel[plane], width, height);
+                    FREE(strlen(fileName) + 1, "fileName");
+                    free(fileName);
+                }
+                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1_logo.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                    ALLOC(strlen(fileName) + 1, "fileName");
+                    sobel->SaveSobelPlane(fileName, area.logo[plane], width, height);
+                    FREE(strlen(fileName) + 1, "fileName");
+                    free(fileName);
+                }
+                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2_result.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                    ALLOC(strlen(fileName) + 1, "fileName");
+                    sobel->SaveSobelPlane(fileName, area.result[plane], width, height);
+                    FREE(strlen(fileName) + 1, "fileName");
+                    free(fileName);
+                }
+                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_3_inverse.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                    ALLOC(strlen(fileName) + 1, "fileName");
+                    sobel->SaveSobelPlane(fileName, area.inverse[plane], width, height);
+                    FREE(strlen(fileName) + 1, "fileName");
+                    free(fileName);
+                }
             }
         }
     }
