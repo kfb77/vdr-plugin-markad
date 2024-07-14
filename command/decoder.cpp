@@ -582,7 +582,7 @@ bool cDecoder::ReadPacket() {
             // check DTS continuity
             if (dtsBefore != -1) {
                 int dtsDiff = 1000 * (avpkt.dts - dtsBefore) * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;
-                int dtsStep = 1000 / GetVideoRealFrameRate();
+                int dtsStep = 1000 / GetVideoFrameRate();
                 if (dtsDiff > dtsStep) {  // some interlaced H.264 streams have some frames with half DTS
                     if (packetNumber > decodeErrorFrame) {  // only count new frames
                         decodeErrorCount++;
