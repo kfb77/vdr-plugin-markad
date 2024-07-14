@@ -1,6 +1,9 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-07-14: Version 4.0.1
+-  fix false cleanup weak marks
+
 2024-07-14: Version 4.0.0
 - new feature: decoder with hardware acceleration support
 - new libavcodec minimum version: 58.54.100 (FFmpeg 4.2.7)
