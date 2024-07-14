@@ -780,10 +780,12 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
 
         // send next packet to decoder
         switch (decoderSendState) {
-        case AAC_AC3_PARSE_ERROR_SYNC:
-            dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC", packetNumber, avpkt.stream_index);
+        case -EIO:
+            dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: avcodec_send_packet EIO", packetNumber, avpkt.stream_index);
         case AVERROR_INVALIDDATA:
-            dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: invalid", packetNumber, avpkt.stream_index);
+            dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: avcodec_send_packet AVERROR_INVALIDDATA", packetNumber, avpkt.stream_index);
+        case AAC_AC3_PARSE_ERROR_SYNC:
+            dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: avcodec_send_packet AAC_AC3_PARSE_ERROR_SYNC", packetNumber, avpkt.stream_index);
         case 0:  // we had successful send last packet and we can send next packet
             // send next packets
             while (true) {   // read until we got a valid packet type
