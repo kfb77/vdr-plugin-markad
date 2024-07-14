@@ -26,7 +26,7 @@
 // logo size limits
 #define LOGO_MIN_LETTERING_H 38 // 41 for "DIE NEUEN FOLGEN" SAT_1
 // 38 for "#wir bleiben zuhause" RTL2
-#define LOGO_MAX_LETTERING_H 56 // 56 for II over RTL (old RTL2 logo)
+#define LOGO_MAX_LETTERING_H 80 // ntv-hd logo has 79 pixel valiable banner above, changed from 56 to 80
 
 // global variables
 extern bool abortNow;
@@ -325,9 +325,13 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMin  =  50;
             logo.heightMax = 108;
         }
-        if (CompareChannelName(channelName, "ATV2", IGNORE_NOTHING)) {                  // ATV2                    16:9  720W  576H:->  118W  68H TOP_LEFT
-            logo.widthMin  = 110;
-            logo.widthMax  = 118;
+
+        // ATV2                    16:9  720W  576H:->  118W  68H TOP_LEFT
+        if (CompareChannelName(channelName, "ATV2", IGNORE_NOTHING)) {
+            logo.widthMin  = 113;
+            logo.widthMax  = 123;
+            logo.heightMin =  63;
+            logo.heightMax =  73;
         }
 
         // Disney_Channel          16:9  720W  576H:->  110W  70H TOP_LEFT
@@ -415,6 +419,8 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         // Nick_Comedy_Central+1   16:9  720W  576H:->  120W 116H TOP_RIGHT
         if (CompareChannelName(channelName, "Nick_Comedy_Central+1", IGNORE_NOTHING)) {
             logo.widthMin  = 120;
+            logo.widthMax  = 144;
+            logo.heightMin =  80;
             logo.heightMax = 116;
         }
 
@@ -422,6 +428,7 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
                 (CompareChannelName(channelName, "ntv", IGNORE_COUNTRY))) {             //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
             logo.widthMax  = INT_MAX;  // news ticker
             logo.heightMin =  58;
+            logo.corner    = BOTTOM_LEFT;
         }
 
         // ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
@@ -457,11 +464,13 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 110;
         }
 
+        // RTLZWEI                 16:9  720W  576H:->   82W  78H BOTTOM_RIGHT
         // RTLZWEI                 16:9  720W  576H:->   82W  80H BOTTOM_RIGHT
         // RTLZWEI                 16:9  720W  576H:->   84W  80H BOTTOM_RIGHT
         // RTLZWEI                  4:3  720W  576H:->   98W  80H BOTTOM_RIGHT
         if (CompareChannelName(channelName, "RTLZWEI", IGNORE_NOTHING)) {
             logo.widthMax  =  98;
+            logo.heightMin =  78;
             logo.heightMax =  80;
         }
 
@@ -550,7 +559,8 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         // WELT                    16:9  720W  576H:->  226W  62H BOTTOM_LEFT
         if (CompareChannelName(channelName, "WELT", IGNORE_NOTHING)) {
             logo.heightMax = 64;
-            logo.widthMax  = INT_MAX;  // news ticker
+            logo.widthMax  = INT_MAX;      // news ticker
+            logo.corner    = BOTTOM_LEFT;
         }
 
         if (CompareChannelName(channelName, "Welt_der_Wunder", IGNORE_NOTHING)) {       // Welt_der_Wunder         16:9  720W  576H:->   94W 108H TOP_LEFT
@@ -572,6 +582,13 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax  = 185;
         }
 
+        // ANIXE+                  16:9 1280W 1080H:->  294W 172H TOP_LEFT
+        if (CompareChannelName(channelName, "ANIXE+", IGNORE_NOTHING)) {
+            logo.widthMax  = 294;
+            logo.heightMin = 169;
+            logo.heightMax = 173;
+        }
+
         // ARD_alpha_HD            16:9 1280W  720H:->  206W  78H TOP_LEFT
         if (CompareChannelName(channelName, "ARD_alpha_HD", IGNORE_NOTHING)) {
             logo.heightMax =  78;
@@ -580,24 +597,28 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
 
         // arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
         if (CompareChannelName(channelName, "arte_HD", IGNORE_NOTHING)) {
-            logo.widthMin  =  88;
-            logo.widthMax  =  88;
+            logo.widthMin  =  78;
+            logo.widthMax  =  98;
+            logo.heightMin = 124;
+            logo.heightMax = 144;
         }
 
         // BR_Fernsehen_Süd_HD     16:9 1280W  720H:->  134W  84H TOP_LEFT
-        if (CompareChannelName(channelName, "BR_Fernsehen", IGNORE_CITY)) {
+        if (CompareChannelName(channelName, "BR_Fernsehen_HD", IGNORE_CITY)) {
+            logo.widthMax  = 135;
             logo.heightMax =  85;
         }
 
         // Das_Erste_HD            16:9 1280W  720H:->  146W 114H TOP_RIGHT
         // Das_Erste_HD            16:9 1280W  720H:->  148W 114H TOP_RIGHT
         // Das_Erste_HD            16:9 1280W  720H:->  148W 128H TOP_RIGHT
-        // Das_Erste_HD            16:9 1280W  720H:->  244W 114H TOP_RIGHT
-        // Das_Erste_HD            16:9 1280W  720H:->  244W  96H TOP_RIGHT    <- check eins Kinderprogramm Logo
+        // Das_Erste_HD            16:9 1280W  720H:->  244W 114H TOP_RIGHT    <- check eins Kinderprogramm Logo
         if (CompareChannelName(channelName, "Das_Erste_HD", IGNORE_NOTHING)) {
             logo.widthMin  = 146;
             logo.widthMax  = 244;
+            logo.heightMin = 114;
             logo.heightMax = 128;
+            logo.corner    = TOP_RIGHT;   // too much same size info logos in other corner
         }
 
         if (CompareChannelName(channelName, "Einsfestival_HD", IGNORE_NOTHING)) {       // Einsfestival_HD         16:9 1280W  720H:->  300W  80H TOP_RIGHT
@@ -619,15 +640,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMin  = 228;
         }
 
-        if (CompareChannelName(channelName, "MDR_Sachsen_HD", IGNORE_NOTHING)) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
+        if (CompareChannelName(channelName, "MDR_HD", IGNORE_CITY)) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
             logo.heightMax =  70;
         }
 
         // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  86H TOP_LEFT
         // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  88H TOP_LEFT
         // NDR_FS_NDS_HD           16:9 1280W  720H:->  184W  88H TOP_LEFT
-        if (CompareChannelName(channelName, "NDR_FS_HH_HD", IGNORE_NOTHING) ||
-                CompareChannelName(channelName, "NDR_FS_NDS_HD", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "NDR_FS_HD", IGNORE_CITY)) {
             logo.heightMax =  88;
         }
 
@@ -636,36 +656,57 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMin =  232;
         }
 
+        // ORF2W_HD                16:9 1280W  720H:->  198W  80H TOP_RIGHT
+        if (CompareChannelName(channelName, "ORF2W_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 188;
+            logo.widthMax  = 208;
+            logo.heightMin =  70;
+            logo.heightMax =  90;
+        }
+
         // phoenix_HD              16:9 1280W  720H:->  168W  72H TOP_LEFT
         if (CompareChannelName(channelName, "phoenix_HD", IGNORE_NOTHING)) {
             logo.widthMax =  168;
         }
 
-        if (CompareChannelName(channelName, "rbb_Berlin_HD", IGNORE_NOTHING)) {         // rbb_Berlin_HD           16:9 1280W  720H:->  178W  90H TOP_RIGHT
-            logo.widthMax =  178;
+        // rbb_Berlin_HD           16:9 1280W  720H:->  178W  92H TOP_RIGHT
+        if (CompareChannelName(channelName, "rbb_HD", IGNORE_CITY)) {
+            logo.widthMin =  177;
+            logo.widthMax =  179;
         }
 
-        if (CompareChannelName(channelName, "WDR_HD_Köln", IGNORE_NOTHING) ||         // WDR_HD_Köln             16:9 1280W  720H:->  224W  80H TOP_RIGHT
-                CompareChannelName(channelName, "WDR_HD_Essen", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "WDR_HD", IGNORE_CITY)) {         // WDR_HD_Köln             16:9 1280W  720H:->  224W  80H TOP_RIGHT
             logo.heightMax =  80;
         }
 
+        // ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
         // ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
+        // ZDF_HD                  16:9 1280W  720H:->  188W  94H TOP_LEFT
         // ZDF_HD                  16:9 1280W  720H:->  188W  96H TOP_LEFT
-        if (CompareChannelName(channelName, "ZDF_HD", IGNORE_NOTHING)) {                // ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
-            logo.widthMax =  188;
+        if (CompareChannelName(channelName, "ZDF_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 176;
+            logo.widthMax  = 196;
+            logo.heightMin =  84;
+            logo.heightMax = 106;
         }
 
         // ZDFinfo_HD              16:9 1280W  720H:->  196W  86H TOP_LEFT
         if (CompareChannelName(channelName, "ZDFinfo_HD", IGNORE_NOTHING)) {
-            logo.heightMax =  86;
+            logo.widthMin  = 186;
+            logo.widthMax  = 206;
+            logo.heightMin =  76;
+            logo.heightMax =  96;
         }
 
-        // ANIXE+                  16:9 1280W 1080H:->  294W 172H TOP_LEFT
-        if (CompareChannelName(channelName, "ANIXE+", IGNORE_NOTHING)) {
-            logo.widthMax  = 294;
-            logo.heightMax = 172;
+        // zdf_neo_HD              16:9 1280W  720H:->  162W  96H TOP_LEFT
+        // zdf_neo_HD              16:9 1280W  720H:->  180W  96H TOP_LEFT
+        if (CompareChannelName(channelName, "zdf_neo_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 152;
+            logo.widthMax  = 190;
+            logo.heightMin =  86;
+            logo.heightMax = 106;
         }
+
 
         if (CompareChannelName(channelName, "Deluxe_Music_HD", IGNORE_NOTHING)) {       // Deluxe_Music_HD         16:9 1280W 1080H:->  334W 124H TOP_RIGHT
             logo.widthMax  = 334;
@@ -691,10 +732,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         break;
 
     case 1920:
-        if (CompareChannelName(channelName, "13th_Street_HD", IGNORE_NOTHING)) {        // 13th_Street_HD:         16:9 1920W 1080H:->  218W 194H TOP_LEFT
-            logo.widthMin  = 217;
-            logo.heightMax = 198;
+        // 13th_Street_HD          16:9 1920W 1080H:->  224W 198H TOP_LEFT
+        if (CompareChannelName(channelName, "13th_Street_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 219;
+            logo.widthMax  = 229;
+            logo.heightMin = 193;
+            logo.heightMax = 203;
         }
+
         // ANIXE_HD                16:9 1920W 1080H:->  390W 178H TOP_LEFT
         if (CompareChannelName(channelName, "ANIXE_HD", IGNORE_NOTHING)) {
             logo.heightMin = 178;
@@ -705,9 +750,36 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax = 130;
         }
 
-        // TV5_HD                  16:9 1920W 1080H:->  130W  82H TOP_RIGHT
+        // Kutonen_HD              16:9 1920W 1080H:->  252W 142H TOP_RIGHT
+        if (CompareChannelName(channelName, "Kutonen_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 242;
+            logo.widthMax  = 262;
+            logo.heightMin = 132;
+            logo.heightMax = 152;
+        }
+
+        // mþnchen_tv_HD           16:9 1920W 1080H:->  428W  96H TOP_LEFT
+        if (CompareChannelName(channelName, "mþnchen_tv_HD", IGNORE_NOTHING)) {  // char conversion error
+            logo.widthMin  = 418;
+            logo.widthMax  = 438;
+            logo.heightMin =  86;
+            logo.heightMax = 106;
+        }
+
+        // RTL_HD                  16:9 1920W 1080H:->  332W 110H TOP_LEFT
+        if (CompareChannelName(channelName, "RTL_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 322;
+            logo.widthMax  = 342;
+            logo.heightMin = 100;
+            logo.heightMax = 120;
+        }
+
+        // TV5_HD                  16:9 1920W 1080H:->  260W 164H TOP_RIGHT
         if (CompareChannelName(channelName, "TV5_HD", IGNORE_NOTHING)) {
-            logo.heightMin = 82;
+            logo.heightMin = 163;
+            logo.heightMax = 165;
+            logo.widthMin  = 259;
+            logo.widthMax  = 261;
         }
 
         //  VOX_HD                  16:9 1920W 1080H:->  286W 124H TOP_LEFT
@@ -717,8 +789,8 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
 
         // default values
         if (logo.widthMin  == 0) logo.widthMin  =  130; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
-        if (logo.widthMax  == 0) logo.widthMax  =  396; // ANIXE_HD                16:9 1920W 1080H:->  396W 180H TOP_LEFT
-        if (logo.heightMin == 0) logo.heightMin =   82; // TV5_HD                  16:9 1920W 1080H:->  130W  82H TOP_RIGHT
+        if (logo.widthMax  == 0) logo.widthMax  =  428; // mþnchen_tv_HD           16:9 1920W 1080H:->  428W  96H TOP_LEFT
+        if (logo.heightMin == 0) logo.heightMin =   96; // münchen_tv_HD           16:9 1920W 1080H:->  336W  96H TOP_LEFT
         if (logo.heightMax == 0) logo.heightMax =  200; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
         break;
 
