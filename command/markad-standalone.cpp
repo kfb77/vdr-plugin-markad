@@ -6447,22 +6447,18 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, macontext.Config->threads, true, hwaccel, false, false, nullptr); // full decocode, no hwaccel, no force interlaced, no index
     ALLOC(sizeof(*decoderTest), "decoderTest");
     decoderTest->DecodeNextFrame(false);  // decode one video frame to get video info
-    dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: interlaced %d, type %d, pixel format %d", decoderTest->IsInterlacedFrame(), decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
+    dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: %s, type %d, pixel format %d", (decoderTest->IsInterlacedFrame()) ? "interlaced" : "progressive", decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
     // pixel format yuv420p10le (from UHD) does not work with hwaccel
     if (decoderTest->GetVideoPixelFormat() == AV_PIX_FMT_YUV420P10LE) {
         isyslog("FFmpeg does not support hwaccel with pixel format yuv420p10le");
         macontext.Config->hwaccel[0] = 0;
         macontext.Config->forceHW    = false;
     }
-    // H.264 video need full decoding
-    if ((decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
-        isyslog("H.264 video need full decoding");
-        macontext.Config->fullDecode      = true;
-    }
     // inform decoder who use hwaccel, the video is interlaaced. In this case this is not possible to detect from decoder because hwaccel deinterlaces frames
     if ((macontext.Config->hwaccel[0] != 0) && decoderTest->IsInterlacedFrame() && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
-        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): inform decoder with hwaccel about H.264 interlaced video");
+        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): inform decoder with hwaccel about H.264 interlaced video and force full decode");
         macontext.Config->forceInterlaced = true;
+        macontext.Config->fullDecode      = true;
     }
     FREE(sizeof(*decoderTest), "decoderTest");
     delete decoderTest;
