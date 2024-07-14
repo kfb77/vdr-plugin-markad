@@ -444,7 +444,7 @@ private:
      * - extract self from the recording
      * @return true if we found a logo, false otherwise
      */
-    bool CheckLogo();
+    bool CheckLogo(const int frameRate);
 
     /**
      * cleanup marks that make no sense

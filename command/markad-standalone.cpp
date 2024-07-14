@@ -5897,7 +5897,7 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
 }
 
 
-bool cMarkAdStandalone::CheckLogo() {
+bool cMarkAdStandalone::CheckLogo(const int frameRate) {
     if (!macontext.Config) return false;
     if (!*macontext.Config->logoCacheDirectory) return false;
     if (!macontext.Info.ChannelName) return false;
@@ -5956,7 +5956,7 @@ bool cMarkAdStandalone::CheckLogo() {
             marksTMP.Save(macontext.Config->recDir, macontext.Info.isRunningRecording, macontext.Config->pts, true);
         }
 
-        int startPos =  macontext.Info.tStart * 25;  // search logo from assumed start, we do not know the frame rate at this point, so we use 25
+        int startPos =  macontext.Info.tStart * frameRate;  // search logo from assumed start
         if (startPos < 0) startPos = 0;  // consider late start of recording
         int endpos = extractLogo->SearchLogo(startPos, false);
         for (int retry = 2; retry <= 8; retry++) {  // do not reduce, we will not get some logos
@@ -6447,7 +6447,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, macontext.Config->threads, true, hwaccel, false, false, nullptr); // full decocode, no hwaccel, no force interlaced, no index
     ALLOC(sizeof(*decoderTest), "decoderTest");
     decoderTest->DecodeNextFrame(false);  // decode one video frame to get video info
-    dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: %s, type %d, pixel format %d", (decoderTest->IsInterlacedFrame()) ? "interlaced" : "progressive", decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
+    dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: %s, frame rate %d, type %d, pixel format %d", (decoderTest->IsInterlacedFrame()) ? "interlaced" : "progressive", decoderTest->GetVideoFrameRate(), decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
+    // store frameRate for logo extraction
+    int frameRate = decoderTest->GetVideoFrameRate();
     // pixel format yuv420p10le (from UHD) does not work with hwaccel
     if (decoderTest->GetVideoPixelFormat() == AV_PIX_FMT_YUV420P10LE) {
         isyslog("FFmpeg does not support hwaccel with pixel format yuv420p10le");
@@ -6464,7 +6466,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     delete decoderTest;
 
     // check if we have a logo or we can extract it from recording
-    if (!CheckLogo() && (config->autoLogo == 0)) {
+    if (!CheckLogo(frameRate) && (config->autoLogo == 0)) {
         isyslog("no logo found, logo detection disabled");
         criteria->SetDetectionState(MT_LOGOCHANGE, false);
     }
