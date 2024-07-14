@@ -1877,15 +1877,16 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
                 }
             }
         }
-        else  dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): no audio channel start mark found");
+        // now we have a final channel start mark
+        marks.DelType(MT_LOGOCHANGE,    0xF0);
+        marks.DelType(MT_HBORDERCHANGE, 0xF0);
+        marks.DelType(MT_VBORDERCHANGE, 0xF0);
+        marks.DelWeakFromTo(0, INT_MAX, MT_CHANNELCHANGE); // we have a channel start mark, delete all weak marks
+        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
+        return channelStart;
     }
-// now we have a final channel start mark
-    marks.DelType(MT_LOGOCHANGE,    0xF0);
-    marks.DelType(MT_HBORDERCHANGE, 0xF0);
-    marks.DelType(MT_VBORDERCHANGE, 0xF0);
-    marks.DelWeakFromTo(0, INT_MAX, MT_CHANNELCHANGE); // we have a channel start mark, delete all weak marks
-    criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
-    return channelStart;
+    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): no audio channel start mark found");
+    return nullptr;
 }
 
 
