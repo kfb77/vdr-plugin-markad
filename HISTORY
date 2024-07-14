@@ -1,8 +1,15 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-07-21: Version 4.0.2
+- allow H.264 progressive without full decode
+- fix decoding of H.264 interlaced video with 25 frames per second
+- improve video cut performance
+- fix video cut with AAC LATM audio (thx to jsffm@www.vdr-portal.de for the idea on how to solve it)
+- some minor bug fixes and optimizations, see git
+
 2024-07-14: Version 4.0.1
--  fix false cleanup weak marks
+- fix false cleanup weak marks
 
 2024-07-14: Version 4.0.0
 - new feature: decoder with hardware acceleration support
