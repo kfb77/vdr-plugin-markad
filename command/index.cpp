@@ -169,8 +169,7 @@ int cIndex::GetIFrameBefore(int frameNumber) {
         else before_iFrame = frameIterator->frameNumber;
     }
     if (iFrameBefore < 0) {
-        dsyslog("cIndex::GetIFrameBefore(): frame (%d): failed", frameNumber);
-        dsyslog("cIndex::GetIFrameBefore(): index content: first frame (%d), last frame (%d)", indexVector.front().frameNumber, indexVector.back().frameNumber);
+        dsyslog("cIndex::GetIFrameBefore(): frame (%d): failed, index content: first frame (%d), last frame (%d)", frameNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
         return -1;
     }
     return iFrameBefore; // frame not (yet) in index
@@ -189,7 +188,7 @@ int cIndex::GetIFrameAfter(int frameNumber) {
     std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](const sIndexElement &value) ->bool { if (value.frameNumber > frameNumber) return true; else return false; });
     if (found != indexVector.end()) return found->frameNumber;
 
-    esyslog("cIndex::GetIFrameAfter(): failed for frame (%d)", frameNumber);
+    esyslog("cIndex::GetIFrameAfter(): frame (%d): failed", frameNumber);
     return -1;
 
 }

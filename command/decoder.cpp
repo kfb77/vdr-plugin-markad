@@ -1193,8 +1193,9 @@ int cDecoder::ReceiveFrameFromDecoder() {
 // we got a video frame, set new frame number and offset from start adn build index
     if (IsVideoFrame()) {
         if (fullDecode) {
-            if (forceInterlaced ||
-                    ((IsInterlacedFrame()) && (GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264))) frameNumber++;  // from decinterlacer we get only half of video frames
+            if ((GetVideoFrameRate() == 50) &&  // TV5 HD tells 25 frames per second and do not need to double frame number
+                    (forceInterlaced ||
+                     ((IsInterlacedFrame()) && (GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)))) frameNumber++;  // from decinterlacer we get only half of video frames
             frameNumber++;
         }
         else {
