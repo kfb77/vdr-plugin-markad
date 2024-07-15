@@ -60,7 +60,7 @@ endif
 ### The version number of VDR's plugin API:
 APIVERSION = $(call PKGCFG,apiversion)
 $(info VDR plugin API version is ${APIVERSION})
-APINUM = $(shell echo $(APIVERSION) | awk -F . '{print $$1 * 1000 + $$2 * 10 $$3}')
+APINUM = $(shell echo $(APIVERSION) | awk -F . '{printf "%d%02d%02d", $$1, $$2, $$3}')
 
 # current minimum VDR API version 2.2.0
 ifeq ($(shell expr ${APINUM} \< 20200), 1)
