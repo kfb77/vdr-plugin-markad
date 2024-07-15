@@ -161,7 +161,7 @@ bool cExtractLogo::IsLogoColourChange(const sLogoSize *logoSizeFinal, const int 
 
 
 bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFinal, const sAspectRatio logoAspectRatio, const int corner) {
-    if (!actLogoInfo)           return false;
+    if (!actLogoInfo)               return false;
     if (!logoSizeFinal)             return false;
     if (logoSizeFinal->height <= 0) return false;
     if (logoSizeFinal->width  <= 0) return false;
@@ -169,6 +169,7 @@ bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFin
     if (corner >= CORNERS)          return false;
     if (!channelName)               return false;
 
+    int blackPlane0 = 0;
     for (int plane = 0; plane < PLANES; plane++) {
         // pixel count of logo
         int height = logoSizeFinal->height;
@@ -181,6 +182,7 @@ bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFin
         for (int i = 0; i < height * width; i++) {
             if (actLogoInfo->sobel[plane][i] == 0) black++;
         }
+        if (plane == 0) blackPlane0 = black;
         dsyslog("cExtractLogo::Save(): %d pixel in plane %d", black, plane);
         // if we have transparent logo do not save colored plane, they are from background
         if (plane > 0) {
@@ -189,7 +191,7 @@ bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFin
                 continue;
             }
             // do not save planes with too less pixel, detection will not work
-            if (black <= 194) {  // do not increase, will loss red krone.tv logo
+            if ((black < 200) || (black < (blackPlane0 / 10))) {  // do not increase, will loss red krone.tv logo
                 dsyslog("cExtractLogo::Save(): not enough pixel (%d) in plane %d", black, plane);
                 continue;
             }
