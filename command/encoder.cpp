@@ -216,7 +216,7 @@ cEncoder::~cEncoder() {
 void cEncoder::Reset(const int passEncoder) {
     dsyslog("cEncoder::Reset(): pass %d", passEncoder);
     EncoderStatus.videoStartDTS          = INT64_MAX;
-    EncoderStatus.frameBefore            = -2;
+    EncoderStatus.packetNumberBefore     = -2;
     EncoderStatus.ptsOutBefore           = -1;
     EncoderStatus.pts_dts_CutOffset      = 0;     // offset from the cut out frames
     EncoderStatus.pts_dts_CyclicalOffset = nullptr;  // offset from pts/dts cyclicle, multiple of 0x200000000
@@ -922,162 +922,210 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
 
 bool cEncoder::CutOut(int startPos, int stopPos) {
     LogSeparator();
-    dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): cut out from start position (%d) to stop position (%d) in pass: %d", decoder->GetPacketNumber(), decoder->GetFrameNumber(), startPos, stopPos, pass);
+    dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): %s from start position (%d) to stop position (%d) in pass: %d", decoder->GetPacketNumber(), decoder->GetFrameNumber(), (fullEncode) ? "full encode" : "copy packets", startPos, stopPos, pass);
 
-    // if we do not encode, we do not decode and so we have no valid decoder frame number
-    int pos = 0;
-    if (fullEncode) pos = decoder->GetFrameNumber();
-    else            pos = decoder->GetPacketNumber();
-    if (pos >= startPos) {
-        esyslog("cEncoder::CutOut(): invalid decoder read position");
-    }
-
-    // seek to start position
+    // cut with full encoding
     if (fullEncode) {
+        // seek to start position
         if (!decoder->SeekToFrame(startPos)) {
             esyslog("cMarkAdStandalone::MarkadCut(): seek to start mark (%d) failed", startPos);
             return false;
         }
-    }
-    else {
-        if (!decoder->SeekToPacket(startPos)) {  // ReadNextPacket() will read startPos
-            esyslog("cMarkAdStandalone::MarkadCut(): seek to packet before (%d) failed", startPos);
-            return false;
-        }
-    }
 
-    while (pos < stopPos) {
-        if (abortNow) return false;
+        while (decoder->GetFrameNumber() <= stopPos) {
+            if (abortNow) return false;
 
 #ifdef DEBUG_CUT  // first picures after start mark after
-        if (!fullEncode) decoder->DecodePacket();   // no decoding from encoder, do it here
-        if (decoder->IsVideoFrame() && ((abs(pos - startPos) <= DEBUG_CUT) || (abs(pos - stopPos) <= DEBUG_CUT))) {
-            char *fileName = nullptr;
-            if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, pos) >= 1) {
-                ALLOC(strlen(fileName)+1, "fileName");
-                SaveVideoPlane0(fileName, decoder->GetVideoPicture());
-                FREE(strlen(fileName)+1, "fileName");
-                free(fileName);
+            if (!fullEncode) decoder->DecodePacket();   // no decoding from encoder, do it here
+            if (decoder->IsVideoFrame() && ((abs(pos - startPos) <= DEBUG_CUT) || (abs(pos - stopPos) <= DEBUG_CUT))) {
+                char *fileName = nullptr;
+                if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, pos) >= 1) {
+                    ALLOC(strlen(fileName)+1, "fileName");
+                    SaveVideoPlane0(fileName, decoder->GetVideoPicture());
+                    FREE(strlen(fileName)+1, "fileName");
+                    free(fileName);
+                }
             }
-        }
 #endif
 
-        // write current packet
-        if (!WritePacket()) return false;
+            // write current packet
+            if ((pass != 1) || decoder->IsVideoPacket()) {  // first pass we only need to look at video stream
+                if (SetPacketPtsDts()) {
+                    if (!WritePacket()) return false;
+                }
+            }
 
-        // read (and decode if full decode) next packet
-        if (fullEncode) {
+            // read and decode next packet
             while (true) {
                 if (!decoder->ReadNextPacket()) return false;
                 if (decoder->IsVideoPacket() || decoder->IsAudioPacket()) { // only decode audio or video packetes, no subtitle, this will be copyed
                     if (!decoder->DecodePacket()) continue; // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
-                    pos = decoder->GetFrameNumber();
                 }
                 break;
             }
         }
-        else {
+    }
+
+    // cut without full decoding, only copy all packets
+    else {
+        // without decoding/encoding adjust cut position to i-frame
+        startPos = index->GetIFrameAfter(startPos);
+        if (startPos < 0) {
+            esyslog("cEncoder::CutOut(): get i-frame before failed");
+            return false;
+        }
+        stopPos = index->GetIFrameBefore(stopPos);
+        if (stopPos < 0) {
+            esyslog("cEncoder::CutOut():: get i-frame after failed");
+            return false;
+        }
+        dsyslog("cEncoder::CutOut(): adjust cut position from i-frame (%d) to (%d)", startPos, stopPos);
+
+        // if we do not encode, we do not decode and so we have no valid decoder frame number, use packet number
+        if (decoder->GetPacketNumber() > startPos) {
+            esyslog("cEncoder::CutOut(): invalid decoder read position");
+        }
+        // seek to start position
+        if (!decoder->SeekToPacket(startPos)) {  // ReadNextPacket() will read startPos
+            esyslog("cEncoder::CutOut(): seek to packet (%d) failed", startPos);
+            return false;
+        }
+        // copy all packets from startPos to endPos
+        while (decoder->GetPacketNumber() <= stopPos) {
+            if (abortNow) return false;
+
+#ifdef DEBUG_CUT  // first pictures after start mark after
+            decoder->DecodePacket();   // no decoding from encoder, do it here
+            if (decoder->IsVideoFrame() && ((abs(pos - startPos) <= DEBUG_CUT) || (abs(pos - stopPos) <= DEBUG_CUT))) {
+                char *fileName = nullptr;
+                if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, pos) >= 1) {
+                    ALLOC(strlen(fileName)+1, "fileName");
+                    SaveVideoPlane0(fileName, decoder->GetVideoPicture());
+                    FREE(strlen(fileName)+1, "fileName");
+                    free(fileName);
+                }
+            }
+#endif
+
+            // write current packet
+            if (SetPacketPtsDts()) {
+                if (!WritePacket()) {
+                    esyslog("cEncoder::CutOut(): WritePacket() failed");
+                    return false;
+                }
+            }
+            // read next packet
             if (!decoder->ReadNextPacket()) return false;
-            pos = decoder->GetPacketNumber();
         }
     }
     return true;
 }
 
 
-bool cEncoder::WritePacket() {
+bool cEncoder::SetPacketPtsDts() {
     if (!avctxOut ) {
-        dsyslog("cEncoder::WritePacket(): got no AVFormatContext from output file");
+        esyslog("cEncoder::SetPacketPtsDts(): got no AVFormatContext from output file");
         return false;
     }
     if (!decoder ) {
-        dsyslog("cEncoder::WritePacket(): got no decoder from output file");
+        esyslog("cEncoder::SetPacketPtsDts(): got no decoder from input file");
         return false;
     }
-    if ((pass == 1) && !decoder->IsVideoPacket()) return true;  // first pass we only need to encode video stream
-
-    // set decoder frame/packet number
-    if (decoder->GetFullDecode()) decoderFrameNumber = decoder->GetFrameNumber();
-    else decoderFrameNumber = decoder->GetPacketNumber();  // decoder has no framenumber without decoding
-
+    int decoderPacketNumber = decoder->GetPacketNumber();
     // check if stream is valid
     avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
     AVPacket *avpkt = decoder->GetPacket();
-    int streamIndexIn = avpkt->stream_index;
-    if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) return false; // prevent to overrun stream array
-    int streamIndexOut = streamMap[streamIndexIn];
-    if (streamIndexOut == -1) return true; // no target for this stream
-
 #ifdef DEBUG_PTS_DTS_CUT
     if (pass == 2) {
-        dsyslog("cEncoder::WritePacket(): ----------------------------------------------------------------------------------------------------------------------");
-        dsyslog("cEncoder::WritePacket(): in  packet (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", decoderFrameNumber, streamIndexIn, avpkt->pts, avpkt->dts, avpkt->pts - inputPacketPTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
-        inputPacketPTSbefore[streamIndexIn] = avpkt->pts;
+        dsyslog("cEncoder::SetPacketPtsDts(): ----------------------------------------------------------------------------------------------------------------------");
+        dsyslog("cEncoder::SetPacketPtsDts(): in  packet (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", decoderPacketNumber, avpkt->stream_index, avpkt->pts, avpkt->dts, avpkt->pts - inputPacketPTSbefore[ avpkt->stream_index], EncoderStatus.pts_dts_CutOffset);
+        inputPacketPTSbefore[ avpkt->stream_index] = avpkt->pts;
     }
 #endif
 
     // check if packet is valid
     if (avpkt->dts == AV_NOPTS_VALUE) {
-        dsyslog("cEncoder::WritePacket(): frame (%d) got no dts value from input stream %d", decoderFrameNumber, streamIndexIn);
-        EncoderStatus.frameBefore = decoderFrameNumber;
+        dsyslog("cEncoder::SetPacketPtsDts(): frame (%d) got no dts value from input stream %d", decoderPacketNumber, avpkt->stream_index);
+        EncoderStatus.packetNumberBefore = decoderPacketNumber;
         return false;
     }
     if (avpkt->pts <  avpkt->dts) {
-        dsyslog("cEncoder::WritePacket(): input stream %d frame   (%d) pts (%" PRId64 ") smaller than dts (%" PRId64 ")", streamIndexIn, decoderFrameNumber, avpkt->pts, avpkt->dts);
-        EncoderStatus.frameBefore = decoderFrameNumber;
+        dsyslog("cEncoder::SetPacketPtsDts(): input stream %d frame   (%d) pts (%" PRId64 ") smaller than dts (%" PRId64 ")",  avpkt->stream_index, decoderPacketNumber, avpkt->pts, avpkt->dts);
+        EncoderStatus.packetNumberBefore = decoderPacketNumber;
         return false;
     }
-    if ((avpkt->dts > EncoderStatus.dtsInBefore[streamIndexIn] + 0x100000000) && (EncoderStatus.dtsInBefore[streamIndexIn] > 0)) { // maybe input stream is faulty
-        dsyslog("cEncoder::WritePacket(): invalid dts %" PRId64 " (dts before was %" PRId64 ") in input stream %d at frame (%d), ignore packet", avpkt->dts, EncoderStatus.dtsInBefore[streamIndexIn], streamIndexIn, decoderFrameNumber);
-        EncoderStatus.frameBefore = decoderFrameNumber;
+    if ((avpkt->dts > EncoderStatus.dtsInBefore[avpkt->stream_index] + 0x100000000) && (EncoderStatus.dtsInBefore[avpkt->stream_index] > 0)) { // maybe input stream is faulty
+        dsyslog("cEncoder::SetPacketPtsDts(): invalid dts %" PRId64 " (dts before was %" PRId64 ") in input stream %d at frame (%d), ignore packet", avpkt->dts, EncoderStatus.dtsInBefore[ avpkt->stream_index],  avpkt->stream_index, decoderPacketNumber);
+        EncoderStatus.packetNumberBefore = decoderPacketNumber;
         return false;
     }
 
     // check if there was a dts cyclicle
-    avpkt->dts += EncoderStatus.pts_dts_CyclicalOffset[streamIndexIn];
-    avpkt->pts += EncoderStatus.pts_dts_CyclicalOffset[streamIndexIn];
-    if (EncoderStatus.dtsInBefore[streamIndexIn] >= avpkt->dts) { // dts should monotonically increasing
-        if (avpkt->dts - avpkt->duration - EncoderStatus.dtsInBefore[streamIndexIn] == -0x200000000) {
-            EncoderStatus.pts_dts_CyclicalOffset[streamIndexIn] += 0x200000000;
-            dsyslog("cEncoder::WritePacket(): dts and pts cyclicle in input stream %d at frame (%d), offset now 0x%" PRId64 "X", streamIndexIn, decoderFrameNumber, EncoderStatus.pts_dts_CyclicalOffset[streamIndexIn]);
+    avpkt->dts += EncoderStatus.pts_dts_CyclicalOffset[avpkt->stream_index];
+    avpkt->pts += EncoderStatus.pts_dts_CyclicalOffset[avpkt->stream_index];
+    if (EncoderStatus.dtsInBefore[ avpkt->stream_index] >= avpkt->dts) { // dts should monotonically increasing
+        if (avpkt->dts - avpkt->duration - EncoderStatus.dtsInBefore[ avpkt->stream_index] == -0x200000000) {
+            EncoderStatus.pts_dts_CyclicalOffset[ avpkt->stream_index] += 0x200000000;
+            dsyslog("cEncoder::SetPacketPtsDts(): dts and pts cyclicle in input stream %d at frame (%d), offset now 0x%" PRId64 "X", avpkt->stream_index, decoderPacketNumber, EncoderStatus.pts_dts_CyclicalOffset[avpkt->stream_index]);
             avpkt->dts += 0x200000000;
             avpkt->pts += 0x200000000;
         }
         else { // non monotonically increasing dts, drop this packet
-            dsyslog("cEncoder::WritePacket(): non monotonically increasing dts at frame (%6d) of input stream %d, dts last packet %10" PRId64 ", dts offset %" PRId64, decoderFrameNumber, streamIndexIn, EncoderStatus.dtsInBefore[streamIndexIn], avpkt->dts - EncoderStatus.dtsInBefore[streamIndexIn]);
+            dsyslog("cEncoder::SetPacketPtsDts(): non monotonically increasing dts at frame (%6d) of input stream %d, dts last packet %10" PRId64 ", dts offset %" PRId64, decoderPacketNumber, avpkt->stream_index, EncoderStatus.dtsInBefore[avpkt->stream_index], avpkt->dts - EncoderStatus.dtsInBefore[avpkt->stream_index]);
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)  // yavdr Xenial ffmpeg
-            dsyslog("cEncoder::WritePacket():                                                                       dts this packet %10" PRId64 ", duration %" PRId64, avpkt->dts, avpkt->duration);
+            dsyslog("cEncoder::SetPacketPtsDts():                                                                       dts this packet %10" PRId64 ", duration %" PRId64, avpkt->dts, avpkt->duration);
 #else
-            dsyslog("cEncoder::WritePacket():                                                                 dts this packet %10" PRId64 ", duration %d", avpkt->dts, avpkt->duration);
+            dsyslog("cEncoder::SetPacketPtsDts():                                                                 dts this packet %10" PRId64 ", duration %d", avpkt->dts, avpkt->duration);
 #endif
-            EncoderStatus.frameBefore = decoderFrameNumber;
-            return true;
+            EncoderStatus.packetNumberBefore = decoderPacketNumber;
+            return false;
         }
     }
 
     // set video start infos
-    if ((decoderFrameNumber - EncoderStatus.frameBefore) > 1) {  // first frame after start mark position
-        if (EncoderStatus.dtsInBefore[streamIndexIn] == 0) EncoderStatus.dtsInBefore[streamIndexIn] = avpkt->dts - avpkt->duration; // first frame has no before, init with dts of start mark
-        dsyslog("cEncoder::WritePacket(): start cut at            frame (%6d)                 PTS %" PRId64, decoderFrameNumber, avpkt->pts);
+    if ((decoderPacketNumber - EncoderStatus.packetNumberBefore) > 1) {  // first frame after start mark position
+        if (EncoderStatus.dtsInBefore[avpkt->stream_index] == 0) EncoderStatus.dtsInBefore[avpkt->stream_index] = avpkt->dts - avpkt->duration; // first frame has no before, init with dts of start mark
+        dsyslog("cEncoder::SetPacketPtsDts(): packet (%6d): start cut at PTS %" PRId64, decoderPacketNumber, avpkt->pts);
         EncoderStatus.videoStartDTS = avpkt->dts;
-        EncoderStatus.pts_dts_CutOffset += (avpkt->dts - EncoderStatus.dtsInBefore[streamIndexIn] - avpkt->duration);
-        dsyslog("cEncoder::WritePacket(): new pts/dts offset %" PRId64, EncoderStatus.pts_dts_CutOffset);
+        EncoderStatus.pts_dts_CutOffset += (avpkt->dts - EncoderStatus.dtsInBefore[avpkt->stream_index] - avpkt->duration);
+        dsyslog("cEncoder::SetPacketPtsDts(): new pts/dts offset %" PRId64, EncoderStatus.pts_dts_CutOffset);
     }
-    EncoderStatus.frameBefore = decoderFrameNumber;
+    EncoderStatus.packetNumberBefore = decoderPacketNumber;
 
     // drop packets with pts before video start
     if (avpkt->dts < EncoderStatus.videoStartDTS) {
-#ifdef DEBUG_PTS_DTS_CUT
-        if (pass == 2) {
-            dsyslog("cEncoder::WritePacket(): in  packet (%5d) stream index %d DTS %10ld is lower then video start DTS %10ld, drop packet", decoderFrameNumber, streamIndexIn, avpkt->dts, EncoderStatus.videoStartDTS);
-        }
-#endif
-        return true;
+        dsyslog("cEncoder::SetPacketPtsDts(): packet (%6d), index %d , DTS %10ld is lower then video start DTS %10ld, drop packet", decoderPacketNumber, avpkt->stream_index, avpkt->dts, EncoderStatus.videoStartDTS);
+        return false;
     }
 
     // store values of frame before
-    EncoderStatus.ptsInBefore[streamIndexIn] = avpkt->pts;
-    EncoderStatus.dtsInBefore[streamIndexIn] = avpkt->dts;
+    EncoderStatus.ptsInBefore[avpkt->stream_index] = avpkt->pts;
+    EncoderStatus.dtsInBefore[avpkt->stream_index] = avpkt->dts;
+    return true;
+}
+
+
+bool cEncoder::WritePacket() {
+    if (!avctxOut ) {
+        esyslog("cEncoder::WritePacket(): got no AVFormatContext from output file");
+        return false;
+    }
+    if (!decoder ) {
+        esyslog("cEncoder::WritePacket(): got no decoder from input file");
+        return false;
+    }
+
+    AVPacket *avpkt = decoder->GetPacket();
+    // map stream index
+    int streamIndexIn = avpkt->stream_index;
+    if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) return false; // prevent to overrun stream array
+    int streamIndexOut = streamMap[streamIndexIn];
+    if (streamIndexOut == -1) return true; // no target for this stream
+
+    // set decoder frame/packet number
+    int decoderFrameNumber = 0;
+    if (decoder->GetFullDecode()) decoderFrameNumber = decoder->GetFrameNumber();
+    else decoderFrameNumber = decoder->GetPacketNumber();  // decoder has no framenumber without decoding
 
     // re-encode packet if needed
     if ((streamIndexOut >= 0) &&  // only re-encode if stream is in streamMap
@@ -1306,6 +1354,11 @@ bool cEncoder::EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacke
         return false;
     }
     if (!avpkt) return false;
+
+    int decoderFrameNumber = 0;
+    if (decoder->GetFullDecode()) decoderFrameNumber = decoder->GetFrameNumber();
+    else decoderFrameNumber = decoder->GetPacketNumber();  // decoder has no framenumber without decoding
+
     stateEAGAIN = false;
 
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)

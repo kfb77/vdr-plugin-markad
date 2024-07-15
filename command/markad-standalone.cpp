@@ -4173,23 +4173,6 @@ void cMarkAdStandalone::MarkadCut() {
             esyslog("got invalid stop mark at (%d) type 0x%X", stopMark->position, stopMark->type);
             return;
         }
-        int startPos = startMark->position;
-        int stopPos  = stopMark->position;
-
-        // if no decoding/encoding adjust position to i-frame
-        if (!macontext.Config->fullEncode) {
-            startPos = index->GetIFrameAfter(startPos);
-            if (startPos < 0) {
-                esyslog("cMarkAdStandalone::MarkadCut(): get i-frame before (%d) failed", startMark->position);
-                return;
-            }
-            stopPos = index->GetIFrameBefore(stopPos);
-            if (stopPos < 0) {
-                esyslog("cMarkAdStandalone::MarkadCut(): get i-frame after (%d) failed", stopMark->position);
-                return;
-            }
-        }
-
         // open output file
         if (!encoder->OpenFile()) {
             esyslog("failed to open output file");
@@ -4202,7 +4185,7 @@ void cMarkAdStandalone::MarkadCut() {
         // cut out all start/stop pairs
         while (true) {
             if (abortNow) return;
-            if (!encoder->CutOut(startPos, stopPos)) break;
+            if (!encoder->CutOut(startMark->position, stopMark->position)) break;
 
             // next start/stop pair
             if (stopMark->Next() && stopMark->Next()->Next()) {  // next mark pair
@@ -4216,22 +4199,6 @@ void cMarkAdStandalone::MarkadCut() {
                     esyslog("got invalid stop mark at (%d) type 0x%X", stopMark->position, stopMark->type);
                     break;
                 }
-                startPos = startMark->position;
-                stopPos  = stopMark->position;
-                // if no decoding/encoding adjust position to i-frame
-                if (!macontext.Config->fullEncode) {
-                    startPos = index->GetIFrameAfter(startPos);
-                    if (startPos < 0) {
-                        esyslog("cMarkAdStandalone::MarkadCut(): get i-frame before (%d) failed", startMark->position);
-                        return;
-                    }
-                    stopPos = index->GetIFrameBefore(stopPos);
-                    if (stopPos < 0) {
-                        esyslog("cMarkAdStandalone::MarkadCut(): get i-frame after (%d) failed", stopMark->position);
-                        return;
-                    }
-                }
-
             }
             else break;
         }

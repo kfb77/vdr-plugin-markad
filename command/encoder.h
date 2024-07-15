@@ -107,11 +107,6 @@ public:
      */
     bool CutOut(int startPos, int stopPos);
 
-    /** write packet to output file
-     * @return true if successful, false otherwise
-     */
-    bool WritePacket();
-
     /**
      * close output file
      * @return true if successful, false otherwise
@@ -119,6 +114,17 @@ public:
     bool CloseFile();
 
 private:
+    /** write packet to output file
+     * @return true if successful, false otherwise
+     */
+    bool WritePacket();
+
+    /**
+     * set new packet PTS and DTS based on cut out positions
+     * @return true if successful, false otherwise
+     */
+    bool SetPacketPtsDts();
+
     /** encode frame
      * @param avCodecCtx   codec context
      * @param avFrame      decodes frame
@@ -178,8 +184,6 @@ private:
     //!<
     bool ac3ReEncode                  = false;                    //!< true if ac3 re-encode with volume adjust
     //!<
-    int decoderFrameNumber            = -1;                       //!< current frame number of decoder
-    //!<
     AVFormatContext *avctxIn          = nullptr;                  //!< avformat context for input
     //!<
     AVFormatContext *avctxOut         = nullptr;                  //!< avformat context for output
@@ -211,7 +215,7 @@ private:
     struct sEncoderStatus {
         int64_t videoStartDTS           = INT64_MAX;  //!< DTS timestamp of the video stream from first mark
         //!<
-        int frameBefore                 = -2;         //!< decoded frame number before current frame
+        int packetNumberBefore          = -2;         //!< decoded frame number before current frame
         //!<
         int64_t *ptsInBefore            = nullptr;    //!< presentation timestamp of the previous frame from each input stream
         //!<
