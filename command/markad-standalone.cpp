@@ -2689,11 +2689,10 @@ void cMarkAdStandalone::CheckStart() {
         mark = mark->Next();
     }
     if (countStopStart > 6) {  // changed from 5 to 6, sometimes there are a lot of previews in start area
+        video->ReducePlanes();
         isyslog("%d logo STOP/START pairs found after start mark, something is wrong with your logo", countStopStart);
-        if (video->ReducePlanes()) {
-            dsyslog("cMarkAdStandalone::CheckStart(): reduce logo processing to first plane and delete all marks after start mark (%d)", begin->position);
-            marks.DelAfterFromToEnd(begin->position);
-        }
+        dsyslog("cMarkAdStandalone::CheckStart(): reduce logo processing to first plane and delete all marks after start mark (%d)", begin->position);
+        marks.DelAfterFromToEnd(begin->position);
     }
 
     CheckStartMark();

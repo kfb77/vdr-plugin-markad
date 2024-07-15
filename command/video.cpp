@@ -1708,16 +1708,12 @@ sMarkAdMarks *cVideo::Process() {
 
 
 // disable colored planes
-bool cVideo::ReducePlanes() {
-    if (!logoDetect) return false;
+void cVideo::ReducePlanes() {
     sAreaT *area = logoDetect->GetArea();
-    bool ret = false;
     for (int plane = 1; plane < PLANES; plane++) {
-        area->logo[plane] = nullptr;
+        area->valid[plane] = false;
         area->mPixel[plane] = 0;
         area->rPixel[plane] = 0;
         area->iPixel[plane] = 0;
-        ret = true;
     }
-    return ret;
 }

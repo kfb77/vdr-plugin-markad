@@ -485,9 +485,8 @@ public:
 
     /**
      * reduce logo detection to plane 0
-     * @return true if we found a valid plane >= 1 to switch off
      */
-    bool ReducePlanes(void);
+    void ReducePlanes(void);
 
     /**
      * reset all video based detection of marks
