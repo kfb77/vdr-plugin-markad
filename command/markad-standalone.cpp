@@ -4112,7 +4112,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
             char *fileName = nullptr;
             if (asprintf(&fileName,"%s/F__%07d_%s_%s.pgm", macontext.Config->recDir, frameNumber, suffix1, suffix2) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
-                SaveVideoPicture(fileName, decoder->GetVideoPicture());
+                SaveVideoPlane0(fileName, decoder->GetVideoPicture());
                 FREE(strlen(fileName)+1, "fileName");
                 free(fileName);
             }
@@ -5654,7 +5654,7 @@ bool cMarkAdStandalone::ProcessFrame() {
             char *fileName = nullptr;
             if (asprintf(&fileName,"%s/F__%07d.pgm", macontext.Config->recDir, frameNumber) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
-                SaveVideoPicture(fileName, decoder->GetVideoPicture());
+                SaveVideoPlane0(fileName, decoder->GetVideoPicture());
                 FREE(strlen(fileName)+1, "fileName");
                 free(fileName);
             }
@@ -5665,7 +5665,7 @@ bool cMarkAdStandalone::ProcessFrame() {
             char *fileName = nullptr;
             if (asprintf(&fileName,"%s/F__%07d.pgm", macontext.Config->recDir, frameNumber) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
-                SaveVideoPicture(fileName, decoder->GetVideoPicture());
+                SaveVideoPlane0(fileName, decoder->GetVideoPicture());
                 FREE(strlen(fileName)+1, "fileName");
                 free(fileName);
             }

@@ -13,20 +13,20 @@
 #if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_DECODER_SEEK) || defined(DEBUG_CUT)
 #include <stdio.h>
 #include <stdlib.h>
-void SaveVideoPicture(const char *fileName, sVideoPicture *picture) {
+void SaveVideoPlane0(const char *fileName, sVideoPicture *picture) {
     if (!fileName) {
-        esyslog("SaveVideoPicture(): fileName not valid");
+        esyslog("SaveVideoPlane0(): fileName not valid");
     }
     if (!picture) {
-        esyslog("SaveVideoPicture(): picture not valid");
+        esyslog("SaveVideoPlane0(): picture not valid");
         return;
     }
     if (picture->height <= 0) {
-        esyslog("SaveVideoPicture(): height not valid");
+        esyslog("SaveVideoPlane0(): height not valid");
         return;
     }
     if (picture->width <= 0) {
-        esyslog("SaveVideoPicture(): width not valid");
+        esyslog("SaveVideoPlane0(): width not valid");
         return;
     }
 //    dsyslog("SaveVideoPicure(): fileName %s", fileName);
@@ -34,7 +34,7 @@ void SaveVideoPicture(const char *fileName, sVideoPicture *picture) {
     // Open file
     FILE *pFile = fopen(fileName, "wb");
     if (pFile == nullptr) {
-        dsyslog("SaveVideoPicture(): open file %s failed", fileName);
+        dsyslog("SaveVideoPlane0(): open file %s failed", fileName);
         return;
     }
     // Write header

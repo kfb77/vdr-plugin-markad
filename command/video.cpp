@@ -426,7 +426,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
         char *fileName = nullptr;
         if (asprintf(&fileName,"%s/F__%07d_corrected.pgm", recDir, frameNumber) >= 1) {
             ALLOC(strlen(fileName) + 1, "fileName");
-            SaveVideoPicture(fileName, decoder->GetVideoPicture());
+            SaveVideoPlane0(fileName, decoder->GetVideoPicture());
             FREE(strlen(fileName) + 1, "fileName");
             free(fileName);
         }
@@ -631,7 +631,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
         char *fileName = nullptr;
         if (asprintf(&fileName,"%s/F__%07d.pgm", recDir, frameNumber) >= 1) {
             ALLOC(strlen(fileName) + 1, "fileName");
-            SaveVideoPicture(fileName, decoder->GetVideoPicture());
+            SaveVideoPlane0(fileName, decoder->GetVideoPicture());
             FREE(strlen(fileName) + 1, "fileName");
             free(fileName);
         }

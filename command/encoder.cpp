@@ -955,7 +955,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             char *fileName = nullptr;
             if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, pos) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
-                SaveVideoPicture(fileName, decoder->GetVideoPicture());
+                SaveVideoPlane0(fileName, decoder->GetVideoPicture());
                 FREE(strlen(fileName)+1, "fileName");
                 free(fileName);
             }
