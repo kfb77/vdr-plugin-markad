@@ -5655,19 +5655,19 @@ bool cMarkAdStandalone::ProcessFrame() {
             if (asprintf(&fileName,"%s/F__%07d.pgm", macontext.Config->recDir, frameNumber) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
                 SaveVideoPlane0(fileName, decoder->GetVideoPicture());
-                FREE(strlen(fileName)+1, "fileName");
+                FREE(strlen(fileName) + 1, "fileName");
                 free(fileName);
             }
         }
 #endif
 #ifdef DEBUG_PICTURE
         if ((frameNumber > (DEBUG_PICTURE - DEBUG_PICTURE_RANGE)) && (frameNumber < (DEBUG_PICTURE + DEBUG_PICTURE_RANGE))) {
-            char *fileName = nullptr;
-            if (asprintf(&fileName,"%s/F__%07d.pgm", macontext.Config->recDir, frameNumber) >= 1) {
-                ALLOC(strlen(fileName)+1, "fileName");
-                SaveVideoPlane0(fileName, decoder->GetVideoPicture());
-                FREE(strlen(fileName)+1, "fileName");
-                free(fileName);
+            char *baseName = nullptr;
+            if (asprintf(&baseName,"%s/F__%07d", macontext.Config->recDir, frameNumber) >= 1) {
+                ALLOC(strlen(baseName) + 1, "baseName");
+                SaveVideoPicture(baseName, decoder->GetVideoPicture());
+                FREE(strlen(baseName) + 1, "baseName");
+                free(baseName);
             }
         }
 #endif

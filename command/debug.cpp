@@ -8,7 +8,58 @@
 #include "debug.h"
 
 
-// save currect content of the frame buffer (plane 0) to fileName
+// save currect content of the picture (all planes) to fileName
+//
+#if defined(DEBUG_PICTURE)
+#include <stdio.h>
+#include <stdlib.h>
+void SaveVideoPicture(const char *baseName, sVideoPicture *picture) {
+    if (!baseName) {
+        esyslog("SaveVideoPicture(): baseName not valid");
+    }
+    if (!picture) {
+        esyslog("SaveVideoPicture(): picture not valid");
+        return;
+    }
+    if (picture->height <= 0) {
+        esyslog("SaveVideoPicture(): height not valid");
+        return;
+    }
+    if (picture->width <= 0) {
+        esyslog("SaveVideoPicture(): width not valid");
+        return;
+    }
+    for (int plane = 0; plane < PLANES; plane++) {
+        int width  = picture->width;
+        int height = picture->height;
+        if (plane > 0) {
+            width  /= 2;
+            height /= 2;
+        }
+        char *fileName = nullptr;
+        if (asprintf(&fileName,"%s_P%d.pgm", baseName, plane) >= 1) {
+            dsyslog("xxxx %s", fileName);
+            // Open file
+            FILE *pFile = fopen(fileName, "wb");
+            if (pFile == nullptr) {
+                dsyslog("SaveVideoPlane0(): open file %s failed", fileName);
+                return;
+            }
+            // Write header
+            fprintf(pFile, "P5\n%d %d\n255\n", width, height);
+            // Write pixel data from plane 0
+            for (int line = 0; line < height; line++) {
+                if (fwrite(&picture->plane[plane][line * picture->planeLineSize[plane]], 1, width, pFile)) {};
+            }
+            // Close file
+            fclose(pFile);
+        }
+    }
+}
+#endif
+
+
+// save currect content of the picture (only plane0) to fileName
 //
 #if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_DECODER_SEEK) || defined(DEBUG_CUT)
 #include <stdio.h>
