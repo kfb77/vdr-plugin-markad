@@ -952,9 +952,9 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             if (abortNow) return false;
 
 #ifdef DEBUG_CUT  // first picures after start mark after
-            if (decoder->IsVideoFrame() && ((abs(pos - startPos) <= DEBUG_CUT) || (abs(pos - stopPos) <= DEBUG_CUT))) {
+            if (decoder->IsVideoFrame() && ((abs(decoder->GetFrameNumber() - startPos) <= DEBUG_CUT) || (abs(decoder->GetFrameNumber() - stopPos) <= DEBUG_CUT))) {
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, pos) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, decoder->GetFrameNumber()) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     SaveVideoPlane0(fileName, decoder->GetVideoPicture());
                     FREE(strlen(fileName)+1, "fileName");
@@ -1033,9 +1033,9 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
 
 #ifdef DEBUG_CUT  // first pictures after start mark after
             decoder->DecodePacket();   // no decoding from encoder, do it here
-            if (decoder->IsVideoFrame() && ((abs(pos - startPos) <= DEBUG_CUT) || (abs(pos - stopPos) <= DEBUG_CUT))) {
+            if (decoder->IsVideoFrame() && ((abs(decoder->GetFrameNumber() - startPos) <= DEBUG_CUT) || (abs(decoder->GetFrameNumber() - stopPos) <= DEBUG_CUT))) {
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, pos) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, decoder->GetFrameNumber()) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     SaveVideoPlane0(fileName, decoder->GetVideoPicture());
                     FREE(strlen(fileName)+1, "fileName");
