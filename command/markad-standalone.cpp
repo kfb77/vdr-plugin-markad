@@ -4696,7 +4696,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
 
                         if (criteria->GoodVPS())    maxAfter =  12779;
                         else if (lengthAfter >= 80) maxAfter = 200759;
-                        else                        maxAfter =   1399;
+                        else                        maxAfter =   2200;
                         break;
                     case MT_CLOSINGCREDITSSTOP:
                         maxAfter = 11040;
@@ -4743,8 +4743,11 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxBefore = 29120;
                     break;
                 case MT_LOGOSTOP:
-                    if (criteria->LogoFadeInOut() & FADE_OUT) maxBefore =     0;  // never use black screen before fade out logo
-                    else                                      maxBefore =  5139;
+                    if (criteria->LogoFadeInOut() & FADE_OUT) {
+                        if (lengthBefore > diffBefore) maxBefore =    20;   // fade out in black screen
+                        else                           maxBefore =     0;   // never use black screen before fade out logo
+                    }
+                    else                               maxBefore =  5139;
                     break;
                 case MT_HBORDERSTOP:
                     maxBefore = 360;
