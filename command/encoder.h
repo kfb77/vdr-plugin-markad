@@ -119,12 +119,6 @@ private:
      */
     bool WritePacket();
 
-    /**
-     * set new packet PTS and DTS based on cut out positions
-     * @return true if successful, false otherwise
-     */
-    bool SetPacketPtsDts();
-
     /** encode frame
      * @param avCodecCtx   codec context
      * @param avFrame      decodes frame
