@@ -188,6 +188,7 @@ void cDecoder::SetFullDecode(const bool fullDecodeParam) {
     fullDecode = fullDecodeParam;
 }
 
+
 int cDecoder::ResetToSW() {
     // hardware decoding failed at first packet, something is wrong maybe not supported codec
     // during init we got no error code
@@ -1144,6 +1145,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
         // some filds in avFrame filled by receive, but no video data, copy to swFrame to keep it after pixel format transformation
         AVPictureType pict_type     = avFrame.pict_type;
         int64_t pts                 = avFrame.pts;
+        int64_t dts                 = avFrame.pkt_dts;
 #if LIBAVCODEC_VERSION_INT > ((59<<16)+(37<<8)+100)   // FFmpeg 5.1.4
         int64_t duration            = avFrame.duration;
 #else
@@ -1173,6 +1175,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
         // restore values we lost during pixel transformation
         avFrame.pict_type           = pict_type;
         avFrame.pts                 = pts;
+        avFrame.pkt_dts             = dts;
 #if LIBAVCODEC_VERSION_INT > ((59<<16)+(37<<8)+100)   // FFmpeg 5.1.4
         avFrame.duration            = duration;
 #else

@@ -931,7 +931,23 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             esyslog("cMarkAdStandalone::MarkadCut(): seek to start mark (%d) failed", startPos);
             return false;
         }
+        // check if we have a valid frame to set for start position
+        AVFrame *avFrame = decoder->GetFrame();  // this should be a video frame, because we seek to video packets
+        while (!decoder->IsVideoFrame() || (avFrame->pts == AV_NOPTS_VALUE) || (avFrame->pkt_dts == AV_NOPTS_VALUE)) {
+            if (abortNow) return false;
+            esyslog("cEncoder::CutOut(): packet (%d), frame (%d), stream %d: frame not valid for start position", decoder->GetPacketNumber(), decoder->GetFrameNumber(), decoder->GetPacket()->stream_index);
+            if (!decoder->ReadNextPacket()) return false;
+            if (decoder->IsVideoPacket()) decoder->DecodePacket(); // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
+        }
+        // get PTS/DTS from start position
+        cutInfo.startPosPTS = avFrame->pts;
+        cutInfo.startPosDTS = avFrame->pkt_dts;
+        // current start pos - last stop pos -> length of ad
+        // use dts to prevent non monotonically increasing dts
+        if (cutInfo.stopPosDTS > 0) cutInfo.offset += (cutInfo.startPosDTS - cutInfo.stopPosDTS);
+        dsyslog("cEncoder::CutOut(): start cut from frame (%6d) PTS %10ld DTS %10ld to frame (%d), offset %ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
 
+        // read all packets
         while (decoder->GetFrameNumber() <= stopPos) {
             if (abortNow) return false;
 
@@ -964,6 +980,11 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
                 break;
             }
         }
+        // get PTS/DTS from end position
+        avFrame = decoder->GetFrame();  // this must be first video packet after cut because we only increase frame counter on video frames
+        cutInfo.stopPosPTS = avFrame->pts;
+        cutInfo.stopPosDTS = avFrame->pkt_dts;
+        dsyslog("cEncoder::CutOut(): end cut from i-frame (%6d) PTS %10ld DTS %10ld to i-frame (%6d) PTS %10ld DTS %10ld, offset %10ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
     }
     // cut without full decoding, only copy all packets
     else {
@@ -978,7 +999,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             esyslog("cEncoder::CutOut():: get i-frame after failed");
             return false;
         }
-        dsyslog("cEncoder::CutOut(): adjust cut position from i-frame (%d) to (%d)", startPos, stopPos);
+        dsyslog("cEncoder::CutOut(): adjust cut position from i-frame (%d) to i-frame (%d)", startPos, stopPos);
 
         // if we do not encode, we do not decode and so we have no valid decoder frame number, use packet number
         if (decoder->GetPacketNumber() > startPos) {
@@ -989,6 +1010,23 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             esyslog("cEncoder::CutOut(): seek to packet (%d) failed", startPos);
             return false;
         }
+        // check if we have a valid packet to set for start position
+        AVPacket *avpkt = decoder->GetPacket();  // this should be a video packet, because we seek to video packets
+        while (!decoder->IsVideoIPacket() || (avpkt->pts == AV_NOPTS_VALUE) || (avpkt->dts == AV_NOPTS_VALUE)) {
+            if (abortNow) return false;
+            esyslog("cEncoder::CutOut(): packet (%d), stream %d: packet not valid for start position", decoder->GetPacketNumber(), avpkt->stream_index);
+            if (!decoder->ReadNextPacket()) return false;
+            avpkt = decoder->GetPacket();  // this must be a video packet, because we seek to video packets
+        }
+
+        // get PTS/DTS from start position
+        cutInfo.startPosPTS = avpkt->pts;
+        cutInfo.startPosDTS = avpkt->dts;
+        // current start pos - last stop pos -> length of ad
+        // use dts to prevent non monotonically increasing dts
+        if (cutInfo.stopPosDTS > 0) cutInfo.offset += (cutInfo.startPosDTS - cutInfo.stopPosDTS);
+        dsyslog("cEncoder::CutOut(): start cut from i-frame (%6d) PTS %10ld DTS %10ld to i-frame (%d), offset %ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
+
         // copy all packets from startPos to endPos
         while (decoder->GetPacketNumber() <= stopPos) {
             if (abortNow) return false;
@@ -1016,6 +1054,12 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             // read next packet
             if (!decoder->ReadNextPacket()) return false;
         }
+
+        // get PTS/DTS from end position
+        avpkt =  decoder->GetPacket();  // this must be first video packet after cut because we only increase packet counter on video packets
+        cutInfo.stopPosPTS = avpkt->pts;
+        cutInfo.stopPosDTS = avpkt->dts;
+        dsyslog("cEncoder::CutOut(): end cut from i-frame (%6d) PTS %10ld DTS %10ld to i-frame (%6d) PTS %10ld DTS %10ld, offset %10ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
     }
     LogSeparator();
     return true;
@@ -1335,11 +1379,17 @@ bool cEncoder::WritePacket() {
     else {
         if (!fullEncode || decoder->IsSubtitlePacket()) {  // no re-encode, copy input packet to output stream, never re-encode subtitle
             if (streamIndexOut >= static_cast<int>(avctxOut->nb_streams)) return true;  // ignore high streamindex from input stream, they are unsupported subtitle
+            // check pts/dts valid
+            if ((avpkt->pts == AV_NOPTS_VALUE) || (avpkt->dts == AV_NOPTS_VALUE)) return true;  // no abort, try with next packet
             // correct pts after cut
             avpkt->pts = avpkt->pts - EncoderStatus.pts_dts_CutOffset;
             avpkt->dts = avpkt->dts - EncoderStatus.pts_dts_CutOffset;
             avpkt->pos = -1;   // byte position in stream unknown
-            av_write_frame(avctxOut, avpkt);
+            int rc = av_write_frame(avctxOut, avpkt);
+            if (rc < 0) {
+                esyslog("cEncoder::WritePacket(): av_write_frame failed, rc = %d", rc);
+                return false;
+            }
         }
     }
     if (avpkt->stream_index == 0) ptsBefore = avpkt->pts;
@@ -1511,6 +1561,7 @@ bool cEncoder::CloseFile() {
         FREE(sizeof(*avctxOut), "avctxOut");
         avformat_free_context(avctxOut);
     }
+    cutInfo = {0};
     return true;
 }
 

@@ -210,6 +210,22 @@ private:
     //!<
 
     /**
+      * cut PTS/DTS infos
+      */
+    struct sCutInfo {
+        int64_t startPosDTS         = 0;  //!< DTS timestamp of last start position
+        //!<
+        int64_t startPosPTS         = 0;  //!< PTS timestamp of last start position
+        //!<
+        int64_t stopPosDTS          = 0;  //!< DTS timestamp of last stop position
+        //!<
+        int64_t stopPosPTS          = 0;  //!< PTS timestamp of last stop position
+        //!<
+        int64_t offset              = 0;  //!< current PTS/DTS offset from input stream to output stream
+        //!<
+    } cutInfo;
+
+    /**
      * encoder status
      */
     struct sEncoderStatus {
