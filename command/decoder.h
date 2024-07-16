@@ -96,6 +96,12 @@ public:
     bool GetFullDecode() const;
 
     /**
+    * set full decoder state
+    * @param fullDecodeParam target full decode mode
+    */
+    void SetFullDecode(const bool fullDecodeParam);
+
+    /**
     * get FFmpeg threads
     */
     int GetThreads() const;

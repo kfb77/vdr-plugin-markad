@@ -936,7 +936,6 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             if (abortNow) return false;
 
 #ifdef DEBUG_CUT  // first picures after start mark after
-            if (!fullEncode) decoder->DecodePacket();   // no decoding from encoder, do it here
             if (decoder->IsVideoFrame() && ((abs(pos - startPos) <= DEBUG_CUT) || (abs(pos - stopPos) <= DEBUG_CUT))) {
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, pos) >= 1) {
@@ -958,14 +957,14 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             // read and decode next packet
             while (true) {
                 if (!decoder->ReadNextPacket()) return false;
+                if (abortNow) return false;
                 if (decoder->IsVideoPacket() || decoder->IsAudioPacket()) { // only decode audio or video packetes, no subtitle, this will be copyed
-                    if (!decoder->DecodePacket()) continue; // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
+                    if (!decoder->DecodePacket()) continue;                 // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
                 }
                 break;
             }
         }
     }
-
     // cut without full decoding, only copy all packets
     else {
         // without decoding/encoding adjust cut position to i-frame
@@ -1018,6 +1017,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             if (!decoder->ReadNextPacket()) return false;
         }
     }
+    LogSeparator();
     return true;
 }
 

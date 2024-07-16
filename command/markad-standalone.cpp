@@ -4132,13 +4132,14 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("cMarkAdStandalone::MarkadCut(): decoder not set");
         return;
     }
-
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::MarkadCut():cut video based on marks: fullDecode = %d, fullEncode = %d", macontext.Config->fullDecode, macontext.Config->fullEncode);
+
     if (macontext.Config->fullEncode && !macontext.Config->fullDecode) {
-        esyslog("full encode without full decode not possible, video cut will be done without full encode");
-        macontext.Config->fullEncode = false;
+        dsyslog("full encode needs full decode, activate it");
+        decoder->SetFullDecode(true);
     }
+
     if (marks.Count() < 2) {
         esyslog("need at least one start mark and one stop mark to cut Video");
         return; // we cannot do much without marks
