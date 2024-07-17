@@ -26,12 +26,14 @@ extern bool abortNow;
 
 
 cAC3VolumeFilter::cAC3VolumeFilter() {
+    dsyslog("cAC3VolumeFilter::cAC3VolumeFilter(): create object");
 }
 
 
 cAC3VolumeFilter::~cAC3VolumeFilter() {
     FREE(sizeof(*filterGraph), "filterGraph");
     avfilter_graph_free(&filterGraph);
+    dsyslog("cAC3VolumeFilter::~cAC3VolumeFilter(): delete object");
 }
 
 
@@ -41,12 +43,12 @@ bool cAC3VolumeFilter::Init(const AVChannelLayout channel_layout, const enum AVS
 bool cAC3VolumeFilter::Init(const uint64_t channel_layout, const enum AVSampleFormat sample_fmt, const int sample_rate)
 #endif
 {
-    AVFilterContext *volume_ctx = nullptr;
-    const AVFilter  *abuffer = nullptr;
-    const AVFilter  *volume = nullptr;
+    AVFilterContext *volume_ctx  = nullptr;
+    const AVFilter  *abuffer     = nullptr;
+    const AVFilter  *volume      = nullptr;
     const AVFilter  *abuffersink = nullptr;
-    char ch_layout[64] = {};
-    int err = 0;
+    char ch_layout[64]           = {};
+    int err                      = 0;
 
 #if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
     avfilter_register_all();
@@ -162,7 +164,7 @@ bool cAC3VolumeFilter::SendFrame(AVFrame *avFrame) {
     // Send the frame to the input of the filtergraph
     int err = av_buffersrc_add_frame(filterSrc, avFrame);
     if (err < 0) {
-        dsyslog("cAC3VolumeFilter::SendFrame(): Error submitting the frame to the filtergraph %i", err);
+        esyslog("cAC3VolumeFilter::SendFrame(): send frame to the filtergraph failed, rc = %d: %s", err, av_err2str(err));
         return false;
     }
     return true;
@@ -172,10 +174,10 @@ bool cAC3VolumeFilter::SendFrame(AVFrame *avFrame) {
 bool cAC3VolumeFilter::GetFrame(AVFrame *avFrame) {
     if (!avFrame) return false;
     int err = 0;
-// Send the frame to the input of the filtergraph
+// get the frame from the filtergraph
     err = av_buffersink_get_frame(filterSink, avFrame);
     if (err < 0) {
-        dsyslog("cAC3VolumeFilter::SendFrame(): Error getting the frame from the filtergraph %i", err);
+        dsyslog("cAC3VolumeFilter::GetFrame(): error getting the frame from the filtergraph %d", err);
         return false;
     }
     return true;
@@ -215,13 +217,8 @@ cEncoder::~cEncoder() {
 
 void cEncoder::Reset(const int passEncoder) {
     dsyslog("cEncoder::Reset(): pass %d", passEncoder);
-    EncoderStatus.videoStartDTS          = INT64_MAX;
-    EncoderStatus.packetNumberBefore     = -2;
-    EncoderStatus.ptsOutBefore           = -1;
-    EncoderStatus.pts_dts_CutOffset      = 0;     // offset from the cut out frames
-    EncoderStatus.pts_dts_CyclicalOffset = nullptr;  // offset from pts/dts cyclicle, multiple of 0x200000000
     cutInfo = {0};
-    pass                                 = passEncoder;
+    pass    = passEncoder;
 #ifdef DEBUG_PTS_DTS_CUT
     frameOut = 0;
 #endif
@@ -249,18 +246,6 @@ bool cEncoder::OpenFile() {
     swrArray = static_cast<SwrContext **>(malloc(sizeof(SwrContext *) * avctxIn->nb_streams));
     ALLOC(sizeof(SwrContext *) * avctxIn->nb_streams, "swrArray");
     memset(swrArray, 0, sizeof(SwrContext *) * avctxIn->nb_streams);
-
-    EncoderStatus.pts_dts_CyclicalOffset = static_cast<int64_t *>(malloc(sizeof(int64_t) * avctxIn->nb_streams));
-    ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "pts_dts_CyclicalOffset");
-    memset(EncoderStatus.pts_dts_CyclicalOffset, 0, sizeof(int64_t) * avctxIn->nb_streams);
-
-    EncoderStatus.ptsInBefore = static_cast<int64_t *>(malloc(sizeof(int64_t) * avctxIn->nb_streams));
-    ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "ptsInBefore");
-    memset(EncoderStatus.ptsInBefore, 0, sizeof(int64_t) * avctxIn->nb_streams);
-
-    EncoderStatus.dtsInBefore = static_cast<int64_t *>(malloc(sizeof(int64_t) * avctxIn->nb_streams));
-    ALLOC(sizeof(int64_t) * avctxIn->nb_streams, "dtsInBefore");
-    memset(EncoderStatus.dtsInBefore, 0, sizeof(int64_t) * avctxIn->nb_streams);
 
     streamMap = static_cast<int *>(malloc(sizeof(int) * avctxIn->nb_streams));
     ALLOC(sizeof(int) * avctxIn->nb_streams, "streamMap");
@@ -312,7 +297,7 @@ bool cEncoder::OpenFile() {
 
     codecCtxArrayIn = decoder->GetAVCodecContext();
     if (!codecCtxArrayIn) {
-        dsyslog("cEncoder::OpenFile(): failed to get input codec context");
+        esyslog("cEncoder::OpenFile(): failed to get input codec context");
         FREE(strlen(filename)+1, "filename");
         free(filename);
         return false;
@@ -360,12 +345,6 @@ bool cEncoder::OpenFile() {
                     // cleanup memory
                     FREE(strlen(filename)+1, "filename");
                     free(filename);
-                    FREE(sizeof(int64_t) * avctxIn->nb_streams, "pts_dts_CyclicalOffset");
-                    free(EncoderStatus.pts_dts_CyclicalOffset);
-                    FREE(sizeof(int64_t) * avctxIn->nb_streams, "ptsInBefore");
-                    free(EncoderStatus.ptsInBefore);
-                    FREE(sizeof(int64_t) * avctxIn->nb_streams, "dtsInBefore");
-                    free(EncoderStatus.dtsInBefore);
                     FREE(sizeof(int) * avctxIn->nb_streams, "streamMap");
                     free(streamMap);
                     for (unsigned int i = 0; i < avctxIn->nb_streams; i++) {
@@ -405,13 +384,22 @@ bool cEncoder::OpenFile() {
 
 
 bool cEncoder::ChangeEncoderCodec(const int streamIndexIn,  const int streamIndexOut, AVCodecContext *avCodecCtxIn) {
-    if(!decoder) return false;
-    if (!avctxIn) return false;
+    if(!decoder) {
+        dsyslog("cEncoder::ChangeEncoderCodec(): decoder not valid");
+        return false;
+    }
+    if (!avctxIn) {
+        dsyslog("cEncoder::ChangeEncoderCodec(): input format context not valid");
+        return false;
+    }
     if (streamIndexIn >= static_cast<int>(avctxIn->nb_streams)) {
         dsyslog("cEncoder::ChangeEncoderCodec(): input stream index %d out of range of nb_streams %d", streamIndexIn, avctxIn->nb_streams);
         return false;
     }
-    if (!avCodecCtxIn) return false;
+    if (!avCodecCtxIn) {
+        dsyslog("cEncoder::ChangeEncoderCodec(): input codec context not valid");
+        return false;
+    }
 
     // cleanup output codec context
     dsyslog("cEncoder::ChangeEncoderCodec(): call avcodec_free_context");
@@ -451,7 +439,7 @@ bool cEncoder::ChangeEncoderCodec(const int streamIndexIn,  const int streamInde
         codecCtxArrayOut[streamIndexOut]->sample_fmt  = avCodecCtxIn->sample_fmt;
         codecCtxArrayOut[streamIndexOut]->sample_rate = avCodecCtxIn->sample_rate;
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 37<<8)+100)
-        int rc = av_channel_layout_copy(&codecCtxArrayOut[streamIndexOut]->ch_layout, &codecCtxArrayIn[streamIndexIn]->ch_layout);
+        int rc = av_channel_layout_copy(&codecCtxArrayOut[streamIndexOut]->ch_layout, &avctxIn->streams[streamIndexIn]->codecpar->ch_layout);
         if (rc != 0) {
             dsyslog("cEncoder::ChangeEncoderCodec(): av_channel_layout_copy for output stream %d from input stream %d  failed, rc = %d", streamIndexOut, streamIndexIn, rc);
             return false;
@@ -460,12 +448,12 @@ bool cEncoder::ChangeEncoderCodec(const int streamIndexIn,  const int streamInde
         codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask      = avCodecCtxIn->ch_layout.u.mask;
         codecCtxArrayOut[streamIndexOut]->ch_layout.nb_channels = avCodecCtxIn->ch_layout.nb_channels;
 #else
-        codecCtxArrayOut[streamIndexOut]->channel_layout = avCodecCtxIn->channel_layout;
-        codecCtxArrayOut[streamIndexOut]->channels       = avCodecCtxIn->channels;
+        codecCtxArrayOut[streamIndexOut]->channel_layout = avctxIn->streams[streamIndexIn]->codecpar->channel_layout;
+        codecCtxArrayOut[streamIndexOut]->channels       = avctxIn->streams[streamIndexIn]->codecpar->channels;
 #endif
     }
     else {
-        dsyslog("cEncoder::ChangeEncoderCodec(): codec of input stream %i not supported", streamIndexIn);
+        dsyslog("cEncoder::ChangeEncoderCodec(): codec of input stream %d not supported", streamIndexIn);
         return false;
     }
     codecCtxArrayOut[streamIndexOut]->thread_count = decoder->GetThreadCount();
@@ -477,10 +465,10 @@ bool cEncoder::ChangeEncoderCodec(const int streamIndexIn,  const int streamInde
         codecCtxArrayOut[streamIndexOut]=nullptr;
         return false;
     }
-    dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for output stream %i successful", streamIndexOut);
+    dsyslog("cEncoder::ChangeEncoderCodec(): avcodec_open2 for output stream %d successful", streamIndexOut);
 
     if (decoder->IsAudioAC3Stream(streamIndexIn)) {
-        dsyslog("cEncoder::ChangeEncoderCodec(): AC3 input stream found %i, re-initialize volume filter for outpur stream %d", streamIndexIn, streamIndexOut);
+        dsyslog("cEncoder::ChangeEncoderCodec(): packet (%d), frame (%d), input stream %d, output stream %d: AC3 input stream found, re-initialize volume filter", decoder->GetPacketNumber(), decoder->GetFrameNumber(), streamIndexIn, streamIndexOut);
         if (ac3ReEncode) {
             if (!volumeFilterAC3[streamIndexOut]) {
                 dsyslog("cEncoder::ChangeEncoderCodec(): volumeFilterAC3 not initialized for output stream %i", streamIndexOut);
@@ -491,9 +479,9 @@ bool cEncoder::ChangeEncoderCodec(const int streamIndexIn,  const int streamInde
             volumeFilterAC3[streamIndexOut] = new cAC3VolumeFilter();
             ALLOC(sizeof(*volumeFilterAC3[streamIndexOut]), "volumeFilterAC3");
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-            if (!volumeFilterAC3[streamIndexOut]->Init(avCodecCtxIn->ch_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate))
+            if (!volumeFilterAC3[streamIndexOut]->Init(avctxIn->streams[streamIndexIn]->codecpar->ch_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate))
 #else
-            if (!volumeFilterAC3[streamIndexOut]->Init(avCodecCtxIn->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate))
+            if (!volumeFilterAC3[streamIndexOut]->Init(avctxIn->streams[streamIndexIn]->codecpar->channel_layout, avCodecCtxIn->sample_fmt, avCodecCtxIn->sample_rate))
 #endif
             {
                 dsyslog("cEncoder::ChangeEncoderCodec(): volumeFilterAC3->Init() failed");
@@ -560,7 +548,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
         return false;
     }
     if (!codecCtxArrayIn) {
-        dsyslog("cEncoder::InitEncoderCodec(): no input codec arry set");
+        esyslog("cEncoder::InitEncoderCodec(): no input codec arry set");
         return false;
     }
 
@@ -878,6 +866,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
 
 // resample audio frame from AV_SAMPLE_FMT_S16P to AV_SAMPLE_FMT_S16
 //
+/* unused
 bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int streamIndex) {
     if (!swrArray[streamIndex]) return false;
     if (!avFrameIn->extended_data) return false;
@@ -919,7 +908,7 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
     avFrameOut->pts                   = avFrameIn->pts;
     return true;
 }
-
+*/
 
 bool cEncoder::CutOut(int startPos, int stopPos) {
     LogSeparator();
@@ -947,6 +936,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         // use dts to prevent non monotonically increasing dts
         if (cutInfo.stopPosDTS > 0) cutInfo.offset += (cutInfo.startPosDTS - cutInfo.stopPosDTS);
         dsyslog("cEncoder::CutOut(): start cut from frame (%6d) PTS %10ld DTS %10ld to frame (%d), offset %ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
+        avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
 
         // read all packets
         while (decoder->GetFrameNumber() <= stopPos) {
@@ -965,23 +955,51 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
 #endif
 
             // write current packet
-            AVPacket *avpktIn = decoder->GetPacket();
-            if ((pass != 1) || decoder->IsVideoPacket()) {  // first pass we only need to look at video stream
-                if ((avpktIn->pts >= cutInfo.startPosPTS) && (avpktIn->dts >= cutInfo.startPosDTS)) {
-                    if (!WritePacket()) return false;
+            AVPacket *avpktIn  = decoder->GetPacket();
+            AVPacket *avpktOut = nullptr;
+            if ((avpktIn->pts >= cutInfo.startPosPTS) && (avpktIn->dts >= cutInfo.startPosDTS)) {
+                bool reEncoded = false;
+                // re-encode if needed
+                if (decoder->IsVideoPacket()) {  // always decode video stream
+                    avpktOut = EncodeVideoFrame(decoder->GetFrame()); // encode video frame
+                    reEncoded = true;
+                    if (!avpktOut) dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): EncodeVideoFrame() failed", decoder->GetPacketNumber(), decoder->GetFrameNumber());
                 }
-                else dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %ld, DTS %ld: drop packet before start PTS %ld, DTS %ld", decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
-            }
+                if (ac3ReEncode && (pass == 2) && decoder->IsAudioAC3Packet()) {  // only re-encode AC3 if volume change is requested
+                    dsyslog("xxx 1 %d", avpktIn->stream_index);
+                    avpktOut = EncodeAC3Frame(decoder->GetFrame());               // change volume and encode AC3 frame
+                    reEncoded = true;
+                    if (!avpktOut) dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): EncodeAC3Frame() failed", decoder->GetPacketNumber(), decoder->GetFrameNumber());
+                }
 
+                // no re-encode need, use input packet
+                if (!reEncoded) {
+                    avpktOut  = avpktIn;   // no re-encode, direct write input packet
+                    reEncoded = false;
+                }
+                // write packet
+                if (avpktOut && !WritePacket(avpktOut, reEncoded)) {
+                    esyslog("cEncoder::CutOut(): WritePacket() failed");
+                    return false;
+                }
+                // free encoded packet
+                if (avpktOut && reEncoded) {  // no re-encdoe no free, it is owned by decoder
+                    FREE(sizeof(*avpktOut), "avpktOut");
+                    av_packet_free(&avpktOut);
+                }
+            }
+            else dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %ld, DTS %ld: drop packet before start PTS %ld, DTS %ld", decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
             // read and decode next packet
             while (true) {
                 if (!decoder->ReadNextPacket()) return false;
                 if (abortNow) return false;
-                if (decoder->IsVideoPacket() || decoder->IsAudioPacket()) { // only decode audio or video packetes, no subtitle, this will be copyed
-                    if (!decoder->DecodePacket()) continue;                 // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
+                if (decoder->IsVideoPacket() ||
+                        (ac3ReEncode && (pass == 2) && decoder->IsAudioAC3Packet())) { // always decode video, AC3 only if needed
+                    if (!decoder->DecodePacket()) continue;       // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
                 }
                 break;
             }
+            avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
         }
         // get PTS/DTS from end position
         avFrame = decoder->GetFrame();  // this must be first video packet after cut because we only increase frame counter on video frames
@@ -1029,6 +1047,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         // use dts to prevent non monotonically increasing dts
         if (cutInfo.stopPosDTS > 0) cutInfo.offset += (cutInfo.startPosDTS - cutInfo.stopPosDTS);
         dsyslog("cEncoder::CutOut(): start cut from i-frame (%6d) PTS %10ld DTS %10ld to i-frame (%d), offset %ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
+        avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
 
         // copy all packets from startPos to endPos
         while (decoder->GetPacketNumber() <= stopPos) {
@@ -1050,7 +1069,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             // write current packet
             AVPacket *avpktIn = decoder->GetPacket();
             if ((avpktIn->pts >= cutInfo.startPosPTS) && (avpktIn->dts >= cutInfo.startPosDTS)) {
-                if (!WritePacket()) {
+                if (!WritePacket(avpktIn, false)) {  // no re-encode done
                     esyslog("cEncoder::CutOut(): WritePacket() failed");
                     return false;
                 }
@@ -1058,6 +1077,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             else dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %ld, DTS %ld: drop packet before start PTS %ld, DTS %ld", decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
             // read next packet
             if (!decoder->ReadNextPacket()) return false;
+            avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
         }
 
         // get PTS/DTS from end position
@@ -1071,251 +1091,215 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
 }
 
 
-bool cEncoder::WritePacket() {
+AVPacket *cEncoder::EncodeVideoFrame(AVFrame *avFrame) {
+#ifdef DEBUG_PTS_DTS_CUT
+    if (pass == 2) {
+        dsyslog("cEncoder::EncodeVideoFrame(): frame (%5d) stream %d in:  PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", decoderFrameNumber, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - inputFramePTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
+        inputFramePTSbefore[streamIndexIn] = avFrame->pts;
+    }
+#endif
+
+    // map input stream index to output stream index, should always be 0->0 for video stream
+    int streamIndexIn = decoder->GetPacket()->stream_index;
+    if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) return nullptr; // prevent to overrun stream array
+    int streamIndexOut = streamMap[streamIndexIn];
+    if (streamIndexOut == -1) return nullptr; // no target for this stream
+
+    codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = avFrame->sample_aspect_ratio; // set encoder pixel aspect ratio to decoded frames aspect ratio
+    avFrame->pts -= cutInfo.offset; // correct PTS uncut to PTS after cut
+
+#ifdef DEBUG_PTS_DTS_CUT
+    if (pass == 2) {
+        dsyslog("cEncoder::EncodeVideoFrame(): out frame  (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameOut, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - outputFramePTSbefore[streamIndexOut], EncoderStatus.pts_dts_CutOffset);
+        outputFramePTSbefore[streamIndexOut] = avFrame->pts;
+    }
+#endif
+
+    //encode frame
+    AVPacket *avpktOut = av_packet_alloc();
+    ALLOC(sizeof(*avpktOut), "avpktOut");
+#if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
+    av_init_packet(avpktOut);
+#endif
+    // init avpktOut
+    avpktOut->size            = 0;
+    avpktOut->data            = nullptr;
+    avpktOut->side_data_elems = 0;
+    avpktOut->side_data       = nullptr;
+    avpktOut->buf             = nullptr;
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)
+    avpktOut->opaque          = nullptr;
+    avpktOut->opaque_ref      = nullptr;
+#endif
+
+    avFrame->pict_type = AV_PICTURE_TYPE_NONE;     // encoder decides picture type
+    if (codecCtxArrayOut[streamIndexOut]) {
+        if (!EncodeFrame(codecCtxArrayOut[streamIndexOut], avFrame, avpktOut)) {
+            FREE(sizeof(*avpktOut), "avpktOut");
+            av_packet_free(&avpktOut);
+            if (stateEAGAIN) {
+                //                    dsyslog("cEncoder::EncodeVideoFrame(): encoder for output stream %d at frame %d need more frames", streamIndexOut, decoderFrameNumber);
+                return nullptr;
+            }
+            else {
+                dsyslog("cEncoder::EncodeVideoFrame(): frame(%d), stream %d: encoder failed", decoder->GetFrameNumber(), streamIndexOut);
+                return nullptr;
+            }
+        }
+    }
+    else {
+        dsyslog("cEncoder::EncodeVideoFrame(): encoding of stream %d not supported", streamIndexIn);
+        FREE(sizeof(*avpktOut), "avpktOut");
+        av_packet_free(&avpktOut);
+        return nullptr;
+    }
+    // store stats for second pass
+    if ((pass == 1) && codecCtxArrayOut[streamIndexOut]->stats_out) {
+        long int strLength = strlen(codecCtxArrayOut[streamIndexOut]->stats_out);
+        if (!stats_in.data) {
+            stats_in.data = static_cast<char *>(malloc(strLength + 1));  // take care of terminating 0
+            stats_in.size = strLength + 1;
+            strcpy(stats_in.data, codecCtxArrayOut[streamIndexOut]->stats_out);
+            ALLOC(stats_in.size, "stats_in");
+        }
+        else {
+            long int oldLength = strlen(stats_in.data);
+            FREE(stats_in.size, "stats_in");
+            char *stats_in_tmp;
+            stats_in_tmp = static_cast<char *>(realloc(stats_in.data, strLength + oldLength + 1));
+            if (!stats_in_tmp) {
+                esyslog("memory alloation for stats_in failed");  // free of stats_in in destructor
+                return nullptr;
+            }
+            stats_in.data = stats_in_tmp;
+            stats_in.size = strLength + oldLength + 1;
+            strcat(stats_in.data, codecCtxArrayOut[streamIndexOut]->stats_out);
+            stats_in.size = strLength + oldLength + 1;
+            ALLOC(stats_in.size, "stats_in");
+        }
+    }
+    avpktOut->stream_index = streamIndexOut;
+#ifdef DEBUG_PTS_DTS_CUT
+    if (pass == 2) {
+        dsyslog("cEncoder::EncodeVideoFrame(): out packet (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameOut, avpktOut.stream_index, avpktOut.pts, avpktOut.dts, avpktOut.pts - outputPacketPTSbefore[streamIndexOut], EncoderStatus.pts_dts_CutOffset);
+        if (decoder->IsVideoPacket()) frameOut++;
+        outputPacketPTSbefore[streamIndexOut] = avpktOut.pts;
+    }
+#endif
+    return avpktOut;
+}
+
+
+int cEncoder::GetAC3ChannelCount(const int streamIndex) {
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+    return codecCtxArrayOut[streamIndex]->ch_layout.nb_channels;
+#else
+    return codecCtxArrayOut[streamIndex]->channels;
+#endif
+}
+
+
+
+AVPacket *cEncoder::EncodeAC3Frame(AVFrame *avFrame) {
+    // map input stream index to output stream index
+    int streamIndexIn = decoder->GetPacket()->stream_index;
+    if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) return nullptr; // prevent to overrun stream array
+    int streamIndexOut = streamMap[streamIndexIn];
+    if (streamIndexOut == -1) return nullptr; // no target for this stream
+
+
+    // check encoder, it can be wrong if recording is damaged
+#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+    if (decoder->IsAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codecpar->codec_id != AV_CODEC_ID_AC3)
+#else
+    if (decoder->IsAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codec->codec_id != AV_CODEC_ID_AC3)
+#endif
+    {
+        esyslog("cEncoder:EncodeAC3Frame(): packet (%d), frame (%d), stream %d: invalid encoder for AC3 packet", decoder->GetPacketNumber(), decoder->GetFrameNumber(), streamIndexOut);
+        return nullptr;
+    }
+
+    // Check if the AC3 stream has changed channels
+    if (decoder->GetAC3ChannelCount(streamIndexIn) != GetAC3ChannelCount(streamIndexOut)) {
+        dsyslog("cEncoder:EncodeAC3Frame(): packet (%d), frame (%d), stream %d: channel count input stream %d different to output stream %d",decoder->GetPacketNumber(), decoder->GetFrameNumber(), streamIndexIn, decoder->GetAC3ChannelCount(streamIndexIn), GetAC3ChannelCount(streamIndexOut));
+        if(!ChangeEncoderCodec(streamIndexIn, streamIndexOut, codecCtxArrayIn[streamIndexIn])) {
+            esyslog("encoder initialization failed for output stream index %d, source is stream index %d", streamIndexOut, streamIndexIn);
+            return nullptr;
+        }
+    }
+
+    // use filter to adapt AC3 volume
+    if (!volumeFilterAC3[streamIndexOut]->SendFrame(avFrame)) {
+        esyslog("cEncoder::EncodeAC3Frame(): packet (%d), frame (%d), input %d, output %d: cAC3VolumeFilter::SendFrame() failed", decoder->GetPacketNumber(), decoder->GetFrameNumber(), streamIndexIn, streamIndexOut);
+        return nullptr;
+    }
+    if (!volumeFilterAC3[streamIndexOut]->GetFrame(avFrame)) {
+        esyslog("cEncoder:EncodeAC3Frame(): cAC3VolumeFilter GetFrame failed");
+        return nullptr;
+    }
+
+    AVPacket *avpktOut = av_packet_alloc();
+    ALLOC(sizeof(*avpktOut), "avpktOut");
+#if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
+    av_init_packet(avpktOut);
+#endif
+    // init avpktOut
+    avpktOut->size            = 0;
+    avpktOut->data            = nullptr;
+    avpktOut->side_data_elems = 0;
+    avpktOut->side_data       = nullptr;
+    avpktOut->buf             = nullptr;
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)
+    avpktOut->opaque          = nullptr;
+    avpktOut->opaque_ref      = nullptr;
+#endif
+    // correct PTS uncut to PTS after cut
+    avFrame->pts -= cutInfo.offset;
+
+    if (codecCtxArrayOut[streamIndexOut]) {
+        if (!EncodeFrame(codecCtxArrayOut[streamIndexOut], avFrame, avpktOut)) {
+            av_packet_unref(avpktOut);
+            dsyslog("cEncoder::EncodeAC3Frame(): packet (%d), frame (%d) output stream %d: encoder failed", decoder->GetPacketNumber(), decoder->GetFrameNumber(), streamIndexOut);
+            return nullptr;
+        }
+    }
+    else {
+        dsyslog("cEncoder::EncodeAC3Frame(): encoding of stream %d not supported", streamIndexIn);
+        av_packet_unref(avpktOut);
+        return nullptr;
+    }
+    avpktOut->stream_index = streamIndexOut;
+    dsyslog("xxxx %d", avpktOut->stream_index);
+    return avpktOut;
+}
+
+
+bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
     if (!avctxOut ) {
         esyslog("cEncoder::WritePacket(): got no AVFormatContext from output file");
         return false;
     }
-    if (!decoder ) {
-        esyslog("cEncoder::WritePacket(): got no decoder from input file");
+    if (!reEncoded) {
+        // map input stream index to output stream index, drop packet if not used
+        int streamIndexIn = decoder->GetPacket()->stream_index;
+        if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) { // prevent to overrun stream array
+            esyslog("cEncoder::WritePacket(): packet (%d), frame (%d): invalid input stream index %d", decoder->GetPacketNumber(), decoder->GetFrameNumber(), streamIndexIn);
+            return false;
+        }
+        int streamIndexOut = streamMap[streamIndexIn];
+        if (streamIndexOut == -1) return true; // no target for this stream
+        avpkt->stream_index = streamIndexOut;
+
+        // correct pts after cut, only if not reencoded, in this case correct PTS/DTS is set from encoder
+        avpkt->pts -= cutInfo.offset;
+        avpkt->dts -= cutInfo.offset;
+    }
+    avpkt->pos = -1;   // byte position in stream unknown
+    int rc = av_write_frame(avctxOut, avpkt);
+    if (rc < 0) {
+        esyslog("cEncoder::WritePacket(): packet (%d), frame (%d), stream %d: av_write_frame failed, rc = %d: %s", decoder->GetPacketNumber(), decoder->GetFrameNumber(), avpkt->stream_index, rc, av_err2str(rc));
         return false;
     }
-
-    AVPacket *avpkt = decoder->GetPacket();
-    // map stream index
-    int streamIndexIn = avpkt->stream_index;
-    if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) return false; // prevent to overrun stream array
-    int streamIndexOut = streamMap[streamIndexIn];
-    if (streamIndexOut == -1) return true; // no target for this stream
-
-    // set decoder frame/packet number
-    int decoderFrameNumber = 0;
-    if (decoder->GetFullDecode()) decoderFrameNumber = decoder->GetFrameNumber();
-    else decoderFrameNumber = decoder->GetPacketNumber();  // decoder has no framenumber without decoding
-
-    // re-encode packet if needed
-    if ((streamIndexOut >= 0) &&  // only re-encode if stream is in streamMap
-            ((ac3ReEncode && decoder->IsAudioAC3Packet()) ||
-             (fullEncode && !decoder->IsSubtitlePacket()))) {  // even with full encode, do no re-encode subtitle, use it as it is
-
-        // check valid stream index
-        if (streamIndexOut >= static_cast<int>(avctxOut->nb_streams)) return false;
-
-        // check encoder, it can be wrong if recording is damaged
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        if (decoder->IsAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codecpar->codec_id != AV_CODEC_ID_AC3)
-#else
-        if (decoder->IsAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codec->codec_id != AV_CODEC_ID_AC3)
-#endif
-        {
-            dsyslog("cEncoder::WritePacket(): invalid encoder for AC3 packet of output stream %d at frame (%6d)", streamIndexOut, decoderFrameNumber);
-            return false;
-        }
-
-        // get context for decoding/encoding
-        codecCtxArrayIn = decoder->GetAVCodecContext();
-        if (!codecCtxArrayIn) {
-            dsyslog("cEncoder::WritePacket(): failed to get input codec context");
-            return false;
-        }
-        if (!codecCtxArrayOut[streamIndexOut]) {
-            dsyslog("cEncoder::WritePacket(): Codec Context not found for output stream %d", streamIndexIn);
-            return false;
-        }
-
-
-        AVFrame *avFrame = decoder->GetFrame();
-
-#ifdef DEBUG_PTS_DTS_CUT
-        if (pass == 2) {
-            dsyslog("cEncoder::WritePacket(): frame (%5d) stream %d in:  PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", decoderFrameNumber, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - inputFramePTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
-            inputFramePTSbefore[streamIndexIn] = avFrame->pts;
-        }
-#endif
-        //encode frame
-        codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = avFrame->sample_aspect_ratio; // set encoder pixel aspect ratio to decoded frames aspect ratio
-//        avFrame->pts = avFrame->pts - EncoderStatus.pts_dts_CutOffset; // correct pts after cut
-        avFrame->pts -= cutInfo.offset; // correct pts after cut
-
-        if (decoder->IsVideoPacket()) {
-            // libav encoder does not accept two frames with same pts
-            if (EncoderStatus.ptsOutBefore == avFrame->pts) {
-                dsyslog("cEncoder::WritePacket(): got duplicate pts from video decoder, change pts from %" PRId64 " to %" PRId64, avFrame->pts, avFrame->pts + 1);
-                avFrame->pts = EncoderStatus.ptsOutBefore + 1;
-            }
-            // check monotonically increasing pts in frame after decoding
-            // prevent "AVlog(): Assertion pict_type == rce->new_pict_type failed at src/libavcodec/ratecontrol.c:939" with ffmpeg 4.2.2
-            if (EncoderStatus.ptsOutBefore > avFrame->pts) {
-                dsyslog("cEncoder::WritePacket(): frame (%d): drop non monotonically increasing pts %" PRId64 " from video decoder, pts before was %" PRId64, decoderFrameNumber, avFrame->pts, EncoderStatus.ptsOutBefore);
-                return true;
-            }
-            EncoderStatus.ptsOutBefore = avFrame->pts;
-        }
-
-        if (decoder->IsAudioAC3Packet()) {
-            // Check if the audio stream has changed channels
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-            if ((codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask != codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask) ||
-                    (codecCtxArrayOut[streamIndexOut]->ch_layout.nb_channels != codecCtxArrayIn[streamIndexIn]->ch_layout.nb_channels)) {
-                dsyslog("cEncoder::WritePacket(): channel layout of input stream %d changed at frame %d from %" PRIu64 " to %" PRIu64, streamIndexIn, decoderFrameNumber, codecCtxArrayOut[streamIndexOut]->ch_layout.u.mask, codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask);
-                dsyslog("cEncoder::WritePacket(): number of channels of input stream %d changed at frame %d from %d to %d", streamIndexIn, decoderFrameNumber, codecCtxArrayOut[streamIndexOut]->ch_layout.nb_channels, codecCtxArrayIn[streamIndexIn]->ch_layout.nb_channels);
-#else
-            if ((codecCtxArrayOut[streamIndexOut]->channel_layout != codecCtxArrayIn[streamIndexIn]->channel_layout) ||
-                    (codecCtxArrayOut[streamIndexOut]->channels != codecCtxArrayIn[streamIndexIn]->channels)) {
-                dsyslog("cEncoder::WritePacket(): channel layout of input stream %d changed at frame %d from %" PRIu64 " to %" PRIu64, streamIndexIn, decoderFrameNumber, codecCtxArrayOut[streamIndexOut]->channel_layout, codecCtxArrayIn[streamIndexIn]->channel_layout);
-                dsyslog("cEncoder::WritePacket(): number of channels of input stream %d changed at frame %d from %d to %d", streamIndexIn, decoderFrameNumber, codecCtxArrayOut[streamIndexOut]->channels, codecCtxArrayIn[streamIndexIn]->channels);
-#endif
-
-                if(!ChangeEncoderCodec(streamIndexIn, streamIndexOut, codecCtxArrayIn[streamIndexIn])) {
-                    esyslog("encoder initialization failed for output stream index %d, source is stream index %d", streamIndexOut, streamIndexIn);
-                    return false;
-                }
-            }
-
-            // use filter to adapt AC3 volume
-            if (ac3ReEncode) {
-                if (!volumeFilterAC3[streamIndexOut]->SendFrame(avFrame)) {
-                    dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter SendFrame failed");
-                    return false;
-                }
-                if (!volumeFilterAC3[streamIndexOut]->GetFrame(avFrame)) {
-                    dsyslog("cEncoder::WriteFrame(): cAC3VolumeFilter GetFrame failed");
-                    return false;
-                }
-            }
-        }
-#ifdef DEBUG_ENCODER
-        SaveFrame(decoderFrameNumber, avFrame);
-#endif
-        // resample by libav not supported planar audio
-        AVFrame *avFrameOut = nullptr;
-        if (decoder->IsAudioPacket() && (codecCtxArrayIn[streamIndexIn]->sample_fmt == AV_SAMPLE_FMT_S16P)) {
-            avFrameOut = av_frame_alloc();
-            if (!avFrameOut) {
-                dsyslog("cDecoder::WritePacket(): av_frame_alloc for avFrameOut ailed");
-                return false;
-            }
-            ALLOC(sizeof(*avFrameOut), "avFrameOut");
-            if (!ReSampleAudio(avFrame, avFrameOut, streamIndexOut)) {
-                dsyslog("cEncoder::WriteFrame(): ReSampleAudio failed");
-                FREE(sizeof(*avFrameOut), "avFrameOut");
-                av_frame_free(&avFrameOut);
-                return false;
-            }
-            avFrame = avFrameOut;
-        }
-
-#ifdef DEBUG_PTS_DTS_CUT
-        if (pass == 2) {
-            dsyslog("cEncoder::WritePacket(): out frame  (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameOut, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - outputFramePTSbefore[streamIndexOut], EncoderStatus.pts_dts_CutOffset);
-            outputFramePTSbefore[streamIndexOut] = avFrame->pts;
-        }
-#endif
-        //encode frame
-        AVPacket avpktOut;
-#if LIBAVCODEC_VERSION_INT < ((58<<16)+(134<<8)+100)
-        av_init_packet(&avpktOut);
-#endif
-        // init avpktOut
-        avpktOut.size            = 0;
-        avpktOut.data            = nullptr;
-        avpktOut.side_data_elems = 0;
-        avpktOut.side_data       = nullptr;
-        avpktOut.buf             = nullptr;
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 12<<8)+100)
-        avpktOut.opaque          = nullptr;
-        avpktOut.opaque_ref      = nullptr;
-#endif
-
-        avFrame->pict_type = AV_PICTURE_TYPE_NONE;  // encoder decides picture type
-        if ((EncoderStatus.videoEncodeError) && decoder->IsVideoPacket()) {
-            // prevent "AVlog(): Assertion pict_type == rce->new_pict_type failed at src/libavcodec/ratecontrol.c:939" with ffmpeg 4.2.2
-            dsyslog("cEncoder::WritePacket(): recover from encoding error and force i-frame (%d)", decoderFrameNumber);
-            avFrame->pict_type = AV_PICTURE_TYPE_I;
-            EncoderStatus.videoEncodeError = false;
-        }
-        if (codecCtxArrayOut[streamIndexOut]) {
-            if (!EncodeFrame(codecCtxArrayOut[streamIndexOut], avFrame, &avpktOut)) {
-                av_packet_unref(&avpktOut);
-                if (stateEAGAIN) {
-                    //                    dsyslog("cEncoder::WritePacket(): encoder for output stream %d at frame %d need more frames", streamIndexOut, decoderFrameNumber);
-                    return true;
-                }
-                else {
-                    dsyslog("cEncoder::WritePacket(): encoder failed for output stream %d at frame %d", streamIndexOut, decoderFrameNumber);
-                    return false;
-                }
-            }
-        }
-        else {
-            dsyslog("cEncoder::WritePacket(): encoding of stream %d not supported", streamIndexIn);
-            av_packet_unref(&avpktOut);
-            return false;
-        }
-        // free resampled frame
-        if (avFrameOut) {
-            FREE(sizeof(*(avFrameOut->extended_data)), "extended_data");  // only size of pointer array as reminder
-            av_freep(avFrameOut->extended_data);
-            FREE(sizeof(*avFrameOut), "avFrameOut");
-            av_frame_free(&avFrameOut);
-        }
-
-        // store stats for second pass
-        if ((pass == 1) && codecCtxArrayOut[streamIndexOut]->stats_out) {
-            long int strLength = strlen(codecCtxArrayOut[streamIndexOut]->stats_out);
-            if (!stats_in.data) {
-                stats_in.data = static_cast<char *>(malloc(strLength + 1));  // take care of terminating 0
-                stats_in.size = strLength + 1;
-                strcpy(stats_in.data, codecCtxArrayOut[streamIndexOut]->stats_out);
-                ALLOC(stats_in.size, "stats_in");
-            }
-            else {
-                long int oldLength = strlen(stats_in.data);
-                FREE(stats_in.size, "stats_in");
-                char *stats_in_tmp;
-                stats_in_tmp = static_cast<char *>(realloc(stats_in.data, strLength + oldLength + 1));
-                if (!stats_in_tmp) {
-                    esyslog("memory alloation for stats_in failed");  // free of stats_in in destructor
-                    return false;
-                }
-                stats_in.data = stats_in_tmp;
-                stats_in.size = strLength + oldLength + 1;
-                strcat(stats_in.data, codecCtxArrayOut[streamIndexOut]->stats_out);
-                stats_in.size = strLength + oldLength + 1;
-                ALLOC(stats_in.size, "stats_in");
-            }
-        }
-        avpktOut.stream_index = streamIndexOut;
-        avpktOut.pos = -1;   // byte position in stream unknown
-#ifdef DEBUG_PTS_DTS_CUT
-        if (pass == 2) {
-            dsyslog("cEncoder::WritePacket(): out packet (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameOut, avpktOut.stream_index, avpktOut.pts, avpktOut.dts, avpktOut.pts - outputPacketPTSbefore[streamIndexOut], EncoderStatus.pts_dts_CutOffset);
-            if (decoder->IsVideoPacket()) frameOut++;
-            outputPacketPTSbefore[streamIndexOut] = avpktOut.pts;
-        }
-#endif
-        // write packet
-        av_write_frame(avctxOut, &avpktOut);
-        // free memory
-        av_packet_unref(&avpktOut);
-    }
-    else {
-        if (!fullEncode || decoder->IsSubtitlePacket()) {  // no re-encode, copy input packet to output stream, never re-encode subtitle
-            if (streamIndexOut >= static_cast<int>(avctxOut->nb_streams)) return true;  // ignore high streamindex from input stream, they are unsupported subtitle
-            // check pts/dts valid
-            if ((avpkt->pts == AV_NOPTS_VALUE) || (avpkt->dts == AV_NOPTS_VALUE)) return true;  // no abort, try with next packet
-            // correct pts after cut
-            avpkt->pts -= cutInfo.offset;
-            avpkt->dts -= cutInfo.offset;
-            avpkt->pos = -1;   // byte position in stream unknown
-            int rc = av_write_frame(avctxOut, avpkt);
-            if (rc < 0) {
-                esyslog("cEncoder::WritePacket(): av_write_frame failed, rc = %d", rc);
-                return false;
-            }
-        }
-    }
-    if (avpkt->stream_index == 0) ptsBefore = avpkt->pts;
     return true;
 }
 
@@ -1349,7 +1333,6 @@ bool cEncoder::EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacke
             default:
                 esyslog("cEncoder::EncodeFrame(): frame (%d): avcodec_send_frame() failed with rc = %d: %s", decoderFrameNumber, rcSend, av_err2str(rcSend));
                 avcodec_flush_buffers(avCodecCtx);
-                EncoderStatus.videoEncodeError = true;
                 break;
             }
             return false;  // ignore send errors if we only empty encoder
@@ -1459,12 +1442,6 @@ bool cEncoder::CloseFile() {
     free(codecCtxArrayOut);
 
     // free cut status
-    FREE(sizeof(int64_t) * avctxIn->nb_streams, "pts_dts_CyclicalOffset");
-    free(EncoderStatus.pts_dts_CyclicalOffset);
-    FREE(sizeof(int64_t) * avctxIn->nb_streams, "ptsInBefore");
-    free(EncoderStatus.ptsInBefore);
-    FREE(sizeof(int64_t) * avctxIn->nb_streams, "dtsInBefore");
-    free(EncoderStatus.dtsInBefore);
     FREE(sizeof(int) * avctxIn->nb_streams, "streamMap");
     free(streamMap);
 

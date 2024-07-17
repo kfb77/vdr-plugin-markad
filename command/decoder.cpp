@@ -1327,17 +1327,23 @@ bool cDecoder::IsAudioAC3Packet() {
 }
 
 
-int cDecoder::GetAC3ChannelCount() {
-    for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-        if (!IsAudioAC3Stream(streamIndex)) continue;
+int cDecoder::GetAC3ChannelCount(const int streamIndex) {
+    unsigned int startIndex = 0;
+    unsigned int endIndex   = avctx->nb_streams;
+    if (streamIndex >= 0) {
+        startIndex = streamIndex;
+        endIndex   = streamIndex + 1;
+    }
+    for (unsigned int indexStream = startIndex; indexStream < endIndex; indexStream++) {
+        if (!IsAudioAC3Stream(indexStream)) continue;
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-        return avctx->streams[streamIndex]->codecpar->ch_layout.nb_channels;
+        return avctx->streams[indexStream]->codecpar->ch_layout.nb_channels;
 #else
-        return avctx->streams[streamIndex]->codecpar->channels;
+        return avctx->streams[indexStream]->codecpar->channels;
 #endif
 #else
-        return avctx->streams[streamIndex]->codec->channels;
+        return avctx->streams[indexStream]->codec->channels;
 #endif
     }
     return 0;
@@ -1358,7 +1364,7 @@ bool cDecoder::IsSubtitleStream(const unsigned int streamIndex) {
     return false;
 }
 
-
+/*  unused
 bool cDecoder::IsSubtitlePacket() {
     if (!avctx) return false;
 #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
@@ -1368,6 +1374,7 @@ bool cDecoder::IsSubtitlePacket() {
 #endif
     return false;
 }
+*/
 
 
 int cDecoder::GetPacketNumber() const {

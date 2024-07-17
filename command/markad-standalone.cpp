@@ -4135,7 +4135,7 @@ void cMarkAdStandalone::MarkadCut() {
         return;
     }
     LogSeparator(true);
-    dsyslog("cMarkAdStandalone::MarkadCut():cut video based on marks: fullDecode = %d, fullEncode = %d", macontext.Config->fullDecode, macontext.Config->fullEncode);
+    dsyslog("cMarkAdStandalone::MarkadCut():cut video based on marks: fullDecode = %d, fullEncode = %d, ac3ReEncode = %d", macontext.Config->fullDecode, macontext.Config->fullEncode,  macontext.Config->ac3ReEncode);
 
     if (macontext.Config->fullEncode && !macontext.Config->fullDecode) {
         dsyslog("full encode needs full decode, activate it");

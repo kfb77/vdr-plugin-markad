@@ -60,11 +60,11 @@ public:
     bool GetFrame(AVFrame *avFrame);
 
 private:
-    AVFilterGraph *filterGraph = nullptr;   //!< filter graph
+    AVFilterGraph *filterGraph  = nullptr;   //!< filter graph
     //!<
-    AVFilterContext *filterSrc = nullptr;   //!< filter source
+    AVFilterContext *filterSrc  = nullptr;   //!< filter source
     //!<
-    AVFilterContext *filterSink = nullptr;  //!< filter sink
+    AVFilterContext *filterSink = nullptr;   //!< filter sink
     //!<
 };
 
@@ -115,9 +115,35 @@ public:
 
 private:
     /** write packet to output file
-     * @return true if successful, false otherwise
+    * @param avpkt pointer to packet
+    * @param reEncoded true if packet was re-encoded, false otherwise
+    * @return true if successful, false otherwise
+    */
+    bool WritePacket(AVPacket *avpkt, const bool reEncoded);
+
+    /** prepare video frame to encode
+     * @param avFrame      decodes frame
+     * @return pointer to encoded packet
      */
-    bool WritePacket();
+    AVPacket *EncodeVideoFrame(AVFrame *avFrame);
+
+    /** get channel count of AC3 output stream
+     * @param streamIndex  stream index
+     * @return channel count
+     */
+    int GetAC3ChannelCount(const int streamIndex);
+
+    /** prepare AC3 audio frame to encode
+     * @param avFrame decodes frame
+     * @return pointer to encoded packet
+     */
+    AVPacket *EncodeAC3Frame(AVFrame *avFrame);
+
+    /** encode frame
+     * @param avCodecCtx   codec context
+     * @param avFrame      decodes frame
+     * @param avpkt        encoded packet
+     */
 
     /** encode frame
      * @param avCodecCtx   codec context
@@ -157,7 +183,7 @@ private:
      * @param streamIndex     stream index
      * @return true if successful, false otherwise
      */
-    bool ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int streamIndex);
+//    bool ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int streamIndex);
 
     /**
      * check statistic data after first pass, ffmpeg assert if something is invalid
@@ -218,29 +244,6 @@ private:
         int64_t offset              = 0;  //!< current PTS/DTS offset from input stream to output stream
         //!<
     } cutInfo;
-
-    /**
-     * encoder status
-     */
-    struct sEncoderStatus {
-        int64_t videoStartDTS           = INT64_MAX;  //!< DTS timestamp of the video stream from first mark
-        //!<
-        int packetNumberBefore          = -2;         //!< decoded frame number before current frame
-        //!<
-        int64_t *ptsInBefore            = nullptr;    //!< presentation timestamp of the previous frame from each input stream
-        //!<
-        int64_t *dtsInBefore            = nullptr;    //!< decoding timestamp of the previous frame from each input stream
-        //!<
-        int64_t ptsOutBefore            = -1;         //!< presentation timestamp of the previous frame from video output stream
-        //!<
-
-        int64_t pts_dts_CutOffset       = 0;          //!< offset from the cuted out frames
-        //!<
-        int64_t *pts_dts_CyclicalOffset = nullptr;    //!< offset from pts/dts cyclicle of each frame, multiple of 0x200000000
-        //!<
-        bool videoEncodeError           = false;      //!< true if we got an encoder error, false otherwise
-        //!<
-    } EncoderStatus;                                  //!< encoder status
 
     /**
      * structure for statistic data for 2 pass encoding

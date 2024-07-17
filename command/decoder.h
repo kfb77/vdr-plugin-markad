@@ -324,9 +324,10 @@ public:
     bool IsAudioPacket();
 
     /** get current channel count of AC3 stream
-     * @return channel count of AC3, 0 if no AC3 stream exists
+     * param streamIndex optional stream index
+     * @return channel count of AC3, 0 if no AC3 stream exists or streamIndex is no AC3 stream
      */
-    int GetAC3ChannelCount();
+    int GetAC3ChannelCount(const int streamIndex = -1);
 
     /** get last channel change
      * @return pointer to sAudioAC3Channels structure if there was a change, nullptr otherwise
@@ -381,7 +382,7 @@ public:
     /** check if current packet is a subtitle
      * @return true if current packet is subtitle, false otherwise
      */
-    bool IsSubtitlePacket();
+//    bool IsSubtitlePacket();
 
     /** get pixel format of video stream
      * @return enum AVPixelFormat of video stream
