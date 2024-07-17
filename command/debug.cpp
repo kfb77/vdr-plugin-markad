@@ -38,7 +38,6 @@ void SaveVideoPicture(const char *baseName, sVideoPicture *picture) {
         }
         char *fileName = nullptr;
         if (asprintf(&fileName,"%s_P%d.pgm", baseName, plane) >= 1) {
-            dsyslog("xxxx %s", fileName);
             // Open file
             FILE *pFile = fopen(fileName, "wb");
             if (pFile == nullptr) {

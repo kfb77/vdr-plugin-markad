@@ -558,22 +558,32 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
     AVCodec *codec = avcodec_find_encoder(codec_id);
 #endif
 
-    if (!codec) {
-        if (codec_id == 94215) { // libavcodec does not support Libzvbi DVB teletext encoder, encode without this stream
-            dsyslog("cEncoder::InitEncoderCodec(): Libzvbi DVB teletext for stream %i codec id %i not supported, ignoring this stream", streamIndexIn, codec_id);
+    if (codec) dsyslog("cEncoder::InitEncoderCodec(): using encoder id %d '%s' for output stream %i", codec_id, codec->long_name, streamIndexOut);
+    else {
+        dsyslog("cEncoder::InitEncoderCodec(): stream %d codec id %d: not supported by FFmpeg", streamIndexIn, codec_id);
+        switch (codec_id) {
+        case 86065:  // AAC LATM (Advanced Audio Coding LATM syntax), FFmpeg does not support encoding
+            dsyslog("cEncoder::InitEncoderCodec(): stream %d codec id %d: no encoder for AAC LATM (Advanced Audio Coding LATM syntax), copy packets without re-encode", streamIndexIn, codec_id);
+            codec = avcodec_find_decoder(codec_id);  // use data from decoder to write file header
+            break;
+        case 94215:  // libavcodec does not support Libzvbi DVB teletext encoder, encode without this stream
+            dsyslog("cEncoder::InitEncoderCodec(): stream %d codec id %d: no encoder for Libzvbi DVB teletext, copy packets without re-encode", streamIndexIn, codec_id);
+            codec = avcodec_find_decoder(codec_id);  // use data from decoder to write file header
+            break;
+        default:
+            dsyslog("cEncoder::InitEncoderCodec(): could not find encoder for input stream %d codec id %d, ignore stream", streamIndexIn, codec_id);
             return true;
+            break;
         }
-        dsyslog("cEncoder::InitEncoderCodec(): could not find encoder for intput stream %i codec id %i", streamIndexIn, codec_id);
-        return false;
     }
-    dsyslog("cEncoder::InitEncoderCodec(): using encoder id %d '%s' for output stream %i", codec_id, codec->long_name, streamIndexOut);
 
-    const AVStream *out_stream = avformat_new_stream(avctxOut, codec);
+    const AVStream *out_stream = avformat_new_stream(avctxOut, codec);   // parameter codec unused
     if (!out_stream) {
-        dsyslog("cEncoder::InitEncoderCodec(): Failed allocating output stream");
+        dsyslog("cEncoder::InitEncoderCodec(): failed allocating output stream");
         return false;
     }
 
+    // init encoder codec context
     codecCtxArrayOut[streamIndexOut] = avcodec_alloc_context3(codec);
     if (!codecCtxArrayOut[streamIndexOut]) {
         dsyslog("cEncoder::InitEncoderCodec(): avcodec_alloc_context3 failed");
@@ -586,7 +596,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
         return false;
     }
 
-// set encoding parameter
+// set encoding codec parameter
     // video stream
     if (decoder->IsVideoStream(streamIndexIn)) {
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d avg framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->avg_frame_rate.num, avctxIn->streams[streamIndexIn]->avg_frame_rate.den);
@@ -938,7 +948,6 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
                     if (!avpktOut) dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): EncodeVideoFrame() failed", decoder->GetPacketNumber(), decoder->GetFrameNumber());
                 }
                 if (ac3ReEncode && (pass == 2) && decoder->IsAudioAC3Packet()) {  // only re-encode AC3 if volume change is requested
-                    dsyslog("xxx 1 %d", avpktIn->stream_index);
                     avpktOut = EncodeAC3Frame(decoder->GetFrame());               // change volume and encode AC3 frame
                     reEncoded = true;
                     if (!avpktOut) dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): EncodeAC3Frame() failed", decoder->GetPacketNumber(), decoder->GetFrameNumber());
@@ -1236,7 +1245,6 @@ AVPacket *cEncoder::EncodeAC3Frame(AVFrame *avFrame) {
         return nullptr;
     }
     avpktOut->stream_index = streamIndexOut;
-    dsyslog("xxxx %d", avpktOut->stream_index);
     return avpktOut;
 }
 
