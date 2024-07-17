@@ -160,7 +160,7 @@ public:
      * get markad internal video type
      * return video type (MARKAD_PIDTYPE_VIDEO_H262, MARKAD_PIDTYPE_VIDEO_H264 or MARKAD_PIDTYPE_VIDEO_H265)
      */
-    int GetVideoType();
+    int GetVideoType() const;
 
     /**
      * get video height
@@ -273,19 +273,19 @@ public:
      * @param streamIndex stream index
      * @return true if video stream, false otherwise
      */
-    bool IsVideoStream(const unsigned int streamIndex);
+    bool IsVideoStream(const unsigned int streamIndex) const;
 
     /**
      * check if current packet is from a video stream
      * @return true if current packet is from a video stream, false otherwise
      */
-    bool IsVideoPacket();
+    bool IsVideoPacket() const;
 
     /**
      * check if current packet is a video i-frame packet
      * @return true if current packet is a video i-frame, false otherwise
      */
-    bool IsVideoIPacket();
+    bool IsVideoIPacket() const;
 
     /**
      * check if current frame is a video frame
@@ -316,12 +316,12 @@ public:
      * @param streamIndex stream index
      * @return true if stream is audio, false otherwise
      */
-    bool IsAudioStream(const unsigned int streamIndex);
+    bool IsAudioStream(const unsigned int streamIndex) const;
 
     /** check if current packet is audio
      * @return true if current packet is audio, false otherwise
      */
-    bool IsAudioPacket();
+    bool IsAudioPacket() const;
 
     /** get current channel count of AC3 stream
      * param streamIndex optional stream index
@@ -348,7 +348,7 @@ public:
      * @param streamIndex stream index
      * @return true if stream is subtitle, false otherwise
      */
-    bool IsSubtitleStream(const unsigned int streamIndex);
+    bool IsSubtitleStream(const unsigned int streamIndex) const;
 
     /** get current read video packet number
      * @return current packet number

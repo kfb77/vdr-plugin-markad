@@ -439,7 +439,7 @@ enum AVPixelFormat cDecoder::GetVideoPixelFormat() const {
 }
 
 
-int cDecoder::GetVideoType() {
+int cDecoder::GetVideoType() const {
     if (!avctx) return 0;
     for (unsigned int i = 0; i < avctx->nb_streams; i++) {
         if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
@@ -1178,7 +1178,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
 }
 
 
-bool cDecoder::IsVideoStream(const unsigned int streamIndex) {
+bool cDecoder::IsVideoStream(const unsigned int streamIndex) const {
     if (!avctx) return false;
     if (streamIndex >= avctx->nb_streams) {
         dsyslog("cDecoder::IsVideoStream(): stream index %d out of range", streamIndex);
@@ -1189,14 +1189,14 @@ bool cDecoder::IsVideoStream(const unsigned int streamIndex) {
 }
 
 
-bool cDecoder::IsVideoPacket() {
+bool cDecoder::IsVideoPacket() const {
     if (!avctx) return false;
     if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) return true;
     return false;
 }
 
 
-bool cDecoder::IsVideoIPacket() {
+bool cDecoder::IsVideoIPacket() const {
     if (!avctx) return false;
     if (!IsVideoPacket()) return false;
     if ((avpkt.flags & AV_PKT_FLAG_KEY) != 0) return true;
@@ -1219,7 +1219,7 @@ bool cDecoder::IsVideoIFrame() const {
 */
 
 
-bool cDecoder::IsAudioStream(const unsigned int streamIndex) {
+bool cDecoder::IsAudioStream(const unsigned int streamIndex) const {
     if (!avctx) return false;
     if (streamIndex >= avctx->nb_streams) {
         dsyslog("cDecoder::IsAudioStream(): stream index %d out of range", streamIndex);
@@ -1230,7 +1230,7 @@ bool cDecoder::IsAudioStream(const unsigned int streamIndex) {
 }
 
 
-bool cDecoder::IsAudioPacket() {
+bool cDecoder::IsAudioPacket() const {
     if (!avctx) return false;
     if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) return true;
     return false;
@@ -1284,7 +1284,7 @@ int cDecoder::GetAC3ChannelCount(const int streamIndex) {
 }
 
 
-bool cDecoder::IsSubtitleStream(const unsigned int streamIndex) {
+bool cDecoder::IsSubtitleStream(const unsigned int streamIndex) const {
     if (!avctx) return false;
     if (streamIndex >= avctx->nb_streams) {
         dsyslog("cDecoder::IsSubtitleStream(): stream index %d out of range", streamIndex);
