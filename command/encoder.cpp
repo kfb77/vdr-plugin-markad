@@ -408,10 +408,8 @@ bool cEncoder::ChangeEncoderCodec(const int streamIndexIn,  const int streamInde
 
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)  // ffmpeg 4.5
     const AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codecpar->codec_id);
-#elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-    AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codecpar->codec_id);
 #else
-    AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codec->codec_id);
+    AVCodec *codec = avcodec_find_encoder(avctxIn->streams[streamIndexIn]->codecpar->codec_id);
 #endif
 
     if (!codec) {
@@ -555,13 +553,11 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100) // ffmpeg 4.5
     AVCodecID codec_id = avctxIn->streams[streamIndexIn]->codecpar->codec_id;
     const AVCodec *codec = avcodec_find_encoder(codec_id);
-#elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
+#else
     AVCodecID codec_id = avctxIn->streams[streamIndexIn]->codecpar->codec_id;
     AVCodec *codec = avcodec_find_encoder(codec_id);
-#else
-    AVCodecID codec_id = avctxIn->streams[streamIndexIn]->codec->codec_id;
-    AVCodec *codec = avcodec_find_encoder(codec_id);
 #endif
+
     if (!codec) {
         if (codec_id == 94215) { // libavcodec does not support Libzvbi DVB teletext encoder, encode without this stream
             dsyslog("cEncoder::InitEncoderCodec(): Libzvbi DVB teletext for stream %i codec id %i not supported, ignoring this stream", streamIndexIn, codec_id);
@@ -585,12 +581,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
     }
     ALLOC(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
 
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-    if (avcodec_parameters_to_context(codecCtxArrayOut[streamIndexOut], avctxOut->streams[streamIndexOut]->codecpar) < 0)
-#else
-    if (avcodec_copy_context(codecCtxArrayOut[streamIndexOut], avctxOut->streams[streamIndexOut]->codec) < 0)
-#endif
-    {
+    if (avcodec_parameters_to_context(codecCtxArrayOut[streamIndexOut], avctxOut->streams[streamIndexOut]->codecpar) < 0) {
         dsyslog("cEncoder::InitEncoderCodec(): avcodec_parameters_to_context failed");
         return false;
     }
@@ -601,15 +592,9 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d avg framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->avg_frame_rate.num, avctxIn->streams[streamIndexIn]->avg_frame_rate.den);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d real framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->r_frame_rate.num, avctxIn->streams[streamIndexIn]->r_frame_rate.den);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d keyint_min %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->keyint_min);
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         dsyslog("cEncoder::InitEncoderCodec(): video input format stream %d  bit_rate %" PRId64, streamIndexIn, avctxIn->bit_rate);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d bit_rate %" PRId64, streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d rc_max_rate %" PRId64, streamIndexIn, codecCtxArrayIn[streamIndexIn]->rc_max_rate);
-#else
-        dsyslog("cEncoder::InitEncoderCodec(): video input format stream %d  bit_rate %d", streamIndexIn, avctxIn->bit_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d bit_rate %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d rc_max_rate %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->rc_max_rate);
-#endif
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d bit_rate_tolerance %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate_tolerance);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d global_quality %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->global_quality);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d sample_rate %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->sample_rate);
@@ -702,13 +687,8 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d pix_fmt %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->pix_fmt);
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d keyint_min %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->keyint_min);
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d max_b_frames %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->max_b_frames);
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d bit_rate %" PRId64, streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d rc_max_rate %" PRId64, streamIndexOut, codecCtxArrayOut[streamIndexOut]->rc_max_rate);
-#else
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d bit_rate %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d rc_max_rate %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->rc_max_rate);
-#endif
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d bit_rate_tolerance %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate_tolerance);
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d level %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->level);
         dsyslog("cEncoder::InitEncoderCodec(): video output stream %d framerate %d/%d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->framerate.num, codecCtxArrayOut[streamIndexOut]->framerate.den);
@@ -796,11 +776,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
 
             }
             else codecCtxArrayOut[streamIndexOut]->sample_fmt = codecCtxArrayIn[streamIndexIn]->sample_fmt;
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
             dsyslog("cEncoder::InitEncoderCodec(): audio output codec parameter for stream %d: bit_rate %" PRId64, streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
-#else
-            dsyslog("cEncoder::InitEncoderCodec(): audio output codec parameter for stream %d: bit_rate %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
-#endif
         }
         // subtitle stream
         else {
@@ -821,11 +797,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
         return false;
     }
 
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     int ret = avcodec_parameters_copy(avctxOut->streams[streamIndexOut]->codecpar, avctxIn->streams[streamIndexIn]->codecpar);
-#else
-    int ret = avcodec_copy_context(avctxOut->streams[streamIndexOut]->codec, avctxIn->streams[streamIndexIn]->codec);
-#endif
     if (ret < 0) {
         dsyslog("cEncoder::InitEncoderCodec(): Failed to copy codecpar context from input to output stream");
         return false;
@@ -1209,12 +1181,7 @@ AVPacket *cEncoder::EncodeAC3Frame(AVFrame *avFrame) {
 
 
     // check encoder, it can be wrong if recording is damaged
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-    if (decoder->IsAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codecpar->codec_id != AV_CODEC_ID_AC3)
-#else
-    if (decoder->IsAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codec->codec_id != AV_CODEC_ID_AC3)
-#endif
-    {
+    if (decoder->IsAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codecpar->codec_id != AV_CODEC_ID_AC3) {
         esyslog("cEncoder:EncodeAC3Frame(): packet (%d), frame (%d), stream %d: invalid encoder for AC3 packet", decoder->GetPacketNumber(), decoder->GetFrameNumber(), streamIndexOut);
         return nullptr;
     }
@@ -1318,7 +1285,6 @@ bool cEncoder::EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacke
 
     stateEAGAIN = false;
 
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avFrame) {
         int rcSend = avcodec_send_frame(avCodecCtx, avFrame);
         if (rcSend < 0) {
@@ -1357,20 +1323,6 @@ bool cEncoder::EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacke
         }
         return false;
     }
-#else
-    int frame_ready = 0;
-    if (decoder->IsAudioPacket()) {
-        int rcEncode = avcodec_encode_audio2(avCodecCtx, avpkt, avFrame, &frame_ready);
-        if (rcEncode < 0) {
-            dsyslog("cEncoder::EncodeFrame(): frame (%d), stream %d: avcodec_encode_audio2 %d failed with rc = %d: %s", decoder->GetFrameNumber(), avpkt->stream_index, rcEncode,  av_err2str(rcReceive));
-            return false;
-        }
-    }
-    else {
-        dsyslog("cEncoder::EncodeFrame(): packet type of stream %d not supported", avpkt->stream_index);
-        return false;
-    }
-#endif
     return true;
 }
 
@@ -1379,7 +1331,6 @@ bool cEncoder::CloseFile() {
     int ret = 0;
 
     // empty all encoder queue
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {
         if (codecCtxArrayOut[streamIndex]) {
             if (codecCtxArrayOut[streamIndex]->codec_type == AVMEDIA_TYPE_SUBTITLE) continue; // draining encoder queue of subtitle stream is not valid, no encoding used
@@ -1416,7 +1367,6 @@ bool cEncoder::CloseFile() {
             av_packet_unref(&avpktOut);
         }
     }
-#endif
 
     ret = av_write_trailer(avctxOut);
     if (ret < 0) {

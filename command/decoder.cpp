@@ -329,13 +329,8 @@ bool cDecoder::InitDecoder(const char *filename) {
     memset(codecCtxArray, 0, sizeof(AVCodecContext *) * avctx->nb_streams);
 
     for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         AVCodecID codec_id = avctx->streams[streamIndex]->codecpar->codec_id;
         codec = avcodec_find_decoder(codec_id);
-#else
-        AVCodecID codec_id = avctx->streams[streamIndex]->codec->codec_id;
-        codec = avcodec_find_decoder(codec_id);
-#endif
         if (!codec) {  // ignore not supported DVB subtitle by libavcodec
 #if LIBAVCODEC_VERSION_INT < ((59<<16)+(18<<8)+100)
             if (codec_id == 100359)
@@ -412,12 +407,7 @@ bool cDecoder::InitDecoder(const char *filename) {
             }
         }
 
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-        if (avcodec_parameters_to_context(codecCtxArray[streamIndex],avctx->streams[streamIndex]->codecpar) < 0)
-#else
-        if (avcodec_copy_context(codecCtxArray[streamIndex],avctx->streams[streamIndex]->codec) < 0)
-#endif
-        {
+        if (avcodec_parameters_to_context(codecCtxArray[streamIndex],avctx->streams[streamIndex]->codecpar) < 0) {
             dsyslog("cDecoder::InitDecoder(): avcodec_parameters_to_context failed");
             return false;
         }
@@ -452,7 +442,6 @@ enum AVPixelFormat cDecoder::GetVideoPixelFormat() const {
 int cDecoder::GetVideoType() {
     if (!avctx) return 0;
     for (unsigned int i = 0; i < avctx->nb_streams; i++) {
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             switch (avctx->streams[i]->codecpar->codec_id) {
             case AV_CODEC_ID_MPEG2VIDEO:
@@ -469,18 +458,6 @@ int cDecoder::GetVideoType() {
                 return 0;
             }
         }
-#else
-        if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
-            if (avctx->streams[i]->codec->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
-                return MARKAD_PIDTYPE_VIDEO_H262;
-            }
-            if (avctx->streams[i]->codec->codec_id == AV_CODEC_ID_H264) {
-                return MARKAD_PIDTYPE_VIDEO_H264;
-            }
-            dsyslog("cDecoder::GetVideoType(): unknown coded id %i", avctx->streams[i]->codec->codec_id);
-            return 0;
-        }
-#endif
     }
     dsyslog("cDecoder::GetVideoType(): failed");
     return 0;
@@ -490,11 +467,7 @@ int cDecoder::GetVideoType() {
 int cDecoder::GetVideoWidth() {
     if ((videoWidth <= 0) && avctx) {
         for (unsigned int i=0; i < avctx->nb_streams; i++) {
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
             if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) videoWidth = avctx->streams[i]->codecpar->width;
-#else
-            if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)    videoWidth = avctx->streams[i]->codec->width;
-#endif
         }
     }
     if (videoWidth <= 0) dsyslog("cDecoder::GetVideoWidth(): failed");
@@ -505,11 +478,7 @@ int cDecoder::GetVideoWidth() {
 int cDecoder::GetVideoHeight() {
     if ((videoHeight <= 0) && avctx) {
         for (unsigned int i=0; i < avctx->nb_streams; i++) {
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
             if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) videoHeight = avctx->streams[i]->codecpar->height;
-#else
-            if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)    videoHeight = avctx->streams[i]->codec->height;
-#endif
         }
     }
     if (videoHeight <= 0) esyslog("cDecoder::GetVideoHeight(): failed");
@@ -532,11 +501,7 @@ int cDecoder::GetVideoFrameRate() {
 int cDecoder::GetVideoAvgFrameRate() {
     if (!avctx) return 0;
     for (unsigned int i=0; i<avctx->nb_streams; i++) {
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-#else
-        if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
-#endif
             return av_q2d(avctx->streams[i]->avg_frame_rate);
         }
     }
@@ -549,11 +514,7 @@ int cDecoder::GetVideoAvgFrameRate() {
 int cDecoder::GetVideoRealFrameRate() {
     if (!avctx) return 0;
     for (unsigned int i=0; i<avctx->nb_streams; i++) {
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
         if (avctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-#else
-        if (avctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
-#endif
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
             return av_q2d(avctx->streams[i]->r_frame_rate);
 #else
@@ -624,14 +585,10 @@ bool cDecoder::ReadPacket() {
                 return false;
             }
             int channelCount = 0;
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
             channelCount = avctx->streams[avpkt.stream_index]->codecpar->ch_layout.nb_channels;
 #else
             channelCount = avctx->streams[avpkt.stream_index]->codecpar->channels;
-#endif
-#else
-            channelCount = avctx->streams[avpkt.stream_index]->codec->channels;
 #endif
             if ((channelCount != 2) && (channelCount != 5) && (channelCount != 6)) { // only accept valid channel counts
                 esyslog("cDecoder::ReadPacket(): packet (%d), stream %d: ignore invalid channel count %d", packetNumber, avpkt.stream_index, channelCount);
@@ -1227,22 +1184,14 @@ bool cDecoder::IsVideoStream(const unsigned int streamIndex) {
         dsyslog("cDecoder::IsVideoStream(): stream index %d out of range", streamIndex);
         return false;
     }
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avctx->streams[streamIndex]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) return true;
-#else
-    if (avctx->streams[streamIndex]->codec->codec_type == AVMEDIA_TYPE_VIDEO) return true;
-#endif
     return false;
 }
 
 
 bool cDecoder::IsVideoPacket() {
     if (!avctx) return false;
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) return true;
-#else
-    if (avctx->streams[avpkt.stream_index]->codec->codec_type == AVMEDIA_TYPE_VIDEO) return true;
-#endif
     return false;
 }
 
@@ -1276,22 +1225,14 @@ bool cDecoder::IsAudioStream(const unsigned int streamIndex) {
         dsyslog("cDecoder::IsAudioStream(): stream index %d out of range", streamIndex);
         return false;
     }
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avctx->streams[streamIndex]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) return true;
-#else
-    if (avctx->streams[streamIndex]->codec->codec_type == AVMEDIA_TYPE_AUDIO) return true;
-#endif
     return false;
 }
 
 
 bool cDecoder::IsAudioPacket() {
     if (!avctx) return false;
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) return true;
-#else
-    if (avctx->streams[avpkt.stream_index]->codec->codec_type == AVMEDIA_TYPE_AUDIO) return true;
-#endif
     return false;
 }
 
@@ -1305,10 +1246,8 @@ bool cDecoder::IsAudioAC3Stream(const unsigned int streamIndex) {
 #define AUDIOFORMATAC3 8
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
     if (avctx->streams[streamIndex]->codecpar->codec_id == AV_CODEC_ID_AC3 ) return true;
-#elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-    if (avctx->streams[streamIndex]->codecpar->format == AUDIOFORMATAC3) return true;
 #else
-    if (avctx->streams[streamIndex]->codec->sample_fmt == AUDIOFORMATAC3) return true;
+    if (avctx->streams[streamIndex]->codecpar->format == AUDIOFORMATAC3) return true;
 #endif
     return false;
 }
@@ -1319,10 +1258,8 @@ bool cDecoder::IsAudioAC3Packet() {
 #define AUDIOFORMATAC3 8
 #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(35<<8)+100)
     if (avctx->streams[avpkt.stream_index]->codecpar->codec_id == AV_CODEC_ID_AC3 ) return true;
-#elif LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
-    if (avctx->streams[avpkt.stream_index]->codecpar->format == AUDIOFORMATAC3) return true;
 #else
-    if (avctx->streams[avpkt.stream_index]->codec->sample_fmt == AUDIOFORMATAC3) return true;
+    if (avctx->streams[avpkt.stream_index]->codecpar->format == AUDIOFORMATAC3) return true;
 #endif
     return false;
 }
@@ -1337,14 +1274,10 @@ int cDecoder::GetAC3ChannelCount(const int streamIndex) {
     }
     for (unsigned int indexStream = startIndex; indexStream < endIndex; indexStream++) {
         if (!IsAudioAC3Stream(indexStream)) continue;
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
         return avctx->streams[indexStream]->codecpar->ch_layout.nb_channels;
 #else
         return avctx->streams[indexStream]->codecpar->channels;
-#endif
-#else
-        return avctx->streams[indexStream]->codec->channels;
 #endif
     }
     return 0;
@@ -1357,22 +1290,14 @@ bool cDecoder::IsSubtitleStream(const unsigned int streamIndex) {
         dsyslog("cDecoder::IsSubtitleStream(): stream index %d out of range", streamIndex);
         return false;
     }
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avctx->streams[streamIndex]->codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
-#else
-    if (avctx->streams[streamIndex]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
-#endif
     return false;
 }
 
 /*  unused
 bool cDecoder::IsSubtitlePacket() {
     if (!avctx) return false;
-#if LIBAVCODEC_VERSION_INT >= ((57<<16)+(64<<8)+101)
     if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
-#else
-    if (avctx->streams[avpkt.stream_index]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
-#endif
     return false;
 }
 */
