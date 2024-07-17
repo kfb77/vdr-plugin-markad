@@ -665,7 +665,8 @@ AVPacket *cDecoder::GetPacket() {
 
 
 AVFrame *cDecoder::GetFrame() {
-    return &avFrame;
+    if (frameValid) return &avFrame;
+    else return nullptr;
 }
 
 
