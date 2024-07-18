@@ -312,6 +312,8 @@ public:
 
     /**
      * check if current range is an advertising in frame with logo
+     * @param startPos  start frame position
+     * @param endPos    end   frame position
      * @param isStartMark true if called to check after start mark, false if called to check before stop mark
      * @param isEndMark   true if called to check after stop mark, false if called to check before stop mark
      * @return first frame of advertising in frame with logo before logo stop mark or last frame of advertising in frame with logo after logo start mark <br>

@@ -141,13 +141,7 @@ private:
 
     /** encode frame
      * @param avCodecCtx   codec context
-     * @param avFrame      decodes frame
-     * @param avpkt        encoded packet
-     */
-
-    /** encode frame
-     * @param avCodecCtx   codec context
-     * @param avFrame      decodes frame
+     * @param avFrame      frame to decode
      * @param avpkt        encoded packet
      */
     bool EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt);
@@ -175,15 +169,6 @@ private:
      * @param avFrame frame data
      */
     void SaveFrame(const int frame, AVFrame *avFrame);
-
-    /**
-     * resamle audio frame
-     * @param[in] avFrameIn   input frame
-     * @param[out] avFrameOut output frame
-     * @param streamIndex     stream index
-     * @return true if successful, false otherwise
-     */
-//    bool ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int streamIndex);
 
     /**
      * check statistic data after first pass, ffmpeg assert if something is invalid
@@ -243,7 +228,8 @@ private:
         //!<
         int64_t offset              = 0;  //!< current PTS/DTS offset from input stream to output stream
         //!<
-    } cutInfo;
+    } cutInfo;                            //!< infos of cut positions
+    //!<
 
     /**
      * structure for statistic data for 2 pass encoding

@@ -54,7 +54,6 @@ public:
      * @param recDirParam          recording directory
      * @param channelNameParam     channel name
      * @param threads              count of FFmpeg threads
-     * @param forceFullDecode      force full decode because coded need it
      * @param hwaccel              device type of hwaccel
      * @param forceHW              force hwaccel for MPEG2 codec
      * @param requestedAspectRatio video aspect ratio for requested logo

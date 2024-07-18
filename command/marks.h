@@ -357,7 +357,8 @@ public:
     /**
      * save marks to recording directory
      * @param directory recording directory
-     * @param maContext markad context
+     * @param isRunningRecording true if save during running recording
+     * @param writePTS true if additional write PTS based timestamps
      * @param force     true if to save in any cases, false if only save when not running recording
      * @return true if successfully saved, false otherwise
      */

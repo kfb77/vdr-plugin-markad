@@ -74,12 +74,13 @@ public:
 
     /**
      * cDecoder constructor
-     * @param recDir            recording directory
-     * @param threadsParam      count threads of FFmpeg decoder
-     * @param fullDecodeParam   true if full decode, fals if only decode i-frames
-     * @param hwaccelParam      true if we use hwaccel
-     * @param forceHWparam      true if force use of hwaccel on MPEG2 codec
-     * @param indexParam        recording index class
+     * @param recDir               recording directory
+     * @param threadsParam         count threads of FFmpeg decoder
+     * @param fullDecodeParam      true if full decode, fals if only decode i-frames
+     * @param hwaccelParam         true if we use hwaccel
+     * @param forceHWparam         true if force use of hwaccel on MPEG2 codec
+     * @param forceInterlacedParam true to inform decoder with hwaccel, video is interlaced
+     * @param indexParam           recording index class
      */
     explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccelParam, const bool forceHWparam, const bool forceInterlacedParam, cIndex *indexParam);
 

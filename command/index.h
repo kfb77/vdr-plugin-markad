@@ -37,7 +37,7 @@ public:
     /**
      * add new frame to index
      * @param fileNumber         number of ts file
-     * @param frameNumber        number of frame
+     * @param packetNumber       number of packet
      * @param pts                frame PTS
      * @param frameTimeOffset_ms offset in ms from recording start based sum of duration
      */
