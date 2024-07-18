@@ -1567,15 +1567,16 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
             }
         }
 #endif
+        // remove single separate pixel, add single missing pixel
         for (int line = height - 2; line >= 1; line--) {  // elements are from 0 to height -1 but we check neighbor pixel
             for (int column = 0; column < width; column++) {
                 if ( logoInfo->sobel[plane][line * width + column] == 0) {  // remove single separate pixel
                     if (( logoInfo->sobel[plane][(line + 1) * width + column] == 255) &&
-                            ( logoInfo->sobel[plane][(line - 1) * width + column] == 255) &&
-                            ( logoInfo->sobel[plane][line * width + (column + 1)] == 255) &&
-                            ( logoInfo->sobel[plane][line * width + (column - 1)] == 255) &&
-                            ( logoInfo->sobel[plane][(line + 1) * width + (column + 1)] == 255) &&
-                            ( logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 255)) {
+                            (logoInfo->sobel[plane][(line - 1) * width + column] == 255) &&
+                            (logoInfo->sobel[plane][line * width + (column + 1)] == 255) &&
+                            (logoInfo->sobel[plane][line * width + (column - 1)] == 255) &&
+                            (logoInfo->sobel[plane][(line + 1) * width + (column + 1)] == 255) &&
+                            (logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 255)) {
                         logoInfo->sobel[plane][line * width + column] = 255;
 #if defined(DEBUG_LOGO_CORNER)
                         dsyslog("cExtractLogo::RemovePixelDefects(): fix single separate pixel found at line %d column %d at frame %d in plane %d", line, column, logoInfo->frameNumber, plane);
@@ -1584,12 +1585,55 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
                 }
                 else if ( logoInfo->sobel[plane][line * width + column] == 255) {  //  add single missing pixel
                     if (( logoInfo->sobel[plane][(line + 1) * width + column] == 0) &&
-                            ( logoInfo->sobel[plane][(line - 1) * width + column] == 0) &&
-                            ( logoInfo->sobel[plane][line * width + (column + 1)] == 0) &&
-                            ( logoInfo->sobel[plane][line * width + (column - 1)] == 0) &&
-                            ( logoInfo->sobel[plane][(line + 1) * width + (column + 1)] == 0) &&
-                            ( logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 0)) {
+                            (logoInfo->sobel[plane][(line - 1) * width + column] == 0) &&
+                            (logoInfo->sobel[plane][line * width + (column + 1)] == 0) &&
+                            (logoInfo->sobel[plane][line * width + (column - 1)] == 0) &&
+                            (logoInfo->sobel[plane][(line + 1) * width + (column + 1)] == 0) &&
+                            (logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 0)) {
                         logoInfo->sobel[plane][line * width + column] = 0;
+                    }
+                }
+            }
+        }
+
+        // logos does not have a lot of white lines, remove false pixel below big white space of top logos
+        if ((corner == TOP_LEFT) || (corner == TOP_RIGHT)) {
+            // search for first line of logo
+            int topLogoLine = -1;
+            for (int line = 0; line < height; line++) {
+                for (int column = 0; column < width; column++) {
+                    if (logoInfo->sobel[plane][(line) * width + column] == 0) {
+                        topLogoLine = line;
+                        break;
+                    }
+                }
+                if (topLogoLine >= 0) break;
+            }
+            if (topLogoLine >= 0) {
+                // search for end of logo
+                int whiteLines     = 0;
+                int bottomLogoLine = -1;
+                for (int line = 0; line < height; line++) {
+                    bool haveBlack = false;
+                    for (int column = 0; column < width; column++) {
+                        if (logoInfo->sobel[plane][(line) * width + column] == 0) {
+                            haveBlack = true;
+                            break;
+                        }
+                    }
+                    if (!haveBlack) whiteLines++;
+                    else bottomLogoLine = line;
+                    if (whiteLines >= 30) break;    // we are now under logo
+                }
+#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 1
+                dsyslog("cExtractLogo::RemovePixelDefects(): frame (%d), plane %d: logo top line %d, bottom line %d, white lines after %d", logoInfo->frameNumber, plane, topLogoLine, bottomLogoLine, whiteLines);
+#endif
+                if ((bottomLogoLine >= 0) && (whiteLines >= 30)) {
+                    // clean pixel below logo
+                    for (int line = bottomLogoLine + whiteLines - 1; line < height; line++) {
+                        for (int column = 0; column < width; column++) {
+                            logoInfo->sobel[plane][(line) * width + column] = 255;
+                        }
                     }
                 }
             }
