@@ -6428,6 +6428,13 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         macontext.Config->hwaccel[0] = 0;
         macontext.Config->forceHW    = false;
     }
+#if LIBAVCODEC_VERSION_INT <= ((58<<16)+( 54<<8)+100)   // FFmpeg 4.2.7  (Ubuntu 20.04)
+    if ((decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264) && (macontext.Config->fullDecode == false)) {
+        isyslog("FFmpeg <= 4.2.7 does not support hwaccel without full decoding for H.264 video, disable hwaccel");
+        macontext.Config->hwaccel[0] = 0;
+        macontext.Config->forceHW    = false;
+    }
+#endif
     // inform decoder who use hwaccel, the video is interlaaced. In this case this is not possible to detect from decoder because hwaccel deinterlaces frames
     if ((macontext.Config->hwaccel[0] != 0) && decoderTest->IsInterlacedFrame() && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
         dsyslog("cMarkAdStandalone::cMarkAdStandalone(): inform decoder with hwaccel about H.264 interlaced video and force full decode");
