@@ -1216,12 +1216,29 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
 // return: true if valid
 //
 bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
+    if ((area.logoSize.height <= 0) || (area.logoSize.width <= 0)) return false;
+    if ((corner < 0) || (corner >= CORNERS))                       return false;
+    if (!actLogoInfo)                                              return false;
+
+    // check pixel count of plane 0
+    int blackPixel1 = 0;
+    for (int i = 0; i < (area.logoSize.height * area.logoSize.width); i++) {
+        if (actLogoInfo->sobel[0][i] == 0) blackPixel1++;
+    }
+    if (blackPixel1 <= 304) {
+#ifdef DEBUG_LOGO_CORNER
+        if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has not enough pixel %d in plane 0", actLogoInfo->frameNumber, aCorner[corner], blackPixel1);
+#endif
+        return false;
+    }
+#ifdef DEBUG_LOGO_CORNER
+    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s plane 0 is valid", actLogoInfo->frameNumber, aCorner[corner]);
+#endif
+
+    // check white edge
 #define WHITEHORIZONTAL_BIG 10
 #define WHITEHORIZONTAL_SMALL 7 // reduced from 8 to 7
 #define WHITEVERTICAL_BIG 10
-    if ((area.logoSize.height <= 0) || (area.logoSize.width <= 0)) return false;
-    if ((corner < 0) || (corner >= CORNERS))             return false;
-    if (!actLogoInfo)                                return false;
     if (corner <= TOP_RIGHT) {
         for (int i = 0 ; i < WHITEHORIZONTAL_BIG * area.logoSize.width; i++) { // a valid top logo should have a white top part
             if ((actLogoInfo->sobel[0][i] == 0) ||
@@ -1291,20 +1308,6 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
             }
         }
     }
-
-    int blackPixel1 = 0;
-    for (int i = 0; i < (area.logoSize.height * area.logoSize.width); i++) {
-        if (actLogoInfo->sobel[0][i] == 0) blackPixel1++;
-    }
-    if (blackPixel1 < 300) {
-#ifdef DEBUG_LOGO_CORNER
-        if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has not enough pixel %d in plane 0", actLogoInfo->frameNumber, aCorner[corner], blackPixel1);
-#endif
-        return false;
-    }
-#ifdef DEBUG_LOGO_CORNER
-    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s plane 0 is valid", actLogoInfo->frameNumber, aCorner[corner]);
-#endif
     return true;
 }
 
