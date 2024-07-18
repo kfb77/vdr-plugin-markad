@@ -32,13 +32,11 @@
  * logo after sobel transformation
  */
 struct sLogoInfo {
-    int frameNumber = -1;   //!< frame number of the logo
+    int frameNumber = -1;    //!< frame number of the logo
     //!<
-
     int hits = 0;            //!< number of similar other logos
     //!<
-
-    uchar **sobel = nullptr;    //!< sobel transformed corner picture data
+    uchar **sobel = nullptr; //!< sobel transformed corner picture data
     //!<
 };
 

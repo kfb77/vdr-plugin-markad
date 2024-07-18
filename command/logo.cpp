@@ -1545,71 +1545,68 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
     if (corner < 0)        return;
     if (corner >= CORNERS) return;
 
-#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 1
-    if ((corner == DEBUG_LOGO_CORNER) // Save(logoInfo, logoHeight, logoWidth, corner, logoInfo->frameNumber);
-            sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width, area.logoSize.height);
-#endif
-
     for (int plane = 0; plane < PLANES; plane++) {
         int height;
         int width;
         if (plane == 0) {
-                width  = area.logoSize.width;
-                height = area.logoSize.height;
+            width  = area.logoSize.width;
+            height = area.logoSize.height;
+        }
+        else {
+            width  = area.logoSize.width  / 2;
+            height = area.logoSize.height / 2;
+        }
+#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 1
+        if (corner == DEBUG_LOGO_CORNER) {
+            char *fileName = nullptr;
+            if (asprintf(&fileName,"%s/F__%07d-P%1d-C%1d_RemovePixelDefects_1before.pgm", recDir, logoInfo->frameNumber, plane, corner) >= 1) {
+                ALLOC(strlen(fileName)+1, "fileName");
+                sobel->SaveSobelPlane(fileName, logoInfo->sobel[plane], width, height);
+                FREE(strlen(fileName)+1, "fileName");
+                free(fileName);
             }
-            else {
-                width  = area.logoSize.width  / 2;
-                height = area.logoSize.height / 2;
-            }
-            for (int line = height - 2; line >= 1; line--) {  // elements are from 0 to height -1 but we check neighbor pixel
-                for (int column = 0; column < width; column++) {
-                    if ( logoInfo->sobel[plane][line * width + column] == 0) {  // remove single separate pixel
-                        if (( logoInfo->sobel[plane][(line + 1) * width + column] == 255) &&
-                                ( logoInfo->sobel[plane][(line - 1) * width + column] == 255) &&
-                                ( logoInfo->sobel[plane][line * width + (column + 1)] == 255) &&
-                                ( logoInfo->sobel[plane][line * width + (column - 1)] == 255) &&
-                                ( logoInfo->sobel[plane][(line + 1) * width + (column + 1)] == 255) &&
-                                ( logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 255)) {
-                            logoInfo->sobel[plane][line * width + column] = 255;
-#if defined(DEBUG_LOGO_CORNER)
-                            tsyslog("cExtractLogo::RemovePixelDefects(): fix single separate pixel found at line %d column %d at frame %d in plane %d", line, column, logoInfo->frameNumber, plane);
+        }
 #endif
-                        }
+        for (int line = height - 2; line >= 1; line--) {  // elements are from 0 to height -1 but we check neighbor pixel
+            for (int column = 0; column < width; column++) {
+                if ( logoInfo->sobel[plane][line * width + column] == 0) {  // remove single separate pixel
+                    if (( logoInfo->sobel[plane][(line + 1) * width + column] == 255) &&
+                            ( logoInfo->sobel[plane][(line - 1) * width + column] == 255) &&
+                            ( logoInfo->sobel[plane][line * width + (column + 1)] == 255) &&
+                            ( logoInfo->sobel[plane][line * width + (column - 1)] == 255) &&
+                            ( logoInfo->sobel[plane][(line + 1) * width + (column + 1)] == 255) &&
+                            ( logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 255)) {
+                        logoInfo->sobel[plane][line * width + column] = 255;
+#if defined(DEBUG_LOGO_CORNER)
+                        dsyslog("cExtractLogo::RemovePixelDefects(): fix single separate pixel found at line %d column %d at frame %d in plane %d", line, column, logoInfo->frameNumber, plane);
+#endif
                     }
-                    else if ( logoInfo->sobel[plane][line * width + column] == 255) {  //  add single missing pixel
-                        if (( logoInfo->sobel[plane][(line + 1) * width + column] == 0) &&
-                                ( logoInfo->sobel[plane][(line - 1) * width + column] == 0) &&
-                                ( logoInfo->sobel[plane][line * width + (column + 1)] == 0) &&
-                                ( logoInfo->sobel[plane][line * width + (column - 1)] == 0) &&
-                                ( logoInfo->sobel[plane][(line + 1) * width + (column + 1)] == 0) &&
-                                ( logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 0)) {
-                            logoInfo->sobel[plane][line * width + column] = 0;
-                        }
+                }
+                else if ( logoInfo->sobel[plane][line * width + column] == 255) {  //  add single missing pixel
+                    if (( logoInfo->sobel[plane][(line + 1) * width + column] == 0) &&
+                            ( logoInfo->sobel[plane][(line - 1) * width + column] == 0) &&
+                            ( logoInfo->sobel[plane][line * width + (column + 1)] == 0) &&
+                            ( logoInfo->sobel[plane][line * width + (column - 1)] == 0) &&
+                            ( logoInfo->sobel[plane][(line + 1) * width + (column + 1)] == 0) &&
+                            ( logoInfo->sobel[plane][(line - 1) * width + (column - 1)] == 0)) {
+                        logoInfo->sobel[plane][line * width + column] = 0;
                     }
                 }
             }
         }
 
-#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 2
-    if (corner == DEBUG_LOGO_CORNER) {
-    for (int plane = 0; plane < PLANES; plane++) {
+#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 1
+        if (corner == DEBUG_LOGO_CORNER) {
             char *fileName = nullptr;
-            if (asprintf(&fileName,"%s/F__%07d-P%1d-C%1d_RemovePixelDefects.pgm", recDir, logoInfo->frameNumber, plane, corner) >= 1) {
+            if (asprintf(&fileName,"%s/F__%07d-P%1d-C%1d_RemovePixelDefects_2after.pgm", recDir, logoInfo->frameNumber, plane, corner) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
-                if (plane == 0) sobel->SaveSobelPlane(fileName, logoInfo->sobel[plane], area.logoSize.width, area.logoSize.height);
-                else sobel->SaveSobelPlane(fileName,  logoInfo->sobel[plane], area.logoSize.width / 2, area.logoSize.height / 2);
+                sobel->SaveSobelPlane(fileName, logoInfo->sobel[plane], width, height);
                 FREE(strlen(fileName)+1, "fileName");
                 free(fileName);
             }
         }
-    }
 #endif
-
-    /*
-    #if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 2
-        if (corner == DEBUG_LOGO_CORNER) Save(logoInfo, logoHeight, logoWidth, corner, logoInfo->frameNumber);
-    #endif
-    */
+    }
 }
 
 
