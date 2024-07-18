@@ -909,51 +909,65 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
 #endif
 
 // search for text under logo
-// search for at least 2 (SD) or 4 (HD) white lines to cut logos with text addon (e.g. "Neue Folge" or "Live")
+// search for at least 2 (SD) or 4 (HD) white lines to cut logos with text addon (e.g. "Neue Folge" or "Live"), but do not cut out "HD"
             dsyslog("cExtractLogo::Resize(): top logo: search for text under logo, repeat %d", repeat);
-            int countWhite = 0;
-            int cutLine = 0;
-            int topBlackLineOfLogo= 0;
-            int leftBlackPixel = INT_MAX;
-            int rightBlackPixel = 0;
-            int minWhiteLines;
-            if (decoder->GetVideoWidth() == 720) minWhiteLines = 2;
-            else minWhiteLines = 4;
-            for (int line = logoSizeFinal->height - 1; line > 0; line--) {
+#define MAX_FALSE_PIXEL 2
+            int minWhiteLines = 2;
+            if (decoder->GetVideoWidth() > 720) minWhiteLines = 4;
+
+            // search for white lines from buttom to top of logo (more than half can not be text)
+            int topWhiteLine     = -1;
+            int bottomWhiteLine  = -1;
+            for (int line = logoSizeFinal->height - 1; line > 0.1 * logoSizeFinal->height; line--) {  // check bottom half of the picture
                 int countBlackPixel = 0;
                 for (int column = 0; column < logoSizeFinal->width; column++) {
                     if (bestLogoInfo->sobel[0][line * (logoSizeFinal->width) + column] == 0) {
                         countBlackPixel++;
-                        if (column < leftBlackPixel)  leftBlackPixel  = column;
-                        if (column > rightBlackPixel) rightBlackPixel = column;
+                        if (countBlackPixel > MAX_FALSE_PIXEL) break;   // no white line
                     }
                 }
-                if (countBlackPixel <= 1) {  // accept 1 false pixel
-                    countWhite++;
+                if (countBlackPixel <= MAX_FALSE_PIXEL) {
+                    if (bottomWhiteLine == -1) bottomWhiteLine = line;
+                    topWhiteLine = line;
                 }
                 else {
-                    countWhite = 0;
-                    topBlackLineOfLogo = line;
-                    if (cutLine > 0) break;
-                }
-                if (countWhite >= minWhiteLines) {
-                    cutLine = line;
+                    if ((bottomWhiteLine - topWhiteLine + 1) >= minWhiteLines) break;  // we found enough white lines
+                    topWhiteLine     = -1;
+                    bottomWhiteLine  = -1;
                 }
             }
-            int quoteAfterCut = 100 * cutLine / logoSizeFinal->height;
-            if ((topBlackLineOfLogo < cutLine) && (quoteAfterCut > 64)) {  // we may not cut off too much, this could not be text under logo, this is something on top of the logo
-                if (cutLine >= LOGO_MIN_LETTERING_H) {
-                    if ((((rightBlackPixel - leftBlackPixel) >= 38) && ((logoSizeFinal->height - cutLine) > 8)) || // cut our "love your" from TLC with 38 pixel width, do not cut out lines in the logo
-                            (((rightBlackPixel - leftBlackPixel) <= 20) && ((logoSizeFinal->height - cutLine) <= 8))) { // cut out small pixel errors
-                        dsyslog("cExtractLogo::Resize(): found text under logo at line %d, size %dWx%dH, pixel before: left %d right %d, quote %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, logoSizeFinal->height - cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
-                        CutOut(bestLogoInfo, logoSizeFinal->height - cutLine, 0, logoSizeFinal, bestLogoCorner);
+            int countWhite = bottomWhiteLine - topWhiteLine + 1;
+            int textHeight = logoSizeFinal->height - bottomWhiteLine - 1;
+            dsyslog("cExtractLogo::Resize(): found white from line %d -> %d, height %d, text below from line %d -> %d, height %d", topWhiteLine, bottomWhiteLine, countWhite, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight);
+            if ((countWhite <= 11) && (textHeight < logoSizeFinal->height)) {    // too much white is not possible for text under logo, changed from 10 to 11
+                // get width of text
+                int leftColumn  = -1;
+                int rightColumn = -1;
+                int line = logoSizeFinal->height - (textHeight / 2);   // check in half of text
+                for (int column = 0; column < logoSizeFinal->width; column++) {
+                    if (bestLogoInfo->sobel[0][line * (logoSizeFinal->width) + column] == 0) {
+                        leftColumn = column;
+                        break;
                     }
-                    else dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is invalid", cutLine, rightBlackPixel - leftBlackPixel, logoSizeFinal->height - cutLine, leftBlackPixel, rightBlackPixel);
                 }
-                else dsyslog("cExtractLogo::Resize(): cutline at %d not valid", cutLine);
+                for (int column = logoSizeFinal->width - 1; column >= 0; column--) {
+                    if (bestLogoInfo->sobel[0][line * (logoSizeFinal->width) + column] == 0) {
+                        rightColumn = column;
+                        break;
+                    }
+                }
+                int textWidth = rightColumn - leftColumn + 1;
+                dsyslog("cExtractLogo::Resize(): found text under logo: line %d -> %d, height %d, column %d -> %d, width %d", bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, leftColumn, rightColumn, textWidth);
+                if ((textWidth > 23) &&  // keep "HD"
+                        (textHeight > 15)) {  // keep "HD"
+                    CutOut(bestLogoInfo, logoSizeFinal->height - topWhiteLine, 0, logoSizeFinal, bestLogoCorner);
+                    dsyslog("cExtractLogo::Resize(): top logo: cut out valid text under logo, repeat %d", repeat);
+                }
+                else dsyslog("cExtractLogo::Resize(): top logo: no valid text under logo found, repeat %d", repeat);
             }
-            else dsyslog("cExtractLogo::Resize(): top logo: no text under logo found, repeat %d", repeat);
+            else dsyslog("cExtractLogo::Resize(): top logo: no valid text under logo found, repeat %d", repeat);
         }
+
         else { // bottom corners, calculate new height and cut from above
             int whiteLines = 0;
             for (int line = 0; line < logoSizeFinal->height; line++) {
@@ -1093,7 +1107,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                     dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                     CutOut(bestLogoInfo, 0, cutColumn, logoSizeFinal, bestLogoCorner);
                 }
-                else dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel test: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                else dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel text: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
             }
         }
         else { // left corners, cut from right
@@ -1161,7 +1175,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                         dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                         CutOut(bestLogoInfo, 0, logoSizeFinal->width - cutColumn, logoSizeFinal, bestLogoCorner);
                     }
-                    else dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel test: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                    else dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel text: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                 }
                 else dsyslog("cExtractLogo::Resize(): left logo: no text right of logo found, cutColumn %d, repeat %d", cutColumn, repeat);
             }
