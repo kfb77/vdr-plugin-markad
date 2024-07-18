@@ -851,7 +851,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
     char *fileName = nullptr;
     if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_Before.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep) >= 1) {
         ALLOC(strlen(fileName)+1, "fileName");
-        SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+        sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
         FREE(strlen(fileName)+1, "fileName");
         free(fileName);
         cutStep++;
@@ -900,7 +900,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutBottom%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
-                    SaveSobel(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
+                    sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                     FREE(strlen(fileName)+1, "fileName");
                     free(fileName);
                     cutStep++;
@@ -945,7 +945,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 if (cutLine >= LOGO_MIN_LETTERING_H) {
                     if ((((rightBlackPixel - leftBlackPixel) >= 38) && ((logoSizeFinal->height - cutLine) > 8)) || // cut our "love your" from TLC with 38 pixel width, do not cut out lines in the logo
                             (((rightBlackPixel - leftBlackPixel) <= 20) && ((logoSizeFinal->height - cutLine) <= 8))) { // cut out small pixel errors
-                        dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, quote %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, logoSizeFinal->height - cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
+                        dsyslog("cExtractLogo::Resize(): found text under logo at line %d, size %dWx%dH, pixel before: left %d right %d, quote %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, logoSizeFinal->height - cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
                         CutOut(bestLogoInfo, logoSizeFinal->height - cutLine, 0, logoSizeFinal, bestLogoCorner);
                     }
                     else dsyslog("cExtractLogo::Resize(): found text under logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, width is invalid", cutLine, rightBlackPixel - leftBlackPixel, logoSizeFinal->height - cutLine, leftBlackPixel, rightBlackPixel);
@@ -977,7 +977,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutTop%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
-                    SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                     FREE(strlen(fileName)+1, "fileName");
                     free(fileName);
                     cutStep++;
@@ -1049,7 +1049,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
-                    SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                     FREE(strlen(fileName)+1, "fileName");
                     free(fileName);
                     cutStep++;
@@ -1118,7 +1118,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
-                    SaveSobel(fileName, bestLogoInfo->sobel[0], *logoWidth, *logoHeight);
+                    sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                     FREE(strlen(fileName)+1, "fileName");
                     free(fileName);
                     cutStep++;
