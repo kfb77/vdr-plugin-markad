@@ -2355,18 +2355,16 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         return nullptr;
     }
 
-    // check if we have a logo start before vborder start, prevent a false vborder start/stop from dark scene as start mark
-    if (!criteria->LogoInBorder()) {  // not possible for logo in border channel because vborder start and logo start can be on same position
-        // valid example:
-        // double episode 4:3 and vborder, too short vborder in broadcast before because closing credits overlay vborder, vborder start is valid start mark
-        // start aspect ratio       at 0:00:00.00, inBroadCast 0
-        // start logo               at 0:00:00.00, inBroadCast 1
-        // start vertical border    at 0:01:51.00, inBroadCast 1
+    // check if we have a logo start direce before vborder start, prevent a false vborder start/stop from dark scene as start mark
+    if (!criteria->LogoInBorder()) {  // not possible for logo in border channel because vborder start and logo start can be on same position or logo start after vborder start
+        // valid vborder example:
+        // MT_LOGOSTART (7599) -> 371s -> MT_VBORDERSTART (26172)  -> rbb HB, no logo stop before vborder broadcast, maybe logo in border
         cMark *logoStart  = marks.GetPrev(vStart->position, MT_ALL);
         if (logoStart && (logoStart->type == MT_LOGOSTART) && (logoStart->position >= IGNORE_AT_START)) {
             int diff = (vStart->position - logoStart->position) / decoder->GetVideoFrameRate();
-            if (diff > 50) {
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): logo start mark (%d) direct %ds before vborder start (%d) found, delete invalid vborder marks from dark scene", logoStart->position, diff, vStart->position);
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_LOGOSTART (%d) -> %ds -> MT_VBORDERSTART (%d)", logoStart->position, diff, vStart->position);
+            if ((diff > 50) && (diff < 371)) {
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): logo start mark before vborder start found, delete invalid vborder marks from dark scene");
                 marks.DelType(MT_VBORDERCHANGE, 0xF0);
                 return nullptr;
             }
