@@ -64,6 +64,12 @@ public:
     bool LogoInBorder();
 
     /**
+     * get status of channel if logo is part of a news ticker
+     * @return status
+     */
+    bool LogoInNewsTicker();
+
+    /**
      * get status of channel if infos are in hborder or vborder
      * @return status
      */

@@ -1236,9 +1236,8 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
 #endif
 
     // check white edge
-#define WHITEHORIZONTAL_BIG 10
-#define WHITEHORIZONTAL_SMALL 7 // reduced from 8 to 7
-#define WHITEVERTICAL_BIG 10
+#define WHITEHORIZONTAL_BIG   20
+#define WHITEHORIZONTAL_SMALL 10
     if (corner <= TOP_RIGHT) {
         for (int i = 0 ; i < WHITEHORIZONTAL_BIG * area.logoSize.width; i++) { // a valid top logo should have a white top part
             if ((actLogoInfo->sobel[0][i] == 0) ||
@@ -1284,27 +1283,36 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
         }
     }
 
-    if ((corner == TOP_LEFT) || (corner == BOTTOM_LEFT)) { // a valid left logo should have white left part in pane 0
-        for (int column = 0; column <= WHITEVERTICAL_BIG; column++) {
-            for (int i = column; i < area.logoSize.height * area.logoSize.width; i = i + area.logoSize.width) {
-                if (actLogoInfo->sobel[0][i] == 0 ) {
+    // check left and right white part
+    int leftWhite  = 0;
+    int rightWhite = 0;
+    if ((corner == TOP_LEFT) || (corner == BOTTOM_LEFT)) {   // a valid left logo should have big white left part and a small white right part in pane 0
+        leftWhite  = 20;
+        if (!criteria->LogoInNewsTicker()) rightWhite = 10;  // news ticker is direct after logo, no white space
+    }
+    else {                                                   // a valid right logo should have small white left part and a big white right part in pane 0
+        if (!criteria->LogoInNewsTicker()) leftWhite  = 10;  // news ticker is direct after logo, no white space
+        rightWhite = 20;
+    }
+    // left part
+    for (int line = 0; line < area.logoSize.height; line++) {
+        for (int column = 0; column < leftWhite; column++) {
+            if (actLogoInfo->sobel[0][line * area.logoSize.width + column] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white left part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
+                if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white left part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
-                    return false;
-                }
+                return false;
             }
         }
     }
-    else { // a valid right logo should have white right part in pane 0
-        for (int column = 0; column <= WHITEVERTICAL_BIG; column++) {
-            for (int i = area.logoSize.width - column; i < (area.logoSize.height * area.logoSize.width); i = i + area.logoSize.width) {
-                if (actLogoInfo->sobel[0][i] == 0 ) {
+    // right part
+    for (int line = 0; line < area.logoSize.height; line++) {
+        for (int column = area.logoSize.width - rightWhite - 1; column < area.logoSize.width; column++) {
+            if (actLogoInfo->sobel[0][line * area.logoSize.width + column] == 0 ) {
 #ifdef DEBUG_LOGO_CORNER
-                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white right part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
+                if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white right part in plane 0", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
-                    return false;
-                }
+                return false;
             }
         }
     }

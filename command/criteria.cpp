@@ -85,6 +85,15 @@ bool cCriteria::LogoInBorder() {
 }
 
 
+bool cCriteria::LogoInNewsTicker() {
+    if (!channelName) return false;
+
+    if (CompareChannelName(channelName, "WELT", IGNORE_HD)) return true;
+
+    return false;
+}
+
+
 bool cCriteria::InfoInBorder() {
     if (!channelName) return false;
 
