@@ -991,6 +991,10 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 }
                 else break;
             }
+            if (whiteLines >= logoSizeFinal->height) {
+                dsyslog("cExtractLogo::Resize(): logo invalid after removal of false pixel");
+                return false;
+            }
             CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
 
 #ifdef DEBUG_LOGO_RESIZE
