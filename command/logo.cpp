@@ -2031,7 +2031,8 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         for (int rank = 0; rank < CORNERS - 1; rank++) {
             dsyslog("cExtractLogo::SearchLogo(): check %d. best corner ---------------------------------------------------------------", rank);
             if (logoCorner[rank] < 0) break;    // no more matches
-            if ((logoInfo[rank].hits >= 29) ||                                                 // we have a good result, changed from 50 to 46 to 40
+            if ((logoInfo[rank].hits >= 40) ||                                                 // we have a good result, changed from 50 to 46 to 40
+                    ((logoInfo[rank].hits >= 30) && (sumHits <= logoInfo[rank].hits + 8)) ||   // if almost all hits are in the same corner than less are enough
                     ((logoInfo[rank].hits >= 20) && (sumHits <= logoInfo[rank].hits + 7)) ||   // if almost all hits are in the same corner than less are enough
                     ((logoInfo[rank].hits >= 10) && (sumHits <= logoInfo[rank].hits + 6)) ||   // if almost all hits are in the same corner than less are enough
                     ((logoInfo[rank].hits >=  5) && (sumHits == logoInfo[rank].hits))) {       // if all hits are in the same corner than less are enough
