@@ -918,7 +918,11 @@ bool cLogoDetect::ChangeLogoAspectRatio(sAspectRatio *aspectRatio) {
     cExtractLogo *extractLogo = new cExtractLogo(recDir, criteria->GetChannelName(), decoder->GetThreads(), decoder->GetHWaccel(), decoder->GetForceHWaccel(), *aspectRatio);
     ALLOC(sizeof(*extractLogo), "extractLogo");
     int endPos = extractLogo->SearchLogo(decoder->GetFrameNumber(), true);
-    if (endPos > 0) endPos = extractLogo->SearchLogo(endPos, true);                    // no logo found, retry
+    for (int retry = 1; retry <= 5; retry++) {           // if aspect ratio from info file is wrong, we need a new full search cycle at recording start
+        if (endPos == 0) break;                          // logo found
+        endPos += 60 * decoder->GetVideoFrameRate();     // try one minute later
+        endPos = extractLogo->SearchLogo(endPos, true);  // retry logo extraction
+    }
     FREE(sizeof(*extractLogo), "extractLogo");
     delete extractLogo;
     if (endPos == LOGO_FOUND) return LoadLogo();   // logo in recording found und stored in recording directory
