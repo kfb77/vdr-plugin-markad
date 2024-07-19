@@ -50,7 +50,7 @@ void cAudio::Silence() {
     if (normVolume >= 0) {
         // set start/end
         if ((normVolume == 0) && (audioMP2Silence.startPTS < 0)) audioMP2Silence.startPTS = decoder->GetPacketPTS();                                  // start of silence
-        if ((normVolume > 0) && (audioMP2Silence.startPTS >= 0) && (audioMP2Silence.stopPTS < 0)) audioMP2Silence.stopPTS = decoder->GetPacketPTS();  // end of silence
+        if ((normVolume > 2) && (audioMP2Silence.startPTS >= 0) && (audioMP2Silence.stopPTS < 0)) audioMP2Silence.stopPTS = decoder->GetPacketPTS();  // end of silence
 
         // get frame number
         if ((audioMP2Silence.startPTS >= 0) && (audioMP2Silence.startFrameNumber < 0)) audioMP2Silence.startFrameNumber = index->GetFrameBeforePTS(audioMP2Silence.startPTS);
