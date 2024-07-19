@@ -237,6 +237,14 @@ void cExtractLogo::CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, sLo
     if (!logoInfo)      return;
     if (!logoSizeFinal) return;
     if ((corner < 0) || (corner >= CORNERS)) return;
+    if (cutPixelV >= logoSizeFinal->width) {
+        esyslog("cExtractLogo::CutOut(): cut %d pixel from logo with width %d not valid", cutPixelV, logoSizeFinal->width);
+        return;
+    }
+    if (cutPixelH >= logoSizeFinal->height) {
+        esyslog("cExtractLogo::CutOut(): cut %d pixel from logo with height %d not valid", cutPixelH, logoSizeFinal->height);
+        return;
+    }
 
 // plane 0 should have even pixel, we ve to calculate half of pixel for plane 1 and 2 without rest, accept one empty line
     if (cutPixelH % 2) cutPixelH--;
