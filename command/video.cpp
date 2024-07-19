@@ -49,11 +49,6 @@ void cLogoDetect::Clear(const bool isRestart) {
 }
 
 
-sAreaT * cLogoDetect::GetArea() {
-    return &area;
-}
-
-
 bool cLogoDetect::LoadLogo() {
     if (!logoCacheDir) {
         esyslog("logo cache directory not set");
@@ -782,18 +777,29 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
         }
     }
     else {
+#ifdef DEBUG_LOGO_DETECTION
+        for (int i = 0; i < PLANES; i++) {
+            dsyslog("cLogoDetect::Detect():                  plane %d: rp=%5d | ip=%5d | mp=%5d | mpV=%5.f | mpI=%5.f |", i, area.rPixel[i], area.iPixel[i], area.mPixel[i], area.mPixel[i] * LOGO_VMARK, area.mPixel[i] * LOGO_IMARK);
+        }
+#endif
+        if ((area.status == LOGO_VISIBLE) && (area.rPixel[1] == 0) && (area.rPixel[2] == 0) && !criteria->LogoColorChange()) {
+            int quoteInverse  = 100 * area.iPixel[0] / ((area.logoSize.height * area.logoSize.width) - area.mPixel[0]);  // quote of pixel from background
+            int rPixelWithout = area.rPixel[0] * (100 - quoteInverse) / 100;
+            if (rPixelWithout >= area.mPixel[0] * LOGO_VMARK) {
+                dsyslog("cLogoDetect::Detect(): frame (%6d): rPixel plane 0 %d: transparent logo detected, fallback to plane 0 only", frameNumber, rPixelWithout);
+                ReducePlanes();
+                return LOGO_NOCHANGE;
+            }
+        }
         // if we have more planes we can still have a problem with coloured logo on same colored background
-        if ((rPixel >= logo_vmark)) logoStatus = true;  // trust logo visible result
-        if (rPixel == 0)            logoStatus = true;  // trust logo invisible result without any matches
+        if ((rPixel >= logo_vmark))                  logoStatus = true;  // trust logo visible result
+        if ((rPixel == 0) && (area.intensity < 216)) logoStatus = true;  // trust logo invisible result without any matches on not so bright backbround
 
         // maybe coloured logo on same colored background, check planes separated, all planes must be under invisible limit
         if (!logoStatus && (rPixel <= logo_imark) && (area.intensity <= 132)) {  // do not trust logo invisible detection on bright background
             bool planeStatus = true;
             for (int i = 0; i < PLANES; i++) {
                 if (area.mPixel[i] == 0) continue;   // plane has no logo
-#ifdef DEBUG_LOGO_DETECTION
-                dsyslog("cLogoDetect::Detect():       plane %d: rp=%5d | ip=%5d | mp=%5d | mpV=%5.f | mpI=%5.f |", i, area.rPixel[i], area.iPixel[i], area.mPixel[i], area.mPixel[i] * LOGO_VMARK, area.mPixel[i] * LOGO_IMARK);
-#endif
                 if (area.rPixel[i] >= (area.mPixel[i] * LOGO_IMARK)) {
                     planeStatus = false;
                     break;
@@ -805,7 +811,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
 
     if (!logoStatus) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::Detect(): frame (%6d) no valid result", frameNumber);
+        dsyslog("cLogoDetect::Detect(): frame (%6d): no valid result", frameNumber);
 #endif
         return LOGO_NOCHANGE;
     }
@@ -891,6 +897,17 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
 #endif
 
     return ret;
+}
+
+
+// disable colored planes
+void cLogoDetect::ReducePlanes() {
+    for (int plane = 1; plane < PLANES; plane++) {
+        area.valid[plane]  = false;
+        area.rPixel[plane] = 0;
+        area.mPixel[plane] = 0;
+        area.iPixel[plane] = 0;
+    }
 }
 
 
@@ -1709,11 +1726,5 @@ sMarkAdMarks *cVideo::Process() {
 
 // disable colored planes
 void cVideo::ReducePlanes() {
-    sAreaT *area = logoDetect->GetArea();
-    for (int plane = 1; plane < PLANES; plane++) {
-        area->valid[plane] = false;
-        area->mPixel[plane] = 0;
-        area->rPixel[plane] = 0;
-        area->iPixel[plane] = 0;
-    }
+    logoDetect->ReducePlanes();
 }

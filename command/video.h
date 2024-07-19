@@ -141,25 +141,22 @@ public:
     int Detect(int *logoFrameNumber); // return: 1 = logo, 0 = unknown, -1 = no logo
 
     /**
+     * reduce used logo planes to plane 0
+     */
+    void ReducePlanes();
+
+    /**
      * process logo detection of current frame
      * @param[out] logoFrameNumber frame number of detected logo state change
      * @return #eLogoStatus
      */
     int Process(int *logoFrameNumber);
 
-
     /**
      * clear status and free memory
      * @param isRestart   true if called from full video detection (blackscreen, logo, border) restart at pass 1, false otherwise
      */
     void Clear(const bool isRestart = false);
-
-
-    /**
-     * get pointer to logo area
-     * @return pointer to logo area
-     */
-    sAreaT *GetArea();
 
 private:
     /**

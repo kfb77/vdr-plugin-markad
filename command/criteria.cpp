@@ -105,6 +105,7 @@ bool cCriteria::LogoColorChange() {
 
     if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "DMAX",           IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "FOX_Channel",    IGNORE_HD)) return true;   // changes from white to red at recording start
     if (CompareChannelName(channelName, "kabel_eins",     IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return true;
 
