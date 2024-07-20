@@ -2042,7 +2042,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                 if (Resize(&logoInfo[rank], &logoSizeFinal, logoCorner[rank])) {  // logo can be valid
                     done = rank;
                     rankResult = rank;
-                    dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner %s was successful, H %d W %d", rank, aCorner[logoCorner[rank]], area.logoSize.height, area.logoSize.width);
+                    dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner %s was successful, %dW x %dH", rank, aCorner[logoCorner[rank]], logoSizeFinal.width, logoSizeFinal.height);
                     // check next best possible logo corner, it is valid too, we can not decide
                     if (logoInfo[rank + 1].hits > (logoInfo[rank].hits * 0.8)) { // next best logo corner has high matches
                         dsyslog("cExtractLogo::SearchLogo(): %d. best corner %d at frame %d with %d similars", rank + 1, logoCorner[rank + 1], logoInfo[rank + 1].frameNumber, logoInfo[rank + 1].hits);
@@ -2086,7 +2086,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         dsyslog("cExtractLogo::SearchLogo(): no valid logo found");
     }
     else {
-        dsyslog("cExtractLogo::SearchLogo(): save corner %s as logo, H %d W %d", aCorner[logoCorner[rankResult]], area.logoSize.height, area.logoSize.width);
+        dsyslog("cExtractLogo::SearchLogo(): save corner %s as logo, %dW x %dH", aCorner[logoCorner[rankResult]], logoSizeFinal.width, logoSizeFinal.height);
         if (!SaveLogo(&logoInfo[rankResult], &logoSizeFinal, logoAspectRatio, logoCorner[rankResult])) {
             dsyslog("cExtractLogo::SearchLogo(): logo save failed");
         }
