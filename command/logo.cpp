@@ -426,12 +426,12 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
 
         // Nick_Comedy_Central+1   16:9  720W  576H:->  138W  80H TOP_LEFT
         // Nick_Comedy_Central+1   16:9  720W  576H:->  144W  94H TOP_LEFT
-        // Nick_Comedy_Central+1   16:9  720W  576H:->  120W 116H TOP_RIGHT
+        // Nick_Comedy_Central+1   16:9  720W  576H:->  120W 116H TOP_RIGHT        -> special logo
         if (CompareChannelName(channelName, "Nick_Comedy_Central+1", IGNORE_NOTHING)) {
-            logo.widthMin  = 120;
-            logo.widthMax  = 144;
-            logo.heightMin =  80;
-            logo.heightMax = 116;
+            logo.widthMin  = 110;
+            logo.widthMax  = 154;
+            logo.heightMin =  70;
+            logo.heightMax = 126;
         }
 
         if ((CompareChannelName(channelName, "n-tv", IGNORE_COUNTRY)) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
@@ -2044,7 +2044,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                     rankResult = rank;
                     dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner %s was successful, %dW x %dH", rank, aCorner[logoCorner[rank]], logoSizeFinal.width, logoSizeFinal.height);
                     // check next best possible logo corner, it is valid too, we can not decide
-                    if (logoInfo[rank + 1].hits > (logoInfo[rank].hits * 0.8)) { // next best logo corner has high matches
+                    if ((logoInfo[rank + 1].hits >= 40) || (logoInfo[rank + 1].hits > (logoInfo[rank].hits * 0.8))) { // next best logo corner has high matches
                         dsyslog("cExtractLogo::SearchLogo(): %d. best corner %d at frame %d with %d similars", rank + 1, logoCorner[rank + 1], logoInfo[rank + 1].frameNumber, logoInfo[rank + 1].hits);
                         sLogoSize secondLogoSize = area.logoSize;
                         if (Resize(&logoInfo[rank + 1], &secondLogoSize, logoCorner[rank + 1])) { // second best logo can be valid

@@ -5926,7 +5926,7 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
             marksTMP.Save(macontext.Config->recDir, macontext.Info.isRunningRecording, macontext.Config->pts, true);
         }
 
-        int startPos =  macontext.Info.tStart * frameRate;  // search logo from assumed start
+        int startPos =  (macontext.Info.tStart + 2 *60) * frameRate;  // search logo from assumed start + 2 min to prevent to get logos from ad
         if (startPos < 0) startPos = 0;  // consider late start of recording
         int endpos = extractLogo->SearchLogo(startPos, false);
         for (int retry = 2; retry <= 8; retry++) {  // do not reduce, we will not get some logos
