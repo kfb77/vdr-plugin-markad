@@ -295,11 +295,11 @@ sLogoSize cSobel::GetMaxLogoSize() const {
         break;
     case 1440:
         logoSizeMax.width  =  400;
-        logoSizeMax.height =  220;  // changed from 200 to 220 (BILD_HD)
+        logoSizeMax.height =  220;
         break;
     case 1920:
-        logoSizeMax.width  =  400;
-        logoSizeMax.height =  220;  // changed from 210 to 220
+        logoSizeMax.width  =  440;  // changed from 400 to 440 for münchen.tv
+        logoSizeMax.height =  220;
         break;
     case 3840:
         logoSizeMax.width  = 1500;
