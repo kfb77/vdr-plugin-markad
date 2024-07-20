@@ -6434,6 +6434,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         macontext.Config->hwaccel[0] = 0;
         macontext.Config->forceHW    = false;
     }
+    if ((decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264) && decoderTest->IsInterlacedFrame()) {
+        isyslog("FFmpeg <= 4.2.7 does not support only i-frame decoding for interlaced H.264 video, enable full decode");
+        macontext.Config->fullDecode = true;
+    }
 #endif
     // inform decoder who use hwaccel, the video is interlaaced. In this case this is not possible to detect from decoder because hwaccel deinterlaces frames
     if ((macontext.Config->hwaccel[0] != 0) && decoderTest->IsInterlacedFrame() && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
