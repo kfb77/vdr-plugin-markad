@@ -828,6 +828,13 @@ sVideoPicture *cDecoder::GetVideoPicture() {
 }
 
 
+void cDecoder::SyncFramePacket() {
+    frameNumber = packetNumber - 1;                             // next decoded frame will be from this packet
+    if (forceInterlaced || IsInterlacedFrame()) frameNumber--;  // for interlaced video we need 2 packet to get a decoded frame
+    dsyslog("cDecoder::SyncFramePacket(): packet (%d): set frame (%d)", packetNumber, frameNumber);
+}
+
+
 // seek read position to video packet <seekPacketNumber>
 // seek frame is read but not decoded
 bool cDecoder::SeekToPacket(int seekPacketNumber) {
@@ -863,8 +870,7 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
         if (abortNow) return false;
         if (packetNumber >= seekPacketNumber) break;
     }
-    frameNumber = packetNumber - 1;          // next decoded frame will be from this packet
-    if (forceInterlaced || IsInterlacedFrame()) frameNumber--;  // for interlaced video we need 2 packet to get a decoded frame
+    SyncFramePacket();
     dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d) successful", packetNumber, seekPacketNumber);
     return true;
 }
@@ -1152,6 +1158,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
         dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%d), stream %d: frame corrupt: decode_error_flags %d, decoding errors %d", frameNumber, avpkt.stream_index, avFrame.decode_error_flags, decodeErrorCount);
         av_frame_unref(&avFrame);
         avcodec_flush_buffers(codecCtxArray[avpkt.stream_index]);
+        SyncFramePacket();
         return -EAGAIN;   // no valid frame, try decode next
     }
 

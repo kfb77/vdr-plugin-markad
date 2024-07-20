@@ -414,6 +414,11 @@ private:
      */
     int ResetToSW();
 
+    /**
+     * sync frame number with packet number after seek or decoding error
+     */
+    void SyncFramePacket();
+
     char *recordingDir                 = nullptr;                 //!< name of recording directory
     //!<
     cIndex *index                      = nullptr;                 //!< recording index
