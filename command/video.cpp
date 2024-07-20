@@ -189,7 +189,7 @@ int cLogoDetect::GetLogoCorner() const {
 bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
-        dsyslog("cLogoDetect::ReduceBrightness picture not valid");
+        dsyslog("cLogoDetect::ReduceBrightness(): picture not valid");
         return VBORDER_ERROR;
     }
     int xstart, xend, ystart, yend;
@@ -552,6 +552,11 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
     }
     // sobel transformation of colored planes
     sVideoPicture *picture = decoder->GetVideoPicture();
+    if (!picture) {
+        esyslog("cLogoDetect::LogoColourChange(): picture not valid");
+        return false;
+    }
+
     for (int plane = 1; plane < PLANES; plane++) {
         area.valid[plane] = true;  // only for next sobel transformation
         sobel->SobelPlane(picture, &area, plane);

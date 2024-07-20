@@ -1025,6 +1025,10 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         int frameNumber =  decoder->GetFrameNumber();
 
         sVideoPicture *picture = decoder->GetVideoPicture();
+        if (!picture) {
+            dsyslog("cDetectLogoStopStart::Detect(): frame (%d): picture not valid", frameNumber);
+            continue;
+        }
 
         sCompareInfo compareInfo;
         for (int corner = 0; corner < CORNERS; corner++) {
