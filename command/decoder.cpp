@@ -168,12 +168,10 @@ void cDecoder::Reset() {
     }
     fileNumber       = 0;
     packetNumber     = -1;
-    frameNumber      = -1;
     dtsBefore        = -1;
     decoderSendState = 0;
     eof              = false;
     sumDuration      = 0;
-    packetFrameMap.clear();
 }
 
 
@@ -610,7 +608,7 @@ bool cDecoder::ReadPacket() {
         return true;
     }
 // end of file reached
-    dsyslog("cDecoder::ReadPacket(): packet (%d), frame (%d): end of of filenumber %d ", packetNumber, frameNumber, fileNumber);
+    dsyslog("cDecoder::ReadPacket(): packet (%d): end of of filenumber %d ", packetNumber, fileNumber);
     if (decodeErrorFrame == packetNumber) decodeErrorCount--; // ignore malformed last frame of a file
     av_packet_unref(&avpkt);
     return false;
@@ -662,11 +660,11 @@ int cDecoder::GetVolume() {
         int normVolume =  level / avFrame.nb_samples / avFrame.channels;
 #endif
 #ifdef DEBUG_VOLUME
-        dsyslog("cDecoder::GetSilence(): frameNumber %d, stream %d: avpkt.pts %ld: normVolume %d", frameNumber, avpkt.stream_index, avpkt.pts, normVolume);
+        dsyslog("cDecoder::GetSilence(): packet (%d), stream %d: avpkt.pts %ld: normVolume %d", packetNumber, avpkt.stream_index, avpkt.pts, normVolume);
 #endif
         return normVolume;
     }
-    else  esyslog("cDecoder::GetSilence(): frameNumber %d, stream %d: invalid format %d", frameNumber, avpkt.stream_index, avFrame.format);
+    else  esyslog("cDecoder::GetSilence(): packet (%d), stream %d: invalid format %d", packetNumber, avpkt.stream_index, avFrame.format);
     return .1;
 }
 
@@ -789,19 +787,19 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
     switch (decoderReceiveState) {
     case 0:
 #ifdef DEBUG_DECODE_NEXT_FRAME
-        dsyslog("cDecoder::DecodeNextFrame(): frame         (%5d): pict_type %d, received from decoder", frameNumber, avFrame.pict_type);
+        dsyslog("cDecoder::DecodeNextFrame(): packet         (%5d): pict_type %d, received from decoder", packetNumber, avFrame.pict_type);
 #endif
         return true;
         break;
     case -EIO:         // I/O error
-        dsyslog("cDecoder::DecodeNextFrame(): frame  (%5d): I/O error (EIO)", frameNumber);
+        dsyslog("cDecoder::DecodeNextFrame(): packet  (%5d): I/O error (EIO)", packetNumber);
         if (!eof) return true;   // could be a decoding error from defect packet, try to receive next frame
         break;
     case AVERROR_EOF:  // end of file
-        dsyslog("cDecoder::DecodeNextFrame(): frame  (%5d): end of file (AVERROR_EOF)", frameNumber);
+        dsyslog("cDecoder::DecodeNextFrame(): packet  (%5d): end of file (AVERROR_EOF)", packetNumber);
         break;
     default:
-        esyslog("cDecoder::DecodeNextFrame(): frame  (%5d): unexpected return code ReceiveFrameFromDecoder(): rc = %d: %s", frameNumber, decoderReceiveState, av_err2str(decoderReceiveState));
+        esyslog("cDecoder::DecodeNextFrame(): packet  (%5d): unexpected return code ReceiveFrameFromDecoder(): rc = %d: %s", packetNumber, decoderReceiveState, av_err2str(decoderReceiveState));
         break;
     }
     return false;
@@ -819,19 +817,12 @@ sVideoPicture *cDecoder::GetVideoPicture() {
         else valid = false;
     }
     if (valid) {
-        videoPicture.frameNumber = frameNumber;
-        videoPicture.width       = GetVideoWidth();
-        videoPicture.height      = GetVideoHeight();
+        videoPicture.packetNumber = packetNumber;
+        videoPicture.width        = GetVideoWidth();
+        videoPicture.height       = GetVideoHeight();
         return &videoPicture;
     }
     else return nullptr;
-}
-
-
-void cDecoder::SyncFramePacket() {
-    frameNumber = packetNumber - 1;                             // next decoded frame will be from this packet
-    if (forceInterlaced || IsInterlacedFrame()) frameNumber--;  // for interlaced video we need 2 packet to get a decoded frame
-    dsyslog("cDecoder::SyncFramePacket(): packet (%d): set frame (%d)", packetNumber, frameNumber);
 }
 
 
@@ -870,49 +861,7 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
         if (abortNow) return false;
         if (packetNumber >= seekPacketNumber) break;
     }
-    SyncFramePacket();
     dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d) successful", packetNumber, seekPacketNumber);
-    return true;
-}
-
-
-// seek to and decode video frame number <seekFrameNumber>
-bool cDecoder::SeekToFrame(int seekFrameNumber) {
-    if (!index) { // no possible without index
-        esyslog("cDecoder::SeekToFrame(): no index available");
-        return false;
-    }
-    // seek frame number is identical to current position
-    dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): seek to frame (%d)", packetNumber, frameNumber, seekFrameNumber);
-    if (seekFrameNumber == frameNumber) {
-        dsyslog("cDecoder::SeekToFrame(): seek frame number is identical to current position (%d)", frameNumber);
-        return true;
-    }
-    // seek backward is invalid
-    if (frameNumber > seekFrameNumber) {
-        esyslog("cDecoder::SeekToFrame(): frame (%d): can not seek backwards to (%d)", frameNumber, seekFrameNumber);
-        return false;
-    }
-
-    // seek to i-frame packet before
-    int seekPacket = index->GetIFrameBefore(seekFrameNumber - 1);  // if seekFrameNumber is i-frame we want i-frame before, we need some frames to preload
-    if (packetNumber < seekPacket) {    // prevent seek backward read position if frameNumber is near by target
-        if (!SeekToPacket(seekPacket)) {
-            esyslog("cDecoder::SeekToFrame(): seek to i-frame packet (%d) before seek frame (%d) failed", seekPacket, seekFrameNumber);
-            return false;
-        }
-    }
-    // fill decoder queue from i-frame before to startPos
-    while (true) {
-        if (abortNow) return false;
-        if (IsVideoPacket()) {
-            DecodePacket();  // ignore error
-            dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): preload decoder queue", packetNumber, frameNumber);
-            if (frameNumber >= seekFrameNumber) break;
-        }
-        if (!ReadNextPacket()) return false;
-    }
-    dsyslog("cDecoder::SeekToFrame(): packet (%d), frame (%d): successful", packetNumber, frameNumber);
     return true;
 }
 
@@ -977,10 +926,10 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
             avcodec_flush_buffers(codecCtxArray[avpkt.stream_index]);   // cleanup buffers after invalid packet
             break;
         case AVERROR(EIO):
-            dsyslog("cDecoderWER::SendPacketToDecoder():     packet (%5d): I/O error (EIO)", frameNumber);
+            dsyslog("cDecoderWER::SendPacketToDecoder():     packet (%5d): I/O error (EIO)", packetNumber);
             break;
         case AVERROR_EOF:
-            dsyslog("cDecoderWER::SendPacketToDecoder():     packet (%5d): end of file (AVERROR_EOF)", frameNumber);
+            dsyslog("cDecoderWER::SendPacketToDecoder():     packet (%5d): end of file (AVERROR_EOF)", packetNumber);
             break;
         case AAC_AC3_PARSE_ERROR_SYNC:
             dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC", packetNumber, avpkt.stream_index);
@@ -989,7 +938,7 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
             esyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avcodec_send_packet failed with rc=%d: %s", packetNumber, avpkt.stream_index, rc, av_err2str(rc));
             break;
         }
-        if ((frameNumber < 0)                                     &&  // we have no frame successful decoded
+        if ((!sendPacketOK)                                       &&  // we have no frame successful send to decoder
                 useHWaccel                                        &&  // we want to use hwaccel
                 IsVideoStream(avpkt.stream_index)                 &&  // is video stream
                 !codecCtxArray[avpkt.stream_index]->hw_frames_ctx &&  // failed to get hardware frame context
@@ -998,13 +947,7 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
             rc = ResetToSW();
         }
     }
-
-    // push current packet number and sum duration to ring buffer
-    if (!fullDecode && (rc == 0)) {
-        sPacketFrameMap nextPacketFrameMap;
-        nextPacketFrameMap.frameNumber = packetNumber;
-        packetFrameMap.push_back(nextPacketFrameMap);
-    }
+    if (rc == 0) sendPacketOK = true;
     return rc;
 }
 
@@ -1052,7 +995,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
         if (rc != 0) {
             char errTXT[64] = {0};
             av_strerror(rc, errTXT, sizeof(errTXT));
-            esyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%d), frame (%d), stream index %d: av_frame_get_buffer failed: %s", packetNumber, frameNumber, avpkt.stream_index, errTXT);
+            esyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%d), stream index %d: av_frame_get_buffer failed: %s", packetNumber, avpkt.stream_index, errTXT);
             av_frame_unref(&avFrame);
             Time(false);
             return AVERROR_EXIT;
@@ -1063,20 +1006,20 @@ int cDecoder::ReceiveFrameFromDecoder() {
         switch (rc) {
         case AVERROR(EAGAIN):   // frame not ready, expected with interlaced video
 #ifdef DEBUG_DECODER
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): avcodec_receive_frame error EAGAIN", frameNumber);
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): avcodec_receive_frame error EAGAIN", packetNumber);
 #endif
             break;
         case AVERROR(EINVAL):
-            esyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): avcodec_receive_frame error EINVAL", frameNumber);
+            esyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): avcodec_receive_frame error EINVAL", packetNumber);
             break;
         case -EIO:              // I/O error
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): I/O error (EIO)", frameNumber);
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): I/O error (EIO)", packetNumber);
             break;
         case AVERROR_EOF:       // end of file
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): end of file (AVERROR_EOF)", frameNumber);
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): end of file (AVERROR_EOF)", packetNumber);
             break;
         default:
-            esyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): avcodec_receive_frame decode failed with return code %d", frameNumber, rc);
+            esyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): avcodec_receive_frame decode failed with return code %d", packetNumber, rc);
             break;
         }
         av_frame_unref(&avFrame);
@@ -1094,10 +1037,10 @@ int cDecoder::ReceiveFrameFromDecoder() {
         if (rc < 0 ) {
             switch (rc) {
             case -EIO:        // end of file
-                dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d): I/O error (EIO)", frameNumber);
+                dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): I/O error (EIO)", packetNumber);
                 break;
             default:
-                esyslog("cDecoder::ReceiveFrameFromDecoder(): frame  (%5d), pict_type %d: av_hwframe_transfer_data rc = %d: %s", frameNumber, avFrame.pict_type, rc, av_err2str(rc));
+                esyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d), pict_type %d: av_hwframe_transfer_data rc = %d: %s", packetNumber, avFrame.pict_type, rc, av_err2str(rc));
                 break;
             }
             av_frame_unref(&swFrame);
@@ -1151,32 +1094,14 @@ int cDecoder::ReceiveFrameFromDecoder() {
 
 // check decoding error
     if (avFrame.decode_error_flags != 0) {
-        if (frameNumber > decodeErrorFrame) {  // only count new frames
-            decodeErrorFrame = frameNumber;
+        if (packetNumber > decodeErrorFrame) {  // only count new frames
+            decodeErrorFrame = packetNumber;
             decodeErrorCount++;
         }
-        dsyslog("cDecoder::ReceiveFrameFromDecoder(): frame (%d), stream %d: frame corrupt: decode_error_flags %d, decoding errors %d", frameNumber, avpkt.stream_index, avFrame.decode_error_flags, decodeErrorCount);
+        dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%d), stream %d: frame corrupt: decode_error_flags %d, decoding errors %d", packetNumber, avpkt.stream_index, avFrame.decode_error_flags, decodeErrorCount);
         av_frame_unref(&avFrame);
         avcodec_flush_buffers(codecCtxArray[avpkt.stream_index]);
-        SyncFramePacket();
         return -EAGAIN;   // no valid frame, try decode next
-    }
-
-// we got a video frame, set new frame number and offset from start adn build index
-    if (IsVideoFrame()) {
-        if (fullDecode) {
-            if ((GetVideoFrameRate() == 50) &&  // TV5 HD tells 25 frames per second and do not need to double frame number
-                    (forceInterlaced ||
-                     ((IsInterlacedFrame()) && (GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)))) frameNumber++;  // from decinterlacer we get only half of video frames
-            frameNumber++;
-        }
-        else {
-            if (!packetFrameMap.empty()) {
-                sPacketFrameMap nextPacketFrameMap = packetFrameMap.front();
-                frameNumber      = nextPacketFrameMap.frameNumber;
-                packetFrameMap.pop_front();
-            }
-        }
     }
     Time(false);
     // decoding successful, frame is valid
@@ -1315,11 +1240,6 @@ int cDecoder::GetPacketNumber() const {
 }
 
 
-int cDecoder::GetFrameNumber() const {
-    return frameNumber;
-}
-
-
 bool cDecoder::IsInterlacedFrame() const {
 #if LIBAVCODEC_VERSION_INT < ((60<<16)+(22<<8)+100)
     return avFrame.interlaced_frame;
@@ -1334,7 +1254,7 @@ sAspectRatio *cDecoder::GetFrameAspectRatio() {
     DAR.num = avFrame.sample_aspect_ratio.num;
     DAR.den = avFrame.sample_aspect_ratio.den;
     if ((DAR.num == 0) || (DAR.den == 0)) {
-        esyslog("cDecoder::GetFrameAspectRatio(): packet (%d), frame (%d): invalid aspect ratio (%d:%d)", packetNumber, frameNumber, DAR.num, DAR.den);
+        esyslog("cDecoder::GetFrameAspectRatio(): packet (%d): invalid aspect ratio (%d:%d)", packetNumber, DAR.num, DAR.den);
         if ((beforeDAR.num != 0) && (beforeDAR.den != 0)) {  // maybe packet error, use DAR from frame before
             return &beforeDAR;
         }
@@ -1348,7 +1268,7 @@ sAspectRatio *cDecoder::GetFrameAspectRatio() {
             DAR.den = 9;
         }
         else {
-            esyslog("cDecoder::GetFrameAspectRatio(): packet (%d), frame (%d): unknown aspect ratio to video width %d hight %d", packetNumber, frameNumber, avFrame.width, avFrame.height);
+            esyslog("cDecoder::GetFrameAspectRatio(): packet (%d): unknown aspect ratio to video width %d hight %d", packetNumber, avFrame.width, avFrame.height);
             return nullptr;
         }
     }
@@ -1384,7 +1304,7 @@ sAspectRatio *cDecoder::GetFrameAspectRatio() {
             DAR.den =  9;
         }
         else {
-            esyslog("cDecoder::GetFrameAspectRatio(): packet (%d), frame (%d): unknown aspect ratio (%d:%d)", packetNumber, frameNumber, DAR.num, DAR.den);
+            esyslog("cDecoder::GetFrameAspectRatio(): packet (%d): unknown aspect ratio (%d:%d)", packetNumber, DAR.num, DAR.den);
             return nullptr;
         }
     }

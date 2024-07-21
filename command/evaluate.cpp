@@ -699,9 +699,9 @@ int cDetectLogoStopStart::FindFrameFirstPixel(const uchar *picture, const int co
 
 #ifdef DEBUG_FRAME_DETECTION_PICTURE
     // save plane 0 of sobel transformation
-    if (decoder->GetFrameNumber() == DEBUG_FRAME_DETECTION_PICTURE) {
+    if (decoder->GetPacketNumber() == DEBUG_FRAME_DETECTION_PICTURE) {
         char *fileName = nullptr;
-        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_FindFrameFirstPixel.pgm", decoder->GetRecordingDir(), decoder->GetFrameNumber(), corner) >= 1) {
+        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_FindFrameFirstPixel.pgm", decoder->GetRecordingDir(), decoder->GetPacketNumber(), corner) >= 1) {
             ALLOC(strlen(fileName)+1, "fileName");
             sobel->SaveSobelPlane(fileName, picture, width, height);
             FREE(strlen(fileName)+1, "fileName");
@@ -712,7 +712,7 @@ int cDetectLogoStopStart::FindFrameFirstPixel(const uchar *picture, const int co
 
 #ifdef DEBUG_FRAME_DETECTION
     dsyslog("-----------------------------------------------------------------------------------------------------------------------------------------------");
-    dsyslog("cDetectLogoStopStart::FindFrameFirstPixel(): frame (%d) corner %d: start (%d,%d), direction (%d,%d): found (%d,%d)", decoder->GetFrameNumber(), corner, searchX, searchY, offsetX, offsetY, foundX, foundY);
+    dsyslog("cDetectLogoStopStart::FindFrameFirstPixel(): frame (%d) corner %d: start (%d,%d), direction (%d,%d): found (%d,%d)", decoder->GetPacketNumber(), corner, searchX, searchY, offsetX, offsetY, foundX, foundY);
 #endif
 
     // future search direction depends on corner
@@ -929,7 +929,7 @@ int cDetectLogoStopStart::DetectFrame(const uchar *picture, const int width, con
     } // case
 
 #ifdef DEBUG_FRAME_DETECTION
-    dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: portion %3d", decoder->GetFrameNumber(), corner, portion);
+    dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: portion %3d", decoder->GetPacketNumber(), corner, portion);
 #endif
 
     return portion;
@@ -1005,8 +1005,8 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         return false;
     }
     dsyslog("cDetectLogoStopStart::Detect(): detect from (%d) to (%d)", startFrame, endFrame);
-    if (!decoder->SeekToFrame(startFrame)) {
-        esyslog("cDetectLogoStopStart::Detect(): SeekToFrame (%d) failed", startFrame);
+    if (!decoder->SeekToPacket(startFrame)) {
+        esyslog("cDetectLogoStopStart::Detect(): SeekToPacket (%d) failed", startFrame);
         return false;
     }
 
@@ -1022,7 +1022,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         if (abortNow) return false;
 
         if (decoder->GetPacketNumber() >= endFrame) break;  // use packet number to prevent overlapping seek (before mark, after mark)
-        int frameNumber =  decoder->GetFrameNumber();
+        int frameNumber =  decoder->GetPacketNumber();
 
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) {

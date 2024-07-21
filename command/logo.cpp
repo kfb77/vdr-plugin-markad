@@ -1520,7 +1520,7 @@ int cExtractLogo::CountFrames() {
 bool cExtractLogo::WaitForFrames(cDecoder *decoder, const int minFrame = 0) {
     if (!decoder) return false;
 
-    if ((recordingFrameCount > (decoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
+    if ((recordingFrameCount > (decoder->GetPacketNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
 
 #define WAITTIME 60
     char *indexFile = nullptr;
@@ -1539,8 +1539,8 @@ bool cExtractLogo::WaitForFrames(cDecoder *decoder, const int minFrame = 0) {
             break;
         }
         recordingFrameCount = indexStatus.st_size / 8;
-        dsyslog("cExtractLogo::WaitForFrames(): frames recorded (%d) read frames (%d) minFrame (%d)", recordingFrameCount, decoder->GetFrameNumber(), minFrame);
-        if ((recordingFrameCount > (decoder->GetFrameNumber() + 200)) && (recordingFrameCount > minFrame)) {
+        dsyslog("cExtractLogo::WaitForFrames(): frames recorded (%d) read frames (%d) minFrame (%d)", recordingFrameCount, decoder->GetPacketNumber(), minFrame);
+        if ((recordingFrameCount > (decoder->GetPacketNumber() + 200)) && (recordingFrameCount > minFrame)) {
             ret = true;  // recording has enough frames
             break;
         }
@@ -1551,7 +1551,7 @@ bool cExtractLogo::WaitForFrames(cDecoder *decoder, const int minFrame = 0) {
         strftime(indexTime, sizeof(indexTime), "%d-%m-%Y %H:%M:%S", localtime(&indexStatus.st_mtime));
         dsyslog("cExtractLogo::WaitForFrames(): index file size %" PRId64 " bytes, system time %s index time %s, wait %ds", indexStatus.st_size, systemTime, indexTime, WAITTIME);
         if ((difftime(now, indexStatus.st_mtime)) >= 2 * WAITTIME) {
-            dsyslog("cExtractLogo::WaitForFrames(): index not growing at frame (%d), old or interrupted recording", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::WaitForFrames(): index not growing at frame (%d), old or interrupted recording", decoder->GetPacketNumber());
             ret = false;
             break;
         }
@@ -1681,24 +1681,24 @@ int cExtractLogo::AudioInBroadcast() {
     // AudioState 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
     if (decoder->GetAC3ChannelCount() > 2) {
         if (audioState == 1) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 6 channel at frame (%d)", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 6 channel at frame (%d)", decoder->GetPacketNumber());
             audioState = 2;
             return audioState;
         }
         if (audioState == 3) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): 6 channel start at frame (%d)", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::AudioInBroadcast(): 6 channel start at frame (%d)", decoder->GetPacketNumber());
             audioState = 2;
             return audioState;
         }
     }
     else {
         if (audioState == 0) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 2 channel at frame (%d)", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::AudioInBroadcast(): got first time 2 channel at frame (%d)", decoder->GetPacketNumber());
             audioState = 1;
             return audioState;
         }
         if (audioState == 2) {
-            dsyslog("cExtractLogo::AudioInBroadcast(): 2 channel start at frame (%d)", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::AudioInBroadcast(): 2 channel start at frame (%d)", decoder->GetPacketNumber());
             audioState = 3;
             return audioState;
         }
@@ -1716,7 +1716,7 @@ void cExtractLogo::ManuallyExtractLogo(const int corner, const int width, const 
 
     while (decoder->DecodeNextFrame(false)) {
         if (abortNow) return;
-        int frameNumber = decoder->GetFrameNumber();
+        int frameNumber = decoder->GetPacketNumber();
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (picture) {
             // logo name
@@ -1786,7 +1786,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
     if (lastFrame > startPacket) startPacket = lastFrame;
 
     // seek to start position
-    int frameNumber = decoder->GetFrameNumber();
+    int frameNumber = decoder->GetPacketNumber();
     if (frameNumber < startPacket) {
         dsyslog("cExtractLogo::SearchLogo(): frame (%d): seek to packet (%d)", frameNumber, startPacket);
         if (!WaitForFrames(decoder, startPacket)) {
@@ -1809,8 +1809,8 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
             dsyslog("cExtractLogo::SearchLogo(): no aspect ratio requested, set to aspect ratio of current video position %d:%d", logoAspectRatio.num, logoAspectRatio.den);
         }
         else {
-            dsyslog("cExtractLogo::SearchLogo(): frame (%d): no valid aspect ratio in current frame", decoder->GetFrameNumber());
-            return decoder->GetFrameNumber() + 1;   // allow retry with frame after
+            dsyslog("cExtractLogo::SearchLogo(): frame (%d): no valid aspect ratio in current frame", decoder->GetPacketNumber());
+            return decoder->GetPacketNumber() + 1;   // allow retry with frame after
         }
     }
 
@@ -1819,10 +1819,10 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         if (abortNow) return LOGO_ERROR;
 
         if (!WaitForFrames(decoder)) {
-            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", decoder->GetFrameNumber(), iFrameCountValid, iFrameCountAll);
+            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", decoder->GetPacketNumber(), iFrameCountValid, iFrameCountAll);
             break;
         }
-        frameNumber = decoder->GetFrameNumber();
+        frameNumber = decoder->GetPacketNumber();
 
         iFrameCountAll++;
 
@@ -1844,7 +1844,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         // get next video picture
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) {
-            dsyslog("cExtractLogo::SearchLogo(): frame (%d): failed to get video data", decoder->GetFrameNumber());
+            dsyslog("cExtractLogo::SearchLogo(): frame (%d): failed to get video data", decoder->GetPacketNumber());
             continue;
         }
 
@@ -1965,7 +1965,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
 
     bool doSearch = false;
     if (iFrameCountAll > MAXREADFRAMES) {
-        dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, decoder->GetFrameNumber());
+        dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, decoder->GetPacketNumber());
         doSearch = true;
     }
     else if ((iFrameCountAll < MAXREADFRAMES) && ((iFrameCountAll > MAXREADFRAMES / 2) || (iFrameCountValid > 390))) {

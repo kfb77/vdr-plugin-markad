@@ -294,7 +294,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     int brightnessLogo = sumPixel / ((logo_yend - logo_ystart + 1) * (logo_xend - logo_xstart + 1));
     int contrastLogo = maxPixel - minPixel;
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area before reduction: contrast %3d, brightness %3d", decoder->GetFrameNumber(), contrastLogo, brightnessLogo);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area before reduction: contrast %3d, brightness %3d", decoder->GetPacketNumber(), contrastLogo, brightnessLogo);
 #endif
 
 // check if contrast and brightness is valid
@@ -307,7 +307,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     // contrast 200, brightness  85
     if ((contrastLogo > 202) && (brightnessLogo < 85)) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): very high contrast with not very high brightness in logo area, trust detection", decoder->GetFrameNumber());
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): very high contrast with not very high brightness in logo area, trust detection", decoder->GetPacketNumber());
 #endif
         return true; // if the is a logo should had detected it
     }
@@ -375,7 +375,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
             ((contrastLogo  > 180) && (contrastLogo <= 194) && (brightnessLogo > 120)) ||
             ((contrastLogo  > 194) &&                          (brightnessLogo > 104))) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): contrast/brightness in logo area is invalid for brightness reduction", decoder->GetFrameNumber());
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): contrast/brightness in logo area is invalid for brightness reduction", decoder->GetPacketNumber());
 #endif
         return false; //  nothing we can work with
     }
@@ -411,11 +411,11 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     int brightnessReduced = sumPixel / ((logo_yend - logo_ystart + 1) * (logo_xend - logo_xstart + 1));
 
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area after  reduction: contrast %3d, brightness %3d", decoder->GetFrameNumber(), contrastReduced, brightnessReduced);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area after  reduction: contrast %3d, brightness %3d", decoder->GetPacketNumber(), contrastReduced, brightnessReduced);
 #endif
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-    int frameNumber = decoder->GetFrameNumber();
+    int frameNumber = decoder->GetPacketNumber();
     if ((frameNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (frameNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
         // save corrected full picture
         char *fileName = nullptr;
@@ -431,7 +431,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
 // if we have a comple white picture after brightness reduction, we can not decide if there is a logo or not
     if ((contrastReduced == 0) && (brightnessReduced == 255)) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): detection impossible on white picture", decoder->GetFrameNumber());
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): detection impossible on white picture", decoder->GetPacketNumber());
 #endif
         return false;
     }
@@ -452,7 +452,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     char detectStatus[] = "o";
     if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
     if (rPixel <= *logo_imark) strcpy(detectStatus, "-");
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", decoder->GetFrameNumber(), rPixel, iPixel, mPixel, logo_vmark, *logo_imark, area.intensity, area.counter, area.status, 1, detectStatus);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", decoder->GetPacketNumber(), rPixel, iPixel, mPixel, logo_vmark, *logo_imark, area.intensity, area.counter, area.status, 1, detectStatus);
 #endif
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
@@ -483,7 +483,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     int quoteInverse  = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);  // quote of pixel from background
     int rPixelWithout = rPixel * (100 - quoteInverse) / 100;
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", decoder->GetFrameNumber(), rPixel, quoteInverse, rPixelWithout);
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", decoder->GetPacketNumber(), rPixel, quoteInverse, rPixelWithout);
 #endif
     // now use this result for further detection
     rPixel         = rPixelWithout;
@@ -492,7 +492,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     // now we trust logo visible
     if (rPixel >= logo_vmark) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): valid logo visible after brightness reducation", decoder->GetFrameNumber());
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): valid logo visible after brightness reducation", decoder->GetPacketNumber());
 #endif
         return true;  // we have a clear result
     }
@@ -500,7 +500,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     // ignore matches on still bright picture
     if ((area.intensity > 160) && (rPixel >= *logo_imark / 5)) { // still too bright, trust only very low matches
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area still too bright", decoder->GetFrameNumber());
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area still too bright", decoder->GetPacketNumber());
 #endif
         return false;
     }
@@ -508,14 +508,14 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     // now we trust logo invisible
     if (rPixel <= *logo_imark) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): valid logo invisible after brightness reducation", decoder->GetFrameNumber());
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): valid logo invisible after brightness reducation", decoder->GetPacketNumber());
 #endif
         return true;  // we have a clear result
     }
 
     // still no clear result
 #ifdef DEBUG_LOGO_DETECTION
-    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d) no valid result after brightness reducation", decoder->GetFrameNumber());
+    dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d) no valid result after brightness reducation", decoder->GetPacketNumber());
 #endif
     return false;
 }
@@ -567,13 +567,13 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
     int logo_vmarkColour = LOGO_VMARK * mPixelColour;
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-    dsyslog("cLogoDetect::LogoColourChange(): frame (%6d): maybe colour change, try plane 1 and plan 2", decoder->GetFrameNumber());
+    dsyslog("cLogoDetect::LogoColourChange(): frame (%6d): maybe colour change, try plane 1 and plan 2", decoder->GetPacketNumber());
     int logo_imarkColour = LOGO_IMARK * mPixelColour;
     for (int plane = 0; plane < PLANES; plane++) {
         // reset all planes
-        if ((decoder->GetFrameNumber() > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (decoder->GetFrameNumber() < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+        if ((decoder->GetPacketNumber() > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (decoder->GetPacketNumber() < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
             char *fileName = nullptr;
-            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_ColourChange.pgm", recDir, decoder->GetFrameNumber(), plane, area.logoCorner) >= 1) {
+            if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_ColourChange.pgm", recDir, decoder->GetPacketNumber(), plane, area.logoCorner) >= 1) {
                 ALLOC(strlen(fileName) + 1, "fileName");
                 if (plane == 0) sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width, area.logoSize.height);
                 else sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width / 2, area.logoSize.height / 2);
@@ -586,12 +586,12 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
     char detectStatus[] = "o";
     if (rPixelColour >= logo_vmarkColour) strcpy(detectStatus, "+");
     if (rPixelColour <= logo_imarkColour) strcpy(detectStatus, "-");
-    dsyslog("cLogoDetect::LogoColourChange    frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", decoder->GetFrameNumber(), rPixelColour, iPixelColour, mPixelColour, logo_vmarkColour, logo_imarkColour, area.intensity, area.counter, area.status, 2, detectStatus);
+    dsyslog("cLogoDetect::LogoColourChange    frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", decoder->GetPacketNumber(), rPixelColour, iPixelColour, mPixelColour, logo_vmarkColour, logo_imarkColour, area.intensity, area.counter, area.status, 2, detectStatus);
 #endif
 
     if (rPixelColour >= logo_vmarkColour) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::LogoColourChange:   frame (%6d): logo visible in plane 1 and plane 2", decoder->GetFrameNumber());
+        dsyslog("cLogoDetect::LogoColourChange:   frame (%6d): logo visible in plane 1 and plane 2", decoder->GetPacketNumber());
 #endif
         *rPixel = logo_vmark;   // change result to logo visible
         return true;           // we found colored logo
@@ -607,7 +607,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
     int processed    =  0;
     *logoFrameNumber = -1;
 
-    int frameNumber = decoder->GetFrameNumber();
+    int frameNumber = decoder->GetPacketNumber();
 
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
@@ -645,25 +645,25 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
                     height /= 2;
                 }
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0_sobel.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_0_sobel.pgm", recDir, picture->packetNumber, plane, area.logoCorner) >= 1) {
                     ALLOC(strlen(fileName) + 1, "fileName");
                     sobel->SaveSobelPlane(fileName, area.sobel[plane], width, height);
                     FREE(strlen(fileName) + 1, "fileName");
                     free(fileName);
                 }
-                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1_logo.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_1_logo.pgm", recDir, picture->packetNumber, plane, area.logoCorner) >= 1) {
                     ALLOC(strlen(fileName) + 1, "fileName");
                     sobel->SaveSobelPlane(fileName, area.logo[plane], width, height);
                     FREE(strlen(fileName) + 1, "fileName");
                     free(fileName);
                 }
-                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2_result.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_2_result.pgm", recDir, picture->packetNumber, plane, area.logoCorner) >= 1) {
                     ALLOC(strlen(fileName) + 1, "fileName");
                     sobel->SaveSobelPlane(fileName, area.result[plane], width, height);
                     FREE(strlen(fileName) + 1, "fileName");
                     free(fileName);
                 }
-                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_3_inverse.pgm", recDir, picture->frameNumber, plane, area.logoCorner) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d-P%d-C%1d_3_inverse.pgm", recDir, picture->packetNumber, plane, area.logoCorner) >= 1) {
                     ALLOC(strlen(fileName) + 1, "fileName");
                     sobel->SaveSobelPlane(fileName, area.inverse[plane], width, height);
                     FREE(strlen(fileName) + 1, "fileName");
@@ -922,7 +922,7 @@ bool cLogoDetect::ChangeLogoAspectRatio(sAspectRatio *aspectRatio) {
     dsyslog("cLogoDetect::ChangeLogoAspectRatio(): no logo found in recording directory or logo cache, try to extract from recording");
     cExtractLogo *extractLogo = new cExtractLogo(recDir, criteria->GetChannelName(), decoder->GetThreads(), decoder->GetHWaccel(), decoder->GetForceHWaccel(), *aspectRatio);
     ALLOC(sizeof(*extractLogo), "extractLogo");
-    int endPos = extractLogo->SearchLogo(decoder->GetFrameNumber(), true);
+    int endPos = extractLogo->SearchLogo(decoder->GetPacketNumber(), true);
     for (int retry = 1; retry <= 5; retry++) {           // if aspect ratio from info file is wrong, we need a new full search cycle at recording start
         if (endPos == 0) break;                          // logo found
         endPos += 60 * decoder->GetVideoFrameRate();     // try one minute later
@@ -936,7 +936,7 @@ bool cLogoDetect::ChangeLogoAspectRatio(sAspectRatio *aspectRatio) {
 
 
 int cLogoDetect::Process(int *logoFrameNumber) {
-    int frameNumber = decoder->GetFrameNumber();
+    int frameNumber = decoder->GetPacketNumber();
     sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
     if (area.logoAspectRatio != *aspectRatio) {
         dsyslog("cLogoDetect::Process(): frame (%d): aspect ratio changed from %d:%d to %d:%d, reload logo", frameNumber, area.logoAspectRatio.num, area.logoAspectRatio.den, aspectRatio->num, aspectRatio->den);
@@ -983,7 +983,7 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
         dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
         return VBORDER_ERROR;
     }
-    int frameNumber = decoder->GetFrameNumber();
+    int frameNumber = decoder->GetPacketNumber();
 
     // get simple histogramm from current frame
     int *currentHistogram = nullptr;
@@ -1296,20 +1296,20 @@ int cHorizBorderDetect::Process(int *borderFrame) {
     else valTop = NO_HBORDER;   // we have no botton border, so we do not have to calculate top border
 
 #ifdef DEBUG_HBORDER
-    dsyslog("cHorizBorderDetect::Process(): frame (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", FrameNumber, valTop, valBottom, brightnessSure, brightnessMaybe);
+    dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", picture->packetNumber, valTop, valBottom, brightnessSure, brightnessMaybe);
 #endif
 
     if ((valTop <= brightnessMaybe) && (valBottom <= brightnessSure) || (valTop <= brightnessSure) && (valBottom <= brightnessMaybe)) {
         // hborder detected
 #ifdef DEBUG_HBORDER
-        int duration = (FrameNumber - borderframenumber) / decoder->GetVideoFrameRate();
-        dsyslog("cHorizBorderDetect::Process(): frame (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d), duration %ds", picture->frameNumber, borderstatus, borderframenumber, duration);
+        int duration = (picture->frameNumber - borderframenumber) / decoder->GetVideoFrameRate();
+        dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d), duration %ds", picture->packetNumber, borderstatus, borderframenumber, duration);
 #endif
         if (borderframenumber == -1) {  // got first frame with hborder
-            borderframenumber = picture->frameNumber;
+            borderframenumber =picture->packetNumber;
         }
         if (borderstatus != HBORDER_VISIBLE) {
-            if (picture->frameNumber > (borderframenumber + frameRate * MIN_H_BORDER_SECS)) {
+            if (picture->packetNumber > (borderframenumber + frameRate * MIN_H_BORDER_SECS)) {
                 switch (borderstatus) {
                 case HBORDER_UNINITIALIZED:
                     *borderFrame = 0;  // report back a border change after recording start
@@ -1327,7 +1327,7 @@ int cHorizBorderDetect::Process(int *borderFrame) {
     else {
         // no hborder detected
 #ifdef DEBUG_HBORDER
-        dsyslog("cHorizBorderDetect::Process(): frame (%7d) hborder ------: borderstatus %d, borderframenumber (%d)", picture->frameNumber, borderstatus, borderframenumber);
+        dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ------: borderstatus %d, borderframenumber (%d)", picture->packetNumber, borderstatus, borderframenumber);
 #endif
         if (borderstatus != HBORDER_INVISIBLE) {
             if ((borderstatus == HBORDER_UNINITIALIZED) || (borderstatus == HBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
@@ -1337,7 +1337,7 @@ int cHorizBorderDetect::Process(int *borderFrame) {
         borderframenumber = -1; // restart from scratch
     }
 #ifdef DEBUG_HBORDER
-    dsyslog("cHorizBorderDetect::Process(): frame (%7d) hborder return: borderstatus %d, borderframenumber (%d), borderFrame (%d)", FrameNumber, borderstatus, borderframenumber, *borderFrame);
+    dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder return: borderstatus %d, borderframenumber (%d), borderFrame (%d)", picture->packetNumber, borderstatus, borderframenumber, *borderFrame);
 #endif
     return borderstatus;
 }
@@ -1462,25 +1462,25 @@ int cVertBorderDetect::Process(int *borderFrame) {
 #endif
             }
             if (brightness < BRIGHTNESS_MIN) {
-                darkFrameNumber = std::min(darkFrameNumber, picture->frameNumber);  // set to first frame with vborder
+                darkFrameNumber = std::min(darkFrameNumber, picture->packetNumber);  // set to first packet with vborder
 #ifdef DEBUG_VBORDER
                 minBrightness = std::min(brightness, minBrightness);
                 maxBrightness = std::max(brightness, maxBrightness);
-                dsyslog("cVertBorderDetect::Process(): frame (%7d) has a dark picture: %d, delay vborder start at (%7d), minBrightness %d, maxBrightness %d", picture->frameNumber, brightness, darkFrameNumber, minBrightness, maxBrightness);
+                dsyslog("cVertBorderDetect::Process(): packet (%7d) has a dark picture: %d, delay vborder start at (%7d), minBrightness %d, maxBrightness %d", picture->packetNumber, brightness, darkFrameNumber, minBrightness, maxBrightness);
 #endif
             }
             else {
-                borderframenumber = std::min(picture->frameNumber, darkFrameNumber);      // use first vborder
+                borderframenumber = std::min(picture->packetNumber, darkFrameNumber);      // use first vborder
 #ifdef DEBUG_VBORDER
                 minBrightness = INT_MAX;
                 maxBrightness = 0;
-                dsyslog("cVertBorderDetect::Process(): frame (%7d) has a bright picture %d, accept vborder start at (%7d)", picture->frameNumber, brightness, borderframenumber);
+                dsyslog("cVertBorderDetect::Process(): packet (%7d) has a bright picture %d, accept vborder start at (%7d)", picture->packetNumber, brightness, borderframenumber);
 #endif
                 darkFrameNumber = INT_MAX;
             }
         }
         if (borderstatus != VBORDER_VISIBLE) {
-            if ((borderframenumber >= 0) && (picture->frameNumber > (borderframenumber + frameRate * MIN_V_BORDER_SECS))) {
+            if ((borderframenumber >= 0) && (picture->packetNumber > (borderframenumber + frameRate * MIN_V_BORDER_SECS))) {
                 switch (borderstatus) {
                 case VBORDER_UNINITIALIZED:
                     *borderFrame = 0;
@@ -1503,7 +1503,7 @@ int cVertBorderDetect::Process(int *borderFrame) {
         // no vborder detected
         if (borderstatus != VBORDER_INVISIBLE) {
             if ((borderstatus == VBORDER_UNINITIALIZED) || (borderstatus == VBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change, only set internal state
-            else *borderFrame = picture->frameNumber;
+            else *borderFrame = picture->packetNumber;
             borderstatus = VBORDER_INVISIBLE; // detected stop of black border
         }
         borderframenumber = -1; // restart from scratch
@@ -1621,7 +1621,7 @@ void cVideo::SetAspectRatioBroadcast(sAspectRatio aspectRatio) {
 
 
 sMarkAdMarks *cVideo::Process() {
-    int frameNumber = decoder->GetFrameNumber();
+    int frameNumber = decoder->GetPacketNumber();
     videoMarks = {};   // reset array of new marks
 
     // scene change detection

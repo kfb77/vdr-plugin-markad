@@ -75,7 +75,7 @@ int cTest::PerfDecoder(const int testFrames, const int threads, char *hwaccel) c
     cDecoder *decoder = new cDecoder(recDir, threads, fullDecode, hwaccel, true, false, nullptr);  // recording directory, threads, full decode, hwaccel methode, force hwaccel, interlaced, index
     while (decoder->DecodeNextFrame(false)) {  // no audio decode
         if (abortNow) return -1;
-        if (decoder->GetFrameNumber() >= testFrames) break;
+        if (decoder->GetPacketNumber() >= testFrames) break;
     }
     delete decoder;
 

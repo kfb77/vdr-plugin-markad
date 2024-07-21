@@ -144,7 +144,7 @@ typedef struct sVideoPicture {
     //!<
     int planeLineSize[PLANES] = {0};        //!< size int bytes of each picture plane line
     //!<
-    int frameNumber           = -1;         //!< frame number of picture, -1 for invalid
+    int packetNumber           = -1;        //!< packet number of picture, -1 for invalid
     //!<
     int width                 = 0;          //!< video width
     //!<

@@ -252,13 +252,6 @@ public:
     bool SeekToPacket(int seekPacketNumber);
 
     /**
-    * seek read position to frame number and decode video frame
-    * @param seekFrameNumber frame number to seek and decode
-    * @return                true if successful, false otherwise
-    */
-    bool SeekToFrame(int seekFrameNumber);
-
-    /**
      * send packet to decoder
      * @return return code from avcodec_send_packet
      */
@@ -356,11 +349,6 @@ public:
      */
     int GetPacketNumber() const;
 
-    /** get current decoded video frame number
-     * @return current decoded frame number
-     */
-    int GetFrameNumber() const;
-
     /**
      * check if video stream is interlaced
      * @return true if video stream is interlaced, false otherwise
@@ -396,13 +384,6 @@ private:
      */
     void Time(bool start);
 
-    /** structure used to map packet number to frame number
-     */
-    typedef struct sPacketFrameMap {
-        int frameNumber                = 0;  //!< frame number
-        //!<
-    } sPacketFrameMap;
-
     /**
      * reset decoder
      */
@@ -414,11 +395,6 @@ private:
      */
     int ResetToSW();
 
-    /**
-     * sync frame number with packet number after seek or decoding error
-     */
-    void SyncFramePacket();
-
     char *recordingDir                 = nullptr;                 //!< name of recording directory
     //!<
     cIndex *index                      = nullptr;                 //!< recording index
@@ -428,6 +404,8 @@ private:
     bool fullDecode                    = false;                   //!< false if we decode only i-frames, true if we decode all frames
     //!<
     char *hwaccel                      = nullptr;                 //!< hardware accelerated methode
+    //!<
+    bool sendPacketOK                  = false;                   //!< true if at least one packet was successful send to decoder
     //!<
     bool forceInterlaced               = false;                   //!< inform decoder used hwaccel this video is interlaced
     //!<
@@ -464,15 +442,11 @@ private:
     //!<
     int packetNumber                   = -1;                      //!< current read video packet number
     //!<
-    int frameNumber                    = -1;                      //!< current decoded video frame number
-    //!<
     int videoWidth                     = 0;                       //!< video width
     //!<
     int videoHeight                    = 0;                       //!< video height
     //!<
     bool eof                           = false;                   //!< true if end of all ts files reached
-    //!<
-    std::deque<sPacketFrameMap> packetFrameMap;                   //!< ring buffer to map frameNumer to packetNumber without full decoding
     //!<
     int decoderSendState               = 0;                       //!< last return code of SendPacketToDecoder()
     //!<

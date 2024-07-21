@@ -120,7 +120,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
 
     // check if search range is possible
     if (decoder->GetPacketNumber() > fRangeBegin) {
-        dsyslog("cOverlap::ProcessMarksOverlap(): current framenumber (%d) greater then start frame (%d), set start to current frame", decoder->GetFrameNumber(), fRangeBegin);
+        dsyslog("cOverlap::ProcessMarksOverlap(): current framenumber (%d) greater then start frame (%d), set start to current frame", decoder->GetPacketNumber(), fRangeBegin);
         fRangeBegin =  decoder->GetPacketNumber();
     }
 
@@ -134,9 +134,9 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
     }
     dsyslog("cOverlap::ProcessMarksOverlap(): preload from frame       (%5d) to (%5d)", fRangeBegin, (*mark1)->position);
     dsyslog("cOverlap::ProcessMarksOverlap(): compare with frames from (%5d) to (%5d)", (*mark2)->position, fRangeEnd);
-    if (decoder->GetFrameNumber() > fRangeBegin) {
-        dsyslog("cOverlap::ProcessMarksOverlap(): current framenumber (%d) greater then start frame (%d), set start to current frame", decoder->GetFrameNumber(), fRangeBegin);
-        fRangeBegin =  decoder->GetFrameNumber();
+    if (decoder->GetPacketNumber() > fRangeBegin) {
+        dsyslog("cOverlap::ProcessMarksOverlap(): current framenumber (%d) greater then start frame (%d), set start to current frame", decoder->GetPacketNumber(), fRangeBegin);
+        fRangeBegin =  decoder->GetPacketNumber();
     }
 
     // seek to start frame
@@ -157,7 +157,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
 
 
     // preload frames before stop mark
-    while (decoder->DecodeNextFrame(false) && (decoder->GetFrameNumber() <= (*mark1)->position)) {  // no audio
+    while (decoder->DecodeNextFrame(false) && (decoder->GetPacketNumber() <= (*mark1)->position)) {  // no audio
         if (abortNow) return false;
 
 #ifdef DEBUG_OVERLAP
@@ -165,12 +165,12 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
 #endif
 
 #ifdef DEBUG_OVERLAP_FRAME_RANGE
-        if ((decoder->GetFrameNumber() > (DEBUG_OVERLAP_FRAME_BEFORE - DEBUG_OVERLAP_FRAME_RANGE)) &&
-                (decoder->GetFrameNumber() < (DEBUG_OVERLAP_FRAME_BEFORE + DEBUG_OVERLAP_FRAME_RANGE))) SaveFrame(decoder->GetFrameNumber(), nullptr, nullptr);
+        if ((decoder->GetPacketNumber() > (DEBUG_OVERLAP_FRAME_BEFORE - DEBUG_OVERLAP_FRAME_RANGE)) &&
+                (decoder->GetPacketNumber() < (DEBUG_OVERLAP_FRAME_BEFORE + DEBUG_OVERLAP_FRAME_RANGE))) SaveFrame(decoder->GetPacketNumber(), nullptr, nullptr);
 #endif
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) continue;
-        overlapAroundAd->Process(picture, &overlapPos, decoder->GetFrameNumber(), frameCount, true, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
+        overlapAroundAd->Process(picture, &overlapPos, decoder->GetPacketNumber(), frameCount, true, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
     }
 
     // seek to iFrame before start mark
@@ -179,7 +179,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
         dsyslog("cOverlap::ProcessMarksOverlap(): GetIFrameBefore failed for frame (%d)", fRangeBegin);
         return false;
     }
-    if (fRangeBegin <  decoder->GetFrameNumber()) fRangeBegin = decoder->GetFrameNumber(); // on very short stop/start pairs we have no room to go before start mark
+    if (fRangeBegin <  decoder->GetPacketNumber()) fRangeBegin = decoder->GetPacketNumber(); // on very short stop/start pairs we have no room to go before start mark
     indexToHMSF = marks->IndexToHMSF(fRangeBegin, false);
     if (indexToHMSF) {
         ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
@@ -201,7 +201,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
     dsyslog("cOverlap::ProcessMarksOverlap(): %d frames to preload between start mark (%d) and  end of check (%d)", frameCount, (*mark2)->position, fRangeEnd);
 
     // process frames after start mark and detect overlap
-    while (decoder->DecodeNextFrame(false) && (decoder->GetFrameNumber() <= fRangeEnd)) {
+    while (decoder->DecodeNextFrame(false) && (decoder->GetPacketNumber() <= fRangeEnd)) {
         if (abortNow) return false;
 
 #ifdef DEBUG_OVERLAP
@@ -209,13 +209,13 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
 #endif
 
 #ifdef DEBUG_OVERLAP_FRAME_RANGE
-        if ((decoder->GetFrameNumber() > (DEBUG_OVERLAP_FRAME_AFTER - DEBUG_OVERLAP_FRAME_RANGE)) &&
-                (decoder->GetFrameNumber() < (DEBUG_OVERLAP_FRAME_AFTER + DEBUG_OVERLAP_FRAME_RANGE))) SaveFrame(decoder->GetFrameNumber(), nullptr, nullptr);
+        if ((decoder->GetPacketNumber() > (DEBUG_OVERLAP_FRAME_AFTER - DEBUG_OVERLAP_FRAME_RANGE)) &&
+                (decoder->GetPacketNumber() < (DEBUG_OVERLAP_FRAME_AFTER + DEBUG_OVERLAP_FRAME_RANGE))) SaveFrame(decoder->GetPacketNumber(), nullptr, nullptr);
 #endif
 
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) continue;
-        overlapAroundAd->Process(picture, &overlapPos, decoder->GetFrameNumber(), frameCount, false, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
+        overlapAroundAd->Process(picture, &overlapPos, decoder->GetPacketNumber(), frameCount, false, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
 
         if (overlapPos.similarAfterEnd >= 0) {
             // found overlap
