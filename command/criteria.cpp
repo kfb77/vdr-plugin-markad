@@ -147,7 +147,7 @@ bool cCriteria::IsInfoLogoChannel() {
     if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD | IGNORE_COUNTRY)) return true;   // only for info (e.g. Teletext)
     if (CompareChannelName(channelName, "SIXX",            IGNORE_HD | IGNORE_COUNTRY)) return true;
     if (CompareChannelName(channelName, "SAT_1",           IGNORE_HD | IGNORE_COUNTRY)) return true;
-    if (CompareChannelName(channelName, "WELT",            IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "WELT",            IGNORE_HD))                  return true;
     if (CompareChannelName(channelName, "RTL2",            IGNORE_HD | IGNORE_COUNTRY)) return true;
     return false;
 }
