@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-07-26: Version 4.0.3
+- FFmpeg <= 4.3.7 does not support multithreading hwaccel, disable it
+- fix reset to software decoder if codec or pixel format is not supported by hardware
+- disable VPS configuration if markad runs during recording
+- some minor bug fixes and optimizations, see git
+
 2024-07-21: Version 4.0.2
 - allow H.264 progressive without full decode
 - fix decoding of H.264 interlaced video with 25 frames per second
