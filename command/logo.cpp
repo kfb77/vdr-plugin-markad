@@ -663,7 +663,10 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
 
         // ONE_HD                  16:9 1280W  720H:->  232W  80H TOP_RIGHT
         if (CompareChannelName(channelName, "ONE_HD", IGNORE_NOTHING)) {
-            logo.widthMin =  232;
+            logo.widthMin  = 222;
+            logo.widthMax  = 242;
+            logo.heightMin =  70;
+            logo.heightMax =  90;
         }
 
         // ORF2W_HD                16:9 1280W  720H:->  198W  80H TOP_RIGHT
@@ -685,17 +688,27 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax =  179;
         }
 
+        //  SRF_zwei_HD             16:9 1280W  720H:->  172W  66H TOP_RIGHT
+        if (CompareChannelName(channelName, "SRF_zwei_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 162;
+            logo.widthMax  = 182;
+            logo.heightMin =  56;
+            logo.heightMax =  76;
+        }
+
         if (CompareChannelName(channelName, "WDR_HD", IGNORE_CITY)) {         // WDR_HD_Köln             16:9 1280W  720H:->  224W  80H TOP_RIGHT
             logo.heightMax =  80;
         }
 
-        // ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
-        // ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
-        // ZDF_HD                  16:9 1280W  720H:->  188W  94H TOP_LEFT
-        // ZDF_HD                  16:9 1280W  720H:->  188W  96H TOP_LEFT
+        //   1 ZDF_HD                  16:9 1280W  720H:->  146W  96H TOP_LEFT    -> logo without HD
+        //   1 ZDF_HD                  16:9 1280W  720H:->  186W  84H TOP_LEFT
+        //  11 ZDF_HD                  16:9 1280W  720H:->  186W  94H TOP_LEFT
+        //  34 ZDF_HD                  16:9 1280W  720H:->  186W  96H TOP_LEFT
+        //   8 ZDF_HD                  16:9 1280W  720H:->  188W  94H TOP_LEFT
+        // 155 ZDF_HD                  16:9 1280W  720H:->  188W  96H TOP_LEFT
         if (CompareChannelName(channelName, "ZDF_HD", IGNORE_NOTHING)) {
-            logo.widthMin  = 176;
-            logo.widthMax  = 196;
+            logo.widthMin  = 136;
+            logo.widthMax  = 198;
             logo.heightMin =  84;
             logo.heightMax = 106;
         }
@@ -774,6 +787,15 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax  = 438;
             logo.heightMin =  86;
             logo.heightMax = 106;
+        }
+
+        // n-tv_HD                 16:9 1920W 1080H:->  406W 110H BOTTOM_RIGHT
+        if (CompareChannelName(channelName, "n-tv_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 396;
+            logo.widthMax  = 416;
+            logo.heightMin = 100;
+            logo.heightMax = 120;
+            logo.corner    = BOTTOM_RIGHT;
         }
 
         // RTL_HD                  16:9 1920W 1080H:->  332W 110H TOP_LEFT
