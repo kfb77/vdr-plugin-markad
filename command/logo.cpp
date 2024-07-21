@@ -1330,7 +1330,7 @@ int cExtractLogo::Compare(sLogoInfo *actLogoInfo, const int logoHeight, const in
     int hits = 0;
 
     for (std::vector<sLogoInfo>::iterator actLogo = logoInfoVector[corner].begin(); actLogo != logoInfoVector[corner].end(); ++actLogo) {
-        if (criteria->LogoRotating()) {
+        if (criteria->IsLogoRotating()) {
             if (CompareLogoPairRotating(&(*actLogo), actLogoInfo, logoHeight, logoWidth, corner)) {
                 hits++;
                 actLogo->hits++;
@@ -1961,6 +1961,13 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES)) {
             break; // finish read frames and find best match
         }
+        // skip some packets to prevent to get logo from ad scene or wrong coloured logo from background
+        int skipPackets = decoder->GetVideoFrameRate() / 10;
+        if (force) {
+            if (criteria->IsLogoRotating()) skipPackets = 1;  // for rotating logo skip at least one frame to catch the full logo
+            else                            skipPackets = 0;
+        }
+        for (int i = 1; i <= skipPackets; i++) decoder->DecodeNextFrame(false);
     }
 
     bool doSearch = false;

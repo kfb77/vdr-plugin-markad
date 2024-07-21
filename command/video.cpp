@@ -688,7 +688,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
     // set logo visible and invisible limits
     int logo_vmark = LOGO_VMARK * mPixel;
     int logo_imark = LOGO_IMARK * mPixel;
-    if (criteria->LogoRotating()) {  // reduce if we have a rotating logo (e.g. SAT_1), changed from 0.9 to 0.8
+    if (criteria->IsLogoRotating()) {  // reduce if we have a rotating logo (e.g. SAT_1), changed from 0.9 to 0.8
         logo_vmark *= 0.8;
         logo_imark *= 0.8;
     }

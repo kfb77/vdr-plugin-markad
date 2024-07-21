@@ -85,7 +85,7 @@ public:
      * get status of channel has logo rotating
      * @return status
      */
-    bool LogoRotating();
+    bool IsLogoRotating();
 
     /**
      * get status of channel logo rotating

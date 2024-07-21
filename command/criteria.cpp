@@ -123,7 +123,7 @@ bool cCriteria::LogoColorChange() {
 }
 
 
-bool cCriteria::LogoRotating() {
+bool cCriteria::IsLogoRotating() {
     if (!channelName) return false;
     if (CompareChannelName(channelName, "SAT_1", IGNORE_HD)) return true;
     return false;
