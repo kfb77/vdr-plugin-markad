@@ -4091,37 +4091,41 @@ void cMarkAdStandalone::DebugMarkFrames() {
     }
 
     mark = marks.GetFirst();
-    int oldFrameNumber = -1;
+    int oldPacketNumber = -1;
 
     // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we don't care about performance
     while (decoder->DecodeNextFrame(false)) {  // no audio
         if (abortNow) return;
-        int frameNumber = decoder->GetPacketNumber();
-        int frameDistance = 1;
-        if (!macontext.Config->fullDecode) frameDistance = frameNumber - oldFrameNumber;  // get distance between to frame numbers
-        if (frameNumber >= (mark->position - (frameDistance * DEBUG_MARK_FRAMES))) {
-            dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark frame (%5d) type 0x%X, write frame (%5d)", mark->position, mark->type, frameNumber);
+        int packetNumber = decoder->GetPacketNumber();
+        int packetDistance = 1;
+        if (!macontext.Config->fullDecode) packetDistance = packetNumber - oldPacketNumber;  // get distance between to frame numbers
+        if (packetNumber >= (mark->position - (packetDistance * DEBUG_MARK_FRAMES))) {
+            dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark packet (%5d) type 0x%X, write packet (%5d)", mark->position, mark->type, packetNumber);
             char suffix1[10] = "";
             char suffix2[10] = "";
             if ((mark->type & 0x0F) == MT_START) strcpy(suffix1, "START");
             if ((mark->type & 0x0F) == MT_STOP)  strcpy(suffix1, "STOP");
 
-            if (frameNumber < mark->position)    strcpy(suffix2, "BEFORE");
-            if ((macontext.Config->fullDecode)  && (frameNumber > mark->position))     strcpy(suffix2, "AFTER");
-            if ((!macontext.Config->fullDecode) && (frameNumber > mark->position + 1)) strcpy(suffix2, "AFTER");  // for interlaced stream we will get the picture after the iFrame
-            char *fileName = nullptr;
-            if (asprintf(&fileName,"%s/F__%07d_%s_%s.pgm", macontext.Config->recDir, frameNumber, suffix1, suffix2) >= 1) {
-                ALLOC(strlen(fileName)+1, "fileName");
-                SaveVideoPlane0(fileName, decoder->GetVideoPicture());
-                FREE(strlen(fileName)+1, "fileName");
-                free(fileName);
+            if (packetNumber < mark->position)   strcpy(suffix2, "BEFORE");
+            if ((macontext.Config->fullDecode)  && (packetNumber > mark->position))     strcpy(suffix2, "AFTER");
+            if ((!macontext.Config->fullDecode) && (packetNumber > mark->position + 1)) strcpy(suffix2, "AFTER");  // for interlaced stream we will get the picture after the iFrame
+            sVideoPicture *picture = decoder->GetVideoPicture();
+            if (picture) {
+                char *fileName = nullptr;
+                if (asprintf(&fileName,"%s/F__%07d_%s_%s.pgm", macontext.Config->recDir, packetNumber, suffix1, suffix2) >= 1) {
+                    ALLOC(strlen(fileName)+1, "fileName");
+                    SaveVideoPlane0(fileName, picture);
+                    FREE(strlen(fileName)+1, "fileName");
+                    free(fileName);
+                }
             }
-            if (frameNumber >= (mark->position + (frameDistance * DEBUG_MARK_FRAMES))) {
+            else dsyslog("cMarkAdStandalone::DebugMarkFrames(): packet (%d): picture not valid", packetNumber);
+            if (packetNumber >= (mark->position + (packetDistance * DEBUG_MARK_FRAMES))) {
                 mark = mark->Next();
                 if (!mark) break;
             }
         }
-        oldFrameNumber = frameNumber;
+        oldPacketNumber = packetNumber;
     }
 }
 #endif
