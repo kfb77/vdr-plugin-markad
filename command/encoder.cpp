@@ -894,24 +894,32 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
 
 bool cEncoder::CutOut(int startPos, int stopPos) {
     LogSeparator();
-    dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): %s from start position (%d) to stop position (%d) in pass: %d", decoder->GetPacketNumber(), decoder->GetPacketNumber(), (fullEncode) ? "full encode" : "copy packets", startPos, stopPos, pass);
+    dsyslog("cEncoder::CutOut(): packet (%d): %s from start position (%d) to stop position (%d) in pass: %d", decoder->GetPacketNumber(), (fullEncode) ? "full encode" : "copy packets", startPos, stopPos, pass);
 
     // cut with full encoding
     if (fullEncode) {
         // seek to start position
-        if (!decoder->SeekToPacket(startPos)) {
-            esyslog("cMarkAdStandalone::MarkadCut(): seek to start mark (%d) failed", startPos);
+        if (!decoder->SeekToPacket(index->GetIFrameBefore(startPos))) {
+            esyslog("cMarkAdStandalone::MarkadCut(): seek to i-frame before start mark (%d) failed", startPos);
             return false;
         }
         if (decoder->IsVideoPacket()) decoder->DecodePacket(); // decode packet read from seek
 
         // check if we have a valid frame to set for start position
-        AVFrame *avFrame = decoder->GetFrame();  // this should be a video frame, because we seek to video packets
-        while (!avFrame || !decoder->IsVideoFrame() || (avFrame->pts == AV_NOPTS_VALUE) || (avFrame->pkt_dts == AV_NOPTS_VALUE)) {
+        AVFrame *avFrame = decoder->GetFrame();  // this should be a video packet, because we seek to video packets
+        while (!avFrame || !decoder->IsVideoFrame() || (avFrame->pts == AV_NOPTS_VALUE) || (avFrame->pkt_dts == AV_NOPTS_VALUE) || (decoder->GetPacketNumber() < startPos)) {
             if (abortNow) return false;
-            esyslog("cEncoder::CutOut(): packet (%d), frame (%d), stream %d: frame not valid for start position", decoder->GetPacketNumber(), decoder->GetPacketNumber(), decoder->GetPacket()->stream_index);
+            if (!avFrame) {
+                if (decoder->IsVideoPacket()) dsyslog("cEncoder::CutOut(): packet (%d) stream %d: frame not valid for start position, first video frame not yet decoded", decoder->GetPacketNumber(), decoder->GetPacket()->stream_index);
+            }
+            else {
+                if (decoder->IsVideoFrame() && (decoder->GetPacketNumber() < startPos)) dsyslog("cEncoder::CutOut(): packet (%d) stream %d: frame not valid for start position, prelod decoder", decoder->GetPacketNumber(), decoder->GetPacket()->stream_index);
+                if (avFrame->pts == AV_NOPTS_VALUE) dsyslog("cEncoder::CutOut(): packet (%d) stream %d: frame not valid for start position, PTS invalid", decoder->GetPacketNumber(), decoder->GetPacket()->stream_index);
+                if ((avFrame->pkt_dts == AV_NOPTS_VALUE)) dsyslog("cEncoder::CutOut(): packet (%d) stream %d: frame not valid for start position, DTS invalid", decoder->GetPacketNumber(), decoder->GetPacket()->stream_index);
+            }
             if (!decoder->ReadNextPacket()) return false;
             if (decoder->IsVideoPacket()) decoder->DecodePacket(); // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
+            avFrame = decoder->GetFrame();
         }
         // get PTS/DTS from start position
         cutInfo.startPosPTS = avFrame->pts;
@@ -919,7 +927,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         // current start pos - last stop pos -> length of ad
         // use dts to prevent non monotonically increasing dts
         if (cutInfo.stopPosDTS > 0) cutInfo.offset += (cutInfo.startPosDTS - cutInfo.stopPosDTS);
-        dsyslog("cEncoder::CutOut(): start cut from frame (%6d) PTS %10ld DTS %10ld to frame (%d), offset %ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
+        dsyslog("cEncoder::CutOut(): start cut from packet (%6d) PTS %10ld DTS %10ld to frame (%d), offset %ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
         avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
 
         // read all packets
@@ -947,12 +955,12 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
                 if (decoder->IsVideoPacket()) {  // always decode video stream
                     avpktOut = EncodeVideoFrame(decoder->GetFrame()); // encode video frame
                     reEncoded = true;
-                    if (!avpktOut) dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): EncodeVideoFrame() failed", decoder->GetPacketNumber(), decoder->GetPacketNumber());
+                    if (!avpktOut) dsyslog("cEncoder::CutOut(): packet (%d): EncodeVideoFrame() failed", decoder->GetPacketNumber());
                 }
                 if (ac3ReEncode && (pass == 2) && decoder->IsAudioAC3Packet()) {  // only re-encode AC3 if volume change is requested
                     avpktOut = EncodeAC3Frame(decoder->GetFrame());               // change volume and encode AC3 frame
                     reEncoded = true;
-                    if (!avpktOut) dsyslog("cEncoder::CutOut(): packet (%d), frame (%d): EncodeAC3Frame() failed", decoder->GetPacketNumber(), decoder->GetPacketNumber());
+                    if (!avpktOut) dsyslog("cEncoder::CutOut(): packet (%d): EncodeAC3Frame() failed", decoder->GetPacketNumber());
                 }
 
                 // no re-encode need, use input packet
