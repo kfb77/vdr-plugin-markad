@@ -100,7 +100,7 @@ cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodePa
     hwaccel         = hwaccelParam;
     forceHWaccel    = forceHWparam;
     forceInterlaced = forceInterlacedParam;
-    dsyslog("cDecoder::cDecoder(): init with %d threads, %s, hwaccel: %s %s %s", threads, (fullDecode) ? "full decode" : "i-frame decode", hwaccel, (forceHWaccel) ? "(force)" : "", (forceInterlaced) ? ", force interlaced" : "");
+    dsyslog("cDecoder::cDecoder(): init with %d thread(s), %s, hwaccel: %s %s %s", threads, (fullDecode) ? "full decode" : "i-frame decode", hwaccel, (forceHWaccel) ? "(force)" : "", (forceInterlaced) ? ", force interlaced" : "");
 
     av_frame_unref(&avFrame);    // reset all fields to default
 

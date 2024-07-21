@@ -6412,9 +6412,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         return;
     }
 
-    // check if requested decoding parameter are valid for this video codec
+    // check if requested decoding parameter are valid for this video codec and used FFmpeg version
     char hwaccel[1] = {0};      //!< no hardware acceleration
-    cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, macontext.Config->threads, true, hwaccel, false, false, nullptr); // full decocode, no hwaccel, no force interlaced, no index
+    cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, 1, true, hwaccel, false, false, nullptr); // one thread, full decocode, no hwaccel, no force interlaced, no index
     ALLOC(sizeof(*decoderTest), "decoderTest");
     decoderTest->DecodeNextFrame(false);  // decode one video frame to get video info
     dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: %s, frame rate %d, type %d, pixel format %d", (decoderTest->IsInterlacedFrame()) ? "interlaced" : "progressive", decoderTest->GetVideoFrameRate(), decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
@@ -6426,6 +6426,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         macontext.Config->hwaccel[0] = 0;
         macontext.Config->forceHW    = false;
     }
+
+    // FFmpeg version dependent restriction
 #if LIBAVCODEC_VERSION_INT <= ((58<<16)+( 54<<8)+100)   // FFmpeg 4.2.7  (Ubuntu 20.04)
     if ((decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264) && (macontext.Config->fullDecode == false)) {
         isyslog("FFmpeg <= 4.2.7 does not support hwaccel without full decoding for H.264 video, disable hwaccel");
@@ -6437,6 +6439,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         macontext.Config->fullDecode = true;
     }
 #endif
+#if LIBAVCODEC_VERSION_INT <= ((58<<16)+( 91<<8)+100)   // FFmpeg 4.3.7
+    // AVlog(): Assertion !p->parent->stash_hwaccel failed at libavcodec/pthread_frame.c:649
+    if ((macontext.Config->hwaccel[0] != 0) && (macontext.Config->threads != 1)) {
+        isyslog("FFmpeg <= 4.3.7 does not support multithreading hwaccel, reduce to one thread");
+        macontext.Config->threads = 1;
+    }
+#endif
+
     // inform decoder who use hwaccel, the video is interlaaced. In this case this is not possible to detect from decoder because hwaccel deinterlaces frames
     if ((macontext.Config->hwaccel[0] != 0) && decoderTest->IsInterlacedFrame() && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
         dsyslog("cMarkAdStandalone::cMarkAdStandalone(): inform decoder with hwaccel about H.264 interlaced video and force full decode");
