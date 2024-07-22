@@ -22,7 +22,7 @@
 //!<
 #define LOGO_VMARK 0.5         //!< percantage of pixels for visible
 //!<
-#define LOGO_IMARK 0.18        //!< percentage of pixels for invisible changed from 0,15 to 0,18
+#define LOGO_IMARK 0.19        //!< percentage of pixels for invisible changed from 0,18 to 0,19 to detect short logo interuption
 //!<
 
 #define MIN_H_BORDER_SECS 81  //!< minimum length of horizontal border
