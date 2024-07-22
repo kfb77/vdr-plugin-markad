@@ -6425,14 +6425,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     // store frameRate for logo extraction
     int frameRate = decoderTest->GetVideoFrameRate();
 
-/*
-    // pixel format yuv420p10le (from UHD) does not work with hwaccel
-    if (decoderTest->GetVideoPixelFormat() == AV_PIX_FMT_YUV420P10LE) {
-        isyslog("FFmpeg does not support hwaccel with pixel format yuv420p10le");
-        macontext.Config->hwaccel[0] = 0;
-        macontext.Config->forceHW    = false;
-    }
-*/
+    /*
+        // pixel format yuv420p10le (from UHD) does not work with hwaccel
+        if (decoderTest->GetVideoPixelFormat() == AV_PIX_FMT_YUV420P10LE) {
+            isyslog("FFmpeg does not support hwaccel with pixel format yuv420p10le");
+            macontext.Config->hwaccel[0] = 0;
+            macontext.Config->forceHW    = false;
+        }
+    */
 
     // FFmpeg version dependent restriction
 #if LIBAVCODEC_VERSION_INT <= ((58<<16)+( 54<<8)+100)   // FFmpeg 4.2.7  (Ubuntu 20.04)

@@ -899,6 +899,7 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
     }
 
 #ifdef DEBUG_DECODER
+    LogSeparator();
     dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avpkt.flags %d, avcodec_send_packet", packetNumber, avpkt.stream_index, avpkt.flags);
 #endif
 
@@ -926,10 +927,10 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
             avcodec_flush_buffers(codecCtxArray[avpkt.stream_index]);   // cleanup buffers after invalid packet
             break;
         case AVERROR(EIO):
-            dsyslog("cDecoderWER::SendPacketToDecoder():     packet (%5d): I/O error (EIO)", packetNumber);
+            dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d): I/O error (EIO)", packetNumber);
             break;
         case AVERROR_EOF:
-            dsyslog("cDecoderWER::SendPacketToDecoder():     packet (%5d): end of file (AVERROR_EOF)", packetNumber);
+            dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d): end of file (AVERROR_EOF)", packetNumber);
             break;
         case AAC_AC3_PARSE_ERROR_SYNC:
             dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avcodec_send_packet error AAC_AC3_PARSE_ERROR_SYNC", packetNumber, avpkt.stream_index);
@@ -938,16 +939,15 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
             esyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avcodec_send_packet failed with rc=%d: %s", packetNumber, avpkt.stream_index, rc, av_err2str(rc));
             break;
         }
-        if ((!sendPacketOK)                                       &&  // we have no frame successful send to decoder
+        // we should not get a send error before first frame was successful received, otherwise hwaccel decoder is not working
+        if (!firstHWaccelReceivedOK                               &&  // we have no frame successful received from decoder
                 useHWaccel                                        &&  // we want to use hwaccel
                 IsVideoStream(avpkt.stream_index)                 &&  // is video stream
-                !codecCtxArray[avpkt.stream_index]->hw_frames_ctx &&  // failed to get hardware frame context
                 codecCtxArray[avpkt.stream_index]->hw_device_ctx) {   // hardware device is linked
-            dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d): stream %d: hardware decoding failed, fallback to software decoding", packetNumber, avpkt.stream_index);
+            esyslog("hardware decoding failed for codec or pixel format, fallback to software decoding");
             rc = ResetToSW();
         }
     }
-    if (rc == 0) sendPacketOK = true;
     return rc;
 }
 
@@ -1006,20 +1006,20 @@ int cDecoder::ReceiveFrameFromDecoder() {
         switch (rc) {
         case AVERROR(EAGAIN):   // frame not ready, expected with interlaced video
 #ifdef DEBUG_DECODER
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): avcodec_receive_frame error EAGAIN", packetNumber);
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%5d): avcodec_receive_frame error EAGAIN", packetNumber);
 #endif
             break;
         case AVERROR(EINVAL):
-            esyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): avcodec_receive_frame error EINVAL", packetNumber);
+            esyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%5d): avcodec_receive_frame error EINVAL", packetNumber);
             break;
         case -EIO:              // I/O error
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): I/O error (EIO)", packetNumber);
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%5d): I/O error (EIO)", packetNumber);
             break;
         case AVERROR_EOF:       // end of file
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): end of file (AVERROR_EOF)", packetNumber);
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%5d): end of file (AVERROR_EOF)", packetNumber);
             break;
         default:
-            esyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): avcodec_receive_frame decode failed with return code %d", packetNumber, rc);
+            esyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%5d): avcodec_receive_frame decode failed with return code %d", packetNumber, rc);
             break;
         }
         av_frame_unref(&avFrame);
@@ -1090,6 +1090,10 @@ int cDecoder::ReceiveFrameFromDecoder() {
 #endif
         avFrame.sample_aspect_ratio = swFrame.sample_aspect_ratio;
         av_frame_unref(&swFrame);
+        if (!firstHWaccelReceivedOK) {
+            dsyslog("cDecoder::ReceiveFrameFromDecoder(): first video packet received from hwaccel decoder, codec and pixel format are valid");
+            firstHWaccelReceivedOK = true;
+        }
     }
 
 // check decoding error
@@ -1105,7 +1109,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
     }
     Time(false);
     // decoding successful, frame is valid
-    frameValid = true;
+    frameValid    = true;
     return 0;
 }
 

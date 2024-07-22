@@ -405,7 +405,7 @@ private:
     //!<
     char *hwaccel                      = nullptr;                 //!< hardware accelerated methode
     //!<
-    bool sendPacketOK                  = false;                   //!< true if at least one packet was successful send to decoder
+    bool firstHWaccelReceivedOK        = false;                   //!< true if first video packet was successful received from decoder
     //!<
     bool forceInterlaced               = false;                   //!< inform decoder used hwaccel this video is interlaced
     //!<
