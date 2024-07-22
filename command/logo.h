@@ -18,7 +18,6 @@
 #include "index.h"
 #include "sobel.h"
 
-#define MAXREADFRAMES 3000
 
 #define TOP_LEFT     0
 #define TOP_RIGHT    1
@@ -72,7 +71,6 @@ public:
         vborder             = nullptr;
         recordingFrameCount = origin.recordingFrameCount;
         audioState          = origin.audioState;
-        iFrameCountValid    = origin.iFrameCountValid;
         memcpy(aCorner, origin.aCorner, sizeof(origin.aCorner));
         for (int i = 0; i < CORNERS; i++) {
             logoInfoVector[i]   = origin.logoInfoVector[i];
@@ -92,7 +90,6 @@ public:
         vborder             = nullptr;
         recordingFrameCount = origin->recordingFrameCount;
         audioState          = origin->audioState;
-        iFrameCountValid    = origin->iFrameCountValid;
         memcpy(aCorner, origin->aCorner, sizeof(origin->aCorner));
         for (int i = 0; i < CORNERS; i++) {
             logoInfoVector[i]   = origin->logoInfoVector[i];
@@ -290,8 +287,6 @@ private:
     sAspectRatio requestedLogoAspectRatio = {0};          //!< aspect ratio of requested logo
     //!<
     int audioState                        = 0;            //!< 0 = undefined, 1 = got first 2 channel, 2 = now 6 channel, 3 now 2 channel
-    //!<
-    int iFrameCountValid                  = 0;            //!< number of valid i-frames
     //!<
     const char *aCorner[CORNERS]          = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
     //!<

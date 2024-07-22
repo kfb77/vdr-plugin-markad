@@ -1789,10 +1789,12 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
     struct timeval startTime;
     gettimeofday(&startTime, nullptr);
 
-    int  iFrameCountAll         = 0;
-    bool logoFound              = false;
-    sLogoSize logoSizeFinal     = {0};          // logo size after logo found
-
+#define MAX_READ_PACKETS 3000
+#define MIN_VALID_FRAMES 1000
+    int packetsRead         = 0;
+    bool logoFound          = false;
+    sLogoSize logoSizeFinal = {0};          // logo size after logo found
+    int frameCountValid     = 0;            // number of valid possible logo frames
     // allocate area result buffer
     if ((area.logoSize.height == 0) || (area.logoSize.width == 0)) sobel->AllocAreaBuffer(&area);  // allocate memory for result buffer with max logo size for this video resolution
 
@@ -1804,17 +1806,17 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
 // set start point
     DeleteFrames(0, startPacket - 1);
     int firstFrame = GetFirstFrame();
-    int lastFrame = GetLastFrame();
+    int lastFrame  = GetLastFrame();
     int countFrame = CountFrames();
     if (firstFrame == INT_MAX) dsyslog("cExtractLogo::SearchLogo(): we have no frames already stored");
     else dsyslog("cExtractLogo::SearchLogo(): already have %d frames from (%d) to frame (%d)", countFrame, firstFrame, lastFrame);
-    iFrameCountValid = countFrame;
+    frameCountValid = countFrame;
     if (lastFrame > startPacket) startPacket = lastFrame;
 
     // seek to start position
-    int frameNumber = decoder->GetPacketNumber();
-    if (frameNumber < startPacket) {
-        dsyslog("cExtractLogo::SearchLogo(): frame (%d): seek to packet (%d)", frameNumber, startPacket);
+    int packetNumber = decoder->GetPacketNumber();
+    if (packetNumber < startPacket) {
+        dsyslog("cExtractLogo::SearchLogo(): frame (%d): seek to packet (%d)", packetNumber, startPacket);
         if (!WaitForFrames(decoder, startPacket)) {
             dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for start packet (%d) failed", startPacket);
             return LOGO_ERROR;
@@ -1845,12 +1847,12 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         if (abortNow) return LOGO_ERROR;
 
         if (!WaitForFrames(decoder)) {
-            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at frame (%d), got %d valid frames of %d frames read", decoder->GetPacketNumber(), iFrameCountValid, iFrameCountAll);
+            dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at packet (%d), got %d valid frames of %d packets read", decoder->GetPacketNumber(), frameCountValid, packetsRead);
             break;
         }
-        frameNumber = decoder->GetPacketNumber();
+        packetNumber = decoder->GetPacketNumber();
 
-        iFrameCountAll++;
+        packetsRead++;
 
         if (AudioInBroadcast()  == 3) {  // we are in advertising
             continue;
@@ -1859,11 +1861,11 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         // stop search if different aspect ratio
         sAspectRatio *videoAspectRatio = decoder->GetFrameAspectRatio();
         if (!videoAspectRatio) {
-            esyslog("cExtractLogo::SearchLogo(): frame (%d): aspect ratio invalid", frameNumber);
+            esyslog("cExtractLogo::SearchLogo(): frame (%d): aspect ratio invalid", packetNumber);
             break;
         }
         if (logoAspectRatio != *videoAspectRatio) {
-            dsyslog("cExtractLogo::SearchLogo(): frame (%d): aspect ratio requested %d:%d but video aspect ration %d:%d", frameNumber, logoAspectRatio.num, logoAspectRatio.den, videoAspectRatio->num, videoAspectRatio->den);
+            dsyslog("cExtractLogo::SearchLogo(): frame (%d): aspect ratio requested %d:%d but video aspect ration %d:%d", packetNumber, logoAspectRatio.num, logoAspectRatio.den, videoAspectRatio->num, videoAspectRatio->den);
             break;
         }
 
@@ -1882,22 +1884,22 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
             if (isHBorder != HBORDER_ERROR) {
                 if (hBorderIFrame >= 0) {  // we had a change
                     if (isHBorder == HBORDER_VISIBLE) {
-                        dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, frameNumber);
-                        iFrameCountValid -= DeleteFrames(hBorderIFrame, frameNumber);
+                        dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, packetNumber);
+                        frameCountValid -= DeleteFrames(hBorderIFrame, packetNumber);
                     }
                     else {
-                        dsyslog("cExtractLogo::SearchLogo(): no horizontal border from frame (%d)", frameNumber);
+                        dsyslog("cExtractLogo::SearchLogo(): no horizontal border from frame (%d)", packetNumber);
                     }
                 }
             }
             if (isVBorder != VBORDER_ERROR) {
                 if (vBorderIFrame >= 0) {  // we had a change
                     if (isVBorder == VBORDER_VISIBLE) {
-                        dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, frameNumber);
-                        iFrameCountValid -= DeleteFrames(vBorderIFrame, frameNumber);
+                        dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, packetNumber);
+                        frameCountValid -= DeleteFrames(vBorderIFrame, packetNumber);
                     }
                     else {
-                        dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", frameNumber);
+                        dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", packetNumber);
                     }
                 }
             }
@@ -1906,7 +1908,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                 break;
             }
         }
-        iFrameCountValid++;
+        frameCountValid++;
 
         // do sobbel transformation of plane 0 of all corners
         for (int corner = 0; corner < CORNERS; corner++) {
@@ -1927,7 +1929,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
             if (corner == DEBUG_LOGO_CORNER) {
                 for (int plane = 0; plane < PLANES; plane++) {
                     char *fileName = nullptr;
-                    if (asprintf(&fileName,"%s/F__%07d-P%1d-C%1d_SearchLogo.pgm", recDir, frameNumber, plane, corner) >= 1) {
+                    if (asprintf(&fileName,"%s/F__%07d-P%1d-C%1d_SearchLogo.pgm", recDir, packetNumber, plane, corner) >= 1) {
                         ALLOC(strlen(fileName)+1, "fileName");
                         if (plane == 0) sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width, area.logoSize.height);
                         else sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width / 2, area.logoSize.height / 2);
@@ -1939,7 +1941,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
 #endif
 
             sLogoInfo actLogoInfo = {};
-            actLogoInfo.frameNumber = frameNumber;
+            actLogoInfo.frameNumber = packetNumber;
 
             // alloc memory and copy planes
             int logoPixel     = area.logoSize.height * area.logoSize.width;
@@ -1958,7 +1960,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                     logoInfoVector[corner].push_back(actLogoInfo);    // this allocates a lot of memory
                 }
                 catch(std::bad_alloc &e) {
-                    dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", frameNumber);
+                    dsyslog("cExtractLogo::SearchLogo(): out of memory in pushback vector at frame %d", packetNumber);
                     break;
                 }
                 ALLOC((sizeof(sLogoInfo)), "logoInfoVector");
@@ -1972,19 +1974,19 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                 FREE(sizeof(uchar*) * PLANES * sizeof(uchar) * logoPixel, "actLogoInfo.sobel");
             }
         }
-        if (iFrameCountValid > 1000) {
+        if (frameCountValid > MIN_VALID_FRAMES) {
             int firstBorder = hBorder->GetFirstBorderFrame();
             if (firstBorder > 0) {
-                dsyslog("cExtractLogo::SearchLogo(): detect unprocessed horizontal border from frame (%d) to frame (%d)", firstBorder, frameNumber);
-                iFrameCountValid-=DeleteFrames(firstBorder, frameNumber);
+                dsyslog("cExtractLogo::SearchLogo(): detect unprocessed horizontal border from frame (%d) to frame (%d)", firstBorder, packetNumber);
+                frameCountValid -= DeleteFrames(firstBorder, packetNumber);
             }
             firstBorder = vborder->GetFirstBorderFrame();
             if (firstBorder > 0) {
-                dsyslog("cExtractLogo::SearchLogo(): detect unprocessed vertical border from frame (%d) to frame (%d)", firstBorder, frameNumber);
-                iFrameCountValid-=DeleteFrames(firstBorder, frameNumber);
+                dsyslog("cExtractLogo::SearchLogo(): detect unprocessed vertical border from frame (%d) to frame (%d)", firstBorder, packetNumber);
+                frameCountValid -= DeleteFrames(firstBorder, packetNumber);
             }
         }
-        if ((iFrameCountValid > 1000) || (iFrameCountAll >= MAXREADFRAMES)) {
+        if ((frameCountValid >= MIN_VALID_FRAMES) || (packetsRead >= MAX_READ_PACKETS)) {
             break; // finish read frames and find best match
         }
         // skip some packets to prevent to get logo from ad scene or wrong coloured logo from background
@@ -1997,17 +1999,17 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
     }
 
     bool doSearch = false;
-    if (iFrameCountAll > MAXREADFRAMES) {
-        dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d frames read, got enough iFrames at frame (%d), start analyze", iFrameCountValid, iFrameCountAll, decoder->GetPacketNumber());
+    if ((packetsRead >= MAX_READ_PACKETS) || (frameCountValid >= MIN_VALID_FRAMES)) {
+        dsyslog("cExtractLogo::SearchLogo(): %d valid frames of %d packets read, got enough frames at packet (%d), start analyze", frameCountValid, packetsRead, decoder->GetPacketNumber());
         doSearch = true;
     }
-    else if ((iFrameCountAll < MAXREADFRAMES) && ((iFrameCountAll > MAXREADFRAMES / 2) || (iFrameCountValid > 390))) {
+    else if ((packetsRead < MAX_READ_PACKETS) && ((packetsRead > MAX_READ_PACKETS / 2) || (frameCountValid > 390))) {
         // reached end of recording (or part without border) before we got 1000 valid frames out of MAXREADFRAMES decoded
         // but we got at least 390 valid frames out of MAXREADFRAMES / 2 decoded, we can work with that
-        dsyslog("cExtractLogo::SearchLogo(): end of recording reached at frame (%d), read (%d) iFrames and got (%d) valid iFrames, try anyway", frameNumber, iFrameCountAll, iFrameCountValid);
+        dsyslog("cExtractLogo::SearchLogo(): end of recording reached at packet (%d), read (%d) packets and got (%d) valid packets, try anyway", packetNumber, packetsRead, frameCountValid);
         doSearch = true;
     }
-    else dsyslog("cExtractLogo::SearchLogo(): read (%i) frames and could not get enough valid frames (%i)", iFrameCountAll, iFrameCountValid);
+    else dsyslog("cExtractLogo::SearchLogo(): read (%d) packets and could not get enough valid frames (%i)", packetsRead, frameCountValid);
 
 // search for valid logo matches
     int logoCorner[CORNERS]     = {-1, -1, -1, -1};
@@ -2022,7 +2024,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                     actLogoInfo[corner] = *actLogo;
                 }
             }
-            dsyslog("cExtractLogo::SearchLogo(): best guess found at frame %6d with %3d similars out of %3zu valid frames at %s", actLogoInfo[corner].frameNumber, actLogoInfo[corner].hits, logoInfoVector[corner].size(), aCorner[corner]);
+            dsyslog("cExtractLogo::SearchLogo(): best guess found at packet %6d with %3d similars out of %3zu valid packets at %s", actLogoInfo[corner].frameNumber, actLogoInfo[corner].hits, logoInfoVector[corner].size(), aCorner[corner]);
 
         }
 
@@ -2069,7 +2071,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                     ((logoInfo[rank].hits >= 20) && (sumHits <= logoInfo[rank].hits + 7)) ||   // if almost all hits are in the same corner than less are enough
                     ((logoInfo[rank].hits >= 10) && (sumHits <= logoInfo[rank].hits + 6)) ||   // if almost all hits are in the same corner than less are enough
                     ((logoInfo[rank].hits >=  5) && (sumHits == logoInfo[rank].hits))) {       // if all hits are in the same corner than less are enough
-                dsyslog("cExtractLogo::SearchLogo(): %d. best corner is %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].frameNumber, logoInfo[rank].hits);
+                dsyslog("cExtractLogo::SearchLogo(): %d. best corner is %s at packet %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].frameNumber, logoInfo[rank].hits);
                 // check possible logo
                 logoSizeFinal = area.logoSize;
                 if (Resize(&logoInfo[rank], &logoSizeFinal, logoCorner[rank])) {  // logo can be valid
@@ -2078,7 +2080,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                     dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. best corner %s was successful, %dW x %dH", rank, aCorner[logoCorner[rank]], logoSizeFinal.width, logoSizeFinal.height);
                     // check next best possible logo corner, it is valid too, we can not decide
                     if ((logoInfo[rank + 1].hits >= 40) || (logoInfo[rank + 1].hits > (logoInfo[rank].hits * 0.8))) { // next best logo corner has high matches
-                        dsyslog("cExtractLogo::SearchLogo(): %d. best corner %d at frame %d with %d similars", rank + 1, logoCorner[rank + 1], logoInfo[rank + 1].frameNumber, logoInfo[rank + 1].hits);
+                        dsyslog("cExtractLogo::SearchLogo(): %d. best corner %d at packet %d with %d similars", rank + 1, logoCorner[rank + 1], logoInfo[rank + 1].frameNumber, logoInfo[rank + 1].hits);
                         sLogoSize secondLogoSize = area.logoSize;
                         if (Resize(&logoInfo[rank + 1], &secondLogoSize, logoCorner[rank + 1])) { // second best logo can be valid
                             dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. and %d. best corner is valid, still no clear result", rank, rank + 1);
@@ -2142,12 +2144,12 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
     }
 
     if (logoFound) {
-        dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %d", frameNumber);
+        dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %d", packetNumber);
         return LOGO_FOUND;
     }
     else {
-        dsyslog("cExtractLogo::SearchLogo(): failed, last frame %d", frameNumber);
-        if (frameNumber > 0) return frameNumber;   // return last frame from search to setup new search after this
+        dsyslog("cExtractLogo::SearchLogo(): failed, last frame %d", packetNumber);
+        if (packetNumber > 0) return packetNumber;   // return last frame from search to setup new search after this
         else return LOGO_ERROR;                // nothing read, retry makes no sense
 
     }
