@@ -4140,8 +4140,8 @@ void cMarkAdStandalone::MarkadCut() {
     dsyslog("cMarkAdStandalone::MarkadCut():cut video based on marks: fullDecode = %d, fullEncode = %d, ac3ReEncode = %d", macontext.Config->fullDecode, macontext.Config->fullEncode,  macontext.Config->ac3ReEncode);
 
     if (macontext.Config->fullEncode && !macontext.Config->fullDecode) {
-        dsyslog("full encode needs full decode, activate it");
-        decoder->SetFullDecode(true);
+        esyslog("full encode needs full decode, disable full encode");
+        macontext.Config->fullEncode = false;
     }
 
     if (marks.Count() < 2) {
@@ -4216,7 +4216,6 @@ void cMarkAdStandalone::MarkadCut() {
     FREE(sizeof(*encoder), "encoder");
     delete encoder;  // encoder must be valid here because it is used above
     encoder = nullptr;
-
     dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", decoder->GetPacketNumber());
 }
 

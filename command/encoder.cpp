@@ -1003,13 +1003,20 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         // without decoding/encoding adjust cut position to i-frame
         startPos = index->GetIFrameAfter(startPos);
         if (startPos < 0) {
-            esyslog("cEncoder::CutOut(): get i-frame before failed");
+            esyslog("cEncoder::CutOut(): get i-frame after failed");
             return false;
         }
         stopPos = index->GetIFrameBefore(stopPos);
         if (stopPos < 0) {
-            esyslog("cEncoder::CutOut():: get i-frame after failed");
+            esyslog("cEncoder::CutOut():: get i-frame before (%d) failed", stopPos);
             return false;
+        }
+        if (!decoder->GetFullDecode()) {
+            stopPos = index->GetIFrameBefore(stopPos - 1);  // marks are not exact, end one i-frame before to prevent to copy packets after stop picture
+            if (stopPos < 0) {
+                esyslog("cEncoder::CutOut():: get i-frame before (%d) failed", stopPos - 1);
+                return false;
+            }
         }
         dsyslog("cEncoder::CutOut(): adjust cut position from i-frame (%d) to i-frame (%d)", startPos, stopPos);
 
@@ -1041,7 +1048,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
 
         // copy all packets from startPos to endPos
-        while (decoder->GetPacketNumber() <= stopPos) {
+        while (decoder->GetPacketNumber() < stopPos) {  // end before last i-frame, start frame will be next i-frame
             if (abortNow) return false;
 
 #ifdef DEBUG_CUT  // first pictures after start mark after

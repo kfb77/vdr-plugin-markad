@@ -182,11 +182,6 @@ bool cDecoder::Restart() {
 }
 
 
-void cDecoder::SetFullDecode(const bool fullDecodeParam) {
-    fullDecode = fullDecodeParam;
-}
-
-
 int cDecoder::ResetToSW() {
     // hardware decoding failed at first packet, something is wrong maybe not supported codec
     // during init we got no error code
@@ -198,6 +193,11 @@ int cDecoder::ResetToSW() {
     ReadNextFile();  // re-init decoder without hwaccel
     ReadPacket();
     return(SendPacketToDecoder(false));
+}
+
+
+void cDecoder::SetFullDecode(const bool fullDecodeParam) {
+    fullDecode = fullDecodeParam;
 }
 
 
