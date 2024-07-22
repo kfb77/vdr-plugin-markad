@@ -89,6 +89,7 @@ bool cCriteria::LogoInBorder() {
 bool cCriteria::LogoInNewsTicker() {
     if (!channelName) return false;
 
+    if (CompareChannelName(channelName, "n-tv", IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "WELT", IGNORE_HD)) return true;
 
     return false;
