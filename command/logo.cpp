@@ -1389,17 +1389,16 @@ bool cExtractLogo::CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, c
         logoStartColumn = 143;
         logoEndColumn   = 185;
     }
+    // SAT_1_HD                16:9 1920W 1080H:->  204W 132H TOP_RIGHT
+    else if (CompareChannelName(channelName, "SAT_1_HD", IGNORE_NOTHING)) {
+        logoStartLine   =  60;
+        logoEndLine     = 133;
+        logoStartColumn = logoWidth - 204 - 10;  // 10 pixel add space
+        logoEndColumn   = logoWidth - 80;        // 80 = logo end distance from the right side
+    }
     else {
-        if (CompareChannelName(channelName, "SAT_1_HD", IGNORE_NOTHING)) {
-            logoStartLine   =  60;
-            logoEndLine     = 133;
-            logoStartColumn = 196;
-            logoEndColumn   = 318;
-        }
-        else {
-            dsyslog("cExtractLogo::CompareLogoPairRotating(): channel unknown");
-            return false;
-        }
+        dsyslog("cExtractLogo::CompareLogoPairRotating(): channel unknown");
+        return false;
     }
 // check if pixel in both frames are only in the corner but let the pixel be different
     if (corner != TOP_RIGHT) return false; // to optimze performance, only check TOP_RIGHT (SAT.1)
@@ -1409,21 +1408,21 @@ bool cExtractLogo::CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, c
             if ((line >= logoStartLine) && (line < logoEndLine) && (column >= logoStartColumn) && (column < logoEndColumn)) continue;
             if (logo1->sobel[0][line * logoWidth + column] == 0) {
 #ifdef DEBUG_LOGO_CORNER
-                dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo1 (%5i) pixel out of valid range: line %3i column %3i", logo1->frameNumber, line, column);
+                dsyslog("cExtractLogo::CompareLogoPairRotating(): packet logo1 (%5d) pixel out of valid range: line %3d (%d->%d), column %3i (%d->%d)", logo1->frameNumber, line, logoStartLine, logoEndLine, column, logoStartColumn, logoEndColumn);
 #endif
                 return false;
             }
             if (logo2->sobel[0][line * logoWidth + column] == 0) {
 #ifdef DEBUG_LOGO_CORNER
-                dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo2 (%5i) pixel out of valid range: line %3i column %3i", logo2->frameNumber, line, column);
+                dsyslog("cExtractLogo::CompareLogoPairRotating(): packet logo2 (%5d) pixel out of valid range: line %3d (%d->%d), column %3d (%d->%d)", logo2->frameNumber, line, logoStartLine, logoEndLine, column, logoStartColumn, logoEndColumn);
 #endif
                 return false;
             }
         }
     }
 #ifdef DEBUG_LOGO_CORNER
-    dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo1 (%5i) valid", logo1->frameNumber);
-    dsyslog("cExtractLogo::CompareLogoPairRotating(): frame logo2 (%5i) valid", logo2->frameNumber);
+    dsyslog("cExtractLogo::CompareLogoPairRotating(): packet logo1 (%5d) valid", logo1->frameNumber);
+    dsyslog("cExtractLogo::CompareLogoPairRotating(): packet logo2 (%5d) valid", logo2->frameNumber);
 #endif
 // merge pixel in logo range
     for (int line = logoStartLine; line <= logoEndLine; line++) {
