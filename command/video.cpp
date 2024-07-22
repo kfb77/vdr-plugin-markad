@@ -749,7 +749,8 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
             dsyslog("cLogoDetect::Detect():           frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", frameNumber, rPixel, quoteInverse, rPixelWithout);
 #endif
 
-            rPixel = rPixelWithout; // now use this result for detection
+            rPixel         = rPixelWithout; // now use this result for detection
+            area.rPixel[0] = rPixelWithout; // if case of ReduceBrightness(): "very high contrast with not very high brightness in logo area, trust detection"
         }
 
 // if current state is logo uninitialized (to get an early logo start) and we have a lot of matches, trust logo is there
