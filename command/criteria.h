@@ -64,6 +64,12 @@ public:
     bool LogoInBorder();
 
     /**
+     * get status of channel have no continuous logo
+     * @return status
+     */
+    bool NoLogo();
+
+    /**
      * get status of channel if logo is part of a news ticker
      * @return status
      */

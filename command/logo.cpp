@@ -1780,6 +1780,10 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
     LogSeparator(true);
     dsyslog("cExtractLogo::SearchLogo(): extract logo from packet %d requested aspect ratio %d:%d, force = %d", startPacket, requestedLogoAspectRatio.num, requestedLogoAspectRatio.den, force);
     if (startPacket < 0) return LOGO_ERROR;
+    if (criteria->NoLogo()) {
+        dsyslog("cExtractLogo::SearchLogo(): channel have no continuous logo");
+        return LOGO_ERROR;
+    }
 
     // set start time for statistics
     struct timeval startTime;

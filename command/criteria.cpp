@@ -86,6 +86,15 @@ bool cCriteria::LogoInBorder() {
 }
 
 
+bool cCriteria::NoLogo() {   // channel have no continuous logo
+    if (!channelName) return false;
+
+    if (CompareChannelName(channelName, "Sky_Cinema_Special_HD", IGNORE_NOTHING)) return true;
+
+    return false;
+}
+
+
 bool cCriteria::LogoInNewsTicker() {
     if (!channelName) return false;
 
