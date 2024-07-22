@@ -1830,17 +1830,21 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
     decoder->DecodeNextFrame(false);   // decode one video frame to get current aspect ratio
     sAspectRatio logoAspectRatio = requestedLogoAspectRatio;
     if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0))  {
-        sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
+        sAspectRatio *aspectRatio = nullptr;
+        while (!aspectRatio) {   // read and decode until we got a valid frame
+            if (abortNow) return LOGO_ERROR;
+            if (!decoder->DecodeNextFrame(false)) break;
+            aspectRatio = decoder->GetFrameAspectRatio();
+        }
         if (aspectRatio) {
             logoAspectRatio = *aspectRatio;
-            dsyslog("cExtractLogo::SearchLogo(): no aspect ratio requested, set to aspect ratio of current video position %d:%d", logoAspectRatio.num, logoAspectRatio.den);
+            dsyslog("cExtractLogo::SearchLogo(): packet (%d): no aspect ratio requested, set to aspect ratio of current video position %d:%d", decoder->GetPacketNumber(), logoAspectRatio.num, logoAspectRatio.den);
         }
         else {
-            dsyslog("cExtractLogo::SearchLogo(): frame (%d): no valid aspect ratio in current frame", decoder->GetPacketNumber());
-            return decoder->GetPacketNumber() + 1;   // allow retry with frame after
+            esyslog("cExtractLogo::SearchLogo(): no valid aspect ratio in video found");
+            return LOGO_ERROR;
         }
     }
-
 
     while (decoder->DecodeNextFrame(false)) {  // no audio decode
         if (abortNow) return LOGO_ERROR;

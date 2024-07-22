@@ -101,7 +101,7 @@
 // #define DEBUG_PTS_DTS_CUT
 
 // debug decoder send/receive
-#define DEBUG_DECODER
+// #define DEBUG_DECODER
 
 // debug DecodeNextFrame()
 // #define DEBUG_DECODE_NEXT_FRAME
