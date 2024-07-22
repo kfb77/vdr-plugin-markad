@@ -125,7 +125,13 @@ private:
      * @param avFrame      decodes frame
      * @return pointer to encoded packet
      */
-    AVPacket *EncodeVideoFrame(AVFrame *avFrame);
+    bool EncodeVideoFrame(AVFrame *avFrame);
+
+    /** prepare AC3 audio frame to encode
+     * @param avFrame decodes frame
+     * @return pointer to encoded packet
+     */
+    bool EncodeAC3Frame(AVFrame *avFrame);
 
     /** get channel count of AC3 output stream
      * @param streamIndex  stream index
@@ -133,18 +139,17 @@ private:
      */
     int GetAC3ChannelCount(const int streamIndex);
 
-    /** prepare AC3 audio frame to encode
-     * @param avFrame decodes frame
-     * @return pointer to encoded packet
+    /** send frame to encoder
+     * @param streamIndexOut output sream index
+     * @param avFrame      frame to encode
      */
-    AVPacket *EncodeAC3Frame(AVFrame *avFrame);
+    bool SendFrameToEncoder(const int streamIndexOut, AVFrame *avFrame);
 
-    /** encode frame
-     * @param avCodecCtx   codec context
-     * @param avFrame      frame to decode
-     * @param avpkt        encoded packet
+    /** receive packet from encoder
+     * @param streamIndexOut output stream index
+     * @return  encoded packet, nullptr otherwise
      */
-    bool EncodeFrame(AVCodecContext *avCodecCtx, AVFrame *avFrame, AVPacket *avpkt);
+    AVPacket *ReceivePacketFromEncoder(const int streamIndexOut);
 
     /**
      * init encoder codec
@@ -162,13 +167,6 @@ private:
      * @return true if successful, false otherwise
      */
     bool ChangeEncoderCodec(const int streamIndexIn, const int streamIndexOut, AVCodecContext *avCodecCtxIn);
-
-    /**
-     * save video frame as picture, used for debugging
-     * @param frame   framenumber
-     * @param avFrame frame data
-     */
-    void SaveFrame(const int frame, AVFrame *avFrame);
 
     /**
      * check statistic data after first pass, ffmpeg assert if something is invalid
@@ -204,8 +202,6 @@ private:
     int64_t ptsBeforeCut              = INT64_MAX;                //!< presentation timestamp of frame before cut mark
     //!<
     int64_t ptsAfterCut               = 0;                        //!< presentation timestamp of frame after cut mark
-    //!<
-    bool stateEAGAIN                  = false;                    //!< true if encoder needs more frame, false otherwise
     //!<
     int *streamMap                    = nullptr;                  //!< input stream to output stream map
     //!<

@@ -196,11 +196,6 @@ int cDecoder::ResetToSW() {
 }
 
 
-void cDecoder::SetFullDecode(const bool fullDecodeParam) {
-    fullDecode = fullDecodeParam;
-}
-
-
 bool cDecoder::GetFullDecode() const {
     return fullDecode;
 }
