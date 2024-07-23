@@ -761,11 +761,10 @@ char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSe
     // offsetSeconds may be nullptr
     char *indexToHMSF = nullptr;
     double Seconds    = 0;
-    int f             = 0;
     int time_ms       = -1;
 
     if (index) time_ms = index->GetTimeFromFrame(frameNumber, isVDR);
-    else { // called by logo search, we have no index
+    if (time_ms < 0) { // called by logo search, we have no index, or called for broadcast start time during recording, we have not yet frames in index
         dsyslog("cMarks::IndexToHMSF(): no index available, use frame rate %d", frameRate);
         if (frameRate <= 0) {
             esyslog("cMarks::IndexToHMSF(): no frame rate set");
@@ -778,11 +777,7 @@ char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSe
     dsyslog("cMarks::IndexToHMSF():      frame (%d), offset from start %d, isVDR %d", frameNumber, time_ms, isVDR);
 #endif
 
-    if (time_ms >= 0) f = int(modf(float(time_ms) / 1000, &Seconds) * 100);                 // convert ms to 1/100 s
-    else {
-        esyslog("cMarks::IndexToHMSF(): failed to get time from frame (%d)", frameNumber);
-        return nullptr;
-    }
+    int f = int(modf(float(time_ms) / 1000, &Seconds) * 100);                 // convert ms to 1/100 s
     int s = int(Seconds);
     if (offsetSeconds) *offsetSeconds = s;
     int m = s / 60 % 60;
@@ -874,7 +869,7 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
 //        dsyslog("cMarks::Save(): save marks later, isRunningRecording=%d force=%d", maContext->Info.isRunningRecording, force);
         return false;
     }
-    dsyslog("cMarks::Save(): save marks, isRunningRecording=%d force=%d", isRunningRecording, force);
+    dsyslog("cMarks::Save(): save marks, isRunningRecording = %d force = %d", isRunningRecording, force);
 
     char *fpath = nullptr;
     if (asprintf(&fpath, "%s/%s", directory, filename) == -1) return false;
@@ -895,6 +890,7 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
             if ((mark->type & 0x0F) == MT_START) iFrame = index->GetIFrameAfter(mark->position  - 1);  // if mark position is i-frame, we want to use it
             else                                 iFrame = index->GetIFrameBefore(mark->position + 1);
         }
+        if (iFrame < 0) iFrame = mark->position;  // fallback if index is not yet initialized
 #ifdef DEBUG_SAVEMARKS
         dsyslog("-----------------------------------------------------------------------------");
         dsyslog("cMarks::Save(): mark frame number (%d): i-frame (%d)", mark->position, iFrame);

@@ -239,18 +239,18 @@ int64_t cIndex::GetPTSfromFrame(const int frameNumber) {
 }
 
 
-int cIndex::GetTimeFromFrame(const int frameNumber, const bool isVDR) {
-    if (indexVector.empty()) {
-        esyslog("cIndex::GetTimeFromFrame(): frame index not initialized");
+int cIndex::GetTimeFromFrame(const int packetNumber, const bool isVDR) {
+    if (indexVector.empty()) {  // expected if called to write start mark during running recording
+        dsyslog("cIndex::GetTimeFromFrame(): packet (%d): index not initialized", packetNumber);
         return -1;
     }
     if (isVDR) {  // use sum of packet duration
-        return GetSumDurationFromFrame(frameNumber);
+        return GetSumDurationFromFrame(packetNumber);
     }
     else {  // use PTS based time from i-frame index
-        int64_t framePTS = GetPTSfromFrame(frameNumber);
+        int64_t framePTS = GetPTSfromFrame(packetNumber);
         if (framePTS < 0) {
-            esyslog("cIndex::GetTimeFromFrame(): frame (%d): get PTS failed", frameNumber);
+            esyslog("cIndex::GetTimeFromFrame(): packet (%d): get PTS failed", packetNumber);
             return -1;
         }
         framePTS -= start_time;

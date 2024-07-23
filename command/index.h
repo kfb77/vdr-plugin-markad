@@ -92,12 +92,12 @@ public:
     int GetIFrameAfter(int frameNumber);
 
     /**
-     * get offset time from recoring start in ms
-     * @param frameNumber number of the frame
-     * @param isVDR true if timestamp should calculated based on vdr rules (frame duration offset), false if timestamp should claculated based on vlc ruled (frame pts)
+     * get offset time from recording start in ms
+     * @param packetNumber number of the packet
+     * @param isVDR true if timestamp should calculated based on vdr rules (packet duration offset), false if timestamp should claculated based on vlc rules (packet pts)
      * @return offset time from recoring start in ms
      */
-    int GetTimeFromFrame(const int frameNumber, const bool isVDR);
+    int GetTimeFromFrame(const int packetNumber, const bool isVDR);
 
     /**
      * get frame number to offset of recording start
