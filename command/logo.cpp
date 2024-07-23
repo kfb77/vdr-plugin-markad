@@ -90,7 +90,7 @@ cExtractLogo::~cExtractLogo() {
     FREE(sizeof(*criteria), "criteria");
     delete criteria;
 
-    sobel->FreeAreaBuffer(&area);  // free memory for result buffer
+    if ((area.logoSize.height > 0) && (area.logoSize.width > 0)) sobel->FreeAreaBuffer(&area);  // free memory for result buffer, for channel without logo, we have no buffer allocated
     FREE(sizeof(*sobel), "sobel");
     delete sobel;
 
