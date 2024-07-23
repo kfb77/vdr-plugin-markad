@@ -1019,11 +1019,13 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 // MT_LOGOSTOP( 8177)->31200ms->MT_NOBLACKSTOP( 8957)->120ms->MT_NOBLACKSTART( 8960)-> 680ms->MT_LOGOSTART( 8977)->2147483647ms->MT_LOGOSTOP(2147483647) Disney Channel
 // MT_LOGOSTOP( 6035)-> 8240ms->MT_NOBLACKSTOP( 6241)->160ms->MT_NOBLACKSTART( 6245)->1400ms->MT_LOGOSTART( 6280)->2147483647ms->MT_LOGOSTOP(2147483647) DMAX
 // MT_LOGOSTOP( 9047)->47380ms->MT_NOBLACKSTOP(11416)->180ms->MT_NOBLACKSTART(11425)->1660ms->MT_LOGOSTART(11508)->2147483647ms->MT_LOGOSTOP(2147483647) KiKA
+// MT_LOGOSTOP( 8313)->10800ms->MT_NOBLACKSTOP( 8583)->200ms->MT_NOBLACKSTART( 8588)->5840ms->MT_LOGOSTART( 8734)->2147483647ms->MT_LOGOSTOP(2147483647) sixx
+// MT_LOGOSTOP( 6931)->21280ms->MT_NOBLACKSTOP( 7463)->160ms->MT_NOBLACKSTART( 7467)->4760ms->MT_LOGOSTART( 7586)->2147483647ms->MT_LOGOSTOP(2147483647) RTL Television
 //
 // invalid example
 // logo start with black screen before preview
 // MT_LOGOSTOP( 6578)->165640ms->MT_NOBLACKSTOP(10719)->840ms->MT_NOBLACKSTART(10740)-> 680ms->MT_LOGOSTART(10757)->     27440ms->MT_LOGOSTOP(     11443) Comedy Central
-                    if ((diffLogoStopBlackStart >= 8240) && (diffBlackStartBlackStop >= 120) && (diffBlackStopLogoStart <= 1660) && (diffLogoStartLogoStop > 27440)) {
+                    if ((diffLogoStopBlackStart >= 8240) && (diffBlackStartBlackStop >= 120) && (diffBlackStopLogoStart <= 5840) && (diffLogoStartLogoStop > 27440)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
