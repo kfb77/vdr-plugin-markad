@@ -6162,9 +6162,10 @@ void cMarkAdStandalone::LoadInfo() {
                 if (macontext.Info.tStart < 0) {
                     if (length + macontext.Info.tStart > 0) {
                         startTime = rStart;
-                        isyslog("missed broadcast start by %02d:%02d min, event length %5ds", -macontext.Info.tStart / 60, -macontext.Info.tStart % 60, length);
+                        esyslog("recording start %02d:%02d min after timer start, recording incomplete, marks will be wrong", -macontext.Info.tStart / 60, -macontext.Info.tStart % 60);
+                        dsyslog("event length from timer: %5ds", length);
                         length += macontext.Info.tStart;
-                        isyslog("                                 corrected length %5ds", length);
+                        dsyslog("event length corrected %5ds", length);
                     }
                     else {
                         isyslog("cannot determine broadcast start, assume VDR default pre timer of 120s");
