@@ -386,7 +386,11 @@ bool cDecoder::InitDecoder(const char *filename) {
                 if (codecCtxArray[streamIndex]->hw_device_ctx) {
                     dsyslog("cDecoder::InitDecoder(): hardware device reference created successful for stream %d", streamIndex);
                     codecCtxArray[streamIndex]->get_format = get_hw_format;
-                    isyslog("use hardware acceleration for stream %d", streamIndex);
+                    if (logHwaccel) {
+                        isyslog("use hardware acceleration %s for stream %d", av_hwdevice_get_type_name(hwDeviceType), streamIndex);
+                        logHwaccel = false;
+                    }
+                    else dsyslog("use hardware acceleration %s for stream %d", av_hwdevice_get_type_name(hwDeviceType), streamIndex);
                 }
                 else {
                     dsyslog("cDecoder::InitDecoder(): hardware device reference create failed for stream %d, fall back to software decoder", streamIndex);

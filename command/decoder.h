@@ -409,6 +409,8 @@ private:
     //!<
     enum AVHWDeviceType hwDeviceType   = AV_HWDEVICE_TYPE_NONE ;  //!< hardware device type
     //!<
+    bool logHwaccel                    = true;                    //!< true before fist log of hwaccel methode
+    //!<
     enum AVPixelFormat hwPixelFormat   = AV_PIX_FMT_NONE;         //!< hardware decoder pixel format
     //!<
     AVBufferRef *hw_device_ctx         = nullptr;                 //!< hardware device context
