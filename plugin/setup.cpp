@@ -46,11 +46,10 @@ void cSetupMarkAd::write(void) {
     cMenuEditStraItem *first = new cMenuEditStraItem(tr("execution"), &processduring, 3, processTexts);
     if (!first) return;
     Add(first);
-    Add(new cMenuEditBoolItem(tr("use VPS"), &usevps));
-    if (usevps) Add(new cMenuEditBoolItem(tr("log VPS events"), &logvps));
+    if (processduring != PROCESS_DURING) Add(new cMenuEditBoolItem(tr("use VPS"), &usevps));
+    if (usevps && (processduring != PROCESS_DURING)) Add(new cMenuEditBoolItem(tr("log VPS events"), &logvps));
     if (processduring < PROCESS_NEVER) {
-        if (!processduring)
-        {
+        if (!processduring) {
             Add(new cMenuEditBoolItem(tr("  during another recording"), &whilerecording));
             Add(new cMenuEditBoolItem(tr("  while replaying"), &whilereplaying));
         }
@@ -111,9 +110,10 @@ eOSState cSetupMarkAd::ProcessKey(eKeys Key) {
 
 void cSetupMarkAd::Store(void) {
     SetupStore("Execution", processduring);
-    if (processduring != 0) {
+    if (processduring == PROCESS_DURING) {
         whilerecording = 1;
         whilereplaying = 1;
+        usevps         = 0;    // VPS not possible during recording
     }
     SetupStore("useVPS", usevps);
     SetupStore("logVPS", logvps);
