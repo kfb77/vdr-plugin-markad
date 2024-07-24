@@ -232,6 +232,10 @@ void cExtractLogo::CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, sLo
     if (!logoInfo)      return;
     if (!logoSizeFinal) return;
     if ((corner < 0) || (corner >= CORNERS)) return;
+    if ((cutPixelH == 0) && (cutPixelV == 0)) {
+        esyslog("cExtractLogo::CutOut(): cut out 0 pixel not valid");
+        return;
+    }
     if (cutPixelV >= logoSizeFinal->width) {
         esyslog("cExtractLogo::CutOut(): cut %d pixel from logo with width %d not valid", cutPixelV, logoSizeFinal->width);
         return;
@@ -870,20 +874,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
         return false;
     }
 
-#ifdef DEBUG_LOGO_RESIZE
-    // save plane 0 of logo
-    int cutStep = 0;
-    char *fileName = nullptr;
-    if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_Before.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep) >= 1) {
-        ALLOC(strlen(fileName)+1, "fileName");
-        sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
-        FREE(strlen(fileName)+1, "fileName");
-        free(fileName);
-        cutStep++;
-    }
-#endif
-
-    dsyslog("cExtractLogo::Resize(): logo size before resize:    %3d width %3d height on corner %12s", logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
+    dsyslog("cExtractLogo::Resize(): logo size before resize: %3dW X %3dH on corner %12s", logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
     int logoWidthBeforeResize  = logoSizeFinal->width;
     int logoHeightBeforeResize = logoSizeFinal->height;
     int acceptFalsePixelH = logoSizeFinal->width / 37;  // reduced from 60 to 20, increased to 30 for vertical logo of arte HD
@@ -895,11 +886,24 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
 
     for (int repeat = 1; repeat <= 2; repeat++) {
         if ((logoSizeFinal->width <= 0) || (logoSizeFinal->height <= 0)) {
-            dsyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", decoder->GetVideoWidth(), decoder->GetVideoHeight(), logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
+            esyslog("cExtractLogo::Resize(): video %dx%d with logo size %3d width %3d height on corner %s is not valid", decoder->GetVideoWidth(), decoder->GetVideoHeight(), logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
             logoSizeFinal->height = logoHeightBeforeResize; // restore logo size
             logoSizeFinal->width  = logoWidthBeforeResize;
             return false;
         }
+
+#ifdef DEBUG_LOGO_RESIZE
+        // save plane 0 of logo
+        int cutStep = 0;
+        char *fileName = nullptr;
+        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dBefore.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
+            ALLOC(strlen(fileName)+1, "fileName");
+            sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
+            FREE(strlen(fileName)+1, "fileName");
+            free(fileName);
+            cutStep++;
+        }
+#endif
 
 // resize plane 0
         if (bestLogoCorner <= TOP_RIGHT) {  // top corners, calculate new height and cut from below
@@ -917,25 +921,25 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 }
                 else break;
             }
-            CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
+            dsyslog("cExtractLogo::Resize(): repeat %d, top logo: %d white lines under logo", repeat, whiteLines);
+            if (whiteLines > 0) CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
 
 #ifdef DEBUG_LOGO_RESIZE
             // save plane 0 of logo
             if (whiteLines > 0) {
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutBottom%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutBottom.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                     FREE(strlen(fileName)+1, "fileName");
                     free(fileName);
-                    cutStep++;
                 }
             }
 #endif
 
 // search for text under logo
 // search for at least 2 (SD) or 4 (HD) white lines to cut logos with text addon (e.g. "Neue Folge" or "Live"), but do not cut out "HD"
-            dsyslog("cExtractLogo::Resize(): top logo: search for text under logo, repeat %d", repeat);
+            dsyslog("cExtractLogo::Resize(): repeat %d, top logo: search for text under logo", repeat);
 #define MAX_FALSE_PIXEL 2
             int minWhiteLines = 2;
             if (decoder->GetVideoWidth() > 720) minWhiteLines = 4;
@@ -963,7 +967,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
             }
             int countWhite = bottomWhiteLine - topWhiteLine + 1;
             int textHeight = logoSizeFinal->height - bottomWhiteLine - 1;
-            dsyslog("cExtractLogo::Resize(): found white from line %d -> %d, height %d, text below from line %d -> %d, height %d", topWhiteLine, bottomWhiteLine, countWhite, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight);
+            dsyslog("cExtractLogo::Resize(): repeat %d, top logo:: found white from line %d -> %d, height %d, text below from line %d -> %d, height %d", repeat, topWhiteLine, bottomWhiteLine, countWhite, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight);
             if ((countWhite <= 11) && (textHeight < logoSizeFinal->height)) {    // too much white is not possible for text under logo, changed from 10 to 11
                 // get width of text
                 int leftColumn  = -1;
@@ -982,15 +986,15 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                     }
                 }
                 int textWidth = rightColumn - leftColumn + 1;
-                dsyslog("cExtractLogo::Resize(): found text under logo: line %d -> %d, height %d, column %d -> %d, width %d", bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, leftColumn, rightColumn, textWidth);
+                dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found text under logo: line %d -> %d, height %d, column %d -> %d, width %d", repeat, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, leftColumn, rightColumn, textWidth);
                 if ((textWidth > 23) &&  // keep "HD"
                         (textHeight > 15)) {  // keep "HD"
+                    dsyslog("cExtractLogo::Resize(): repeat %d, top logo: cut out valid text under logo", repeat);
                     CutOut(bestLogoInfo, logoSizeFinal->height - topWhiteLine, 0, logoSizeFinal, bestLogoCorner);
-                    dsyslog("cExtractLogo::Resize(): top logo: cut out valid text under logo, repeat %d", repeat);
                 }
-                else dsyslog("cExtractLogo::Resize(): top logo: no valid text under logo found, repeat %d", repeat);
+                else dsyslog("cExtractLogo::Resize(): repeat %d, top logo: no valid text under logo found", repeat);
             }
-            else dsyslog("cExtractLogo::Resize(): top logo: no valid text under logo found, repeat %d", repeat);
+            else dsyslog("cExtractLogo::Resize(): repeat %d, top logo: no valid text under logo found", repeat);
         }
 
         else { // bottom corners, calculate new height and cut from above
@@ -1012,13 +1016,14 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 dsyslog("cExtractLogo::Resize(): logo invalid after removal of false pixel");
                 return false;
             }
-            CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
+            dsyslog("cExtractLogo::Resize(): repeat %d, bottom logo: %d white lines found", repeat, whiteLines);
+            if (whiteLines > 0) CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
 
 #ifdef DEBUG_LOGO_RESIZE
             if (whiteLines > 0) {
                 // save plane 0 of logo
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutTop%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutTop.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                     FREE(strlen(fileName)+1, "fileName");
@@ -1084,13 +1089,14 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 }
                 else break;
             }
-            CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
+            dsyslog("cExtractLogo::Resize(): repeat %d, right logo: %d white columns found", repeat, whiteColumns);
+            if (whiteColumns > 0) CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
 
 #ifdef DEBUG_LOGO_RESIZE
             // save plane 0 of logo
             if (whiteColumns > 0) {
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutRight.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                     FREE(strlen(fileName)+1, "fileName");
@@ -1133,10 +1139,10 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
             }
             if (lastBlackColumn > cutColumn) {
                 if ((bottomBlackPixel - topBlackPixel) <= 13) {
-                    dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                    dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text before logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                     CutOut(bestLogoInfo, 0, cutColumn, logoSizeFinal, bestLogoCorner);
                 }
-                else dsyslog("cExtractLogo::Resize(): found text before logo, cut at column %d, pixel text: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                else dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text before logo, cut at column %d, pixel text: top %d bottom %d, text height %d is not valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
             }
         }
         else { // left corners, cut from right
@@ -1154,12 +1160,13 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 }
                 else break;
             }
-            CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
+            dsyslog("cExtractLogo::Resize(): repeat %d, left logo: %d white columns found", repeat, whiteColumns);
+            if (whiteColumns > 0) CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
 #ifdef DEBUG_LOGO_RESIZE
             // save plane 0 of logo
             if (whiteColumns > 0) {
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F%07d-P0-C%1d_LogoResize_%d_AfterCutRight%d.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, cutStep, repeat) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutRight.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                     FREE(strlen(fileName)+1, "fileName");
@@ -1170,7 +1177,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
 #endif
             // search for columns to cut logos with text addon (e.g. "Neue Folge")
             if (!CheckLogoSize(logoSizeFinal, bestLogoCorner)) {
-                dsyslog("cExtractLogo::Resize(): left logo: search for text right of logo, repeat %d", repeat);
+                dsyslog("cExtractLogo::Resize(): repeat %d, left logo: search for text right of logo", repeat);
                 int countWhite = 0;
                 int cutColumn = 0;
                 int topBlackPixel =  INT_MAX;
@@ -1200,16 +1207,16 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                     }
                 }
                 if (cutColumn > static_cast<int>((logoSizeFinal->width * 0.5))) {  // do not cut too much, could be a space in the logo (e.g. VOXup)
-                    if ((bottomBlackPixel - topBlackPixel) <= 24) {  // chnaged from 19 to 24 (ZDF HD tivi)
-                        dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                    if ((bottomBlackPixel - topBlackPixel) <= 35) {  // chnaged from 24 (ZDF HD "tivi") to 35 (phoenix HD "plus")
+                        dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                         CutOut(bestLogoInfo, 0, logoSizeFinal->width - cutColumn, logoSizeFinal, bestLogoCorner);
                     }
-                    else dsyslog("cExtractLogo::Resize(): found text after logo, cut at column %d, pixel text: top %d bottom %d, text height %d is not valid", cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                    else dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text after logo, cut at column %d, pixel text: top %d bottom %d, text height %d is not valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                 }
-                else dsyslog("cExtractLogo::Resize(): left logo: no text right of logo found, cutColumn %d, repeat %d", cutColumn, repeat);
+                else dsyslog("cExtractLogo::Resize(): repeat %d, left logo: no text right of logo found, cutColumn %d", repeat, cutColumn);
             }
         }
-        dsyslog("cExtractLogo::Resize(): logo size after %d. resize:  %3d width %3d height on corner %12s", repeat, logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
+        dsyslog("cExtractLogo::Resize(): repeat %d: logo size after resize: %3dW X %3dH on corner %12s", repeat, logoSizeFinal->width, logoSizeFinal->height, aCorner[bestLogoCorner]);
         if ((logoSizeFinal->width <= 10) || (logoSizeFinal->height <= 10)) {
             dsyslog("cExtractLogo::Resize(): logo size after resize is invalid");
             return false;
@@ -1751,7 +1758,7 @@ void cExtractLogo::ManuallyExtractLogo(const int corner, const int width, const 
             {
                 for (int plane = 0; plane < PLANES; plane++) {
                     char *fileName = nullptr;
-                    if (asprintf(&fileName,"%s/F%07d-%s-P%d.pgm", recDir, frameNumber, logoName, plane) >= 1) {
+                    if (asprintf(&fileName,"%s/F__%07d-%s-P%d.pgm", recDir, frameNumber, logoName, plane) >= 1) {
                         ALLOC(strlen(fileName)+1, "fileName");
                         if (plane == 0) sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width, area.logoSize.height);
                         else sobel->SaveSobelPlane(fileName, area.sobel[plane], area.logoSize.width / 2, area.logoSize.height / 2);
