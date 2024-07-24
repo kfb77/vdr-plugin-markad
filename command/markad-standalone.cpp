@@ -5745,19 +5745,6 @@ void cMarkAdStandalone::Recording() {
     // calculate assumed start and end position
     CalculateCheckPositions(macontext.Info.tStart * decoder->GetVideoFrameRate());
 
-    // write an early start mark for running recordings
-    if (macontext.Info.isRunningRecording) {
-        dsyslog("cMarkAdStandalone::Recording(): recording is running, save dummy start mark at pre timer position %ds", macontext.Info.tStart);
-        // use new marks object because we do not want to have this mark in final file
-        cMarks *marksTMP = new cMarks();
-        ALLOC(sizeof(*marksTMP), "marksTMP");
-        marksTMP->SetIndex(index);  // register framerate to write a guessed start position, will be overridden later
-        marksTMP->Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, macontext.Info.tStart * decoder->GetVideoFrameRate(), "timer start", true);
-        marksTMP->Save(macontext.Config->recDir, macontext.Info.isRunningRecording, macontext.Config->pts, true);
-        FREE(sizeof(*marksTMP), "marksTMP");
-        delete marksTMP;
-    }
-
     CheckIndexGrowing();   // check if we have a running recording and have to wait to get new frames
 
     while (decoder->DecodeNextFrame(criteria->GetDetectionState(MT_AUDIO))) {  // only decode audio if we need it
@@ -5921,15 +5908,6 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
 
         extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
         ALLOC(sizeof(*extractLogo), "extractLogo");
-
-        // write an early start mark for running recordings to provide a guest start mark for direct play, marks file will be overridden by save of first real mark
-        if (macontext.Info.isRunningRecording) {
-            dsyslog("cMarkAdStandalone::CheckLogo(): recording is aktive, now save dummy start mark at pre timer position %ds", macontext.Info.tStart);
-            cMarks marksTMP;
-            marksTMP.SetFrameRate(extractLogo->GetFrameRate());
-            marksTMP.Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, macontext.Info.tStart, "timer start", true);
-            marksTMP.Save(macontext.Config->recDir, macontext.Info.isRunningRecording, macontext.Config->pts, true);
-        }
 
         int startPos =  (macontext.Info.tStart + 2 *60) * frameRate;  // search logo from assumed start + 2 min to prevent to get logos from ad
         if (startPos < 0) startPos = 0;  // consider late start of recording
@@ -6423,9 +6401,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, 1, true, hwaccel, false, false, nullptr); // one thread, full decocode, no hwaccel, no force interlaced, no index
     ALLOC(sizeof(*decoderTest), "decoderTest");
     decoderTest->DecodeNextFrame(false);  // decode one video frame to get video info
-    dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: %s, frame rate %d, type %d, pixel format %d", (decoderTest->IsInterlacedFrame()) ? "interlaced" : "progressive", decoderTest->GetVideoFrameRate(), decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
-    // store frameRate for logo extraction
-    int frameRate = decoderTest->GetVideoFrameRate();
+    int frameRate = decoderTest->GetVideoFrameRate();   // store frameRate for logo extraction and start mark if markad runs during recording
+    dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: %s, frame rate %d, type %d, pixel format %d", (decoderTest->IsInterlacedFrame()) ? "interlaced" : "progressive", frameRate, decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
 
     // FFmpeg version dependent restriction
 #if LIBAVCODEC_VERSION_INT <= ((58<<16)+( 54<<8)+100)   // FFmpeg 4.2.7  (Ubuntu 20.04)
@@ -6455,6 +6432,19 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     }
     FREE(sizeof(*decoderTest), "decoderTest");
     delete decoderTest;
+
+    // write an early start mark for running recordings
+    if (macontext.Info.isRunningRecording) {
+        dsyslog("cMarkAdStandalone::Recording(): recording is running, save dummy start mark at pre timer position %ds (%d)", macontext.Info.tStart, macontext.Info.tStart * frameRate);
+        // use new marks object because we do not want to have this mark in final file
+        cMarks *marksTMP = new cMarks();
+        ALLOC(sizeof(*marksTMP), "marksTMP");
+        marksTMP->SetFrameRate(frameRate);  // register framerate to write a guessed start position, will be overridden later
+        marksTMP->Add(MT_ASSUMEDSTART, MT_UNDEFINED, MT_UNDEFINED, macontext.Info.tStart * frameRate, "timer start", true);
+        marksTMP->Save(macontext.Config->recDir, macontext.Info.isRunningRecording, macontext.Config->pts, true);
+        FREE(sizeof(*marksTMP), "marksTMP");
+        delete marksTMP;
+    }
 
     // check if we have a logo or we can extract it from recording
     if (!CheckLogo(frameRate) && (config->autoLogo == 0)) {
