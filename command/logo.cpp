@@ -2077,6 +2077,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                 dsyslog("cExtractLogo::SearchLogo(): %d. best corner is %s at packet %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].frameNumber, logoInfo[rank].hits);
                 // check possible logo
                 logoSizeFinal = area.logoSize;
+                logoInfo[rank].resized = true;
                 if (Resize(&logoInfo[rank], &logoSizeFinal, logoCorner[rank])) {  // logo can be valid
                     done = rank;
                     rankResult = rank;
@@ -2085,6 +2086,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                     if ((logoInfo[rank + 1].hits >= 40) || (logoInfo[rank + 1].hits > (logoInfo[rank].hits * 0.8))) { // next best logo corner has high matches
                         dsyslog("cExtractLogo::SearchLogo(): %d. best corner %d at packet %d with %d similars", rank + 1, logoCorner[rank + 1], logoInfo[rank + 1].frameNumber, logoInfo[rank + 1].hits);
                         sLogoSize secondLogoSize = area.logoSize;
+                        logoInfo[rank + 1].resized = true;
                         if (Resize(&logoInfo[rank + 1], &secondLogoSize, logoCorner[rank + 1])) { // second best logo can be valid
                             dsyslog("cExtractLogo::SearchLogo(): resize logo from %d. and %d. best corner is valid, still no clear result", rank, rank + 1);
                             rankResult = -1;
@@ -2110,7 +2112,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                         ((logoInfo[rank].hits >=  2) && (sumHits == logoInfo[rank].hits))) {  // all machtes in one corner
                     dsyslog("cExtractLogo::SearchLogo(): try low match with %d best corner %s at frame %d with %d similars", rank, aCorner[logoCorner[rank]], logoInfo[rank].frameNumber, logoInfo[rank].hits);
                     logoSizeFinal = area.logoSize;
-                    if (Resize(&logoInfo[rank], &logoSizeFinal, logoCorner[rank])) {
+                    if (!logoInfo[rank].resized && Resize(&logoInfo[rank], &logoSizeFinal, logoCorner[rank])) {
                         rankResult = rank;
                         break;
                     }
