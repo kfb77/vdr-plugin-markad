@@ -7260,9 +7260,10 @@ int main(int argc, char *argv[]) {
                 }
 
                 // write debug mark pictures
-                gettimeofday(&startTime6, nullptr);
 #ifdef DEBUG_MARK_FRAMES
+                gettimeofday(&startTime6, nullptr);
                 cmasta->DebugMarkFrames(); // write frames picture of marks to recording directory
+                gettimeofday(&endTime6, nullptr);
 #endif
 
             }
