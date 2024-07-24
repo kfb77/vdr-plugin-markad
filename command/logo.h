@@ -99,13 +99,6 @@ public:
         return *this;
     }
 
-
-    /**
-     * get video frame rate from decoder
-     * @return frame rate
-     */
-    int GetFrameRate();
-
     /**
      * search and extract logo from recording
      * @param startPacket   frame number to start search

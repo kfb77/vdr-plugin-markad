@@ -104,11 +104,6 @@ cExtractLogo::~cExtractLogo() {
 }
 
 
-int cExtractLogo::GetFrameRate() {
-    return decoder->GetVideoRealFrameRate();
-}
-
-
 bool cExtractLogo::IsWhitePlane(const sLogoInfo *actLogoInfo, const sLogoSize logoSizePlane, const int plane) {
     if (!actLogoInfo)                     return false;
     if (logoSizePlane.width  <= 0)        return false;
