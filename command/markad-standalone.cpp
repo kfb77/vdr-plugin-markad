@@ -4714,7 +4714,8 @@ void cMarkAdStandalone::LowerBorderOptimization() {
     cMark *mark = marks.GetFirst();
     while (mark) {
         // only for VPS marks
-        if (((mark->type & 0xF0) != MT_MOVED) || ((mark->newType & 0xF0) != MT_VPSCHANGE)) {
+        if (!((((mark->type & 0xF0) == MT_MOVED) && ((mark->newType & 0xF0) == MT_VPSCHANGE)) ||
+                ((mark->type & 0xF0) == MT_ASSUMED))) { // skip mark if not VPS or ASSUMED
             mark = mark->Next();
             continue;
         }
@@ -4738,6 +4739,11 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 }
                 else startBefore = nullptr; // no pair, this is invalid
             }
+            if (startBefore && stopBefore) {   // we found valid lower border start/stop
+                cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), stopBefore->position, MT_SOUNDCHANGE, 0xF0);  // around lower border stop
+                if (silence) dsyslog("cMarkAdStandalone::LowerBorderOptimization(): silence found (%d) around lower border from (%d) to (%d)", silence->position, startBefore->position, stopBefore->position);
+            }
+
             // get lower border after start mark
             cMark *startAfter = blackMarks.GetNext(mark->position - 1, MT_NOLOWERBORDERSTOP);  // start of lower border after logo start mark
             int diffAfter     = INT_MAX;
@@ -4754,6 +4760,10 @@ void cMarkAdStandalone::LowerBorderOptimization() {
             if ((lengthAfter < MIN_LOWER_BORDER) || (lengthAfter > MAX_LOWER_BORDER)) { // we got no valid result
                 startAfter = nullptr;
                 stopAfter  = nullptr;
+            }
+            if (startAfter && stopAfter) {   // we found valid lower border start/stop
+                cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), stopAfter->position, MT_SOUNDCHANGE, 0xF0);  // around lower border stop
+                if (silence) dsyslog("cMarkAdStandalone::LowerBorderOptimization(): silence found (%d) around lower border from (%d) to (%d)", silence->position, startAfter->position, stopAfter->position);
             }
 
             // try lower border before start mark
@@ -4833,6 +4843,10 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 startBefore = nullptr;
                 stopBefore  = nullptr;
             }
+            if (startBefore && stopBefore) {   // we found valid lower border start/stop
+                cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), stopBefore->position, MT_SOUNDCHANGE, 0xF0);  // around lower border stop
+                if (silence) dsyslog("cMarkAdStandalone::LowerBorderOptimization(): silence found (%d) around lower border from (%d) to (%d)", silence->position, startBefore->position, stopBefore->position);
+            }
 
             // get lower border after stop mark
             int diffAfter     = INT_MAX;
@@ -4850,6 +4864,10 @@ void cMarkAdStandalone::LowerBorderOptimization() {
             if ((lengthAfter < MIN_LOWER_BORDER) || (lengthAfter > MAX_LOWER_BORDER)) { // we got no valid result
                 startAfter = nullptr;
                 stopAfter  = nullptr;
+            }
+            if (startAfter && stopAfter) {   // we found valid lower border start/stop
+                cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), stopAfter->position, MT_SOUNDCHANGE, 0xF0);  // around lower border stop
+                if (silence) dsyslog("cMarkAdStandalone::LowerBorderOptimization(): silence found (%d) around lower border from (%d) to (%d)", silence->position, startAfter->position, stopAfter->position);
             }
 
             // try lower border after stop marks
@@ -4887,8 +4905,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 int maxBefore = -1;
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
-                    if (lengthBefore >= 1560) maxBefore = 216200;
-                    else                      maxBefore =  51040;
+                    maxBefore = 218520;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
