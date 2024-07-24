@@ -180,17 +180,22 @@ int cIndex::GetIFrameBefore(int frameNumber) {
 // if frame is a iFrame, next i-frame will be returned
 // return: i-frame number
 //
-int cIndex::GetIFrameAfter(int frameNumber) {
+int cIndex::GetIFrameAfter(int packetNumber) {
     if (indexVector.empty()) {
-        dsyslog("cIndex::GetIFrameAfter(): frame index not initialized");
+        dsyslog("cIndex::GetIFrameAfter(): packet index not initialized");
         return -1;
     }
-    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](const sIndexElement &value) ->bool { if (value.frameNumber > frameNumber) return true; else return false; });
+    // request from current packet after last key packet, this can happen if markad runs during recording
+    if ((packetNumber > indexVector.back().frameNumber) && (packetNumber < indexVector.back().frameNumber - 100)) {  // max alowed key packet distance
+        dsyslog("cIndex::GetIFrameAfter(): packet (%d) > last packet in index, return last index element (%d)", packetNumber, indexVector.back().frameNumber);
+        return indexVector.back().frameNumber;
+    }
+
+    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [packetNumber](const sIndexElement &value) ->bool { if (value.frameNumber > packetNumber) return true; else return false; });
     if (found != indexVector.end()) return found->frameNumber;
 
-    esyslog("cIndex::GetIFrameAfter(): frame (%d): failed", frameNumber);
+    esyslog("cIndex::GetIFrameAfter(): packet (%d): failed, index content: first frame (%d), last frame (%d)", packetNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
     return -1;
-
 }
 
 

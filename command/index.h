@@ -85,11 +85,11 @@ public:
     int GetIFrameBefore(int frameNumber);
 
     /**
-     * get i-frame after frameNumber
-     * @param frameNumber number of frame
-     * @return number of i-frame after frameNumber
+     * get key packet after packetNumber
+     * @param packetNumber packet number
+     * @return number of key packet frame after packetNumber
      */
-    int GetIFrameAfter(int frameNumber);
+    int GetIFrameAfter(int packetNumber);
 
     /**
      * get offset time from recording start in ms
