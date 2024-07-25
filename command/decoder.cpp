@@ -62,7 +62,7 @@ void AVlog(__attribute__((unused)) void *ptr, int level, const char* fmt, va_lis
 AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;         // supported pixel format by hardware, need globol scope
 
 static enum AVPixelFormat get_hw_format(__attribute__((unused)) AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts) {
-    dsyslog("get_hw_format(): called with %d %s", *pix_fmts, av_get_pix_fmt_name(*pix_fmts));
+    tsyslog("get_hw_format(): called with %d %s", *pix_fmts, av_get_pix_fmt_name(*pix_fmts));
     const enum AVPixelFormat *p;
     for (p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
         if (*p == hw_pix_fmt) {
@@ -135,12 +135,21 @@ void cDecoder::Reset() {
     dsyslog("cDecoder::Reset(): reset decoder");
     av_packet_unref(&avpkt);
     av_frame_unref(&avFrame);
+    av_frame_unref(&avFrameHW);
+    av_frame_unref(&avFrameConvert);
     if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
+
     if (nv12_to_yuv_ctx) {
         FREE(sizeof(nv12_to_yuv_ctx), "nv12_to_yuv_ctx");  // pointer size, real size not possible because of extern declaration, only as reminder
         sws_freeContext(nv12_to_yuv_ctx);
         nv12_to_yuv_ctx = nullptr;
     }
+    if (swsContext) {
+        FREE(sizeof(swsContext), "swsContext");  // pointer size, real size not possible because of extern declaration, only as reminder
+        sws_freeContext(swsContext);
+        swsContext = nullptr;
+    }
+
     if (avctx) {
         for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
             audioAC3Channels[streamIndex].channelCountBefore = 0;
@@ -358,7 +367,6 @@ bool cDecoder::InitDecoder(const char *filename) {
                     useHWaccel= false;
                     break;
                 }
-                dsyslog("cDecoder::InitDecoder(): hw config: pix_fmt %d, method %d, device_type %d", config->pix_fmt, config->methods, config->device_type);
                 if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) && (config->device_type == hwDeviceType)) {
                     hw_pix_fmt = config->pix_fmt;
                     hwPixelFormat = config->pix_fmt;
@@ -619,8 +627,25 @@ AVPacket *cDecoder::GetPacket() {
 
 
 AVFrame *cDecoder::GetFrame() {
-    if (frameValid) return &avFrame;
-    else return nullptr;
+    if (!frameValid) return nullptr;
+    if (!IsVideoFrame()) return &avFrame;
+    if (avFrame.format == AV_PIX_FMT_YUV420P) return &avFrame;
+
+    // have to convert pixel format to AV_PIX_FMT_YUV420P, GetFrame() only called by encoder, no double conversion from GetVideoPicture()
+    if (!ConvertVideoPixelFormat()) return nullptr;
+    // set encoding relevant values
+    avFrameConvert.format              = avFrame.format;
+    avFrameConvert.pict_type           = avFrame.pict_type;
+    avFrameConvert.pts                 = avFrame.pts;
+    avFrameConvert.pkt_dts             = avFrame.pkt_dts;
+    avFrameConvert.sample_aspect_ratio = avFrame.sample_aspect_ratio;
+#if LIBAVCODEC_VERSION_INT > ((59<<16)+(37<<8)+100)   // FFmpeg 5.1.4
+    avFrameConvert.duration            = avFrame.duration;
+#else
+    avFrameConvert.pkt_duration        = avFrame.pkt_duration;
+#endif
+    return &avFrameConvert;
+
 }
 
 
@@ -805,13 +830,53 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
 }
 
 
+bool cDecoder::ConvertVideoPixelFormat() {
+    if (!frameValid) return false;
+    av_frame_unref(&avFrameConvert);
+    avFrameConvert.width  = GetVideoWidth();
+    avFrameConvert.height = GetVideoHeight();
+    avFrameConvert.format = 0;
+
+    int rc = av_frame_get_buffer(&avFrameConvert, 0);
+    if (rc != 0) {
+        av_frame_unref(&avFrameConvert);
+        return false;
+    }
+
+    if (!swsContext) {
+        enum AVPixelFormat sourcePixelFormat = static_cast<enum AVPixelFormat>(avFrame.format);
+        if (sourcePixelFormat == hwPixelFormat) sourcePixelFormat = static_cast<enum AVPixelFormat>(avFrameHW.format); // we use pixel format from avFrameHW
+        dsyslog("cDecoder::ConvertVideoPixelFormat(): video pixel format: avFrame %s, avFrameHW %s", av_get_pix_fmt_name(static_cast<enum AVPixelFormat>(avFrame.format)), av_get_pix_fmt_name(static_cast<enum AVPixelFormat>(avFrameHW.format)));
+        swsContext = sws_getContext(GetVideoWidth(), GetVideoHeight(), sourcePixelFormat, GetVideoWidth(), GetVideoHeight(), AV_PIX_FMT_YUV420P, SWS_BICUBIC, NULL,NULL,NULL);
+        ALLOC(sizeof(swsContext), "swsContext");  // pointer size, real size not possible because of extern declaration, only as reminder
+    }
+
+    if (avFrame.format == hwPixelFormat) {  // hardware decoed, use avFrameHW
+        sws_scale(swsContext, avFrameHW.data, avFrameHW.linesize, 0, GetVideoHeight(), avFrameConvert.data, avFrameConvert.linesize);
+    }
+    else sws_scale(swsContext, avFrame.data, avFrame.linesize, 0, GetVideoHeight(), avFrameConvert.data, avFrameConvert.linesize);  // software decoded, use avFrame
+    return true;
+}
+
+
 sVideoPicture *cDecoder::GetVideoPicture() {
-    if (!frameValid) return nullptr;
+    if (!frameValid)     return nullptr;
+    if (!IsVideoFrame()) return nullptr;
+    if (videoPicture.packetNumber == packetNumber) return &videoPicture;  // use cached picture
+
+    AVFrame *avFrameResult = &avFrame;
+    // have to convert pixel format to AV_PIX_FMT_YUV420P
+    if (avFrame.format != AV_PIX_FMT_YUV420P) {
+        if (!ConvertVideoPixelFormat()) return nullptr;
+        avFrameResult = &avFrameConvert;
+    }
+
+    // check if picture planes are valid
     bool valid = true;
     for (int i = 0; i < PLANES; i++) {
-        if (avFrame.data[i]) {
-            videoPicture.plane[i]         = avFrame.data[i];
-            videoPicture.planeLineSize[i] = avFrame.linesize[i];
+        if (avFrameResult->data[i]) {
+            videoPicture.plane[i]         = avFrameResult->data[i];
+            videoPicture.planeLineSize[i] = avFrameResult->linesize[i];
         }
         else valid = false;
     }
@@ -1029,10 +1094,8 @@ int cDecoder::ReceiveFrameFromDecoder() {
 // we got a frame check if we used hardware acceleration for this frame
     if (avFrame.hw_frames_ctx) {
         // retrieve data from GPU to CPU
-        AVFrame swFrame = {};
-        av_frame_unref(&swFrame);    // need to reset fields, other coredump, maybe bug in FFmepeg
-
-        rc = av_hwframe_transfer_data(&swFrame, &avFrame, 0);
+        av_frame_unref(&avFrameHW);
+        rc = av_hwframe_transfer_data(&avFrameHW, &avFrame, 0);
         if (rc < 0 ) {
             switch (rc) {
             case -EIO:        // end of file
@@ -1042,53 +1105,10 @@ int cDecoder::ReceiveFrameFromDecoder() {
                 esyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d), pict_type %d: av_hwframe_transfer_data rc = %d: %s", packetNumber, avFrame.pict_type, rc, av_err2str(rc));
                 break;
             }
-            av_frame_unref(&swFrame);
-            av_frame_unref(&avFrame);
-            Time(false);
-            return rc;
-        }
-        swFrame.sample_aspect_ratio = avFrame.sample_aspect_ratio;  // need to set before pixel format transformation
-        // some filds in avFrame filled by receive, but no video data, copy to swFrame to keep it after pixel format transformation
-        AVPictureType pict_type     = avFrame.pict_type;
-        int64_t pts                 = avFrame.pts;
-        int64_t dts                 = avFrame.pkt_dts;
-#if LIBAVCODEC_VERSION_INT > ((59<<16)+(37<<8)+100)   // FFmpeg 5.1.4
-        int64_t duration            = avFrame.duration;
-#else
-        int64_t duration            = avFrame.pkt_duration;
-#endif
-
-        // transform pixel format
-        av_frame_unref(&avFrame);
-        avFrame.height = avctx->streams[avpkt.stream_index]->codecpar->height;
-        avFrame.width  = avctx->streams[avpkt.stream_index]->codecpar->width;
-        avFrame.format = 0;
-        rc = av_frame_get_buffer(&avFrame, 0);
-        if (rc != 0) {
-            av_frame_unref(&swFrame);
-            av_frame_unref(&avFrame);
             Time(false);
             return rc;
         }
 
-        if (!nv12_to_yuv_ctx) {
-            nv12_to_yuv_ctx = sws_getContext(swFrame.width, swFrame.height, AV_PIX_FMT_NV12, swFrame.width, swFrame.height, AV_PIX_FMT_YUV420P, SWS_BICUBIC, NULL,NULL,NULL);
-            ALLOC(sizeof(nv12_to_yuv_ctx), "nv12_to_yuv_ctx");  // pointer size, real size not possible because of extern declaration, only as reminder
-        }
-
-        sws_scale(nv12_to_yuv_ctx, swFrame.data, swFrame.linesize, 0, swFrame.height, avFrame.data, avFrame.linesize);
-
-        // restore values we lost during pixel transformation
-        avFrame.pict_type           = pict_type;
-        avFrame.pts                 = pts;
-        avFrame.pkt_dts             = dts;
-#if LIBAVCODEC_VERSION_INT > ((59<<16)+(37<<8)+100)   // FFmpeg 5.1.4
-        avFrame.duration            = duration;
-#else
-        avFrame.pkt_duration        = duration;
-#endif
-        avFrame.sample_aspect_ratio = swFrame.sample_aspect_ratio;
-        av_frame_unref(&swFrame);
         if (!firstHWaccelReceivedOK) {
             dsyslog("cDecoder::ReceiveFrameFromDecoder(): first video packet received from hwaccel decoder, codec and pixel format are valid");
             firstHWaccelReceivedOK = true;

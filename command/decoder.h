@@ -373,6 +373,11 @@ public:
     enum AVPixelFormat GetVideoPixelFormat() const;
 
 private:
+    /** convert frame pixel format to AV_PIX_FMT_YUV420P
+     * @return true if successful, false otherwise
+     */
+    bool ConvertVideoPixelFormat();
+
     /** set start and end time of decoding, use for statitics
      * @param start true for start decoding, false otherwise
      */
@@ -415,7 +420,9 @@ private:
     //!<
     AVBufferRef *hw_device_ctx         = nullptr;                 //!< hardware device context
     //!<
-    struct SwsContext *nv12_to_yuv_ctx = nullptr;                 //!< pixel format conversion context
+    struct SwsContext *nv12_to_yuv_ctx = nullptr;                 //!< pixel format conversion context for hwaccel
+    //!<
+    struct SwsContext *swsContext      = nullptr;                 //!< pixel format conversion context for non AV_PIX_FMT_YUV420P pixel formats (e.g. from UHD)
     //!<
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)               // FFmpeg 4.5
     const AVCodec *codec               = nullptr;                 //!< codec
@@ -431,6 +438,10 @@ private:
     AVPacket avpkt                     = {};                      //!< packet from input file
     //!<
     AVFrame avFrame                    = {};                      //!< decoded frame
+    //!<
+    AVFrame avFrameHW                  = {};                      //!< decoded frame from hwaccel, contains picture data if hwaccel is used
+    //!<
+    AVFrame avFrameConvert             = {};                      //!< decoded frame after pixel format transformation
     //!<
     bool frameValid                    = false;                   //!< decoding was successful, current avFrame content is valid
     //!<
