@@ -361,6 +361,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
 //
 // contrast   8, brightness 207  -> no logo on bright background   (conflict)
 //
+// contrast   3, brightness 221  -> bright separator without logo
 // contrast   3, brightness 218  -> bright separator without logo
 // contrast   2, brightness 213  -> bright separator without logo
 //
@@ -369,7 +370,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
 
     // build the curve for invalid contrast/brightness
     if ((    (contrastLogo  ==  0) &&                          (brightnessLogo > 235)) ||
-            ((contrastLogo  >   0) && (contrastLogo <=   3) && (brightnessLogo > 218)) ||
+            ((contrastLogo  >   0) && (contrastLogo <=   3) && (brightnessLogo > 221)) ||
             ((contrastLogo  >   3) && (contrastLogo <=  10) && (brightnessLogo > 202)) ||
             ((contrastLogo  >  10) && (contrastLogo <=  20) && (brightnessLogo > 197)) ||
             ((contrastLogo  >  20) && (contrastLogo <=  50) && (brightnessLogo > 192)) ||
@@ -873,15 +874,17 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
             else {
                 if (!area.counter) area.stateFrameNumber = index->GetFrameBefore(frameNumber);
                 area.counter++;
-                if (rPixel <= (logo_imark / 2)) area.counter++;   // good detect for logo invisible
-                if (rPixel <= (logo_imark / 4)) area.counter++;   // good detect for logo invisible
-                if (rPixel == 0) {
-                    area.counter++;   // very good detect for logo invisible
-                    if (area.intensity <= 80) { // best detect, blackscreen without logo, increased from 30 to 70 to 80
-                        dsyslog("cLogoDetect::Detect(): black screen without logo detected at frame (%d)", frameNumber);
-                        area.status = ret = LOGO_INVISIBLE;
-                        *logoFrameNumber = area.stateFrameNumber;
-                        area.counter = 0;
+                if (area.intensity < 200) {   // do not overweight result on bright pictures
+                    if (rPixel <= (logo_imark / 2)) area.counter++;   // good detect for logo invisible
+                    if (rPixel <= (logo_imark / 4)) area.counter++;   // good detect for logo invisible
+                    if (rPixel == 0) {
+                        area.counter++;   // very good detect for logo invisible
+                        if (area.intensity <= 80) { // best detect, blackscreen without logo, increased from 30 to 70 to 80
+                            dsyslog("cLogoDetect::Detect(): black screen without logo detected at frame (%d)", frameNumber);
+                            area.status = ret = LOGO_INVISIBLE;
+                            *logoFrameNumber = area.stateFrameNumber;
+                            area.counter = 0;
+                        }
                     }
                 }
             }
