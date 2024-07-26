@@ -1381,29 +1381,29 @@ int cVertBorderDetect::Process(int *borderFrame) {
 #define BRIGHTNESS_V_MAYBE 101  // some channel have logo or infos in one border, so we must accept a higher value, changed from 100 to 101
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
-        dsyslog("cVertBorderDetect::Process(): picture not valid");
+        dsyslog("cVertBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
     if(!picture->plane[0]) {
-        dsyslog("cVertBorderDetect::Process(): picture plane 0 not valid");
+        dsyslog("cVertBorderDetect::Process(): packet (%d): picture plane 0 not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
+        dsyslog("cVertBorderDetect::Process(): packet (%d): picture planeLineSize[0] valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
     if (!borderFrame) {
-        dsyslog("cVertBorderDetect::Process(): borderFrame not valid");
+        dsyslog("cVertBorderDetect::Process(): packet (%d): borderFrame not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
     if (picture->width == 0) {
-        dsyslog("cVertBorderDetect::Process(): picture width %d not valid", picture->width);
+        dsyslog("cVertBorderDetect::Process(): packet (%d): picture width %d not valid", decoder->GetPacketNumber(), picture->width);
     }
     if (picture->height == 0) {
-        dsyslog("cVertBorderDetect::Process(): picture height %d not valid", picture->height);
+        dsyslog("cVertBorderDetect::Process(): packet (%d): picture height %d not valid", decoder->GetPacketNumber(), picture->height);
     }
     if (frameRate == 0) {
-        dsyslog("cVertBorderDetect::Process(): video frames per second  not valid");
+        dsyslog("cVertBorderDetect::Process(): packet (%d): video frames per second  not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
 
