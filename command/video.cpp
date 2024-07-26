@@ -978,20 +978,20 @@ cSceneChangeDetect::~cSceneChangeDetect() {
 int cSceneChangeDetect::Process(int *changeFrameNumber) {
     if (!changeFrameNumber) return SCENE_ERROR;
 
+    int packetNumber = decoder->GetPacketNumber();
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
-        dsyslog("cVertBorderDetect::Process(): picture not valid");
+        dsyslog("cSceneChangeDetect::Process(): packet (%d): picture not valid", packetNumber);
         return VBORDER_ERROR;
     }
     if(!picture->plane[0]) {
-        dsyslog("cVertBorderDetect::Process(): picture plane 0 not valid");
+        dsyslog("cSceneChangeDetect::Process(): packet (%d): picture plane 0 not valid", packetNumber);
         return VBORDER_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
+        dsyslog("cSceneChangeDetect::Process(): packet (%d): picture planeLineSize[0] valid", packetNumber);
         return VBORDER_ERROR;
     }
-    int frameNumber = decoder->GetPacketNumber();
 
     // get simple histogramm from current frame
     int *currentHistogram = nullptr;
@@ -1016,7 +1016,7 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
     }
     int diffQuote = 1000 * difference / (picture->height * picture->width * 2);
 #ifdef DEBUG_SCENE_CHANGE
-    dsyslog("cSceneChangeDetect::Process(): previous frame (%7d) and current frame (%7d): status %2d, blendCount %2d, blendFrame %7d, difference %7ld, diffQute %4d", prevFrameNumber, frameNumber, sceneStatus, blendCount, blendFrame, difference, diffQuote);
+    dsyslog("cSceneChangeDetect::Process(): previous frame (%7d) and current frame (%7d): status %2d, blendCount %2d, blendFrame %7d, difference %7ld, diffQute %4d", prevFrameNumber, packetNumber, sceneStatus, blendCount, blendFrame, difference, diffQuote);
 #endif
     FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
     free(prevHistogram);
@@ -1082,7 +1082,7 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
     }
 
     prevHistogram   = currentHistogram;
-    prevFrameNumber = frameNumber;
+    prevFrameNumber = packetNumber;
 
 #ifdef DEBUG_SCENE_CHANGE
     if (*changeFrameNumber >= 0) {
