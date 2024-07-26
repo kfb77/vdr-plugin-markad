@@ -951,10 +951,16 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             if ((avpktIn->pts >= cutInfo.startPosPTS) && (avpktIn->dts >= cutInfo.startPosDTS)) {
                 // re-encode if needed
                 if (decoder->IsVideoPacket()) {  // always decode video stream
-                    if (!EncodeVideoFrame(decoder->GetFrame())) esyslog("cEncoder::CutOut(): decoder packet (%d): EncodeVideoFrame() failed", decoder->GetPacketNumber());
+                    if (!EncodeVideoFrame(decoder->GetFrame())) {
+                        esyslog("cEncoder::CutOut(): decoder packet (%d): EncodeVideoFrame() failed", decoder->GetPacketNumber());
+                        return false;
+                    }
                 }
                 else if (ac3ReEncode && (pass == 2) && decoder->IsAudioAC3Packet()) {  // only re-encode AC3 if volume change is requested
-                    if (!EncodeAC3Frame(decoder->GetFrame())) esyslog("cEncoder::CutOut(): decoder packet (%d): EncodeAC3Frame() failed", decoder->GetPacketNumber());
+                    if (!EncodeAC3Frame(decoder->GetFrame())) {
+                        esyslog("cEncoder::CutOut(): decoder packet (%d): EncodeAC3Frame() failed", decoder->GetPacketNumber());
+                        return false;
+                    }
                 }
                 // no re-encode need, use input packet and write packet
                 else if (!WritePacket(avpktIn, false)) {
