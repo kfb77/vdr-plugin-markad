@@ -270,10 +270,10 @@ public:
     bool IsVideoPacket() const;
 
     /**
-     * check if current packet is a video i-frame packet
-     * @return true if current packet is a video i-frame, false otherwise
+     * check if current packet is a video key packet
+     * @return true if current packet is a video key packet, false otherwise
      */
-    bool IsVideoIPacket() const;
+    bool IsVideoKeyPacket() const;
 
     /**
      * check if current frame is a video frame
@@ -458,6 +458,8 @@ private:
     int decoderSendState               = 0;                       //!< last return code of SendPacketToDecoder()
     //!<
     int decoderReceiveState            = -EAGAIN;                 //!< last return code of ReceiveFrameFromDecoder()
+    //!<
+    bool decoderRestart                = true;                    //!< true if decoder has to be restarted with a key packet (at start or after seek)
     //!<
     sVideoPicture videoPicture         = {};                      //!< current decoded video picture
     //!<

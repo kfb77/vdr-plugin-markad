@@ -181,6 +181,7 @@ void cDecoder::Reset() {
     decoderSendState = 0;
     eof              = false;
     sumDuration      = 0;
+    decoderRestart   = true;
 }
 
 
@@ -576,7 +577,7 @@ bool cDecoder::ReadPacket() {
                 index->AddPTS(packetNumber, avpkt.pts);
 
                 // store PTS and sum duration of all i-frames
-                if (IsVideoIPacket()) {
+                if (IsVideoKeyPacket()) {
                     int64_t frameTimeOffset_ms = 1000 * static_cast<int64_t>(sumDuration) * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;  // need more space to calculate value
                     index->Add(fileNumber, packetNumber, avpkt.pts, frameTimeOffset_ms);
                 }
@@ -745,18 +746,21 @@ bool cDecoder::DecodePacket() {
 
 bool cDecoder::DecodeNextFrame(const bool audioDecode) {
     // receive a frame from decoder, one decoded packet can result in more than one frame
-    if (packetNumber < 0) {   // send initil video packet
-        while (true) {
+    if (decoderRestart) {   // send initial video key packet
+        if(GetPacketNumber() < 0) ReadNextPacket();        // read first packet after decoder restart
+        while (!IsVideoKeyPacket()) {
             if (abortNow) return false;
-            if(ReadNextPacket()) {        // got a packet
-                if (!IsVideoPacket()) continue;    // start decode with first video
-                decoderSendState = SendPacketToDecoder(false);      // send packet to decoder, no flash flag
-#ifdef DEBUG_DECODE_NEXT_FRAME
-                dsyslog("cDecoder::DecodeNextFrame(): packet        (%5d), stream %d: avpkt.flags %d send to decoder for init", packetNumber, avpkt.stream_index, avpkt.flags);
-#endif
+            if(!ReadNextPacket()) {        // got a packet
+                esyslog("cDecoder::DecodeNextFrame(): packet (%d): unable to get first key packet after restart decoder", packetNumber);
+                return false;
             }
-            break;
+#ifdef DEBUG_DECODE_NEXT_FRAME
+            dsyslog("cDecoder::DecodeNextFrame(): packet        (%5d), stream %d: avpkt.flags %d send key packet to decoder after restart decoder", packetNumber, avpkt.stream_index, avpkt.flags);
+#endif
         }
+        decoderSendState = SendPacketToDecoder(false);      // send key packet to decoder, no flash flag
+        dsyslog("cDecoder::DecodeNextFrame(): packet (%5d), stream %d: is video key packet, start decoding", packetNumber, avpkt.stream_index);
+        decoderRestart = false;
     }
     // receive decoded frame from queue
     decoderReceiveState = ReceiveFrameFromDecoder();      // receive only if first send is donw
@@ -776,9 +780,9 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
             while (true) {   // read until we got a valid packet type
                 if (abortNow) return false;
                 if(ReadNextPacket()) {        // got a packet
-                    if (!fullDecode      && !IsVideoIPacket()) continue; // decode only iFrames, no audio decode without full decode
-                    if (!audioDecode     && !IsVideoPacket())  continue; // decode only video frames
-                    if (!IsVideoPacket() && !IsAudioPacket())  continue; // ignore all other types (e.g. subtitle
+                    if (!fullDecode      && !IsVideoKeyPacket()) continue; // decode only iFrames, no audio decode without full decode
+                    if (!audioDecode     && !IsVideoPacket())    continue; // decode only video frames
+                    if (!IsVideoPacket() && !IsAudioPacket())    continue; // ignore all other types (e.g. subtitle
                     decoderSendState = SendPacketToDecoder(false);      // send packet to decoder, no flash flag
 #ifdef DEBUG_DECODE_NEXT_FRAME
                     dsyslog("cDecoder::DecodeNextFrame(): packet        (%5d), stream %d, fullDecode %d: avpkt.flags %d send to decoder", packetNumber, avpkt.stream_index, fullDecode, avpkt.flags);
@@ -925,6 +929,7 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
         if (abortNow) return false;
         if (packetNumber >= seekPacketNumber) break;
     }
+    decoderRestart = true;
     dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d) successful", packetNumber, seekPacketNumber);
     return true;
 }
@@ -1151,12 +1156,13 @@ bool cDecoder::IsVideoPacket() const {
 }
 
 
-bool cDecoder::IsVideoIPacket() const {
+bool cDecoder::IsVideoKeyPacket() const {
     if (!avctx) return false;
     if (!IsVideoPacket()) return false;
     if ((avpkt.flags & AV_PKT_FLAG_KEY) != 0) return true;
     return false;
 }
+
 
 bool cDecoder::IsVideoFrame() const {
     if (!avctx) return false;

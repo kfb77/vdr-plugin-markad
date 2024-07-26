@@ -1014,7 +1014,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         }
         // check if we have a valid packet to set for start position
         AVPacket *avpkt = decoder->GetPacket();  // this should be a video packet, because we seek to video packets
-        while (!decoder->IsVideoIPacket() || (avpkt->pts == AV_NOPTS_VALUE) || (avpkt->dts == AV_NOPTS_VALUE)) {
+        while (!decoder->IsVideoKeyPacket() || (avpkt->pts == AV_NOPTS_VALUE) || (avpkt->dts == AV_NOPTS_VALUE)) {
             if (abortNow) return false;
             esyslog("cEncoder::CutOut(): packet (%d), stream %d: packet not valid for start position", decoder->GetPacketNumber(), avpkt->stream_index);
             if (!decoder->ReadNextPacket()) return false;
