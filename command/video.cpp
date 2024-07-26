@@ -1121,15 +1121,15 @@ int cBlackScreenDetect::Process() {
 #define PIXEL_COUNT_LOWER  25  // count pixel from bottom for detetion of lower border, changed from 40 to 25
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
-        dsyslog("cVertBorderDetect::Process(): picture not valid");
+        dsyslog("cBlackScreenDetect::Process(): picture not valid");
         return VBORDER_ERROR;
     }
     if(!picture->plane[0]) {
-        dsyslog("cVertBorderDetect::Process(): picture plane 0 not valid");
+        dsyslog("cBlackScreenDetect::Process()(): picture plane 0 not valid");
         return VBORDER_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
+        dsyslog("cBlackScreenDetect::Process()(): picture planeLineSize[0] valid");
         return VBORDER_ERROR;
     }
 
@@ -1247,15 +1247,15 @@ int cHorizBorderDetect::Process(int *borderFrame) {
 
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
-        dsyslog("cVertBorderDetect::Process(): picture not valid");
+        dsyslog("cVertBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
     if(!picture->plane[0]) {
-        dsyslog("cVertBorderDetect::Process(): picture plane 0 not valid");
+        dsyslog("cVertBorderDetect::Process(): packet (%d): picture plane 0 not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cVertBorderDetect::Process(): picture planeLineSize[0] valid");
+        dsyslog("cVertBorderDetect::Process(): packet (%d): picture planeLineSize[0] valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
 
