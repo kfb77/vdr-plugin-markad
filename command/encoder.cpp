@@ -900,7 +900,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
     if (fullEncode) {
         // seek to start position
         if (!decoder->SeekToPacket(index->GetIFrameBefore(startPos))) {
-            esyslog("cMarkAdStandalone::MarkadCut(): seek to i-frame before start mark (%d) failed", startPos);
+            esyslog("cEncoder::CutOut(): seek to i-frame before start mark (%d) failed", startPos);
             return false;
         }
         if (decoder->IsVideoPacket()) decoder->DecodePacket(); // decode packet read from seek
