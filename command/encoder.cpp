@@ -1130,6 +1130,8 @@ bool cEncoder::EncodeVideoFrame(AVFrame *avFrame) {
                 stats_in_tmp = static_cast<char *>(realloc(stats_in.data, strLength + oldLength + 1));
                 if (!stats_in_tmp) {
                     esyslog("memory alloation for stats_in failed");  // free of stats_in in destructor
+                    FREE(sizeof(*avpktOut), "avpktOut");
+                    av_packet_free(&avpktOut);
                     return false;
                 }
                 stats_in.data = stats_in_tmp;
@@ -1151,6 +1153,8 @@ bool cEncoder::EncodeVideoFrame(AVFrame *avFrame) {
         // write packet
         if (!WritePacket(avpktOut, true)) {  // packet was re-encoded
             esyslog("cEncoder::EncodeFrame(): WritePacket() failed");
+            FREE(sizeof(*avpktOut), "avpktOut");
+            av_packet_free(&avpktOut);
             return false;
         }
         FREE(sizeof(*avpktOut), "avpktOut");
