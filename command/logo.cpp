@@ -343,6 +343,19 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax =  73;
         }
 
+        //   1 Comedy_Central          16:9  720W  576H:->  126W  74H TOP_LEFT
+        //   5 Comedy_Central          16:9  720W  576H:->  126W  76H TOP_LEFT
+        //  63 Comedy_Central          16:9  720W  576H:->  126W  78H TOP_LEFT
+        //  19 Comedy_Central          16:9  720W  576H:->  126W  80H TOP_LEFT
+        //   1 Comedy_Central          16:9  720W  576H:->  148W  80H TOP_LEFT
+        //   1 Comedy_Central          16:9  720W  576H:->  214W  80H TOP_LEFT
+        if (CompareChannelName(channelName, "Comedy_Central", IGNORE_NOTHING)) {
+            logo.widthMin  = 116;
+            logo.widthMax  = 224;
+            logo.heightMin =  64;
+            logo.heightMax =  90;
+        }
+
         // Disney_Channel          16:9  720W  576H:->  110W  70H TOP_LEFT
         // Disney_Channel          16:9  720W  576H:->  110W  72H TOP_LEFT
         // Disney_Channel          16:9  720W  576H:->  110W  74H TOP_LEFT
@@ -695,6 +708,15 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax =  76;
         }
 
+        //   1 SWR_BW_HD               16:9 1280W  720H:->  228W  74H TOP_LEFT
+        //   2 SWR_BW_HD               16:9 1280W  720H:->  228W  76H TOP_LEFT
+        if (CompareChannelName(channelName, "SWR_HD", IGNORE_CITY)) {
+            logo.widthMin  = 218;
+            logo.widthMax  = 238;
+            logo.heightMin =  64;
+            logo.heightMax =  86;
+        }
+
         if (CompareChannelName(channelName, "WDR_HD", IGNORE_CITY)) {         // WDR_HD_Köln             16:9 1280W  720H:->  224W  80H TOP_RIGHT
             logo.heightMax =  80;
         }
@@ -712,9 +734,10 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 106;
         }
 
-        // ZDFinfo_HD              16:9 1280W  720H:->  196W  86H TOP_LEFT
+        //   1 ZDFinfo_HD              16:9 1280W  720H:->  160W  86H TOP_LEFT
+        //   1 ZDFinfo_HD              16:9 1280W  720H:->  196W  86H TOP_LEFT
         if (CompareChannelName(channelName, "ZDFinfo_HD", IGNORE_NOTHING)) {
-            logo.widthMin  = 186;
+            logo.widthMin  = 150;
             logo.widthMax  = 206;
             logo.heightMin =  76;
             logo.heightMax =  96;
@@ -827,10 +850,10 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
 
     case 3840:
         // default values
-        if (logo.widthMin  == 0) logo.widthMin  = 1412; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
-        if (logo.widthMax  == 0) logo.widthMax  = 1412; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
-        if (logo.heightMin == 0) logo.heightMin =  218; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
-        if (logo.heightMax == 0) logo.heightMax =  218; // RTL_UHD                 16:9 3840W 2160H:-> 1412W 218H TOP_LEFT
+        if (logo.widthMin  == 0) logo.widthMin  = 696; // RTL_UHD                 16:9 3840W 2160H:->  706W 218H TOP_LEFT
+        if (logo.widthMax  == 0) logo.widthMax  = 716; // RTL_UHD                 16:9 3840W 2160H:->  706W 218H TOP_LEFT
+        if (logo.heightMin == 0) logo.heightMin = 208; // RTL_UHD                 16:9 3840W 2160H:->  706W 218H TOP_LEFT
+        if (logo.heightMax == 0) logo.heightMax = 228; // RTL_UHD                 16:9 3840W 2160H:->  706W 218H TOP_LEFT
         break;
 
     default:

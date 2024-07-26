@@ -302,8 +302,8 @@ sLogoSize cSobel::GetMaxLogoSize() const {
         logoSizeMax.height =  220;
         break;
     case 3840:
-        logoSizeMax.width  = 1500;
-        logoSizeMax.height =  400;
+        logoSizeMax.width  = 750;
+        logoSizeMax.height = 250;
         break;
     default:
         esyslog("cSobel::GetMaxLogoSize() no default logo size rule for video width %d", videoWidth);
