@@ -5142,8 +5142,8 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxBefore = 173639;
                     break;
                 case MT_LOGOSTOP:
-                    if (criteria->GoodVPS()) maxBefore = 1279;
-                    else                                              maxBefore = 4440;
+                    if (criteria->GoodVPS()) maxBefore =  520;
+                    else                     maxBefore = 4440;
                     break;
                 case MT_CHANNELSTOP:
                     maxBefore = 1100;
