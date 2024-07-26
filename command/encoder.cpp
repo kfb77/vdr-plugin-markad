@@ -1222,6 +1222,8 @@ bool cEncoder::EncodeAC3Frame(AVFrame *avFrame) {
         // write packet
         if (!WritePacket(avpktOut, true)) {  // packet was re-encoded
             esyslog("cEncoder::EncodeFrame(): WritePacket() failed");
+            FREE(sizeof(*avpktOut), "avpktOut");
+            av_packet_free(&avpktOut);
             return false;
         }
         FREE(sizeof(*avpktOut), "avpktOut");
