@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-07-31: Version 4.0.4
+- fix UHD decoding
+- some performance improvement
+- some minor bug fixes and optimizations, see git
+
 2024-07-26: Version 4.0.3
 - FFmpeg <= 4.3.7 does not support multithreading hwaccel, disable it
 - fix reset to software decoder if codec or pixel format is not supported by hardware
