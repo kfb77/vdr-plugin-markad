@@ -599,24 +599,23 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
 // set encoding codec parameter
     // video stream
     if (decoder->IsVideoStream(streamIndexIn)) {
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d avg framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->avg_frame_rate.num, avctxIn->streams[streamIndexIn]->avg_frame_rate.den);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d real framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->r_frame_rate.num, avctxIn->streams[streamIndexIn]->r_frame_rate.den);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d keyint_min %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->keyint_min);
-        dsyslog("cEncoder::InitEncoderCodec(): video input format stream %d  bit_rate %" PRId64, streamIndexIn, avctxIn->bit_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d bit_rate %" PRId64, streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d rc_max_rate %" PRId64, streamIndexIn, codecCtxArrayIn[streamIndexIn]->rc_max_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d bit_rate_tolerance %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate_tolerance);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d global_quality %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->global_quality);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d sample_rate %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->sample_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d gop_size %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->gop_size);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d level %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->level);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d aspect ratio %d:%d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.num, codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.den);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: avg framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->avg_frame_rate.num, avctxIn->streams[streamIndexIn]->avg_frame_rate.den);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: real framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->r_frame_rate.num, avctxIn->streams[streamIndexIn]->r_frame_rate.den);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: keyint_min %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->keyint_min);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: bit_rate %" PRId64, streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: rc_max_rate %" PRId64, streamIndexIn, codecCtxArrayIn[streamIndexIn]->rc_max_rate);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: bit_rate_tolerance %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate_tolerance);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: global_quality %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->global_quality);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: sample_rate %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->sample_rate);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: gop_size %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->gop_size);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: level %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->level);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: aspect ratio %d:%d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.num, codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.den);
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: pix_fmt %s", streamIndexIn, av_get_pix_fmt_name(codecCtxArrayIn[streamIndexIn]->pix_fmt));
+        dsyslog("cEncoder::InitEncoderCodec(): video input format context : bit_rate %" PRId64, avctxIn->bit_rate);
 
         codecCtxArrayOut[streamIndexOut]->time_base.num = avctxIn->streams[streamIndexIn]->avg_frame_rate.den;  // time_base = 1 / framerate
         codecCtxArrayOut[streamIndexOut]->time_base.den = avctxIn->streams[streamIndexIn]->avg_frame_rate.num;
         codecCtxArrayOut[streamIndexOut]->framerate = avctxIn->streams[streamIndexIn]->avg_frame_rate;
-
-//        codecCtxArrayOut[streamIndexOut]->pix_fmt             = AV_PIX_FMT_YUV420P;
 
         codecCtxArrayOut[streamIndexOut]->pix_fmt = codecCtxArrayIn[streamIndexIn]->pix_fmt;
         codecCtxArrayOut[streamIndexOut]->height = codecCtxArrayIn[streamIndexIn]->height;
@@ -906,7 +905,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         if (decoder->IsVideoPacket()) decoder->DecodePacket(); // decode packet read from seek
 
         // check if we have a valid frame to set for start position
-        AVFrame *avFrame = decoder->GetFrame();  // this should be a video packet, because we seek to video packets
+        AVFrame *avFrame = decoder->GetFrame(AV_PIX_FMT_NONE);  // this should be a video packet, because we seek to video packets
         while (!avFrame || !decoder->IsVideoFrame() || (avFrame->pts == AV_NOPTS_VALUE) || (avFrame->pkt_dts == AV_NOPTS_VALUE) || (decoder->GetPacketNumber() < startPos)) {
             if (abortNow) return false;
 
@@ -919,7 +918,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
 
             if (!decoder->ReadNextPacket()) return false;
             if (decoder->IsVideoPacket()) decoder->DecodePacket(); // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
-            avFrame = decoder->GetFrame();
+            avFrame = decoder->GetFrame(AV_PIX_FMT_NONE);
         }
         // get PTS/DTS from start position
         cutInfo.startPosPTS = avFrame->pts;
@@ -951,13 +950,13 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             if ((avpktIn->pts >= cutInfo.startPosPTS) && (avpktIn->dts >= cutInfo.startPosDTS)) {
                 // re-encode if needed
                 if (decoder->IsVideoPacket()) {  // always decode video stream
-                    if (!EncodeVideoFrame(decoder->GetFrame())) {
+                    if (!EncodeVideoFrame()) {
                         esyslog("cEncoder::CutOut(): decoder packet (%d): EncodeVideoFrame() failed", decoder->GetPacketNumber());
                         return false;
                     }
                 }
                 else if (ac3ReEncode && (pass == 2) && decoder->IsAudioAC3Packet()) {  // only re-encode AC3 if volume change is requested
-                    if (!EncodeAC3Frame(decoder->GetFrame())) {
+                    if (!EncodeAC3Frame()) {
                         esyslog("cEncoder::CutOut(): decoder packet (%d): EncodeAC3Frame() failed", decoder->GetPacketNumber());
                         return false;
                     }
@@ -982,7 +981,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
         }
         // get PTS/DTS from end position
-        avFrame = decoder->GetFrame();  // this must be first video packet after cut because we only increase frame counter on video frames
+        avFrame = decoder->GetFrame(AV_PIX_FMT_NONE);  // this must be first video packet after cut because we only increase frame counter on video frames
         cutInfo.stopPosPTS = avFrame->pts;
         cutInfo.stopPosDTS = avFrame->pkt_dts;
         dsyslog("cEncoder::CutOut(): end cut from i-frame (%6d) PTS %10ld DTS %10ld to i-frame (%6d) PTS %10ld DTS %10ld, offset %10ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
@@ -1078,7 +1077,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
 }
 
 
-bool cEncoder::EncodeVideoFrame(AVFrame *avFrame) {
+bool cEncoder::EncodeVideoFrame() {
 #ifdef DEBUG_PTS_DTS_CUT
     if (pass == 2) {
         dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%5d) stream %d in:  PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", decoderFrameNumber, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - inputFramePTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
@@ -1092,7 +1091,12 @@ bool cEncoder::EncodeVideoFrame(AVFrame *avFrame) {
     int streamIndexOut = streamMap[streamIndexIn];
     if (streamIndexOut == -1) return false; // no target for this stream
 
-    codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = avFrame->sample_aspect_ratio; // set encoder pixel aspect ratio to decoded frames aspect ratio
+    AVFrame *avFrame = decoder->GetFrame(codecCtxArrayOut[streamIndexOut]->pix_fmt);  // get video frame with converted data planes
+    if (!avFrame) {
+        dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%d): got no valid frame", decoder->GetPacketNumber());
+        return true;  // can happen, try with next packet
+    }
+    codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = avFrame->sample_aspect_ratio; // aspect ratio can change, set encoder pixel aspect ratio to decoded frames aspect ratio
 
 #ifdef DEBUG_PTS_DTS_CUT
     if (pass == 2) {
@@ -1175,13 +1179,18 @@ int cEncoder::GetAC3ChannelCount(const int streamIndex) {
 
 
 
-bool cEncoder::EncodeAC3Frame(AVFrame *avFrame) {
+bool cEncoder::EncodeAC3Frame() {
     // map input stream index to output stream index
     int streamIndexIn = decoder->GetPacket()->stream_index;
     if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) return false; // prevent to overrun stream array
     int streamIndexOut = streamMap[streamIndexIn];
     if (streamIndexOut == -1) return false; // no target for this stream
 
+    AVFrame *avFrame = decoder->GetFrame(AV_PIX_FMT_NONE);   // keep audio format
+    if (!avFrame) {
+        dsyslog("cEncoder::EncodeAC3Frame(): decoder packet (%d): got no valid frame", decoder->GetPacketNumber());
+        return true;  // can happen, try with next packet
+    }
 
     // check encoder, it can be wrong if recording is damaged
     if (decoder->IsAudioAC3Packet() && avctxOut->streams[streamIndexOut]->codecpar->codec_id != AV_CODEC_ID_AC3) {

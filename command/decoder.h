@@ -233,9 +233,10 @@ public:
 
     /**
      * get current frame
+     * param pixelFormat  requested pixel format, AV_PIX_FMT_NONE if accept everyone
      * @return current frame
      */
-    AVFrame *GetFrame();
+    AVFrame *GetFrame(enum AVPixelFormat pixelFormat);
 
     /**
     * seek read position of recording
@@ -374,9 +375,10 @@ public:
 
 private:
     /** convert frame pixel format to AV_PIX_FMT_YUV420P
+     * @param pixelFormat   target pixel format
      * @return true if successful, false otherwise
      */
-    bool ConvertVideoPixelFormat();
+    bool ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat);
 
     /** set start and end time of decoding, use for statitics
      * @param start true for start decoding, false otherwise

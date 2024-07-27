@@ -122,16 +122,14 @@ private:
     bool WritePacket(AVPacket *avpkt, const bool reEncoded);
 
     /** prepare video frame to encode
-     * @param avFrame      decodes frame
      * @return pointer to encoded packet
      */
-    bool EncodeVideoFrame(AVFrame *avFrame);
+    bool EncodeVideoFrame();
 
     /** prepare AC3 audio frame to encode
-     * @param avFrame decodes frame
      * @return pointer to encoded packet
      */
-    bool EncodeAC3Frame(AVFrame *avFrame);
+    bool EncodeAC3Frame();
 
     /** get channel count of AC3 output stream
      * @param streamIndex  stream index

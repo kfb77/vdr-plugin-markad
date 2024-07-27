@@ -627,13 +627,14 @@ AVPacket *cDecoder::GetPacket() {
 }
 
 
-AVFrame *cDecoder::GetFrame() {
+AVFrame *cDecoder::GetFrame(enum AVPixelFormat pixelFormat) {
     if (!frameValid) return nullptr;
-    if (!IsVideoFrame()) return &avFrame;
-    if (avFrame.format == AV_PIX_FMT_YUV420P) return &avFrame;
+    if (!IsVideoFrame()) return &avFrame;                       // never convert audio frames
+    if (pixelFormat == AV_PIX_FMT_NONE) return &avFrame;        // no pixel format requested, data planes will not be used
+    if (avFrame.format == pixelFormat) return &avFrame;         // pixel format matches target pixel format
 
     // have to convert pixel format to AV_PIX_FMT_YUV420P, GetFrame() only called by encoder, no double conversion from GetVideoPicture()
-    if (!ConvertVideoPixelFormat()) return nullptr;
+    if (!ConvertVideoPixelFormat(pixelFormat)) return nullptr;
     // set encoding relevant values
     avFrameConvert.format              = avFrame.format;
     avFrameConvert.pict_type           = avFrame.pict_type;
@@ -834,7 +835,7 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
 }
 
 
-bool cDecoder::ConvertVideoPixelFormat() {
+bool cDecoder::ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat) {
     if (!frameValid) return false;
     av_frame_unref(&avFrameConvert);
     avFrameConvert.width  = GetVideoWidth();
@@ -850,8 +851,8 @@ bool cDecoder::ConvertVideoPixelFormat() {
     if (!swsContext) {
         enum AVPixelFormat sourcePixelFormat = static_cast<enum AVPixelFormat>(avFrame.format);
         if (sourcePixelFormat == hwPixelFormat) sourcePixelFormat = static_cast<enum AVPixelFormat>(avFrameHW.format); // we use pixel format from avFrameHW
-        dsyslog("cDecoder::ConvertVideoPixelFormat(): video pixel format: avFrame %s, avFrameHW %s", av_get_pix_fmt_name(static_cast<enum AVPixelFormat>(avFrame.format)), av_get_pix_fmt_name(static_cast<enum AVPixelFormat>(avFrameHW.format)));
-        swsContext = sws_getContext(GetVideoWidth(), GetVideoHeight(), sourcePixelFormat, GetVideoWidth(), GetVideoHeight(), AV_PIX_FMT_YUV420P, SWS_BICUBIC, NULL,NULL,NULL);
+        dsyslog("cDecoder::ConvertVideoPixelFormat(): video pixel format: avFrame %s, avFrameHW %s, target format: %s", av_get_pix_fmt_name(static_cast<enum AVPixelFormat>(avFrame.format)), av_get_pix_fmt_name(static_cast<enum AVPixelFormat>(avFrameHW.format)), av_get_pix_fmt_name(pixelFormat));
+        swsContext = sws_getContext(GetVideoWidth(), GetVideoHeight(), sourcePixelFormat, GetVideoWidth(), GetVideoHeight(), pixelFormat, SWS_BICUBIC, NULL,NULL,NULL);
         ALLOC(sizeof(swsContext), "swsContext");  // pointer size, real size not possible because of extern declaration, only as reminder
     }
 
@@ -871,7 +872,7 @@ sVideoPicture *cDecoder::GetVideoPicture() {
     AVFrame *avFrameResult = &avFrame;
     // have to convert pixel format to AV_PIX_FMT_YUV420P
     if (avFrame.format != AV_PIX_FMT_YUV420P) {
-        if (!ConvertVideoPixelFormat()) return nullptr;
+        if (!ConvertVideoPixelFormat(AV_PIX_FMT_YUV420P)) return nullptr;    // we always use AV_PIX_FMT_YUV420P for mark detection
         avFrameResult = &avFrameConvert;
     }
 
