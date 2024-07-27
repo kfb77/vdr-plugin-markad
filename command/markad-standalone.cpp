@@ -2941,7 +2941,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         esyslog("no marks at all detected, something went very wrong");
         return;
     }
-    int newStopA = firstMark->position + decoder->GetVideoFrameRate() * (length + (2 * MAX_ASSUMED));  // we have to recalculate stopA
+    int newStopA = firstMark->position + decoder->GetVideoFrameRate() * length;  // we have to recalculate stopA with final start mark
     // remove invalid marks
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): remove invalid marks");
@@ -3373,19 +3373,17 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         if ((prevStartMark->type & 0x0F) != MT_START) break;
         int lastBroadcast        = (lastStopMark->position  - lastStartMark->position) / decoder->GetVideoFrameRate();
         int prevBroadcast        = (prevStopMark->position  - prevStartMark->position) / decoder->GetVideoFrameRate();
-        int diffLastStopAssumed  = (lastStopMark->position  - newStopA)                / decoder->GetVideoFrameRate();
-        int diffLastStartAssumed = (lastStartMark->position - newStopA)                / decoder->GetVideoFrameRate();
         int diffPrevStopAssumed  = (prevStopMark->position  - newStopA)                / decoder->GetVideoFrameRate();
+        int diffLastStopAssumed  = (lastStopMark->position  - newStopA)                / decoder->GetVideoFrameRate();
         int lastAd               = (lastStartMark->position - prevStopMark->position)  / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::CheckMarks(): MT_START (%5d) -> %3ds -> MT_STOP (%5d) -> %3ds -> MT_START (%5d) -> %3ds -> MT_STOP (%5d)", prevStartMark->position, prevBroadcast, prevStopMark->position, lastAd, lastStartMark->position, lastBroadcast, lastStopMark->position);
-        dsyslog("cMarkAdStandalone::CheckMarks(): end mark          (%5d) %4ds after assumed end (%5d)", lastStopMark->position,  diffLastStopAssumed,  newStopA);
-        dsyslog("cMarkAdStandalone::CheckMarks(): start mark before (%5d) %4ds after assumed end (%5d)", lastStartMark->position, diffLastStartAssumed, newStopA);
-        dsyslog("cMarkAdStandalone::CheckMarks(): stop  mark before (%5d) %4ds after assumed end (%5d)", prevStopMark->position,  diffPrevStopAssumed,  newStopA);
+        dsyslog("cMarkAdStandalone::CheckMarks(): MT_START (%6d) -> %4ds -> MT_STOP (%6d) |%ds| -> %3ds -> MT_START (%6d) -> %3ds -> MT_STOP (%6d) |%ds|", prevStartMark->position, prevBroadcast, prevStopMark->position, diffPrevStopAssumed, lastAd, lastStartMark->position, lastBroadcast, lastStopMark->position, diffLastStopAssumed);
         switch(lastStopMark->type) {
         case MT_ASSUMEDSTOP:
-            // example of invalid assumed stop mark sequence
-            // MT_START (90722) -> 1317s -> MT_STOP (156579) -> 170s -> MT_START (165114) -> 170s -> MT_STOP (173634)
-            if ((prevBroadcast >= 1317) && (lastAd <= 170) && (lastBroadcast <= 170)) {
+            // example of invalid assumed stop mark sequence (short last ad is between two broadcasts)
+            // MT_START ( 90722) -> 1317s -> MT_STOP (156579)         -> 170s -> MT_START (165114) -> 170s -> MT_STOP (173634)
+            // MT_START (103247) -> 1096s -> MT_STOP (158068) |-348s| -> 140s -> MT_START (165090) -> 207s -> MT_STOP (175483) |0s|
+            // MT_START (109086) -> 1061s -> MT_STOP (162165) |-298s| ->  71s -> MT_START (165764) -> 226s -> MT_STOP (177074) |0s|
+            if ((prevBroadcast >= 1061) && (diffPrevStopAssumed >= -348) && (lastAd <= 170) && (lastBroadcast >= 170)) {
                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
@@ -3393,11 +3391,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             else moreMarks = false;
             break;
         case MT_LOGOSTOP:
-            // example of invalid log stop mark sequence
-            // MT_START (73336) -> 960s -> MT_STOP (97358) -> 18s -> MT_START (97817) -> 83s -> MT_STOP (99916)
-            // MT_START (97756) ->   0s -> MT_STOP (97761) ->  0s -> MT_START (97766) -> 86s -> MT_STOP (99916)   -> more than one false logo stop
-            // MT_START (97460) ->   0s -> MT_STOP (97465) ->  0s -> MT_START (97469) -> 86s -> MT_STOP (99619)   -> more than one false logo stop
-            if ((lastAd <= 18) && (lastBroadcast <= 86)) {
+            // example of invalid log stop mark sequence (short last ad is between two broadcasts)
+            // MT_START ( 73336) ->  960s -> MT_STOP ( 97358)         ->  18s -> MT_START ( 97817) ->  83s -> MT_STOP ( 99916)
+            // MT_START ( 97756) ->    0s -> MT_STOP ( 97761)         ->   0s -> MT_START ( 97766) ->  86s -> MT_STOP ( 99916)               -> more than one false logo stop
+            // MT_START ( 97460) ->    0s -> MT_STOP ( 97465)         ->   0s -> MT_START ( 97469) ->  86s -> MT_STOP ( 99619)               -> more than one false logo stop
+            // MT_START ( 66619) ->  694s -> MT_STOP ( 83973)         ->  10s -> MT_START ( 84240) -> 610s -> MT_STOP ( 99507)
+            // MT_START ( 39172) ->  931s -> MT_STOP ( 62463) |-280s| ->   5s -> MT_START ( 62601) -> 408s -> MT_STOP ( 72811) |133s|
+            if ((diffPrevStopAssumed >= -280) && (lastAd <= 18) && (diffLastStopAssumed > 0)) {
                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
