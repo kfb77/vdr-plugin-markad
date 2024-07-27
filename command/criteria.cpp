@@ -44,7 +44,7 @@ int cCriteria::LogoFadeInOut() {
 
     if (CompareChannelName(channelName, "BR_Fernsehen",   IGNORE_HD | IGNORE_CITY)) return FADE_IN | FADE_OUT;
     if (CompareChannelName(channelName, "Das_Erste",      IGNORE_HD))               return FADE_IN | FADE_OUT;
-    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD))               return FADE_OUT;
+    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD))               return FADE_IN | FADE_OUT;
     if (CompareChannelName(channelName, "DMAX",           IGNORE_HD))               return FADE_IN | FADE_OUT;
     if (CompareChannelName(channelName, "FOX_Channel",    IGNORE_HD))               return FADE_IN;
     if (CompareChannelName(channelName, "kabel_eins",     IGNORE_HD))               return FADE_IN;
