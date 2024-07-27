@@ -114,6 +114,16 @@ public:
     bool CloseFile();
 
 private:
+    /** check if input file changed an set new decoder context
+    */
+    void CheckInputFileChange();
+
+    /** get hwaccel encoder name appropriate hwaccel decoder
+     * param streamIndexIn input stream index
+     * @return name of encoder
+     */
+    char *GetEncoderName(const int streamIndexIn);
+
     /** write packet to output file
     * @param avpkt pointer to packet
     * @param reEncoded true if packet was re-encoded, false otherwise
@@ -175,6 +185,8 @@ private:
 
     cDecoder *decoder                 = nullptr;                  //!< decoder
     //!<
+    bool useHWaccel                   = false;                    //!< encoder use hwaccel (same as decoder)
+    //!<
     cIndex *index                     = nullptr;                  //!< index
     //!<
     const char *recDir                = nullptr;                  //!< recording directory
@@ -184,6 +196,8 @@ private:
     bool bestStream                   = false;                    //!< true if only endcode best video and audio stream
     //!<
     bool ac3ReEncode                  = false;                    //!< true if ac3 re-encode with volume adjust
+    //!<
+    int fileNumber                    = 0;                        //!< input file number
     //!<
     AVFormatContext *avctxIn          = nullptr;                  //!< avformat context for input
     //!<
@@ -207,7 +221,9 @@ private:
     //!<
     int64_t dts[MAXSTREAMS]           = {0};                      //!< dts of last output packet
     //!<
-    cAC3VolumeFilter *volumeFilterAC3[MAXSTREAMS] = {nullptr};    //!< AC3 volume filter
+    AVPixelFormat software_pix_fmt                = AV_PIX_FMT_NONE;  //!< software pixel format from decoder
+    //!<
+    cAC3VolumeFilter *volumeFilterAC3[MAXSTREAMS] = {nullptr};        //!< AC3 volume filter
     //!<
 
     /**

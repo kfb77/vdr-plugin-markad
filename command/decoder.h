@@ -34,6 +34,7 @@ extern "C" {
 
 
 #define AVLOGLEVEL AV_LOG_ERROR
+// #define AVLOGLEVEL AV_LOG_VERBOSE
 
 
 // error codes from AC3 parser
@@ -91,6 +92,20 @@ public:
     */
     bool Restart();
 
+    /** get current input file number
+     */
+    int GetFileNumber() const {
+        return fileNumber;
+    }
+
+    /**
+    * get max input file number
+    * return input file number
+    */
+    int GetMaxFileNumber() const {
+        return maxFileNumber;
+    }
+
     /**
     * get full decoder state
     */
@@ -102,14 +117,15 @@ public:
     int GetThreads() const;
 
     /**
+    * get name of hwaccel methode
+    * @return name of hwaccel methode
+    */
+    char *GetHWaccelName();
+
+    /**
     * get recording directory
     */
     const char *GetRecordingDir() const;
-
-    /**
-    * get hwaccel method
-    */
-    char *GetHWaccel() const;
 
     /**
     * get force hwaccel
@@ -150,6 +166,11 @@ public:
      * @return AVCodecContext
      */
     AVCodecContext **GetAVCodecContext();
+
+    /** get hardware device type
+     * @return hardware device type
+     */
+    enum AVHWDeviceType GetHWDeviceType() const;
 
     /**
      * get markad internal video type
@@ -437,6 +458,8 @@ private:
     //!<
 #endif
     int fileNumber                     = 0;                       //!< current ts file number
+    //!<
+    int maxFileNumber                  = 0;                       //!< max ts file number
     //!<
     AVFormatContext *avctx             = nullptr;                 //!< avformat context
     //!<

@@ -97,16 +97,16 @@ cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodePa
 
     fullDecode      = fullDecodeParam;
     index           = indexParam;     // index can be nullptr if we use no index (used in logo search)
-    hwaccel         = hwaccelParam;
     forceHWaccel    = forceHWparam;
     forceInterlaced = forceInterlacedParam;
-    dsyslog("cDecoder::cDecoder(): init with %d thread(s), %s, hwaccel: %s %s %s", threads, (fullDecode) ? "full decode" : "i-frame decode", hwaccel, (forceHWaccel) ? "(force)" : "", (forceInterlaced) ? ", force interlaced" : "");
+    if (hwaccelParam && hwaccelParam[0] != 0) hwaccel = hwaccelParam;
+    dsyslog("cDecoder::cDecoder(): init with %d thread(s), %s, hwaccel: %s %s %s", threads, (fullDecode) ? "full decode" : "i-frame decode", (hwaccel) ? hwaccel : "none", (forceHWaccel) ? "(force)" : "", (forceInterlaced) ? ", force interlaced" : "");
 
     av_frame_unref(&avFrame);    // reset all fields to default
 
 // init hwaccel device
-    if (hwaccel[0] != 0) {
-        hwDeviceType = av_hwdevice_find_type_by_name(hwaccel);  // markad only support vaapi
+    if (hwaccel) {
+        hwDeviceType = av_hwdevice_find_type_by_name(hwaccel);
         if (hwDeviceType == AV_HWDEVICE_TYPE_NONE) {
             esyslog("hardware acceleration device type %s is not supported by hardware", hwaccel);
             isyslog("available hardware acceleration device types:");
@@ -210,8 +210,9 @@ int cDecoder::GetThreads() const {
 }
 
 
-char *cDecoder::GetHWaccel() const {
-    return hwaccel;
+char *cDecoder::GetHWaccelName() {
+    if (useHWaccel && hwaccel) return hwaccel;
+    return nullptr;
 }
 
 
@@ -237,6 +238,7 @@ bool cDecoder::ReadNextFile() {
 
     char *filename;
     fileNumber++;
+    if (fileNumber > maxFileNumber) maxFileNumber = fileNumber;
     if (asprintf(&filename, "%s/%05i.ts", recordingDir, fileNumber) == -1) {
         esyslog("cDecoder:::ReadNextFile(): failed to allocate string, out of memory?");
         return false;
@@ -274,6 +276,11 @@ AVFormatContext *cDecoder::GetAVFormatContext() {
 
 AVCodecContext **cDecoder::GetAVCodecContext() {
     return codecCtxArray;
+}
+
+
+enum AVHWDeviceType cDecoder::GetHWDeviceType() const {
+    return hwDeviceType;
 }
 
 
@@ -389,6 +396,10 @@ bool cDecoder::InitDecoder(const char *filename) {
                 if (codecCtxArray[streamIndex]->hw_device_ctx) {
                     dsyslog("cDecoder::InitDecoder(): hardware device reference created successful for stream %d", streamIndex);
                     codecCtxArray[streamIndex]->get_format = get_hw_format;
+                    // fix problem with mpeg2:
+                    // AVlog(): Failed to allocate a vaapi/nv12 frame from a fixed pool of hardware frames.
+                    // AVlog(): Consider setting extra_hw_frames to a larger value (currently set to -1, giving a pool size of 6).
+                    codecCtxArray[streamIndex]->extra_hw_frames = 8;
                     if (logHwaccel) {
                         isyslog("use hardware acceleration %s for stream %d", av_hwdevice_get_type_name(hwDeviceType), streamIndex);
                         logHwaccel = false;
@@ -624,9 +635,9 @@ AVPacket *cDecoder::GetPacket() {
 
 AVFrame *cDecoder::GetFrame(enum AVPixelFormat pixelFormat) {
     if (!frameValid) return nullptr;
-    if (!IsVideoFrame()) return &avFrame;                       // never convert audio frames
+    if (!IsVideoFrame())                return &avFrame;        // never convert audio frames
     if (pixelFormat == AV_PIX_FMT_NONE) return &avFrame;        // no pixel format requested, data planes will not be used
-    if (avFrame.format == pixelFormat) return &avFrame;         // pixel format matches target pixel format
+    if (avFrame.format == pixelFormat)  return &avFrame;        // pixel format matches target pixel format
 
     // have to convert pixel format to AV_PIX_FMT_YUV420P, GetFrame() only called by encoder, no double conversion from GetVideoPicture()
     if (!ConvertVideoPixelFormat(pixelFormat)) return nullptr;
@@ -832,10 +843,13 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
 
 void cDecoder::DropFrameFromGPU() {
     // use by logo extraction for skip frame
-    if (useHWaccel) {
+    if (frameValid && useHWaccel) {
         AVFrame *avFrameHW = av_frame_alloc();
+        ALLOC(sizeof(*avFrameHW), "avFrameHW");
         av_hwframe_transfer_data(avFrameHW, &avFrame, 0);
+        FREE(sizeof(*avFrameHW), "avFrameHW");
         av_frame_free(&avFrameHW);
+        frameValid = false;
     }
 }
 
@@ -854,11 +868,13 @@ bool cDecoder::ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat) {
         Time(false);
         return false;
     }
-    AVFrame *avFrameHW = nullptr;
     AVFrame *avFrameSource = &avFrame;
+    AVFrame *avFrameHW     = nullptr;
     // hardware decoed, receive picture from GPU and convert pixel format
     if (avFrame.format == hwPixelFormat) {        // retrieve data from GPU to CPU
         avFrameHW = av_frame_alloc();
+        if (!avFrameHW) return false;
+        ALLOC(sizeof(*avFrameHW), "avFrameHW");
         avFrameSource = avFrameHW;
         rc = av_hwframe_transfer_data(avFrameHW, &avFrame, 0);
         if (rc < 0 ) {
@@ -870,6 +886,9 @@ bool cDecoder::ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat) {
                 esyslog("cDecoder::ConvertVideoPixelFormat(): packet  (%5d), pict_type %d: av_hwframe_transfer_data rc = %d: %s", packetNumber, avFrame.pict_type, rc, av_err2str(rc));
                 break;
             }
+            FREE(sizeof(*avFrameHW), "avFrameHW");
+            av_frame_free(&avFrameHW);
+            avFrameHW = nullptr;
             Time(false);
             return false;
         }
@@ -882,8 +901,11 @@ bool cDecoder::ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat) {
     }
     // convert pixel format
     sws_scale(swsContext, avFrameSource->data, avFrameSource->linesize, 0, GetVideoHeight(), avFrameConvert.data, avFrameConvert.linesize);  // software decoded, use avFrame
-    if (avFrameHW) av_frame_free(&avFrameHW);
-
+    if (avFrameHW) {
+        FREE(sizeof(*avFrameHW), "avFrameHW");
+        av_frame_free(&avFrameHW);
+        avFrameHW = nullptr;
+    }
     Time(false);
     return true;
 }
@@ -1140,7 +1162,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
     }
     Time(false);
     // decoding successful, frame is valid
-    frameValid    = true;
+    frameValid = true;
     return 0;
 }
 

@@ -228,6 +228,16 @@ void cEncoder::Reset(const int passEncoder) {
 }
 
 
+void cEncoder::CheckInputFileChange() {
+    if (decoder->GetFileNumber() > fileNumber) {
+        dsyslog("cEncoder::CheckInputFileChange(): decoder packet (%d): input file changed from %d to %d", decoder->GetPacketNumber(), fileNumber, decoder->GetFileNumber());
+        avctxIn = decoder->GetAVFormatContext();
+        codecCtxArrayIn = decoder->GetAVCodecContext();
+        fileNumber = decoder->GetFileNumber();
+    }
+}
+
+
 bool cEncoder::OpenFile() {
     if (!recDir) return false;
     if (!decoder) return false;
@@ -322,7 +332,7 @@ bool cEncoder::OpenFile() {
         dsyslog("cEncoder::OpenFile(): best audio: stream %d", bestAudioStream);
     }
 
-    // init all needed encoder
+    // init all needed encoder streams
     for (int streamIndex = 0; streamIndex < static_cast<int>(avctxIn->nb_streams); streamIndex++) {
         if (!codecCtxArrayIn[streamIndex]) break;   // if we have no input codec we can not decode and encode this stream and all after
         if (fullEncode && bestStream) {
@@ -337,13 +347,39 @@ bool cEncoder::OpenFile() {
             }
         }
         dsyslog("cEncoder::OpenFile(): source stream %d -----> target stream %d", streamIndex, streamMap[streamIndex]);
-        if (streamMap[streamIndex] >= 0) {  // only init used streams
+        if (streamMap[streamIndex] >= 0) {  // only init codec for target streams
             if (decoder->IsAudioStream(streamIndex) && codecCtxArrayIn[streamIndex]->sample_rate == 0) {  // ignore mute audio stream
                 dsyslog("cEncoder::OpenFile(): input stream %d: sample_rate not set, ignore mute audio stream", streamIndex);
                 streamMap[streamIndex] = -1;
             }
             else {
-                if (!InitEncoderCodec(streamIndex, streamMap[streamIndex])) {
+                bool initCodec = false;
+                if (decoder->IsVideoStream(streamIndex) && decoder->GetHWaccelName()) {    // video stream and decoder uses hwaccel
+                    if (decoder->GetMaxFileNumber() == 1) {
+                        useHWaccel = true;
+                        initCodec = InitEncoderCodec(streamIndex, streamMap[streamIndex]);    // init video codec with hardware encoder
+                        if (!initCodec) {
+                            esyslog("cEncoder::OpenFile(): init encoder with hwaccel failed, fallback to software encoder");
+                            useHWaccel = false;
+                            // output stream was added, we have to restart from the beginning
+                            avformat_free_context(avctxOut);
+                            FREE(sizeof(*avctxOut), "avctxOut");
+                            avformat_alloc_output_context2(&avctxOut, nullptr, nullptr, filename);
+                            if (!avctxOut) {
+                                dsyslog("cEncoder::OpenFile(): Could not create output context");
+                                FREE(strlen(filename)+1, "filename");
+                                free(filename);
+                                return false;
+                            }
+                            ALLOC(sizeof(*avctxOut), "avctxOut");
+
+                        }
+                    }
+                    else isyslog("cEncoder::OpenFile(): more than one input file, fallback to software encoding");
+                }
+                // rest of streams and fallback to software decoder
+                if (!initCodec) initCodec = InitEncoderCodec(streamIndex, streamMap[streamIndex]);   // init codec for fallback to software decoder and non video streams
+                if (!initCodec) {   // only video codecs return false on failure, without video stream, abort
                     esyslog("cEncoder::OpenFile(): InitEncoderCodec failed");
                     // cleanup memory
                     FREE(strlen(filename)+1, "filename");
@@ -540,6 +576,46 @@ bool cEncoder::CheckStats(const int max_b_frames) const {
 }
 
 
+char *cEncoder::GetEncoderName(const int streamIndexIn) {
+    // map decoder name to encoder name
+    // mpeg2video -> mpeg2_vaapi
+    // h264       -> h264_vaapi
+    // HVEC
+    char *encoderName = nullptr;
+    char *hwaccelName = decoder->GetHWaccelName();
+    if (!hwaccelName) {
+        esyslog("cEncoder::GetEncoderName(): hwaccel name not set");
+        return nullptr;
+    }
+    if (strcmp(codecCtxArrayIn[streamIndexIn]->codec->name, "mpeg2video") == 0 ) {
+        if (asprintf(&encoderName,"mpeg2_%s", hwaccelName) == -1) {
+            dsyslog("cEncoder::GetEncoderName(): failed to allocate string, out of memory");
+            return nullptr;
+        }
+        ALLOC(strlen(encoderName) + 1, "encoderName");
+        return encoderName;
+    }
+    if (strcmp(codecCtxArrayIn[streamIndexIn]->codec->name, "h264") == 0 ) {
+        if (asprintf(&encoderName,"h264_%s", hwaccelName) == -1) {
+            dsyslog("cEncoder::GetEncoderName(): failed to allocate string, out of memory");
+            return nullptr;
+        }
+        ALLOC(strlen(encoderName) + 1, "encoderName");
+        return encoderName;
+    }
+    if (strcmp(codecCtxArrayIn[streamIndexIn]->codec->name, "hevc") == 0 ) {
+        if (asprintf(&encoderName,"hevc_%s", hwaccelName) == -1) {
+            dsyslog("cEncoder::GetEncoderName(): failed to allocate string, out of memory");
+            return nullptr;
+        }
+        ALLOC(strlen(encoderName) + 1, "encoderName");
+        return encoderName;
+    }
+    esyslog("cEncoder::GetEncoderName(): unknown decoder codec, fallback to software encoding");
+    return nullptr;
+}
+
+
 bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned int streamIndexOut) {
     if (!decoder) return false;
     if (!avctxIn) return false;
@@ -553,13 +629,43 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
         return false;
     }
 
+    // select coded based on decoder used hwaccel
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100) // ffmpeg 4.5
-    AVCodecID codec_id = avctxIn->streams[streamIndexIn]->codecpar->codec_id;
-    const AVCodec *codec = avcodec_find_encoder(codec_id);
+    const AVCodec *codec = nullptr;
 #else
-    AVCodecID codec_id = avctxIn->streams[streamIndexIn]->codecpar->codec_id;
-    AVCodec *codec = avcodec_find_encoder(codec_id);
+    AVCodec *codec = nullptr;
 #endif
+    AVCodecID codec_id = AV_CODEC_ID_NONE;
+    dsyslog("cEncoder::InitEncoderCodec(): decoder stream %d: id %d, name %s, long name %s", streamIndexIn, codecCtxArrayIn[streamIndexIn]->codec->id, codecCtxArrayIn[streamIndexIn]->codec->name, codecCtxArrayIn[streamIndexIn]->codec->long_name);
+
+    enum AVHWDeviceType hwDeviceType = decoder->GetHWDeviceType();
+    if (useHWaccel && decoder->IsVideoStream(streamIndexIn)) {
+        char *encoderName = GetEncoderName(streamIndexIn);
+        if (!encoderName) {
+            esyslog("cEncoder::InitEncoderCodec(): unknown decoder codec, fallback to software encoding");
+            return false;
+        }
+        dsyslog("cEncoder::InitEncoderCodec(): hwaccel encoder name: %s", encoderName);
+        codec = avcodec_find_encoder_by_name(encoderName);
+        if (codec) codec_id = codec->id;
+        else {
+            esyslog("cEncoder::InitEncoderCodec(): hwaccel encoder name: %s not found", encoderName);
+            FREE(strlen(encoderName) + 1, "encoderName");
+            free(encoderName);
+            return false;
+        }
+        FREE(strlen(encoderName) + 1, "encoderName");
+        free(encoderName);
+    }
+    else {  // no video stream or software encoded, use codec id from decoder
+#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100) // ffmpeg 4.5
+        codec_id = avctxIn->streams[streamIndexIn]->codecpar->codec_id;
+        codec = avcodec_find_encoder(codec_id);
+#else
+        codec_id = avctxIn->streams[streamIndexIn]->codecpar->codec_id;
+        codec = avcodec_find_encoder(codec_id);
+#endif
+    }
 
     if (codec) dsyslog("cEncoder::InitEncoderCodec(): using encoder id %d '%s' for output stream %i", codec_id, codec->long_name, streamIndexOut);
     else {
@@ -602,6 +708,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
 // set encoding codec parameter
     // video stream
     if (decoder->IsVideoStream(streamIndexIn)) {
+        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: pix_fmt %s", streamIndexIn, av_get_pix_fmt_name(codecCtxArrayIn[streamIndexIn]->pix_fmt));
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: avg framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->avg_frame_rate.num, avctxIn->streams[streamIndexIn]->avg_frame_rate.den);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: real framerate %d/%d", streamIndexIn, avctxIn->streams[streamIndexIn]->r_frame_rate.num, avctxIn->streams[streamIndexIn]->r_frame_rate.den);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: keyint_min %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->keyint_min);
@@ -613,17 +720,73 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: gop_size %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->gop_size);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: level %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->level);
         dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: aspect ratio %d:%d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.num, codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.den);
-        dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: pix_fmt %s", streamIndexIn, av_get_pix_fmt_name(codecCtxArrayIn[streamIndexIn]->pix_fmt));
         dsyslog("cEncoder::InitEncoderCodec(): video input format context : bit_rate %" PRId64, avctxIn->bit_rate);
 
-        codecCtxArrayOut[streamIndexOut]->time_base.num = avctxIn->streams[streamIndexIn]->avg_frame_rate.den;  // time_base = 1 / framerate
-        codecCtxArrayOut[streamIndexOut]->time_base.den = avctxIn->streams[streamIndexIn]->avg_frame_rate.num;
-        codecCtxArrayOut[streamIndexOut]->framerate = avctxIn->streams[streamIndexIn]->avg_frame_rate;
+        // use hwaccel for video stream if decoder use it too
+        if (useHWaccel) {
+            dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: use hwaccel: %s", streamIndexOut, av_hwdevice_get_type_name(hwDeviceType));
+            // store stoftware fixel format in case of we need it for fallback to software decoder
+            software_pix_fmt = codecCtxArrayIn[streamIndexIn]->pix_fmt;
+            // codecCtxArrayOut[streamIndexOut]->hw_device_ctx = av_buffer_ref(decoder->GetHardwareDeviceContext());
+            // we need to ref hw_frames_ctx of decoder to initialize encoder's codec
+            // only after we get a decoded frame, can we obtain its hw_frames_ctx
+            decoder->DecodeNextFrame(false);  // decode one video frame to get hw_frames_ctx, also changes pix_fmt to hardware pixel format
+            dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: pix_fmt %s", streamIndexIn, av_get_pix_fmt_name(codecCtxArrayIn[streamIndexIn]->pix_fmt));
+            codecCtxArrayOut[streamIndexOut]->hw_frames_ctx = av_buffer_ref(codecCtxArrayIn[streamIndexIn]->hw_frames_ctx);  // link hardware frame context to encoder
+            if (!codecCtxArrayOut[streamIndexOut]->hw_frames_ctx) {
+                esyslog("cEncoder::InitEncoderCodec(): av_buffer_ref() failed");
+                return false;
+            }
+        }
+        fileNumber = decoder->GetFileNumber();
+        // use pixel software pixel format from decoder for fallback to software decoder
+        if ((software_pix_fmt != AV_PIX_FMT_NONE) && !useHWaccel) codecCtxArrayOut[streamIndexOut]->pix_fmt = software_pix_fmt;
+        else codecCtxArrayOut[streamIndexOut]->pix_fmt = codecCtxArrayIn[streamIndexIn]->pix_fmt;
 
-        codecCtxArrayOut[streamIndexOut]->pix_fmt = codecCtxArrayIn[streamIndexIn]->pix_fmt;
-        codecCtxArrayOut[streamIndexOut]->height = codecCtxArrayIn[streamIndexIn]->height;
-        codecCtxArrayOut[streamIndexOut]->width = codecCtxArrayIn[streamIndexIn]->width;
+        // set encoder codec parameters from decoder codec
         codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio;
+
+        if (useHWaccel && (hwDeviceType == AV_HWDEVICE_TYPE_VAAPI) && (codec_id == AV_CODEC_ID_MPEG2VIDEO)) {
+            dsyslog("cEncoder::InitEncoderCodec(): set reversed aspect ratio as workaround from FFmpeg bug");
+            /* workaround of bug in libavcodec/vaapi_encode_mpeg2.c: { nun, den } reversed
+             * bug ticket https://trac.ffmpeg.org/ticket/10099
+             * last activity 2023-02-14
+
+                if (avctx->sample_aspect_ratio.num != 0 &&
+                    avctx->sample_aspect_ratio.den != 0) {
+                    AVRational dar = av_div_q(avctx->sample_aspect_ratio,
+                                              (AVRational) { avctx->width, avctx->height });
+
+                    if (av_cmp_q(avctx->sample_aspect_ratio, (AVRational) { 1, 1 }) == 0) {
+                        sh->aspect_ratio_information = 1;
+                    } else if (av_cmp_q(dar, (AVRational) { 3, 4 }) == 0) {
+                        sh->aspect_ratio_information = 2;
+                    } else if (av_cmp_q(dar, (AVRational) { 9, 16 }) == 0) {
+                        sh->aspect_ratio_information = 3;
+                    } else if (av_cmp_q(dar, (AVRational) { 100, 221 }) == 0) {
+                        sh->aspect_ratio_information = 4;
+                    } else {
+                        av_log(avctx, AV_LOG_WARNING, "Sample aspect ratio %d:%d is not "
+                               "representable, signalling square pixels instead.\n",
+                               avctx->sample_aspect_ratio.num,
+                               avctx->sample_aspect_ratio.den);
+                        sh->aspect_ratio_information = 1;
+                    }
+                } else {
+                    // Unknown - assume square pixels.
+                    sh->aspect_ratio_information = 1;
+                }
+            */
+            // reverse num/den as workaround
+            codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.num = codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.den;
+            codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.den = codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.num;
+        }
+        codecCtxArrayOut[streamIndexOut]->time_base.num       = avctxIn->streams[streamIndexIn]->avg_frame_rate.den;  // time_base = 1 / framerate
+        codecCtxArrayOut[streamIndexOut]->time_base.den       = avctxIn->streams[streamIndexIn]->avg_frame_rate.num;
+        codecCtxArrayOut[streamIndexOut]->framerate           = avctxIn->streams[streamIndexIn]->avg_frame_rate;
+
+        codecCtxArrayOut[streamIndexOut]->height              = codecCtxArrayIn[streamIndexIn]->height;
+        codecCtxArrayOut[streamIndexOut]->width               = codecCtxArrayIn[streamIndexIn]->width;
 
         // calculate target mpeg2 video stream bit rate from recording
         int bit_rate = avctxIn->bit_rate; // overall recording bitrate
@@ -641,18 +804,15 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
                     codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_PASS2;
                 }
             }
-            av_opt_set(codecCtxArrayOut[streamIndexOut]->priv_data, "preset", "medium", 0);  // use h.264 defaults
-            av_opt_set(codecCtxArrayOut[streamIndexOut]->priv_data, "profile", "High", 0);
-
-            codecCtxArrayOut[streamIndexOut]->bit_rate = bit_rate;  // adapt target bit rate
-
             av_opt_set_int(codecCtxArrayOut[streamIndexOut]->priv_data, "b_strategy", 0, 0); // keep fixed B frames in GOP, additional needed after force-crf
-            codecCtxArrayOut[streamIndexOut]->level = codecCtxArrayIn[streamIndexIn]->level;
-            codecCtxArrayOut[streamIndexOut]->gop_size = 32;
-            codecCtxArrayOut[streamIndexOut]->keyint_min = 1;
-            codecCtxArrayOut[streamIndexOut]->max_b_frames = 7;
-            codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_CLOSED_GOP;
             av_opt_set(codecCtxArrayOut[streamIndexOut]->priv_data, "x264opts", "force-cfr", 0);  // constand frame rate
+            codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_CLOSED_GOP;
+
+            codecCtxArrayOut[streamIndexOut]->bit_rate     = bit_rate;  // adapt target bit rate
+            codecCtxArrayOut[streamIndexOut]->level        = codecCtxArrayIn[streamIndexIn]->level;
+            codecCtxArrayOut[streamIndexOut]->gop_size     = 32;
+            codecCtxArrayOut[streamIndexOut]->keyint_min   = 1;
+            codecCtxArrayOut[streamIndexOut]->max_b_frames = 7;
             // set pass stats file
             char *passlogfile;
             if (asprintf(&passlogfile,"%s/encoder", recDir) == -1) {
@@ -696,17 +856,22 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
             codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_INTERLACED_DCT;
             codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_INTERLACED_ME;
         }
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d pix_fmt %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->pix_fmt);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d keyint_min %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->keyint_min);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d max_b_frames %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->max_b_frames);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d bit_rate %" PRId64, streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d rc_max_rate %" PRId64, streamIndexOut, codecCtxArrayOut[streamIndexOut]->rc_max_rate);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d bit_rate_tolerance %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate_tolerance);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d level %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->level);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d framerate %d/%d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->framerate.num, codecCtxArrayOut[streamIndexOut]->framerate.den);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d gop_size %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->gop_size);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d level %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->level);
-        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d aspect ratio %d:%d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.num, codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.den);
+
+        // log encoder parameter
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: pix_fmt %s", streamIndexOut, av_get_pix_fmt_name(codecCtxArrayOut[streamIndexOut]->pix_fmt));
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: keyint_min %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->keyint_min);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: max_b_frames %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->max_b_frames);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: bit_rate %" PRId64, streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: rc_max_rate %" PRId64, streamIndexOut, codecCtxArrayOut[streamIndexOut]->rc_max_rate);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: bit_rate_tolerance %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->bit_rate_tolerance);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: level %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->level);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: framerate %d/%d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->framerate.num, codecCtxArrayOut[streamIndexOut]->framerate.den);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: width %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->width);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: height %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->height);
+
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: gop_size %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->gop_size);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: level %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->level);
+        dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: aspect ratio %d:%d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.num, codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.den);
     }
     // audio stream
     else {
@@ -816,14 +981,18 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
     }
 
     codecCtxArrayOut[streamIndexOut]->thread_count = decoder->GetThreadCount();
-    if (avcodec_open2(codecCtxArrayOut[streamIndexOut], codec, nullptr) < 0) {
+    if (avcodec_open2(codecCtxArrayOut[streamIndexOut], codec, nullptr) < 0) {    // this can happen if encoding is not supported by ffmpeg, have to copy packets
         esyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %d failed", streamIndexOut);
         dsyslog("cEncoder::InitEncoderCodec(): call avcodec_free_context for stream %d", streamIndexOut);
         FREE(sizeof(*codecCtxArrayOut[streamIndexOut]), "codecCtxArrayOut[streamIndex]");
         avcodec_free_context(&codecCtxArrayOut[streamIndexOut]);
         codecCtxArrayOut[streamIndexOut] = nullptr;
+        if (decoder->IsVideoStream(streamIndexIn)) return false;  // video stream is essential
     }
     else dsyslog("cEncoder::InitEncoderCodec(): avcodec_open2 for stream %i successful", streamIndexOut);
+
+    // restore correct value, intentionally set false from FFmpeg bug workaround
+    codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio;
 
     if (decoder->IsAudioAC3Stream(streamIndexIn) && ac3ReEncode) {
         dsyslog("cEncoder::InitEncoderCodec(): AC3 input found at stream %i, initialize volume filter for output stream %d", streamIndexIn, streamIndexOut);
@@ -919,6 +1088,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
             else if (avFrame->pts == AV_NOPTS_VALUE) dsyslog("cEncoder::CutOut(): packet (%d) stream %d: frame not valid for start position, PTS invalid", decoder->GetPacketNumber(), decoder->GetPacket()->stream_index);
             else if ((avFrame->pkt_dts == AV_NOPTS_VALUE)) dsyslog("cEncoder::CutOut(): packet (%d) stream %d: frame not valid for start position, DTS invalid", decoder->GetPacketNumber(), decoder->GetPacket()->stream_index);
 
+            decoder->DropFrameFromGPU();     // we do not use this frame, cleanup GPU buffer
             if (!decoder->ReadNextPacket()) return false;
             if (decoder->IsVideoPacket()) decoder->DecodePacket(); // decode packet, no error break, maybe we only need more frames to decode (e.g. interlaced video)
             avFrame = decoder->GetFrame(AV_PIX_FMT_NONE);
@@ -930,7 +1100,6 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         // use dts to prevent non monotonically increasing dts
         if (cutInfo.stopPosDTS > 0) cutInfo.offset += (cutInfo.startPosDTS - cutInfo.stopPosDTS);
         dsyslog("cEncoder::CutOut(): start cut from packet (%6d) PTS %10ld DTS %10ld to frame (%d), offset %ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
-        avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
 
         // read all packets
         while (decoder->GetPacketNumber() <= stopPos) {
@@ -981,7 +1150,6 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
                 }
                 break;
             }
-            avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
         }
         // get PTS/DTS from end position
         avFrame = decoder->GetFrame(AV_PIX_FMT_NONE);  // this must be first video packet after cut because we only increase frame counter on video frames
@@ -1036,7 +1204,6 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         // use dts to prevent non monotonically increasing dts
         if (cutInfo.stopPosDTS > 0) cutInfo.offset += (cutInfo.startPosDTS - cutInfo.stopPosDTS);
         dsyslog("cEncoder::CutOut(): start cut from i-frame (%6d) PTS %10ld DTS %10ld to i-frame (%d), offset %ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
-        avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
 
         // copy all packets from startPos to endPos
         while (decoder->GetPacketNumber() < stopPos) {  // end before last i-frame, start frame will be next i-frame
@@ -1063,10 +1230,12 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
                     return false;
                 }
             }
-            else dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %ld, DTS %ld: drop packet before start PTS %ld, DTS %ld", decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
+            else {
+                dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %ld, DTS %ld: drop packet before start PTS %ld, DTS %ld", decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
+                decoder->DropFrameFromGPU();     // we do not use this frame, cleanup GPU buffer
+            }
             // read next packet
             if (!decoder->ReadNextPacket()) return false;
-            avctxIn = decoder->GetAVFormatContext();  // avctx changes at each input file
         }
 
         // get PTS/DTS from end position
@@ -1089,16 +1258,24 @@ bool cEncoder::EncodeVideoFrame() {
 #endif
 
     // map input stream index to output stream index, should always be 0->0 for video stream
+    CheckInputFileChange();
     int streamIndexIn = decoder->GetPacket()->stream_index;
-    if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) return false; // prevent to overrun stream array
+    if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) {
+        esyslog("cEncoder::EncodeVideoFrame(): decoder packet (%d), stream %d: input stream index out of range (0 to %d)", decoder->GetPacketNumber(), decoder->GetPacket()->stream_index, avctxIn->nb_streams);
+        return false; // prevent to overrun stream array
+    }
     int streamIndexOut = streamMap[streamIndexIn];
-    if (streamIndexOut == -1) return false; // no target for this stream
+    if (streamIndexOut == -1) {
+        esyslog("cEncoder::EncodeVideoFrame(): decoder packet (%d), stream %d: out stream index %d invalid", decoder->GetPacketNumber(), decoder->GetPacket()->stream_index, streamIndexOut);
+        return false; // no target for this stream
+    }
 
     AVFrame *avFrame = decoder->GetFrame(codecCtxArrayOut[streamIndexOut]->pix_fmt);  // get video frame with converted data planes
     if (!avFrame) {
         dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%d): got no valid frame", decoder->GetPacketNumber());
         return true;  // can happen, try with next packet
     }
+
     codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = avFrame->sample_aspect_ratio; // aspect ratio can change, set encoder pixel aspect ratio to decoded frames aspect ratio
 
 #ifdef DEBUG_PTS_DTS_CUT
@@ -1184,6 +1361,7 @@ int cEncoder::GetAC3ChannelCount(const int streamIndex) {
 
 bool cEncoder::EncodeAC3Frame() {
     // map input stream index to output stream index
+    CheckInputFileChange();
     int streamIndexIn = decoder->GetPacket()->stream_index;
     if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) return false; // prevent to overrun stream array
     int streamIndexOut = streamMap[streamIndexIn];
@@ -1249,6 +1427,7 @@ bool cEncoder::EncodeAC3Frame() {
 bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
     if (!reEncoded) {
         // map input stream index to output stream index, drop packet if not used
+        CheckInputFileChange();  // check if input file has changed
         int streamIndexIn = decoder->GetPacket()->stream_index;
         if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) { // prevent to overrun stream array
             esyslog("cEncoder::WritePacket(): decoder packet (%5d), stream %d: invalid input stream", decoder->GetPacketNumber(), streamIndexIn);
@@ -1292,6 +1471,9 @@ bool cEncoder::SendFrameToEncoder(const int streamIndexOut, AVFrame *avFrame) {
             break;
         case AVERROR(EINVAL):
             dsyslog("cEncoder::SendFrameToEncoder(): decoder packet (%d), output stream %d: avcodec_send_frame() EINVAL", decoder->GetPacketNumber(), streamIndexOut);
+            break;
+        case AVERROR(EIO):
+            dsyslog("cEncoder::SendFrameToEncoder(): decoder packet (%d), output stream %d: avcodec_send_frame() EIO", decoder->GetPacketNumber(), streamIndexOut);
             break;
         case AVERROR_EOF:  // expected return code after flash buffer
             dsyslog("cEncoder::SendFrameToEncoder(): decoder packet (%d), output stream %d: avcodec_send_frame() EOF", decoder->GetPacketNumber(), streamIndexOut);
@@ -1363,31 +1545,33 @@ bool cEncoder::CloseFile() {
     int ret = 0;
 
     // empty all encoder queue
-    for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {
-        if (codecCtxArrayOut[streamIndex]) {
-            if (codecCtxArrayOut[streamIndex]->codec_type == AVMEDIA_TYPE_SUBTITLE) continue; // draining encoder queue of subtitle stream is not valid, no encoding used
-            avcodec_send_frame(codecCtxArrayOut[streamIndex], nullptr);  // prevent crash if we have no valid encoder codec context
-        }
-        else {
-            dsyslog("cEncoder::CloseFile(): output codec context of stream %d not valid", streamIndex);
-            break;
-        }
-        // flash buffer
-        SendFrameToEncoder(streamIndex, nullptr);
-        // receive packet from decoder
-        AVPacket *avpktOut = ReceivePacketFromEncoder(streamIndex);
-        while (avpktOut) {
-            // write packet
-            if (!WritePacket(avpktOut, true)) {  // packet was re-encoded
-                esyslog("cEncoder::EncodeFrame(): WritePacket() failed");
-                return false;
+    if (fullEncode) {
+        for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {
+            dsyslog("cEncoder::CloseFile(): stream %d: flush encoder queue", streamIndex);
+            if (codecCtxArrayOut[streamIndex]) {
+                if (codecCtxArrayOut[streamIndex]->codec_type == AVMEDIA_TYPE_SUBTITLE) continue; // draining encoder queue of subtitle stream is not valid, no encoding used
+                // flash buffer
+                SendFrameToEncoder(streamIndex, nullptr);
+                // receive packet from decoder
+                AVPacket *avpktOut = ReceivePacketFromEncoder(streamIndex);
+                while (avpktOut) {
+                    // write packet
+                    if (!WritePacket(avpktOut, true)) {  // packet was re-encoded
+                        esyslog("cEncoder::EncodeFrame(): WritePacket() failed");
+                        return false;
+                    }
+                    FREE(sizeof(*avpktOut), "avpktOut");
+                    av_packet_free(&avpktOut);
+                    avpktOut = ReceivePacketFromEncoder(streamIndex);
+                }
             }
-            FREE(sizeof(*avpktOut), "avpktOut");
-            av_packet_free(&avpktOut);
-            avpktOut = ReceivePacketFromEncoder(streamIndex);
+            else {
+                dsyslog("cEncoder::CloseFile(): output codec context of stream %d not valid", streamIndex);
+                continue;
+            }
+
         }
     }
-
     ret = av_write_trailer(avctxOut);
     if (ret < 0) {
         dsyslog("cEncoder::CloseFile(): could not write trailer");
