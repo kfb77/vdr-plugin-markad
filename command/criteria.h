@@ -137,10 +137,11 @@ public:
 
     /**
      * set status of a mark type
-     * @param type   mark type
+     * @param type         mark type
+     * @param fullDecode   true if full decoding, false otherwise
      * @param state  set to this state
      */
-    void SetMarkTypeState(const int type, const int state);
+    void SetMarkTypeState(const int type, const int state, const bool fullDecode);
 
     /**
      * list mark type stati

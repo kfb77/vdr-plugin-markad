@@ -262,7 +262,7 @@ int cCriteria::GetMarkTypeState(const int type) const {
 }
 
 
-void cCriteria::SetMarkTypeState(const int type, const int state) {
+void cCriteria::SetMarkTypeState(const int type, const int state, const bool fullDecode) {
     char *typeToText  = TypeToText(type);
     char *stateToText = StateToText(state);
     if (typeToText && stateToText) {
@@ -322,7 +322,7 @@ void cCriteria::SetMarkTypeState(const int type, const int state) {
     case MT_ASPECTCHANGE:
         aspectratio = state;
         if (aspectratio == CRITERIA_USED) {
-            SetDetectionState(MT_SCENECHANGE,    true);   // aspect ratio changes are not frame exact, use scene change to optimize
+            if (fullDecode) SetDetectionState(MT_SCENECHANGE, true);   // aspect ratio changes are not frame exact, use scene change to optimize
             SetDetectionState(MT_SOUNDCHANGE,   false);
             SetDetectionState(MT_BLACKCHANGE,    true);   // aspect ratio changes are not frame exact, use black screen to optimize
             SetDetectionState(MT_LOGOCHANGE,    false);
@@ -334,7 +334,7 @@ void cCriteria::SetMarkTypeState(const int type, const int state) {
     case MT_CHANNELCHANGE:
         channel = state;
         if (channel == CRITERIA_USED) {
-            SetDetectionState(MT_SCENECHANGE,    true);   // channel change give not exact video frame mark
+            if (fullDecode) SetDetectionState(MT_SCENECHANGE, true);   // channel change give not exact video frame mark
             SetDetectionState(MT_SOUNDCHANGE,   false);
             SetDetectionState(MT_BLACKCHANGE,    true);   // channel change give not exact video frame mark
             SetDetectionState(MT_LOGOCHANGE,    false);

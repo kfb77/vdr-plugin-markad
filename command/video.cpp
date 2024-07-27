@@ -949,7 +949,7 @@ int cLogoDetect::Process(int *logoFrameNumber) {
         dsyslog("cLogoDetect::Process(): frame (%d): aspect ratio changed from %d:%d to %d:%d, reload logo", frameNumber, area.logoAspectRatio.num, area.logoAspectRatio.den, aspectRatio->num, aspectRatio->den);
         if (!ChangeLogoAspectRatio(aspectRatio)) {
             isyslog("no valid logo found for %s %d:%d, disable logo detection", criteria->GetChannelName(), aspectRatio->num, aspectRatio->den);
-            criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED);
+            criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED, decoder->GetFullDecode());
             area.status = LOGO_UNINITIALIZED;
             return LOGO_ERROR;
         }

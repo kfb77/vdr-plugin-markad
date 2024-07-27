@@ -1842,11 +1842,11 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
     // delete very early first mark, if channels send ad with 6 channels, this can be wrong
     cMark *channelStart = marks.GetNext(-1, MT_CHANNELSTART);
     if (channelStart) {
-        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);  // there is a 6 channel audio in broadcast, may we can use it later
+        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);  // there is a 6 channel audio in broadcast, may we can use it later
         if (channelStart->position < IGNORE_AT_START) marks.Del(channelStart->position);
     }
     // 6 channel double episode, there is no channel start mark
-    if (decoder->GetAC3ChannelCount() >= 5) criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE);  // there is a 6 channel audio in broadcast, may we can use it later
+    if (decoder->GetAC3ChannelCount() >= 5) criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);  // there is a 6 channel audio in broadcast, may we can use it later
 
     // search channel start mark
     channelStart = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_CHANNELSTART);
@@ -1875,7 +1875,7 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
                     dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): found logo start mark (%d) %ds after assumed start", logoStart->position, diffLogoStart);
                     if ((diffLogoStart >= -1) && (diffLogoStart <= 56)) {  // changed from 17 to 56
                         dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): use logo start mark (%d) as start mark", logoStart->position);
-                        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
+                        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
                         return logoStart;
                     }
                 }
@@ -1886,7 +1886,7 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
         marks.DelType(MT_HBORDERCHANGE, 0xF0);
         marks.DelType(MT_VBORDERCHANGE, 0xF0);
         marks.DelWeakFromTo(0, INT_MAX, MT_CHANNELCHANGE); // we have a channel start mark, delete all weak marks
-        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
+        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
         return channelStart;
     }
     dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): no audio channel start mark found");
@@ -2121,7 +2121,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         if (delMark) marks.Del(delMark->position);
         delMark = marks.GetAround(10 * decoder->GetVideoFrameRate(), begin->position, MT_HBORDERSTOP, 0xFF);
         if (delMark) marks.Del(delMark->position);
-        criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_USED);
+        criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
     }
     if (!criteria->LogoInBorder()) {
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): disable border detection and delete border marks");  // avoid false detection of border
@@ -2186,7 +2186,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
         // check hborder start position
         if (hStart->position >= IGNORE_AT_START) {  // position < IGNORE_AT_START is a hborder start from previous recording
             // found valid horizontal border start mark
-            criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED);
+            criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
             // we found a hborder, check logo stop/start after to prevent to get closing credit from previous recording as start
             // only works for channel with logo in border
             if (criteria->LogoInBorder()) {
@@ -2219,7 +2219,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
             hStart = nullptr;
             if (marks.Count(MT_HBORDERCHANGE, 0xF0) == 0) {
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border since start, use it for mark detection");
-                criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED);
+                criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
                 if (!criteria->LogoInBorder()) {
                     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): logo marks can not be valid, delete it");
                     marks.DelType(MT_LOGOCHANGE, 0xF0);
@@ -2232,11 +2232,11 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
         cMark *firstBorderStart = marks.GetNext(-1, MT_HBORDERSTART);
         if (firstBorderStart && (firstBorderStart->position <= IGNORE_AT_START) && (marks.Count(MT_HBORDERSTART) > marks.Count(MT_HBORDERSTOP))) {
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start mark at recording start found, we have a double episode");
-            criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED);
+            criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
         }
         else { // currect broadcast has no hborder
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): no horizontal border start mark found, disable horizontal border detection and cleanup marks");
-            criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_DISABLED);
+            criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_DISABLED, macontext.Config->fullDecode);
             // keep last hborder stop, maybe can use it as start mark
             const cMark *lastBorderStop = marks.GetPrev(INT_MAX, MT_HBORDERSTOP);
             if (lastBorderStop) { // delete all marks before hborder stop, they can not be a valid start mark
@@ -2330,7 +2330,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
                 // broadcast start can not be before vborder stop from previous broadcast, keep vborder stop as possible start mark
                 // keep all stop marks, maybe we need logo stop to detect valid logo start mark
                 marks.DelFromTo(0, vStopAfter->position - 1, MT_START, 0x0F);
-                criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE);
+                criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
                 return nullptr;
             }
         }
@@ -2348,7 +2348,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         marks.Del(vStart->position);
         if (!vBorderStop || (vBorderStop->position > startA + 420 * decoder->GetVideoFrameRate())) {
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border since start, use it for mark detection");
-            criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
+            criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
             if (!criteria->LogoInBorder()) {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): logo marks can not be valid, delete it");
                 marks.DelType(MT_LOGOCHANGE, 0xF0);
@@ -2377,9 +2377,9 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     // found valid vertical border start mark
     if (criteria->GetMarkTypeState(MT_ASPECTCHANGE) == CRITERIA_USED) {
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): use vertical border only as start mark, keep using aspect ratio detection");
-        criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_AVAILABLE);
+        criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);
     }
-    else criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED);
+    else criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
 
     // check logo start after vborder start to prevent to get closing credit from previous recording as start mark
     if (criteria->LogoInBorder()) {  // prevent to get logo interruption as false start mark
@@ -2430,11 +2430,11 @@ void cMarkAdStandalone::CheckStart() {
     DebugMarks();     //  only for debugging
 
     // set initial mark criteria
-    if (marks.Count(MT_HBORDERSTART) == 0) criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_UNAVAILABLE);  // if we have no hborder start, broadcast can not have hborder
-    else if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE);  // if we have a vborder start and no vboder stop
+    if (marks.Count(MT_HBORDERSTART) == 0) criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);  // if we have no hborder start, broadcast can not have hborder
+    else if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);  // if we have a vborder start and no vboder stop
 
-    if (marks.Count(MT_VBORDERSTART) == 0) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE);  // if we have no vborder start, broadcast can not have vborder
-    else if ((marks.Count(MT_VBORDERSTART) == 1) && (marks.Count(MT_VBORDERSTOP) == 0)) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_AVAILABLE);  // if we have a vborder start and no vboder stop
+    if (marks.Count(MT_VBORDERSTART) == 0) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);  // if we have no vborder start, broadcast can not have vborder
+    else if ((marks.Count(MT_VBORDERSTART) == 1) && (marks.Count(MT_VBORDERSTOP) == 0)) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);  // if we have a vborder start and no vboder stop
 
 // recording start
     cMark *begin = marks.GetAround(startA, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
@@ -2528,7 +2528,7 @@ void cMarkAdStandalone::CheckStart() {
         if (aStart) {
             dsyslog("cMarkAdStandalone::CheckStart(): found aspect ratio start mark at (%d), video info is %d:%d", aStart->position, macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
             if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) { // we have a aspect ratio start mark, check if valid
-                criteria->SetMarkTypeState(MT_ASPECTCHANGE, CRITERIA_USED);  // use aspect ratio marks for detection, even if we have to use another start mark
+                criteria->SetMarkTypeState(MT_ASPECTCHANGE, CRITERIA_USED, macontext.Config->fullDecode);  // use aspect ratio marks for detection, even if we have to use another start mark
                 while (aStart && (aStart->position <= (16 * decoder->GetVideoFrameRate()))) {    // to near at start of recording is from broadcast before
                     dsyslog("cMarkAdStandalone::CheckStart(): aspect ratio start mark (%d) too early, try next", aStart->position);
                     aStart = marks.GetNext(aStart->position, MT_ASPECTSTART);
@@ -3678,7 +3678,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             }
             if ((macontext.Config->autoLogo > 0) && (mark->position > 0) && (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_DISABLED)) {
                 isyslog("AddMark(): frame (%d): aspect ratio change from %2d:%d to %2d:%d, logo detection reenabled", mark->position, mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den);
-                criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_UNKNOWN);
+                criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_UNKNOWN, macontext.Config->fullDecode);
             }
         }
         break;
@@ -3689,7 +3689,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         }
         if ((macontext.Config->autoLogo > 0) && (mark->position > 0) && (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_DISABLED)) {
             isyslog("aspect ratio change from %2d:%d to %2d:%d at frame (%d), logo detection reenabled", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position);
-            criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_UNKNOWN);
+            criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_UNKNOWN, macontext.Config->fullDecode);
         }
         break;
     case MT_CHANNELSTART:
@@ -3707,9 +3707,9 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             // disable all video detection
             video->ClearBorder();
             // use now channel change for detection
-            criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED);
+            criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
             if (criteria->GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) {
-                criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE);
+                criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);
                 cMark *hborderStop = marks.GetAround(1 * decoder->GetVideoFrameRate(), mark->position, MT_HBORDERSTOP);
                 if (hborderStop) {  // use hborder stop, we have no scene change or black screen to optimize channel stop mark, will result false optimization
                     dsyslog("cMarkAdStandalone::AddMark(): keep hborder stop (%d), ignore channel stop (%d)", hborderStop->position, mark->position);
@@ -5582,6 +5582,7 @@ bool cMarkAdStandalone::ProcessFrame() {
         dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d), reset detector status", frameNumber);
         video->Clear(true);
         criteria->SetDetectionState(MT_ALL, true);
+        if (!macontext.Config->fullDecode) criteria->SetDetectionState(MT_SCENECHANGE, false);  // does not work without full decode
         restartLogoDetectionDone = true;
     }
     return true;
@@ -5593,6 +5594,7 @@ void cMarkAdStandalone::Recording() {
 
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::Recording(): start processing recording");
+    if (!macontext.Config->fullDecode) criteria->SetDetectionState(MT_SCENECHANGE, false);  // does not work without full decode
     criteria->ListDetection();
     if (macontext.Config->backupMarks) marks.Backup(directory);
 
