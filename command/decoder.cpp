@@ -139,11 +139,6 @@ void cDecoder::Reset() {
     av_frame_unref(&avFrameConvert);
     if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
 
-    if (nv12_to_yuv_ctx) {
-        FREE(sizeof(nv12_to_yuv_ctx), "nv12_to_yuv_ctx");  // pointer size, real size not possible because of extern declaration, only as reminder
-        sws_freeContext(nv12_to_yuv_ctx);
-        nv12_to_yuv_ctx = nullptr;
-    }
     if (swsContext) {
         FREE(sizeof(swsContext), "swsContext");  // pointer size, real size not possible because of extern declaration, only as reminder
         sws_freeContext(swsContext);

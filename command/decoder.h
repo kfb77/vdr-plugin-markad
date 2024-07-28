@@ -422,8 +422,6 @@ private:
     //!<
     AVBufferRef *hw_device_ctx         = nullptr;                 //!< hardware device context
     //!<
-    struct SwsContext *nv12_to_yuv_ctx = nullptr;                 //!< pixel format conversion context for hwaccel
-    //!<
     struct SwsContext *swsContext      = nullptr;                 //!< pixel format conversion context for non AV_PIX_FMT_YUV420P pixel formats (e.g. from UHD)
     //!<
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)               // FFmpeg 4.5
