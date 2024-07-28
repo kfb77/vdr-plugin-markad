@@ -1357,6 +1357,18 @@ void cMarkAdStandalone::CheckStop() {
         free(indexToHMSF);
     }
     DebugMarks();     //  only for debugging
+    // check start mark, re-calculate assumed stop if later start mark was selected
+    if (CheckStartMark()) {
+        stopA = marks.GetFirst()->position + decoder->GetVideoFrameRate() * length;
+        indexToHMSF = marks.IndexToHMSF(stopA, false);
+        if (indexToHMSF) {
+            ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
+            dsyslog("new assumed stop position after final start mark selection (%d) at %s", stopA, indexToHMSF);
+            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
+            free(indexToHMSF);
+            DebugMarks();     //  only for debugging
+        }
+    }
 
     // cleanup invalid marks
     //
@@ -2715,13 +2727,14 @@ void cMarkAdStandalone::CheckStart() {
 
 // check if start mark is valid
 // check for short start/stop pairs at the start and select final start mark
-void cMarkAdStandalone::CheckStartMark() {
+bool cMarkAdStandalone::CheckStartMark() {
     LogSeparator();
+    bool deleted = false;
     cMark *startMark = marks.GetFirst(); // this is the start mark
     while (startMark) {
         if ((startMark->type & 0x0F) != MT_START) {
             dsyslog("cMarkAdStandalone::CheckStartMark(): invalid type, no start mark (%d)", startMark->position);
-            return;
+            return false;
         }
         // check logo start mark
         if (startMark->type == MT_LOGOSTART) {
@@ -2762,6 +2775,7 @@ void cMarkAdStandalone::CheckStartMark() {
                             dsyslog("cMarkAdStandalone::CheckStartMark(): current start mark invalid, delete start (%d) and stop (%d) mark", startMark->position, logoStop1->position);
                             marks.Del(startMark->position);
                             marks.Del(logoStop1->position);
+                            deleted = true;
                             startMark = marks.GetFirst();
                         }
                         else break;
@@ -2794,6 +2808,7 @@ void cMarkAdStandalone::CheckStartMark() {
                             dsyslog("cMarkAdStandalone::CheckStartMark(): too short STOP/START/STOP sequence at start, delete first pair");
                             marks.Del(startMark->position);
                             marks.Del(markStop->position);
+                            deleted = true;
                             startMark = marks.GetFirst();
                         }
                         else break;
@@ -2804,7 +2819,7 @@ void cMarkAdStandalone::CheckStartMark() {
             else break;
         }
     }
-    return;
+    return deleted;
 }
 
 

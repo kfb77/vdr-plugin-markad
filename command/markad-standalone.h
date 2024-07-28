@@ -321,8 +321,9 @@ private:
 
     /**
      * check final start mark for invalid short start/stop pairs
+     * @return true, if later start mark was set
      */
-    void CheckStartMark();
+    bool CheckStartMark();
 
     /**
      * check for channel start mark
