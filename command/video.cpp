@@ -319,6 +319,8 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
 // contrast 175, brightness 154  -> bright background with patten, not detected logo after pattern reduction
 // contrast 169, brightness 145  -> bright background with patten, not detected logo after pattern reduction
 //
+// contrast  43, brightness 192  -> bright background with logo
+//
 // contrast  28, brightness 205  -> bright background with logo
 // contrast  25, brightness 216  -> bright background with logo
 // contrast  25, brightness 195  -> bright blue sky with logo
@@ -373,7 +375,8 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
             ((contrastLogo  >   0) && (contrastLogo <=   3) && (brightnessLogo > 221)) ||
             ((contrastLogo  >   3) && (contrastLogo <=  10) && (brightnessLogo > 202)) ||
             ((contrastLogo  >  10) && (contrastLogo <=  20) && (brightnessLogo > 197)) ||
-            ((contrastLogo  >  20) && (contrastLogo <=  50) && (brightnessLogo > 192)) ||
+            ((contrastLogo  >  20) && (contrastLogo <=  40) && (brightnessLogo > 192)) ||
+            ((contrastLogo  >  40) && (contrastLogo <=  50) && (brightnessLogo > 191)) ||
             ((contrastLogo  >  50) && (contrastLogo <=  60) && (brightnessLogo > 189)) ||
             ((contrastLogo  >  60) && (contrastLogo <= 140) && (brightnessLogo > 180)) ||
             ((contrastLogo  > 140) && (contrastLogo <= 180) && (brightnessLogo > 144)) ||
