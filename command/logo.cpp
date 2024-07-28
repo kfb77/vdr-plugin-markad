@@ -2000,7 +2000,10 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
             if (criteria->IsLogoRotating()) skipPackets = 1;  // for rotating logo skip at least one frame to catch the full logo
             else                            skipPackets = 0;
         }
-        for (int i = 1; i <= skipPackets; i++) decoder->DecodeNextFrame(false);
+        for (int i = 1; i <= skipPackets; i++) {
+            decoder->DecodeNextFrame(false);
+            decoder->DropFrameFromGPU();  // drop frame from GPU buffer if hwaccel is used
+        }
     }
 
     bool doSearch = false;

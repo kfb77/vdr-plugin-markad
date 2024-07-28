@@ -135,7 +135,6 @@ void cDecoder::Reset() {
     dsyslog("cDecoder::Reset(): reset decoder");
     av_packet_unref(&avpkt);
     av_frame_unref(&avFrame);
-    av_frame_unref(&avFrameHW);
     av_frame_unref(&avFrameConvert);
     if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
 
@@ -831,8 +830,19 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
 }
 
 
+void cDecoder::DropFrameFromGPU() {
+    // use by logo extraction for skip frame
+    if (useHWaccel) {
+        AVFrame *avFrameHW = av_frame_alloc();
+        av_hwframe_transfer_data(avFrameHW, &avFrame, 0);
+        av_frame_free(&avFrameHW);
+    }
+}
+
+
 bool cDecoder::ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat) {
     if (!frameValid) return false;
+    Time(true);
     av_frame_unref(&avFrameConvert);
     avFrameConvert.width  = GetVideoWidth();
     avFrameConvert.height = GetVideoHeight();
@@ -841,21 +851,40 @@ bool cDecoder::ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat) {
     int rc = av_frame_get_buffer(&avFrameConvert, 0);
     if (rc != 0) {
         av_frame_unref(&avFrameConvert);
+        Time(false);
         return false;
     }
-
+    AVFrame *avFrameHW = nullptr;
+    AVFrame *avFrameSource = &avFrame;
+    // hardware decoed, receive picture from GPU and convert pixel format
+    if (avFrame.format == hwPixelFormat) {        // retrieve data from GPU to CPU
+        avFrameHW = av_frame_alloc();
+        avFrameSource = avFrameHW;
+        rc = av_hwframe_transfer_data(avFrameHW, &avFrame, 0);
+        if (rc < 0 ) {
+            switch (rc) {
+            case -EIO:        // end of file
+                dsyslog("cDecoder::ConvertVideoPixelFormat(): packet  (%5d): I/O error (EIO)", packetNumber);
+                break;
+            default:
+                esyslog("cDecoder::ConvertVideoPixelFormat(): packet  (%5d), pict_type %d: av_hwframe_transfer_data rc = %d: %s", packetNumber, avFrame.pict_type, rc, av_err2str(rc));
+                break;
+            }
+            Time(false);
+            return false;
+        }
+    }
+    // init pixel conversion
     if (!swsContext) {
-        enum AVPixelFormat sourcePixelFormat = static_cast<enum AVPixelFormat>(avFrame.format);
-        if (sourcePixelFormat == hwPixelFormat) sourcePixelFormat = static_cast<enum AVPixelFormat>(avFrameHW.format); // we use pixel format from avFrameHW
-        dsyslog("cDecoder::ConvertVideoPixelFormat(): video pixel format: avFrame %s, avFrameHW %s, target format: %s", av_get_pix_fmt_name(static_cast<enum AVPixelFormat>(avFrame.format)), av_get_pix_fmt_name(static_cast<enum AVPixelFormat>(avFrameHW.format)), av_get_pix_fmt_name(pixelFormat));
-        swsContext = sws_getContext(GetVideoWidth(), GetVideoHeight(), sourcePixelFormat, GetVideoWidth(), GetVideoHeight(), pixelFormat, SWS_BICUBIC, NULL,NULL,NULL);
+        dsyslog("cDecoder::ConvertVideoPixelFormat(): video pixel format: source %s, target %s", av_get_pix_fmt_name(static_cast<enum AVPixelFormat>(avFrameSource->format)), av_get_pix_fmt_name(pixelFormat));
+        swsContext = sws_getContext(GetVideoWidth(), GetVideoHeight(), static_cast<enum AVPixelFormat>(avFrameSource->format), GetVideoWidth(), GetVideoHeight(), pixelFormat, SWS_BICUBIC, NULL,NULL,NULL);
         ALLOC(sizeof(swsContext), "swsContext");  // pointer size, real size not possible because of extern declaration, only as reminder
     }
+    // convert pixel format
+    sws_scale(swsContext, avFrameSource->data, avFrameSource->linesize, 0, GetVideoHeight(), avFrameConvert.data, avFrameConvert.linesize);  // software decoded, use avFrame
+    if (avFrameHW) av_frame_free(&avFrameHW);
 
-    if (avFrame.format == hwPixelFormat) {  // hardware decoed, use avFrameHW
-        sws_scale(swsContext, avFrameHW.data, avFrameHW.linesize, 0, GetVideoHeight(), avFrameConvert.data, avFrameConvert.linesize);
-    }
-    else sws_scale(swsContext, avFrame.data, avFrame.linesize, 0, GetVideoHeight(), avFrameConvert.data, avFrameConvert.linesize);  // software decoded, use avFrame
+    Time(false);
     return true;
 }
 
@@ -1093,27 +1122,9 @@ int cDecoder::ReceiveFrameFromDecoder() {
     }
 
 // we got a frame check if we used hardware acceleration for this frame
-    if (avFrame.hw_frames_ctx) {
-        // retrieve data from GPU to CPU
-        av_frame_unref(&avFrameHW);
-        rc = av_hwframe_transfer_data(&avFrameHW, &avFrame, 0);
-        if (rc < 0 ) {
-            switch (rc) {
-            case -EIO:        // end of file
-                dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d): I/O error (EIO)", packetNumber);
-                break;
-            default:
-                esyslog("cDecoder::ReceiveFrameFromDecoder(): packet  (%5d), pict_type %d: av_hwframe_transfer_data rc = %d: %s", packetNumber, avFrame.pict_type, rc, av_err2str(rc));
-                break;
-            }
-            Time(false);
-            return rc;
-        }
-
-        if (!firstHWaccelReceivedOK) {
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): first video packet received from hwaccel decoder, codec and pixel format are valid");
-            firstHWaccelReceivedOK = true;
-        }
+    if (avFrame.hw_frames_ctx && !firstHWaccelReceivedOK) {
+        dsyslog("cDecoder::ReceiveFrameFromDecoder(): first video packet received from hwaccel decoder, codec and pixel format are valid");
+        firstHWaccelReceivedOK = true;
     }
 
 // check decoding error

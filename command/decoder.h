@@ -373,6 +373,11 @@ public:
      */
     enum AVPixelFormat GetVideoPixelFormat() const;
 
+    /** drop currect decoded frame from GPU buffer
+     *  use by logo extraction to skip frames
+     */
+    void DropFrameFromGPU();
+
 private:
     /** convert frame pixel format to AV_PIX_FMT_YUV420P
      * @param pixelFormat   target pixel format
@@ -422,7 +427,7 @@ private:
     //!<
     AVBufferRef *hw_device_ctx         = nullptr;                 //!< hardware device context
     //!<
-    struct SwsContext *swsContext      = nullptr;                 //!< pixel format conversion context for non AV_PIX_FMT_YUV420P pixel formats (e.g. from UHD)
+    struct SwsContext *swsContext      = nullptr;                 //!< pixel format conversion context
     //!<
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)               // FFmpeg 4.5
     const AVCodec *codec               = nullptr;                 //!< codec
@@ -438,8 +443,6 @@ private:
     AVPacket avpkt                     = {};                      //!< packet from input file
     //!<
     AVFrame avFrame                    = {};                      //!< decoded frame
-    //!<
-    AVFrame avFrameHW                  = {};                      //!< decoded frame from hwaccel, contains picture data if hwaccel is used
     //!<
     AVFrame avFrameConvert             = {};                      //!< decoded frame after pixel format transformation
     //!<
