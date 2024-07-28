@@ -3019,9 +3019,10 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // delete sequence long broadcast -> very short stop/start -> long broadcast
 // MT_LOGOSTART ( 15766) -> 1103180ms -> MT_LOGOSTOP ( 70925) ->    1040ms -> MT_LOGOSTART ( 70977) ->   83260ms -> MT_STOP ( 75140)
 // MT_LOGOSTART ( 70977) ->   83260ms -> MT_LOGOSTOP ( 75140) ->    1020ms -> MT_LOGOSTART ( 75191) -> 1536500ms -> MT_STOP (152016)
+// MT_LOGOSTART ( 13993) -> 1092500ms -> MT_LOGOSTOP ( 68618) ->    1700ms -> MT_LOGOSTART ( 68703) ->   82620ms -> MT_STOP ( 72834)
                     if ((prevLogoStart_Stop     >= 83260) &&
-                            (stop_nextLogoStart     <= 1040) &&
-                            (nextLogoStart_nextStop >= 83260)) {
+                            (stop_nextLogoStart     <= 1700) &&
+                            (nextLogoStart_nextStop >= 82620)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from logo detection failure, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
