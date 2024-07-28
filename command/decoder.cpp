@@ -703,7 +703,7 @@ sAudioAC3Channels *cDecoder::GetChannelChange() {
         if (!audioAC3Channels[streamIndex].processed) {
             dsyslog("cDecoder::GetChannelChange(): stream %d: unprocessed channel change", streamIndex);
             if (audioAC3Channels[streamIndex].videoFrameNumber < 0) {  // we have no video frame number, try to get from index it now
-                dsyslog("cDecoder::GetChannelChange(): stream %d: calculate video from number for PTS %ld", streamIndex, audioAC3Channels[streamIndex].pts);
+                dsyslog("cDecoder::GetChannelChange(): stream %d: calculate video packet number for PTS %ld", streamIndex, audioAC3Channels[streamIndex].pts);
                 if (fullDecode) {   // use PTS ring buffer to get exact video frame number
                     // 6 -> 2 channel, this will result in stop  mark, use nearest video i-frame with PTS before
                     if (audioAC3Channels[streamIndex].channelCountAfter == 2) audioAC3Channels[streamIndex].videoFrameNumber = index->GetFrameBeforePTS(audioAC3Channels[streamIndex].pts);
