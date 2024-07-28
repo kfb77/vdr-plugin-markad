@@ -532,6 +532,7 @@ bool cDecoder::ReadPacket() {
     if (!avctx) return false;
     if (eof)    return false;
 
+    frameValid = false;
     av_packet_unref(&avpkt);
     if (av_read_frame(avctx, &avpkt) == 0 ) {
         // check packet DTS and PTS
@@ -1018,7 +1019,6 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
 
 
 int cDecoder::ReceiveFrameFromDecoder() {
-    frameValid = false;
     if (!avctx) return AVERROR_EXIT;
 
     // init avFrame for new frame
