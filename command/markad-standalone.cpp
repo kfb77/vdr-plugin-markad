@@ -5384,6 +5384,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     if ((diffBefore <= 440) && (diffAfter >= 1720)) diffAfter = INT_MAX;
                     maxAfter = 799;
                     break;
+                case MT_VBORDERSTOP:
+                    maxAfter = 20720;
+                    break;
                 case MT_CHANNELSTOP:
                     // rule 1:
                     if ((diffBefore >= 80) && (diffBefore <= 640) && (diffAfter >= 160) && (diffAfter <= 1460)) diffAfter = INT_MAX;
