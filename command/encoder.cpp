@@ -219,6 +219,9 @@ void cEncoder::Reset(const int passEncoder) {
     dsyslog("cEncoder::Reset(): pass %d", passEncoder);
     cutInfo = {0};
     pass    = passEncoder;
+    for (unsigned int i = 0; i < MAXSTREAMS; i++) {
+        dts[i] = 0;
+    }
 #ifdef DEBUG_PTS_DTS_CUT
     frameOut = 0;
 #endif
@@ -1248,7 +1251,7 @@ bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
         // map input stream index to output stream index, drop packet if not used
         int streamIndexIn = decoder->GetPacket()->stream_index;
         if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) { // prevent to overrun stream array
-            esyslog("cEncoder::WritePacket(): packet (%d), frame (%d): invalid input stream index %d", decoder->GetPacketNumber(), decoder->GetPacketNumber(), streamIndexIn);
+            esyslog("cEncoder::WritePacket(): decoder packet (%5d), stream %d: invalid input stream", decoder->GetPacketNumber(), streamIndexIn);
             return false;
         }
         int streamIndexOut = streamMap[streamIndexIn];
@@ -1259,12 +1262,18 @@ bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
         avpkt->pts -= cutInfo.offset;
         avpkt->dts -= cutInfo.offset;
     }
+    // check monotonically increasing dts
+    if (avpkt->dts <= dts[avpkt->stream_index]) {
+        dsyslog("cEncoder::WritePacket(): decoder packet (%5d), stream %d: dts %ld <= last dts %ld, drop packet", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->dts, dts[avpkt->stream_index]);
+        return true;  // continue encoding
+    }
     avpkt->pos = -1;   // byte position in stream unknown
     int rc = av_write_frame(avctxOut, avpkt);
     if (rc < 0) {
-        esyslog("cEncoder::WritePacket(): packet (%d), frame (%d), stream %d: av_write_frame failed, rc = %d: %s", decoder->GetPacketNumber(), decoder->GetPacketNumber(), avpkt->stream_index, rc, av_err2str(rc));
+        esyslog("cEncoder::WritePacket(): decoder packet (%5d), stream %d: av_write_frame() failed, rc = %d: %s", decoder->GetPacketNumber(), avpkt->stream_index, rc, av_err2str(rc));
         return false;
     }
+    dts[avpkt->stream_index] = avpkt->dts;
     return true;
 }
 

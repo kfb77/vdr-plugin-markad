@@ -205,6 +205,8 @@ private:
     //!<
     int pass                          = 0;                        //!< encoding pass
     //!<
+    int64_t dts[MAXSTREAMS]           = {0};                      //!< dts of last output packet
+    //!<
     cAC3VolumeFilter *volumeFilterAC3[MAXSTREAMS] = {nullptr};    //!< AC3 volume filter
     //!<
 
