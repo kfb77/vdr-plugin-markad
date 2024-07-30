@@ -72,6 +72,7 @@ int cCriteria::LogoFadeInOut() {
 bool cCriteria::LogoInBorder() {
     if (!channelName) return false;
 
+    if (CompareChannelName(channelName, "ARD_alpha",      IGNORE_HD)) return true;   // ssen with small vertical border
     if (CompareChannelName(channelName, "arte",           IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "Bibel_TV",       IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "Comedy_Central", IGNORE_HD)) return true;
