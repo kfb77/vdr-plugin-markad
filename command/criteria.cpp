@@ -178,7 +178,7 @@ bool cCriteria::IsClosingCreditsChannel() {
     // for performance reason only known and tested channels
     if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD) ||
             CompareChannelName(channelName, "kabel_eins",  IGNORE_HD) ||
-            CompareChannelName(channelName, "krone_tv",    IGNORE_HD | IGNORE_COUNTRY) ||
+            CompareChannelName(channelName, "krone_tv",    IGNORE_HD) ||
             CompareChannelName(channelName, "SAT_1",       IGNORE_HD | IGNORE_COUNTRY) ||
             CompareChannelName(channelName, "SAT_1_Gold",  IGNORE_HD | IGNORE_COUNTRY) ||
             CompareChannelName(channelName, "SIXX",        IGNORE_HD | IGNORE_COUNTRY) ||
@@ -186,7 +186,7 @@ bool cCriteria::IsClosingCreditsChannel() {
             CompareChannelName(channelName, "Pro7_MAXX",   IGNORE_HD | IGNORE_COUNTRY) ||
             CompareChannelName(channelName, "RTL2",        IGNORE_HD | IGNORE_COUNTRY) ||
             CompareChannelName(channelName, "ProSieben",   IGNORE_HD | IGNORE_COUNTRY) ||
-            CompareChannelName(channelName, "ZDF",         IGNORE_HD | IGNORE_COUNTRY)) {
+            CompareChannelName(channelName, "ZDF",         IGNORE_HD)) {
         return true;
     }
     return false;
