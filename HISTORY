@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-08-07: Version 4.1.0
+- new feature: hwaccel for encoder
+- some minor bug fixes and optimizations, see git
+
 2024-07-31: Version 4.0.4
 - fix UHD decoding
 - some performance improvement
