@@ -1881,10 +1881,6 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
 #define INTRODUCTION_MAX_DIFF_END       4319   // max distance of introduction logo end to start mark (endPos)
 
     for(std::vector<sCompareInfo>::iterator cornerResultIt = compareResult.begin(); cornerResultIt != compareResult.end(); ++cornerResultIt) {
-#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
-        dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame (%5d) and (%5d): %5d (%4d) %5d (%4d) %5d (%4d) %5d (%4d)", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).framePortion[0], (*cornerResultIt).rate[1], (*cornerResultIt).framePortion[1], (*cornerResultIt).rate[2], (*cornerResultIt).framePortion[2], (*cornerResultIt).rate[3], (*cornerResultIt).framePortion[3]);
-#endif
-
         // separator frame before introduction logo
         int sumPixel        = 0;
         int sumFramePortion = 0;
@@ -1904,11 +1900,21 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
             sumPixel        += (*cornerResultIt).rate[corner];
             sumFramePortion += (*cornerResultIt).framePortion[corner];
         }
+
+#if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
+        dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame (%5d) and (%5d): %5d (%4d) %5d (%4d) %5d (%4d) %5d (%4d) -> %5d (%5d)", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).framePortion[0], (*cornerResultIt).rate[1], (*cornerResultIt).framePortion[1], (*cornerResultIt).rate[2], (*cornerResultIt).framePortion[2], (*cornerResultIt).rate[3], (*cornerResultIt).framePortion[3], sumPixel, sumFramePortion);
+#endif
+
         // examples of separator frames before introduction logo
         //  59     0     0    -1 =  58
         //  48    14     0     0 =  62  NEW
         //  -1   325(l)  0     0 = 324  // fading out logo on black sceen between broadcast before and introduction logo, logo start mark is after introduction logo (conflict)
         //  -1  1000(l) -1    -1 = 997  // black screen with logo, last frame from previous broadcast
+        //
+        // change from ad in frame without logo to start of broadcast with info logo, but no separator
+        // 991 ( 497)   939 ( 659)   999 (   0)   991 ( 805) ->  3920 ( 1961)
+        //  78 (   0)    23 ( 129)    33 (   0)    13 (   0) ->   147 (  129)
+        //
         //
         // example of no separator frames (l = logo corner)
         //  34   206(l)   0     0 = 240
@@ -1919,7 +1925,7 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         //   0    74(l)   0     0 =  74
         //   0    65(l)   0    -1 =  64
         // new separator image before introduction logo, restart detection
-        if (((sumPixelBefore == 4000) && (sumFramePortionBefore >= 2578) && (sumPixel <= 225)) || // change from ad in frame without logo to start of broadcast with info logo
+        if (((sumPixelBefore >= 3920) && (sumFramePortionBefore >= 1961) && (sumPixel <= 225) && (sumFramePortion <= 129)) ||
                 ((countNoMatch == 2) && (sumPixel <   63)) ||
                 ((countNoMatch >= 3) && (sumPixel <   64)) ||  // changed from 74 to 64
                 ((countNoPixel == 3) && (sumPixel == 997) && (introductionLogo.start == -1))) {  // special case blackscreen with logo, end of previous broadcast
