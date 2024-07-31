@@ -217,6 +217,7 @@ void cMarks::DelFromTo(const int from, const int to, const int type, const int m
         if (mark->position > to) return;
         if ((mark->position >= from) && ((type == MT_ALL) || ((mark->type & mask) == type))) {
             cMark *tmpMark = mark->Next();
+            dsyslog("cMarks::DelFromTo(): delete (%d)", mark->position);
             Del(mark);
             mark = tmpMark;
         }

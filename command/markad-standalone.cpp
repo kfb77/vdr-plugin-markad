@@ -317,7 +317,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
         }
     }
     // search hborder stop mark around stopA
-    end = marks.GetAround(600 * decoder->GetVideoFrameRate(), stopA, MT_HBORDERSTOP);  // 10 minutes
+    end = marks.GetAround(2 * MAX_ASSUMED * decoder->GetVideoFrameRate(), stopA, MT_HBORDERSTOP);  // 10 minutes, more trust for hborder marks
     if (end) {
         dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): MT_HBORDERSTOP found at frame %i", end->position);
         cMark *prevHStart = marks.GetPrev(end->position, MT_HBORDERSTART);
@@ -398,6 +398,18 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
         }
     }
     else dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): no MT_HBORDERSTOP end mark found");
+
+    // cleanup false vborder stop/start from dark scene
+    dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): cleanup false vborder stop/start from dark scene");
+    if (criteria->GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) {
+        const cMark *stopMark  = end;  // can be logo stop mark selected above
+        const cMark *startMark = marks.GetPrev(stopMark->position, MT_HBORDERSTART);
+        while (stopMark && startMark) {
+            marks.DelFromTo(startMark->position, stopMark->position, MT_VBORDERCHANGE, 0xF0);
+            stopMark                = marks.GetPrev(startMark->position, MT_HBORDERSTOP);
+            if (stopMark) startMark = marks.GetPrev(stopMark->position, MT_HBORDERSTART);
+        }
+    }
     return end;
 }
 
