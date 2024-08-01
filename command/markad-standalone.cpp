@@ -3287,19 +3287,23 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         }
         else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS start event found");
 
-        vpsOffset = vps->GetPauseStart();     // VPS pause start mark = stop mark
-        if (vpsOffset >= 0) {
-            isyslog("VPS pause start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-            AddMarkVPS(vpsOffset, MT_STOP, true);
-        }
-        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause start event found");
+        /*  do not use pause events, detected marks are usually better
+         *
+                vpsOffset = vps->GetPauseStart();     // VPS pause start mark = stop mark
+                if (vpsOffset >= 0) {
+                    isyslog("VPS pause start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
+                    AddMarkVPS(vpsOffset, MT_STOP, true);
+                }
+                else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause start event found");
 
-        vpsOffset = vps->GetPauseStop();     // VPS pause stop mark = start mark
-        if (vpsOffset >= 0) {
-            isyslog("VPS pause stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-            AddMarkVPS(vpsOffset, MT_START, true);
-        }
-        else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause stop event found");
+                vpsOffset = vps->GetPauseStop();     // VPS pause stop mark = start mark
+                if (vpsOffset >= 0) {
+                    isyslog("VPS pause stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
+                    AddMarkVPS(vpsOffset, MT_START, true);
+                }
+                else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause stop event found");
+         *
+         */
 
         vpsOffset = vps->GetStop();     // VPS stop mark
         if (vpsOffset >= 0) {

@@ -50,22 +50,6 @@ public:
     };
 
     /**
-     * get VPS pause start event offset
-     * @return offset from start of recording in s
-     */
-    int GetPauseStart() const {
-        return vpsPauseStart;
-    };
-
-    /**
-     * get VPS pause stop event offset
-     * @return offset from start of recording in s
-     */
-    int GetPauseStop() const {
-        return vpsPauseStop;
-    };
-
-    /**
      * status of VPD timer recording
      * @return true if recorded was controlled by VPS timer
      */
