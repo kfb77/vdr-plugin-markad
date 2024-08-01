@@ -1912,9 +1912,8 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         //  -1  1000(l) -1    -1 = 997  // black screen with logo, last frame from previous broadcast
         //
         // change from ad in frame without logo to start of broadcast with info logo, but no separator
-        // 991 ( 497)   939 ( 659)   999 (   0)   991 ( 805) ->  3920 ( 1961)
-        //  78 (   0)    23 ( 129)    33 (   0)    13 (   0) ->   147 (  129)
-        //
+        // frame (111307) and (111308):   991 ( 497)   937 ( 659)   999 (   0)   991 ( 805) ->  3918 ( 1961)
+        // frame (111308) and (111309):    78 (   0)    23 ( 129)    33 (   0)    13 (   0) ->   147 (  129)
         //
         // example of no separator frames (l = logo corner)
         //  34   206(l)   0     0 = 240
@@ -1925,7 +1924,7 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         //   0    74(l)   0     0 =  74
         //   0    65(l)   0    -1 =  64
         // new separator image before introduction logo, restart detection
-        if (((sumPixelBefore >= 3920) && (sumFramePortionBefore >= 1961) && (sumPixel <= 225) && (sumFramePortion <= 129)) ||
+        if (((sumPixelBefore >= 3918) && (sumFramePortionBefore >= 1961) && (sumPixel <= 225) && (sumFramePortion <= 129)) ||
                 ((countNoMatch == 2) && (sumPixel <   63)) ||
                 ((countNoMatch >= 3) && (sumPixel <   64)) ||  // changed from 74 to 64
                 ((countNoPixel == 3) && (sumPixel == 997) && (introductionLogo.start == -1))) {  // special case blackscreen with logo, end of previous broadcast
