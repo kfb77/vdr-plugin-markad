@@ -33,8 +33,8 @@ class cOSDMessage;
 #define IGNORE_AT_START 12
 
 // valid lover border length
-#define MIN_LOWER_BORDER  881
-#define MAX_LOWER_BORDER 9839    // changed from 11000 to 9839
+#define MIN_LOWER_BORDER   881
+#define MAX_LOWER_BORDER 16400    // longest lower border found 16400
 
 // max distance for valid mark from assumed start/stop
 #define MAX_ASSUMED 300
