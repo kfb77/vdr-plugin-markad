@@ -382,9 +382,11 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
         }
         // optimize hborder end mark with logo stop mark in case of next broadcast is also with hborder and too early hborder stop from closing credits overlays hborder
         // check sequence MT_HBORDERSTOP (end) -> MT_LOGOSTOP -> MT_HBORDERSTART (start of next broadcast)
-        logoStop     = marks.GetNext(end->position, MT_LOGOSTOP);
-        hborderStart = marks.GetNext(end->position, MT_HBORDERSTART);
-        if (logoStop && hborderStart) {
+        cMark *logoStart = marks.GetNext(end->position, MT_LOGOSTART);
+        logoStop         = marks.GetNext(end->position, MT_LOGOSTOP);
+        hborderStart     = marks.GetNext(end->position, MT_HBORDERSTART);
+        if (logoStop && hborderStart &&
+                (!logoStart || (logoStart->position > logoStop->position))) {  // no logo start between hborder stop (end mark) and logo stop
             int hBorderStopLogoStop  = 1000 * (logoStop->position     - end->position)      / decoder->GetVideoFrameRate();
             int logoStophBorderStart = 1000 * (hborderStart->position - logoStop->position) /  decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): MT_HBORDERSTOP (%d) -> %dms -> MT_LOGOSTOP (%d) -> %dms -> MT_HBORDERSTART (%d)", end->position, hBorderStopLogoStop, logoStop->position, logoStophBorderStart, hborderStart->position);
