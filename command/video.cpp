@@ -276,7 +276,17 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
             return false;
             break;
         }
-//        dsyslog("cLogoDetect::ReduceBrightness(): logo area: xstart %d xend %d, ystart %d yend %d", logo_xstart, logo_xend, logo_ystart, logo_yend);
+        dsyslog("cLogoDetect::ReduceBrightness(): logo area: xstart %d xend %d, ystart %d yend %d", logo_xstart, logo_xend, logo_ystart, logo_yend);
+        // check result
+        if ((logo_xstart >= logo_xend) || (logo_ystart >= logo_yend)) {
+            esyslog("cLogoDetect::ReduceBrightness(): could not detect black area of logo, disable logo detection");
+            logo_xstart = -1;
+            logo_xend   = -1;
+            logo_ystart = -1;
+            logo_yend   = -1;
+            criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED, decoder->GetFullDecode());   // disable logo detection
+            return false;
+        }
     }
 
 // detect contrast and brightness of logo part
