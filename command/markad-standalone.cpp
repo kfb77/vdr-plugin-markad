@@ -4445,9 +4445,10 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     // rule 1: very short blackscreen with silence after
                     if (silenceAfter && (diffAfter <= 40)) diffBefore = INT_MAX;
 
-                    if ((criteria->LogoFadeInOut() & FADE_IN) && silenceBefore)            maxBefore = 6840;
-                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore > 40)) maxBefore = 5680;
-                    else                                                                   maxBefore = 3020;
+                    if      ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >= 160) && silenceBefore) maxBefore = 12760;
+                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >   40) && silenceBefore) maxBefore =  8859;
+                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >   40))                  maxBefore =  5680;
+                    else                                                                                      maxBefore =  2999;
                     break;
                 case MT_CHANNELSTART:
                     maxBefore = 1240;
@@ -4622,22 +4623,15 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     else                    maxAfter =  25119;
                     break;
                 case MT_LOGOSTOP:
-                    // rules for fade out channels
-                    if (criteria->LogoFadeInOut() & FADE_OUT) {
-                        // rule 1: black screen very before logo stop and far after, old recording without fade out from fade out channel
-                        if ((diffBefore <= 20) && (diffAfter >= 2000)) diffAfter = INT_MAX;
-                    }
-                    // rules for channel without fade out
-                    else {
-                        // rule 2: black screen before from before logo stop to after logo stop
-                        if ((lengthBefore >= diffBefore)) diffAfter = INT_MAX;
+                    // rule 1: black screen before from before logo stop to after logo stop (black screen around logo stop)
+                    if ((lengthBefore >= diffBefore)) diffAfter = INT_MAX;
 
-                        // rule 3: long black screen at end of broadcast, short black screen after preview
-                        else if ((diffBefore <= 4580) && (lengthBefore >= 600) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
-                    }
+                    // rule 2: long black screen at end of broadcast, short black screen after preview
+                    else if ((!(criteria->LogoFadeInOut() & FADE_OUT)) &&
+                             (diffBefore <= 4580) && (lengthBefore >= 600) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
 
                     if ((criteria->LogoFadeInOut() & FADE_OUT) )  maxAfter = 4960;
-                    else                                                                   maxAfter = 1399;
+                    else                                          maxAfter = 1399;
                     break;
                 case MT_HBORDERSTOP:
                     // rule 1: black screen short before hborder stop is end of closing credits
@@ -4719,7 +4713,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     break;
                 case MT_LOGOSTOP:
                     if (criteria->LogoFadeInOut() & FADE_OUT) {
-                        if (lengthBefore > diffBefore) maxBefore =    20;   // fade out in black screen
+                        if (lengthBefore > diffBefore) maxBefore =   360;   // logo fade around black screen
                         else                           maxBefore =     0;   // never use black screen before fade out logo
                     }
                     else                               maxBefore =  5139;
