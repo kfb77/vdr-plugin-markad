@@ -181,7 +181,7 @@ bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFin
         dsyslog("cExtractLogo::Save(): %d pixel in plane %d", black, plane);
         // if we have transparent logo do not save colored plane, they are from background
         if (plane == 0) {
-            if ((black < 200)) {
+            if (black < 200) {
                 esyslog("cExtractLogo::Save(): not enough pixel (%d) in plane 0, logo invalid", black);
                 return false;
             }
@@ -951,11 +951,10 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 else break;
             }
             dsyslog("cExtractLogo::Resize(): repeat %d, top logo: %d white lines under logo", repeat, whiteLines);
-            if (whiteLines > 0) CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
-
-#ifdef DEBUG_LOGO_RESIZE
-            // save plane 0 of logo
             if (whiteLines > 0) {
+                CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
+#ifdef DEBUG_LOGO_RESIZE
+                // save plane 0 of logo
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutBottom.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
@@ -963,8 +962,8 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                     FREE(strlen(fileName)+1, "fileName");
                     free(fileName);
                 }
-            }
 #endif
+            }
 
 // search for text under logo
 // search for at least 2 (SD) or 4 (HD) white lines to cut logos with text addon (e.g. "Neue Folge" or "Live"), but do not cut out "HD"
@@ -1019,7 +1018,19 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 if ((textWidth > 23) &&  // keep "HD"
                         (textHeight > 15)) {  // keep "HD"
                     dsyslog("cExtractLogo::Resize(): repeat %d, top logo: cut out valid text under logo", repeat);
-                    CutOut(bestLogoInfo, logoSizeFinal->height - topWhiteLine, 0, logoSizeFinal, bestLogoCorner);
+                    if ((logoSizeFinal->height - topWhiteLine) > 0) {
+                        CutOut(bestLogoInfo, logoSizeFinal->height - topWhiteLine, 0, logoSizeFinal, bestLogoCorner);
+#ifdef DEBUG_LOGO_RESIZE
+                        // save plane 0 of logo
+                        char *fileName = nullptr;
+                        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutBottomText.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
+                            ALLOC(strlen(fileName)+1, "fileName");
+                            sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
+                            FREE(strlen(fileName)+1, "fileName");
+                            free(fileName);
+                        }
+#endif
+                    }
                 }
                 else dsyslog("cExtractLogo::Resize(): repeat %d, top logo: no valid text under logo found", repeat);
             }
@@ -1046,10 +1057,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 return false;
             }
             dsyslog("cExtractLogo::Resize(): repeat %d, bottom logo: %d white lines found", repeat, whiteLines);
-            if (whiteLines > 0) CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
-
-#ifdef DEBUG_LOGO_RESIZE
             if (whiteLines > 0) {
+                CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
+#ifdef DEBUG_LOGO_RESIZE
                 // save plane 0 of logo
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutTop.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
@@ -1059,8 +1069,8 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                     free(fileName);
                     cutStep++;
                 }
-            }
 #endif
+            }
 
 // search for text above logo
 // search for at least 3 white lines to cut logos with text addon (e.g. "Neue Folge" or "Live")
@@ -1097,7 +1107,20 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
             if ((topBlackLineOfLogo > cutLine) && (quoteAfterCut > 52)) {  // changed from 48 to 52
                 if ((cutLine >= LOGO_MIN_LETTERING_H) && (cutLine < LOGO_MAX_LETTERING_H)) {
                     dsyslog("cExtractLogo::Resize(): found text above logo, cut at line %d, size %dWx%dH, pixel before: left %d right %d, quote %d, width is valid", cutLine, rightBlackPixel - leftBlackPixel, cutLine, leftBlackPixel, rightBlackPixel, quoteAfterCut);
-                    CutOut(bestLogoInfo, cutLine, 0, logoSizeFinal, bestLogoCorner);
+                    if (cutLine > 0) {
+                        CutOut(bestLogoInfo, cutLine, 0, logoSizeFinal, bestLogoCorner);
+#ifdef DEBUG_LOGO_RESIZE
+                        // save plane 0 of logo
+                        char *fileName = nullptr;
+                        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutTopText.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
+                            ALLOC(strlen(fileName)+1, "fileName");
+                            sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
+                            FREE(strlen(fileName)+1, "fileName");
+                            free(fileName);
+                            cutStep++;
+                        }
+#endif
+                    }
                 }
                 else dsyslog("cExtractLogo::Resize(): cutline at %d not valid (expect >=%d and <%d)", cutLine, LOGO_MIN_LETTERING_H, LOGO_MAX_LETTERING_H);
             }
@@ -1119,11 +1142,10 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 else break;
             }
             dsyslog("cExtractLogo::Resize(): repeat %d, right logo: %d white columns found", repeat, whiteColumns);
-            if (whiteColumns > 0) CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
-
-#ifdef DEBUG_LOGO_RESIZE
-            // save plane 0 of logo
             if (whiteColumns > 0) {
+                CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
+#ifdef DEBUG_LOGO_RESIZE
+                // save plane 0 of logo
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutRight.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
@@ -1132,8 +1154,8 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                     free(fileName);
                     cutStep++;
                 }
-            }
 #endif
+            }
 
 // check text left of logo, search for at least 2 white columns to cut logos with text addon (e.g. "Neue Folge")
             int countWhite = 0;
@@ -1169,7 +1191,21 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
             if (lastBlackColumn > cutColumn) {
                 if ((bottomBlackPixel - topBlackPixel) <= 13) {
                     dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text before logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
-                    CutOut(bestLogoInfo, 0, cutColumn, logoSizeFinal, bestLogoCorner);
+                    if (cutColumn > 0) {
+                        CutOut(bestLogoInfo, 0, cutColumn, logoSizeFinal, bestLogoCorner);
+#ifdef DEBUG_LOGO_RESIZE
+                        // save plane 0 of logo
+                        char *fileName = nullptr;
+                        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutLeftText.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
+                            ALLOC(strlen(fileName)+1, "fileName");
+                            sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
+                            FREE(strlen(fileName)+1, "fileName");
+                            free(fileName);
+                            cutStep++;
+                        }
+#endif
+                    }
+
                 }
                 else dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text before logo, cut at column %d, pixel text: top %d bottom %d, text height %d is not valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
             }
@@ -1190,10 +1226,10 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 else break;
             }
             dsyslog("cExtractLogo::Resize(): repeat %d, left logo: %d white columns found", repeat, whiteColumns);
-            if (whiteColumns > 0) CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
-#ifdef DEBUG_LOGO_RESIZE
-            // save plane 0 of logo
             if (whiteColumns > 0) {
+                CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
+#ifdef DEBUG_LOGO_RESIZE
+                // save plane 0 of logo
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutRight.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
@@ -1202,9 +1238,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                     free(fileName);
                     cutStep++;
                 }
-            }
 #endif
-            // search for columns to cut logos with text addon (e.g. "Neue Folge")
+            }
+            // search text right of logo (e.g. "Neue Folge")
             if (!CheckLogoSize(logoSizeFinal, bestLogoCorner)) {
                 dsyslog("cExtractLogo::Resize(): repeat %d, left logo: search for text right of logo", repeat);
                 int countWhite = 0;
@@ -1238,7 +1274,20 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 if (cutColumn > static_cast<int>((logoSizeFinal->width * 0.5))) {  // do not cut too much, could be a space in the logo (e.g. VOXup)
                     if ((bottomBlackPixel - topBlackPixel) <= 35) {  // chnaged from 24 (ZDF HD "tivi") to 35 (phoenix HD "plus")
                         dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text after logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
-                        CutOut(bestLogoInfo, 0, logoSizeFinal->width - cutColumn, logoSizeFinal, bestLogoCorner);
+                        if ((logoSizeFinal->width - cutColumn) > 0) {
+                            CutOut(bestLogoInfo, 0, logoSizeFinal->width - cutColumn, logoSizeFinal, bestLogoCorner);
+#ifdef DEBUG_LOGO_RESIZE
+                            // save plane 0 of logo
+                            char *fileName = nullptr;
+                            if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutRightText.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
+                                ALLOC(strlen(fileName)+1, "fileName");
+                                sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
+                                FREE(strlen(fileName)+1, "fileName");
+                                free(fileName);
+                                cutStep++;
+                            }
+#endif
+                        }
                     }
                     else dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text after logo, cut at column %d, pixel text: top %d bottom %d, text height %d is not valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
                 }
