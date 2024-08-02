@@ -314,19 +314,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
 
 // -----------------------------------------------------------------
 // not detected logo in bright area, also not detected with bridgtness reduction, take it as invalid
-// contrast 233, brightness 105
 //
-// contrast 175, brightness 154  -> bright background with patten, not detected logo after pattern reduction
-// contrast 169, brightness 145  -> bright background with patten, not detected logo after pattern reduction
-//
-// contrast  43, brightness 192  -> bright background with logo
-//
-// contrast  28, brightness 205  -> bright background with logo
-// contrast  25, brightness 216  -> bright background with logo
-// contrast  25, brightness 195  -> bright blue sky with logo
-// contrast  21, brightness 215  -> bright background with logo
-// contrast  21, brightness 218  -> bright background with logo
-
 // contrast  20, brightness 214  -> bright background with logo
 // contrast  17, brightness 220  -> bright background with logo
 // contrast  16, brightness 218  -> bright background with logo
@@ -347,15 +335,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
 // contrast   4, brightness 205  -> bright background with logo
 // -----------------------------------------------------------------
 // logo or no logo in bright area, not detected without brightness reduction, detected with brightness reduction, take it as valid
-// contrast 170, brightness 141  -> bright background without logo
 //
-// contrast 139, brightness 180  -> bright background without logo
-//
-// contrast  54, brightness 181  -> no logo in frame
-// contrast  52, brightness 189  -> bright background without logo
-//
-// contrast  49, brightness 175  -> red separator picture without logo
-// contrast  32, brightness 192  -> logo in bright background
 //
 // contrast  20, brightness 197  -> bright ad in frame without logo
 // contrast  19, brightness 197  -> bright separator without logo
@@ -371,17 +351,38 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
 // contrast   0, brightness 235  -> white separator without logo
 
     // build the curve for invalid contrast/brightness
+    // (+): works with brightness reduction
+    // (-): does not work with brightness reduction
     if ((    (contrastLogo  ==  0) &&                          (brightnessLogo > 235)) ||
             ((contrastLogo  >   0) && (contrastLogo <=   3) && (brightnessLogo > 221)) ||
             ((contrastLogo  >   3) && (contrastLogo <=  10) && (brightnessLogo > 202)) ||
             ((contrastLogo  >  10) && (contrastLogo <=  20) && (brightnessLogo > 197)) ||
-            ((contrastLogo  >  20) && (contrastLogo <=  40) && (brightnessLogo > 192)) ||
-            ((contrastLogo  >  40) && (contrastLogo <=  50) && (brightnessLogo > 191)) ||
-            ((contrastLogo  >  50) && (contrastLogo <=  60) && (brightnessLogo > 189)) ||
+// (+) contrast  32, brightness 192  -> logo in bright background
+// (-) contrast  28, brightness 205  -> bright background with logo
+// (-) contrast  25, brightness 216  -> bright background with logo
+// (-) contrast  25, brightness 195  -> bright blue sky with logo
+// (-) contrast  21, brightness 215  -> bright background with logo
+// (-) contrast  21, brightness 218  -> bright background with logo
+            ((contrastLogo  >  20) && (contrastLogo <=  35) && (brightnessLogo > 192)) ||
+// (+) contrast  54, brightness 181  -> no logo in frame
+// (+) contrast  52, brightness 189  -> bright background without logo  (conflict)
+// (+) contrast  49, brightness 175  -> red separator picture without logo
+// (-) contrast  47, brightness 189  -> bright background with logo
+// (-) contrast  43, brightness 192  -> bright background with logo
+// (-) contrast  39, brightness 187  -> bright background with logo
+// (-) contrast  37, brightness 188  -> bright background with logo
+// (-) contrast  36, brightness 189  -> bright background with logo NEW
+            ((contrastLogo  >  35) && (contrastLogo <=  60) && (brightnessLogo > 186)) ||
+// (+) contrast 139, brightness 180  -> bright background without logo
             ((contrastLogo  >  60) && (contrastLogo <= 140) && (brightnessLogo > 180)) ||
+// (+) contrast 170, brightness 141  -> bright background without logo
+// (-) contrast 175, brightness 154  -> bright background with patten, not detected logo after pattern reduction
+// (-) contrast 169, brightness 145  -> bright background with patten, not detected logo after pattern reduction
             ((contrastLogo  > 140) && (contrastLogo <= 180) && (brightnessLogo > 144)) ||
-            ((contrastLogo  > 180) && (contrastLogo <= 194) && (brightnessLogo > 120)) ||
-            ((contrastLogo  > 194) &&                          (brightnessLogo > 104))) {
+// (+) contrast 197, brightness 124  -> invalid shifted logo in ad, not detected as invalid without brigthness reduction
+            ((contrastLogo  > 180) && (contrastLogo <= 200) && (brightnessLogo > 124)) ||
+// (-) contrast 233, brightness 105
+            ((contrastLogo  > 200) &&                          (brightnessLogo > 104))) {
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): contrast/brightness in logo area is invalid for brightness reduction", decoder->GetPacketNumber());
 #endif
