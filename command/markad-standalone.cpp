@@ -401,7 +401,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
 
     // cleanup false vborder stop/start from dark scene
     dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): cleanup false vborder stop/start from dark scene");
-    if (criteria->GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) {
+    if (end && criteria->GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) {
         const cMark *stopMark  = end;  // can be logo stop mark selected above
         const cMark *startMark = marks.GetPrev(stopMark->position, MT_HBORDERSTART);
         while (stopMark && startMark) {
