@@ -180,7 +180,13 @@ bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFin
         if (plane == 0) blackPlane0 = black;
         dsyslog("cExtractLogo::Save(): %d pixel in plane %d", black, plane);
         // if we have transparent logo do not save colored plane, they are from background
-        if (plane > 0) {
+        if (plane == 0) {
+            if ((black < 200)) {
+                esyslog("cExtractLogo::Save(): not enough pixel (%d) in plane 0, logo invalid", black);
+                return false;
+            }
+        }
+        else {
             if (IsLogoColourChange(logoSizeFinal, corner, plane)) {
                 dsyslog("cExtractLogo::Save(): logo is transparent or changed color, do not save plane %d", plane);
                 continue;
