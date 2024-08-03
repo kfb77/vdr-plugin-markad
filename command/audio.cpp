@@ -54,13 +54,17 @@ void cAudio::Silence() {
 
         // get frame number
         if ((audioMP2Silence.startPTS >= 0) && (audioMP2Silence.startFrameNumber < 0)) audioMP2Silence.startFrameNumber = index->GetFrameBeforePTS(audioMP2Silence.startPTS);
-        if ((audioMP2Silence.stopPTS  >= 0) && (audioMP2Silence.stopFrameNumber  < 0)) audioMP2Silence.stopFrameNumber = index->GetFrameAfterPTS(audioMP2Silence.stopPTS);
+        if ((audioMP2Silence.stopPTS  >= 0) && (audioMP2Silence.stopFrameNumber  < 0)) audioMP2Silence.stopFrameNumber  = index->GetFrameAfterPTS(audioMP2Silence.stopPTS);
         // return result
         if ((audioMP2Silence.startFrameNumber >= 0) && (audioMP2Silence.stopFrameNumber >= 0)) {  // silence ready, can be processed
+            // very short silence can result in reversed start/stop video packet numbers because they have no monotonous increasing PTS
+            if (audioMP2Silence.startFrameNumber > audioMP2Silence.stopFrameNumber) {
+                audioMP2Silence.startFrameNumber--;
+                audioMP2Silence.stopFrameNumber = audioMP2Silence.startFrameNumber + 1;
+            }
 
 #ifdef DEBUG_VOLUME
-            if (normVolume == 0) dsyslog("cAudio::Silence(): silence detected");
-            dsyslog("cAudio::Silence(): packet (%d), frame (%d): startPTS %ld, startFrameNumber %d, stopPTS %ld, stopFrameNumber %d", decoder->GetPacketNumber(), decoder->GetFrameNumber(), audioMP2Silence.startPTS, audioMP2Silence.startFrameNumber, audioMP2Silence.stopPTS, audioMP2Silence.stopFrameNumber);
+            dsyslog("cAudio::Silence(): packet (%d): startPTS %ld, startFrameNumber %d, stopPTS %ld, stopFrameNumber %d", decoder->GetPacketNumber(), audioMP2Silence.startPTS, audioMP2Silence.startFrameNumber, audioMP2Silence.stopPTS, audioMP2Silence.stopFrameNumber);
 #endif
             // add marks
             AddMark(MT_SOUNDSTOP,  audioMP2Silence.startFrameNumber, 0, 0);
