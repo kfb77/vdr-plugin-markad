@@ -2421,7 +2421,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         if (logoStart) {
             int diffStart = (logoStart->position - vStart->position) / decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo start (%d) %ds after vborder start (%d)", logoStart->position, diffStart, vStart->position);
-            if ((diffStart >= 10) && (diffStart <= 30)) {  // near logo start is fade in logo
+            if ((diffStart >= 10) && (diffStart < 12)) {  // near logo start is fade in logo, undetected info logo start mark 12s after valid vborder start
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", vStart->position, logoStart->position);
                 marks.Del(vStart->position);
                 return logoStart;
@@ -2434,7 +2434,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     if (logoStop) {
         int diffStop  = (logoStop->position  - vStart->position) / decoder->GetVideoFrameRate();
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo stop (%d) %ds after vborder start (%d)", logoStop->position, diffStop, vStart->position);
-        if (diffStop <= 51) {  // changed from 25 to 51
+        if (diffStop < 11) {  // undetected info logo stop mark 11s after valid vborder start
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo stop (%d) instead", vStart->position, logoStop->position);
             marks.Del(vStart->position);
             logoStop = marks.ChangeType(logoStop, MT_START);
