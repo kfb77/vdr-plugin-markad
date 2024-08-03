@@ -1726,14 +1726,14 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
 
     // loop through all logo stop/start pairs
     int endRange = 0;  // if we are called by CheckStart, get all pairs to detect at least closing credits
-    if (startA == 0) endRange = stopA - (27 * decoder->GetVideoFrameRate()); // if we are called by CheckStop, get all pairs after this frame to detect at least closing credits
+    if (startA == 0) endRange = stopA - (27 * decoder_local->GetVideoFrameRate()); // if we are called by CheckStop, get all pairs after this frame to detect at least closing credits
     // changed from 26 to 27
     while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, &isStartMarkInBroadcast, endRange)) {
         if (abortNow) return;
         if (!marks.Get(startPosition) || !marks.Get(stopPosition)) continue;  // at least one of the mark from pair was deleted, nothing to do
 
-        if (decoder->GetPacketNumber() >= stopPosition) {
-            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): overlapping pairs from info logo merge, skip pair logo stop (%d) start (%d)", stopPosition, startPosition);
+        if (decoder_local->GetPacketNumber() >= stopPosition) {
+            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): packet (%d): overlapping pairs from info logo merge, skip pair logo stop (%d) start (%d)", decoder_local->GetPacketNumber(), stopPosition, startPosition);
             continue;
         }
 
@@ -1772,7 +1772,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
                 // expect we have another start very short before
                 cMark *lStartBefore = marks.GetPrev(stopPosition, MT_LOGOSTART);
                 if (lStartBefore) {
-                    int diffStart = 1000 * (stopPosition - lStartBefore->position) / decoder->GetVideoFrameRate();
+                    int diffStart = 1000 * (stopPosition - lStartBefore->position) / decoder_local->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): logo start (%d) %dms before stop mark (%d)", lStartBefore->position, diffStart, stopPosition);
                     if (diffStart > 1240) {  // do info logo check if we have a logo start mark short before, some channel send a early info log after broadcast start
                         // changed from 1160 to 1240
