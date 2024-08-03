@@ -434,6 +434,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
                 if (deltaLogoStop <= 2000) {
                     dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): use logo stop mark at (%d) short before vborder stop (%d)", logoStop->position, end->position);
                     end = logoStop;
+                    CleanupUndetectedInfoLogo(end); // we are sure this is correct end, cleanup invalid logo marks
                 }
 
             }
