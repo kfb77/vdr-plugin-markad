@@ -1008,6 +1008,7 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
     if (mark->type == MT_LOGOSTART) {
 
         // check squence MT_LOGOSTOP -> MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_LOGOSTART (mark) -> MT_LOGOSTOP
+        // black screen between logo stop and logo start
         cMark *blackStop = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTART);
         if (blackStop) {  // from above
             cMark *blackStart = blackMarks.GetPrev(blackStop->position, MT_NOBLACKSTOP);
@@ -1060,6 +1061,7 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
         }
 
         // check sequence MT_NOBLACKSTOP -> MT_LOGOSTOP -> MT_NOBLACKSTART -> MT_LOGOSTART (mark)
+        // black screen around logo stop before logo start
         blackStop = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTART);  // black screen end can be on same position as logo start
         if (blackStop) {
             cMark *stopBefore = marks.GetPrev(blackStop->position, MT_LOGOSTOP);
@@ -1088,6 +1090,7 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
         }
 
         // check squence MT_LOGOSTOP ->  MT_LOGOSTART (mark) -> MT_NOBLACKSTOP -> MT_NOBLACKSTART
+        // black screen after logo start
         cMark *stopBefore = marks.GetPrev(mark->position, MT_LOGOSTOP);
         if (stopBefore) {
             cMark *blackStart = blackMarks.GetNext(mark->position, MT_NOBLACKSTOP);
@@ -1097,10 +1100,14 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffLogoStopLogoStart   = 1000 * (mark->position       - stopBefore->position) / decoder->GetVideoFrameRate();
                     int diffLogoStartBlackStart = 1000 * (blackStart->position - mark->position)       / decoder->GetVideoFrameRate();
                     int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position) / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%d)-> %3dms -> MT_LOGOSTART (%d) -> %3dms -> MT_NOBLACKSTOP (%d) -> %3dms -> MT_NOBLACKSTART (%d)", stopBefore->position, diffLogoStopLogoStart, mark->position, diffLogoStartBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position);
-                    // valid example
-                    // MT_LOGOSTOP (3996)-> 2040ms ->  MT_LOGOSTART (4047) -> 680ms -> MT_NOBLACKSTOP (4064) -> 200ms -> MT_NOBLACKSTART (4069)
-                    if ((diffLogoStopLogoStart <= 2040) && (diffLogoStartBlackStart <= 680) && (diffBlackStartBlackStop >= 200)) {
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%4d) -> %4dms -> MT_LOGOSTART (%4d) -> %3dms -> MT_NOBLACKSTOP (%4d) -> %3dms -> MT_NOBLACKSTART (%4d)", stopBefore->position, diffLogoStopLogoStart, mark->position, diffLogoStartBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position);
+// invalid example
+// MT_LOGOSTOP (8702) ->  360ms -> MT_LOGOSTART (8711) ->  80ms -> MT_NOBLACKSTOP (8713) -> 1800ms -> MT_NOBLACKSTART (8758) -> Comedy_Central: black screen after info log
+//
+// valid example
+// MT_LOGOSTOP (3996) -> 2040ms -> MT_LOGOSTART (4047) -> 680ms -> MT_NOBLACKSTOP (4064) ->  200ms -> MT_NOBLACKSTART (4069)
+                    if ((diffLogoStopLogoStart <= 2040) && (diffLogoStartBlackStart <= 680) &&
+                            (diffBlackStartBlackStop >= 200) && (diffBlackStartBlackStop < 1800)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
@@ -1121,13 +1128,17 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffBlackStartLogoStart = 1000 * (mark->position       - blackStart->position) / decoder->GetVideoFrameRate();
                     int diffLogoStartBlackStop  = 1000 * (blackStop->position  - mark->position)       / decoder->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d)-> %5dms -> MT_NOBLACKSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d) -> %4dms -> MT_NOBLACKSTART (%5d)", stopBefore->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartLogoStart, mark->position, diffLogoStartBlackStop, blackStop->position);
+// invalid example
+// MT_LOGOSTOP (11912)->     0ms -> MT_NOBLACKSTOP (11912) ->  480ms -> MT_LOGOSTART (11924) ->   40ms -> MT_NOBLACKSTART (11925) -> Comedy Central: black screen after info logo
+// MT_LOGOSTOP ( 4540)->  7240ms -> MT_NOBLACKSTOP ( 4721) ->    0ms -> MT_LOGOSTART ( 4721) ->   80ms -> MT_NOBLACKSTART ( 4723) -> Comedy Central: last part of broadcast before
+//
 // valid example
 // MT_LOGOSTOP (16022)-> 79080ms -> MT_NOBLACKSTOP (19976) ->   40ms -> MT_LOGOSTART (19978) ->  440ms -> MT_NOBLACKSTART (20000)
 // MT_LOGOSTOP ( 7582)->   720ms -> MT_NOBLACKSTOP ( 7600) -> 2800ms -> MT_LOGOSTART ( 7670) -> 1880ms -> MT_NOBLACKSTART ( 7717) long black opening credits, fade in logo  (TELE 5)
 // MT_LOGOSTOP ( 8017)-> 21000ms -> MT_NOBLACKSTOP ( 8542) ->    0ms -> MT_LOGOSTART ( 8542) -> 2920ms -> MT_NOBLACKSTART ( 8615) -> Comedy Central
-                    if ((diffLogoStopBlackStart  >= 0) && (diffLogoStopBlackStart  <= 79080) &&
-                            (diffBlackStartLogoStart >= 0) && (diffBlackStartLogoStart <= 2800) &&
-                            (diffLogoStartBlackStop  >= 0) && (diffLogoStartBlackStop  <= 2920)) {
+                    if ((diffLogoStopBlackStart      >= 720) && (diffLogoStopBlackStart  <= 79080) &&
+                            (diffBlackStartLogoStart >=   0) && (diffBlackStartLogoStart <= 2800) &&
+                            (diffLogoStartBlackStop  >= 440) && (diffLogoStartBlackStop  <= 2920)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence is valid");
                         return true;
                     }
@@ -1188,7 +1199,8 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
             }
         }
 
-        // check sequence MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_LOGOSTOP  (blackscreen short before logo stop mark)
+        // check sequence MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_LOGOSTOP
+        // blackscreen short before logo stop mark
         cMark *blackStop = blackMarks.GetPrev(mark->position, MT_NOBLACKSTART);
         if (blackStop) {
             cMark *blackStart = blackMarks.GetPrev(blackStop->position, MT_NOBLACKSTOP);   // this can be different from above
@@ -1210,18 +1222,18 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
             }
         }
 
-        // check sequence: MT_LOGOSTOP -> MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_LOGOSTART
+        // check sequence: MT_LOGOSTOP -> MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_START
         // black screen between logo end mark and start of next broadcast, near (depends on fade out logo) by logo end mark
         cMark *blackStart = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTOP);
         if (blackStart) {
             blackStop = blackMarks.GetNext(blackStart->position, MT_NOBLACKSTART);
             if (blackStop) {
-                cMark *logoStart = marks.GetNext(blackStop->position - 1, MT_LOGOSTART);
-                if (logoStart) {
+                cMark *nextStart = marks.GetNext(mark->position, MT_START, 0x0F);  // next broadcast can have border start mark and no logo start mark
+                if (nextStart) {
                     int diffLogoStopBlackStart  = 1000 * (blackStart->position - mark->position)       /  decoder->GetVideoFrameRate();
                     int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position) /  decoder->GetVideoFrameRate();
-                    int diffBlackStopLogoStart  = 1000 * (logoStart->position  - blackStop->position)  /  decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d) -> %5dms -> MT_NOBLACKSTOP (%5d) -> %5dms ->  MT_NOBLACKSTART (%5d) -> %6dms -> MT_LOGOSTART (%5d)", mark->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, logoStart->position);
+                    int diffBlackStopLogoStart  = 1000 * (nextStart->position  - blackStop->position)  /  decoder->GetVideoFrameRate();
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d) -> %5dms -> MT_NOBLACKSTOP (%5d) -> %5dms ->  MT_NOBLACKSTART (%5d) -> %6dms -> MT_START (%5d)", mark->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, nextStart->position);
 // channel with fade out logo
 // valid sequence:
 // MT_LOGOSTOP (72210) ->  1400ms -> MT_NOBLACKSTOP (72245) ->   200ms ->  MT_NOBLACKSTART (72250) -> 104320ms -> MT_LOGOSTART (74858) -> TLC
@@ -1233,7 +1245,8 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 // MT_LOGOSTOP (39756) ->  1480ms -> MT_NOBLACKSTOP (39793) ->   120ms ->  MT_NOBLACKSTART (39796) ->   4520ms -> MT_LOGOSTART (39909) -> Nickelodeon, black screen after preview
 //
                     if ((criteria->LogoFadeInOut() & FADE_OUT) &&
-                            (diffLogoStopBlackStart <= 4240) && (diffBlackStartBlackStop >= 200) && (diffBlackStopLogoStart <= 104320)) {
+                            (diffLogoStopBlackStart <= 4240) && (diffBlackStartBlackStop >=    200) &&
+                            (diffBlackStopLogoStart >=  800) && (diffBlackStopLogoStart  <= 104320)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
                         return true;
                     }
@@ -1250,7 +1263,8 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 // MT_LOGOSTOP (81485) ->  4040ms -> MT_NOBLACKSTOP (81586) ->   160ms ->  MT_NOBLACKSTART (81590) ->  95920ms -> MT_LOGOSTART (83988) -> RTLZWEI, sequence in preview
 // MT_LOGOSTOP (55728) ->    40ms -> MT_NOBLACKSTOP (55729) ->   120ms ->  MT_NOBLACKSTART (55732) ->   8440ms -> MT_LOGOSTART (55943) -> Comedy Central, sequence in preview
                     if (!(criteria->LogoFadeInOut() & FADE_OUT) &&
-                            (diffLogoStopBlackStart <= 840) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 2800)) {
+                            (diffLogoStopBlackStart <=  840) && (diffBlackStartBlackStop >=   40) &&
+                            (diffBlackStopLogoStart >= 1680) && (diffBlackStopLogoStart  <= 2800)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
                         return true;
                     }
@@ -2775,7 +2789,7 @@ bool cMarkAdStandalone::CheckStartMark() {
                         int lengthBroadcast2    = (stop2->position      - logoStart2->position) / decoder->GetVideoFrameRate();
                         int logoStartAssumed1   = (startTimer           - startMark->position)  / decoder->GetVideoFrameRate();
                         int logoStartAssumed2   = (startTimer           - logoStart2->position) / decoder->GetVideoFrameRate();
-                        dsyslog("cMarkAdStandalone::CheckStartMark(): MT_LOGOSTART (%5d) |%4ds| -> %3ds -> MT_LOGOSTOP (%5d) -> %4ds ->  MT_LOGOSTART (%5d) |%ds| -> %4ds -> MT_LOGOSTOP (%6d)",  startMark->position, logoStartAssumed1, lengthBroadcast1,  logoStop1->position, lengthAd, logoStart2->position, logoStartAssumed2, lengthBroadcast2, stop2->position);
+                        dsyslog("cMarkAdStandalone::CheckStartMark(): MT_LOGOSTART (%5d) |%4ds| -> %3ds -> MT_LOGOSTOP (%5d) -> %4ds ->  MT_LOGOSTART (%5d) |%4ds| -> %4ds -> MT_LOGOSTOP (%6d)",  startMark->position, logoStartAssumed1, lengthBroadcast1,  logoStop1->position, lengthAd, logoStart2->position, logoStartAssumed2, lengthBroadcast2, stop2->position);
 // check for short broadcast before start mark (preview) and long broadcast after (first part of broadcast)
 // example of invalid logo start mark
 // MT_LOGOSTART ( 2944) ->  25s -> MT_LOGOSTOP ( 3584) ->   50s ->  MT_LOGOSTART ( 4848) -> 1213s -> MT_LOGOSTOP ( 35173) -> sixx, start of preview before broadcast
@@ -2810,13 +2824,14 @@ bool cMarkAdStandalone::CheckStartMark() {
 // MT_LOGOSTART (11919) |-176s| -> 191s -> MT_LOGOSTOP (16717) ->    0s ->  MT_LOGOSTART (16728) |-369s| ->  574s -> MT_LOGOSTOP ( 31092) -> Comedy Central: info logo
 // MT_LOGOSTART ( 4725) |  -9s| -> 216s -> MT_LOGOSTOP (10145) ->    6s ->  MT_LOGOSTART (10303) |-232s| ->  501s -> MT_LOGOSTOP ( 22838) -> Comedy Central: info logo
 // MT_LOGOSTART ( 7733) |  -8s| -> 130s -> MT_LOGOSTOP (10984) ->    0s ->  MT_LOGOSTART (10994) |-138s| ->  501s -> MT_LOGOSTOP ( 23533) -> Comedy Central: info logo
+// MT_LOGOSTART ( 7486) |   0s| ->  94s -> MT_LOGOSTOP ( 9858) ->    0s ->  MT_LOGOSTART ( 9868) | -94s| ->  472s -> MT_LOGOSTOP ( 21678) -> Comedy Central: info logo
 //
 // example of invalid logo start mark
 // MT_LOGOSTART ( 1582) -> 478s -> MT_LOGOSTOP (13549) ->    6s ->  MT_LOGOSTART (13699) -> 1265s -> MT_LOGOSTOP ( 45328)
 // MT_LOGOSTART ( 6059) -> 181s -> MT_LOGOSTOP (15142) ->   35s ->  MT_LOGOSTART (16925) -> 5342s -> MT_LOGOSTOP (284034) -> Das Erste HD, first part is Tagesschau
 // MT_LOGOSTART ( 1618) -> 215s -> MT_LOGOSTOP (12397) ->   20s ->  MT_LOGOSTART (13403) -> 1300s -> MT_LOGOSTOP ( 78429) -> ZDF info HD
 // MT_LOGOSTART ( 4721) -> 258s -> MT_LOGOSTOP (11171) ->   36s ->  MT_LOGOSTART (12085) ->  143s -> MT_LOGOSTOP ( 15683) -> Comedy Central: very short first broadcast (143s)
-                        else if ((lengthBroadcast1 <= 478) && (lengthAd <= 36) && (logoStartAssumed2 > -138) && (lengthBroadcast2 >= 143)) {
+                        else if ((lengthBroadcast1 <= 478) && (lengthAd <= 36) && (logoStartAssumed2 > -94) && (lengthBroadcast2 >= 143)) {
                             dsyslog("cMarkAdStandalone::CheckStartMark(): too short first ad, delete start (%d) and stop (%d) mark", startMark->position, logoStop1->position);
                             marks.Del(startMark->position);
                             marks.Del(logoStop1->position);
