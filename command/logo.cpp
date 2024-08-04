@@ -1000,7 +1000,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 // get width of text
                 int leftColumn  = -1;
                 int rightColumn = -1;
-                int line = logoSizeFinal->height - (textHeight / 2);   // check in half of text
+                int line = logoSizeFinal->height - (textHeight / 2) - 1;   // check in half of text
                 for (int column = 0; column < logoSizeFinal->width; column++) {
                     if (bestLogoInfo->sobel[0][line * (logoSizeFinal->width) + column] == 0) {
                         leftColumn = column;
@@ -1015,8 +1015,8 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 }
                 int textWidth = rightColumn - leftColumn + 1;
                 dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found text under logo: line %d -> %d, height %d, column %d -> %d, width %d", repeat, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, leftColumn, rightColumn, textWidth);
-                if ((textWidth > 23) &&  // keep "HD"
-                        (textHeight > 15)) {  // keep "HD"
+                if ((textHeight <= 2) || // pixel error
+                        ((textWidth > 23) && (textHeight > 15))) {  // keep "HD"
                     dsyslog("cExtractLogo::Resize(): repeat %d, top logo: cut out valid text under logo", repeat);
                     if ((logoSizeFinal->height - topWhiteLine) > 0) {
                         CutOut(bestLogoInfo, logoSizeFinal->height - topWhiteLine, 0, logoSizeFinal, bestLogoCorner);
