@@ -2685,8 +2685,6 @@ void cMarkAdStandalone::CheckStart() {
         cMark *nextMark = marks.GetNext(startA, MT_ALL);
         if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP)) {  // do not insert black screen start before other start mark
             marks.DelTill(startA);
-            marks.Del(MT_NOBLACKSTART);  // delete all black screen marks
-            marks.Del(MT_NOBLACKSTOP);
             sMarkAdMark mark = {};
             mark.position = startA;
             mark.type = MT_ASSUMEDSTART;
