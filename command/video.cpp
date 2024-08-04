@@ -816,8 +816,9 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
             }
         }
         // if we have more planes we can still have a problem with coloured logo on same colored background
-        if ((rPixel >= logo_vmark))                  logoStatus = true;  // trust logo visible result
-        if ((rPixel == 0) && (area.intensity < 216)) logoStatus = true;  // trust logo invisible result without any matches on not so bright backbround
+        if ((rPixel >= logo_vmark))                           logoStatus = true;  // trust logo visible result
+        if ((rPixel <= logo_imark) && (area.intensity <= 30)) logoStatus = true;  // trust logo invisible result on black screen
+        if ((rPixel == 0) && (area.intensity < 216))          logoStatus = true;  // trust logo invisible result without any matches on not so bright backbround
 
         // maybe coloured logo on same colored background, check planes separated, all planes must be under invisible limit
         if (!logoStatus && (rPixel <= logo_imark) && (area.intensity <= 132)) {  // do not trust logo invisible detection on bright background
