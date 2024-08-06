@@ -3126,6 +3126,21 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                         mark = tmp;
                         continue;
                     }
+// invalid stop/start pair from short logo interruption, delete pair
+// MT_LOGOSTART ( 10247) ->  186080ms -> MT_LOGOSTOP ( 14899) ->     520ms -> MT_LOGOSTART ( 14912) ->   11600ms -> MT_STOP ( 15202) -> Comedy_Central: logo interruption
+// MT_LOGOSTART (  4725) ->  198360ms -> MT_LOGOSTOP (  9684) ->     520ms -> MT_LOGOSTART (  9697) ->   17920ms -> MT_STOP ( 10145) -> Comedy_Central: logo interruption
+// MT_LOGOSTART ( 30526) ->   23840ms -> MT_LOGOSTOP ( 31122) ->     360ms -> MT_LOGOSTART ( 31131) ->  431040ms -> MT_STOP ( 41907) -> Comedy_Central: logo interruption
+                    if (criteria->IsLogoInterruptionChannel() &&
+                            (prevLogoStart_Stop     >= 23840) && (prevLogoStart_Stop     <= 198360) &&
+                            (stop_nextLogoStart     >=   360) && (stop_nextLogoStart     <=    520) &&
+                            (nextLogoStart_nextStop >= 11600) && (nextLogoStart_nextStop <= 431040)) {
+                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from short logo interruption, deleting", mark->position, nextLogoStart->position);
+                        cMark *tmp = nextStop;
+                        marks.Del(nextLogoStart);
+                        marks.Del(mark);
+                        mark = tmp;
+                        continue;
+                    }
                 }
             }
         }

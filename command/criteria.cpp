@@ -165,11 +165,20 @@ bool cCriteria::IsInfoLogoChannel() {
 }
 
 
-bool cCriteria::IsLogoChangeChannel() {
+bool cCriteria::IsLogoInterruptionChannel() {
+    if (!channelName) return false;
     // for performance reason only known and tested channels
-    if (CompareChannelName(channelName, "TELE_5", IGNORE_HD | IGNORE_COUNTRY)) {  // has special logo changes
-        return true;
-    }
+    if (CompareChannelName(channelName, "Comedy_Central",  IGNORE_HD))                  return true;  // has short logo blend out
+
+    return false;
+}
+
+
+bool cCriteria::IsLogoChangeChannel() {
+    if (!channelName) return false;
+    // for performance reason only known and tested channels
+    if (CompareChannelName(channelName, "TELE_5",          IGNORE_HD | IGNORE_COUNTRY)) return true;  // has special logo changes
+
     return false;
 }
 

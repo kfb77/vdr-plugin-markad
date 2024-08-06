@@ -106,6 +106,12 @@ public:
     bool IsInfoLogoChannel();
 
     /**
+     * check if channel could have short logo interruption
+     * @return true if channel could have short logo interruption, false otherwise
+     */
+    bool IsLogoInterruptionChannel();
+
+    /**
      * check if channel could have logo changes
      * @return true if channel could have logo changes, false otherwise
      */
