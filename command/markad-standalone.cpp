@@ -655,19 +655,21 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
     // now we have a logo end mark
     if (end) {
         // check previous logo stop mark against VPS stop event, if any
-        cMark *prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
-        if (prevLogoStop) {
-            int vpsOffset = vps->GetStop(); // get VPS stop mark
-            if (vpsOffset >= 0) {
-                int vpsStopFrame = index->GetFrameFromOffset(vpsOffset * 1000);
-                if (vpsStopFrame >= 0) {
-                    int diffAfterVPS = (prevLogoStop->position - vpsStopFrame) / decoder->GetVideoFrameRate();
-                    if (diffAfterVPS >= 0) {
-                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): VPS stop event at (%d) is %ds after previous logo stop (%d), use this as end mark", vpsStopFrame, diffAfterVPS, prevLogoStop->position);
-                        end = prevLogoStop;
+        if (criteria->GoodVPS()) {
+            cMark *prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
+            if (prevLogoStop) {
+                int vpsOffset = vps->GetStop(); // get VPS stop mark
+                if (vpsOffset >= 0) {
+                    int vpsStopFrame = index->GetFrameFromOffset(vpsOffset * 1000);
+                    if (vpsStopFrame >= 0) {
+                        int diffAfterVPS = (prevLogoStop->position - vpsStopFrame) / decoder->GetVideoFrameRate();
+                        if (diffAfterVPS >= 0) {
+                            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): VPS stop event at (%d) is %ds after previous logo stop (%d), use this as end mark", vpsStopFrame, diffAfterVPS, prevLogoStop->position);
+                            end = prevLogoStop;
+                        }
                     }
+                    else esyslog("cMarkAdStandalone::Check_LOGOSTOP(): get frame number to VPS stop offset at %ds failed", vpsOffset);
                 }
-                else esyslog("cMarkAdStandalone::Check_LOGOSTOP(): get frame number to VPS stop offset at %ds failed", vpsOffset);
             }
         }
         // check if there could follow closing credits, prevent false detection of closing credits from opening creditis of next broadcast
