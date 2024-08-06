@@ -1324,7 +1324,7 @@ int cHorizBorderDetect::Process(int *borderFrame) {
     if ((valTop <= brightnessMaybe) && (valBottom <= brightnessSure) || (valTop <= brightnessSure) && (valBottom <= brightnessMaybe)) {
         // hborder detected
 #ifdef DEBUG_HBORDER
-        int duration = (picture->frameNumber - borderframenumber) / decoder->GetVideoFrameRate();
+        int duration = (picture->packetNumber - borderframenumber) / decoder->GetVideoFrameRate();
         dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d), duration %ds", picture->packetNumber, borderstatus, borderframenumber, duration);
 #endif
         if (borderframenumber == -1) {  // got first frame with hborder
