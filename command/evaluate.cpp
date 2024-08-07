@@ -645,6 +645,7 @@ cDetectLogoStopStart::cDetectLogoStopStart(cDecoder *decoderParam, cIndex *index
     index                     = indexParam;
     criteria                  = criteriaParam;
     evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
+    if ((logoCorner < 0) || (logoCorner >= CORNERS)) esyslog("cDetectLogoStopStart::cDetectLogoStopStart(): invalid logo corner %d", logoCorner);
     logoCorner                = logoCornerParam;
 
     sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);  // boundary = 0
@@ -1083,6 +1084,10 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos) {
     if (!decoder) return false;
     if (compareResult.empty()) return false;
+    if ((logoCorner < 0) || (logoCorner >= CORNERS)) {
+        esyslog("cDetectLogoStopStart::IsInfoLogo(): invalid logo corner %d", logoCorner);
+        return false;
+    }
 
     if (!criteria->IsInfoLogoChannel()) {
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): skip this channel");
@@ -1814,6 +1819,10 @@ int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool
 int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
     if (!decoder) return -1;
     if (compareResult.empty()) return -1;
+    if ((logoCorner < 0) || (logoCorner >= CORNERS)) {
+        esyslog(" cDetectLogoStopStart::IntroductionLogo():  invalid logo corner %d", logoCorner);
+        return -1;
+    }
 
 // for performance reason only for known and tested channels for now
     if (!criteria->IsIntroductionLogoChannel()) {
