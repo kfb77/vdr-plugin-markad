@@ -3171,10 +3171,12 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART ( 31403) ->  493680ms -> MT_LOGOSTOP ( 43745) ->     920ms -> MT_LOGOSTART ( 43768) ->   37680ms -> MT_STOP ( 44710) -> Comedy_Central: logo interruption
 // MT_LOGOSTART ( 30498) ->   11720ms -> MT_LOGOSTOP ( 30791) ->    1040ms -> MT_LOGOSTART ( 30817) ->    5120ms -> MT_STOP ( 30945) -> Comedy_Central: logo interruption
 // MT_LOGOSTART ( 30797) ->   23840ms -> MT_LOGOSTOP ( 31393) ->     400ms -> MT_LOGOSTART ( 31403) ->  532280ms -> MT_STOP ( 44710) -> Comedy_Central: logo interruption
+// MT_LOGOSTART ( 30498) ->   17880ms -> MT_LOGOSTOP ( 30945) ->     760ms -> MT_LOGOSTART ( 30964) ->  635200ms -> MT_STOP ( 46844) -> Comedy_Central: logo interruption
+// MT_LOGOSTART ( 30498) ->  653840ms -> MT_LOGOSTOP ( 46844) ->     560ms -> MT_LOGOSTART ( 46858) ->   26000ms -> MT_STOP ( 47508) -> Comedy_Central: logo interruption
                     if (criteria->IsLogoInterruptionChannel() &&
-                            (prevLogoStart_Stop     >= 11720) && (prevLogoStart_Stop     <= 493680) &&
+                            (prevLogoStart_Stop     >= 11720) && (prevLogoStart_Stop     <= 653840) &&
                             (stop_nextLogoStart     >=   360) && (stop_nextLogoStart     <=   1040) &&
-                            (nextLogoStart_nextStop >=  5120) && (nextLogoStart_nextStop <= 532280)) {
+                            (nextLogoStart_nextStop >=  5120) && (nextLogoStart_nextStop <= 635200)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from short logo interruption, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
