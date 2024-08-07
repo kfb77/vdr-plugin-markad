@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-08-xx: Version 4.1.1
+- fix use of logo cache (thx to hondansx@www.vdr-portal.de for reporting)
+- some minor bug fixes and optimizations, see git
+
 2024-08-07: Version 4.1.0
 - new feature: hwaccel for encoder
 - some minor bug fixes and optimizations, see git
