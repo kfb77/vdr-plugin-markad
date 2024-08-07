@@ -165,6 +165,7 @@ bool cLogoDetect::LoadLogoPlane(const char *path, const char *logoName, const in
         esyslog("format error in %s", logoFileName);
         return false;
     }
+    logoCorner = area.logoCorner;   // need to cache in case of aspect ratio changed and we got no logo, hope logo corner does not change after this
 
     // alloc buffer for logo and result
     if (plane == 0) {   // plane 0 is the largest, use this values
@@ -194,7 +195,7 @@ bool cLogoDetect::LoadLogoPlane(const char *path, const char *logoName, const in
 }
 
 int cLogoDetect::GetLogoCorner() const {
-    return area.logoCorner;
+    return logoCorner;
 }
 
 

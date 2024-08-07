@@ -103,6 +103,7 @@ public:
         isInitColourChange = origin.isInitColourChange;
         sobel              = nullptr;
         recDir             = origin.recDir;
+        logoCorner         = origin.logoCorner;
         autoLogo           = origin.autoLogo;
         logoCacheDir       = origin.logoCacheDir;
         criteria           = origin.criteria;
@@ -122,6 +123,7 @@ public:
         isInitColourChange = origin->isInitColourChange;
         sobel              = origin->sobel;
         recDir             = origin->recDir;
+        logoCorner         = origin->logoCorner;
         autoLogo           = origin->autoLogo;
         logoCacheDir       = origin->logoCacheDir;
         criteria           = origin->criteria;
@@ -228,6 +230,8 @@ private:
     int logo_ystart                   = -1;       //!< y start coordinate of the visible part of the logo
     //!<
     int logo_yend                     = -1;       //!< y end coordinate of the visible part of the logo
+    //!<
+    int logoCorner                    = -1;       //!< cached logo corner
     //!<
     const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
     //!<
