@@ -3168,10 +3168,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART ( 10247) ->  186080ms -> MT_LOGOSTOP ( 14899) ->     520ms -> MT_LOGOSTART ( 14912) ->   11600ms -> MT_STOP ( 15202) -> Comedy_Central: logo interruption
 // MT_LOGOSTART (  4725) ->  198360ms -> MT_LOGOSTOP (  9684) ->     520ms -> MT_LOGOSTART (  9697) ->   17920ms -> MT_STOP ( 10145) -> Comedy_Central: logo interruption
 // MT_LOGOSTART ( 30526) ->   23840ms -> MT_LOGOSTOP ( 31122) ->     360ms -> MT_LOGOSTART ( 31131) ->  431040ms -> MT_STOP ( 41907) -> Comedy_Central: logo interruption
+// MT_LOGOSTART ( 31403) ->  493680ms -> MT_LOGOSTOP ( 43745) ->     920ms -> MT_LOGOSTART ( 43768) ->   37680ms -> MT_STOP ( 44710) -> Comedy_Central: logo interruption
+// MT_LOGOSTART ( 30498) ->   11720ms -> MT_LOGOSTOP ( 30791) ->    1040ms -> MT_LOGOSTART ( 30817) ->    5120ms -> MT_STOP ( 30945) -> Comedy_Central: logo interruption
+// MT_LOGOSTART ( 30797) ->   23840ms -> MT_LOGOSTOP ( 31393) ->     400ms -> MT_LOGOSTART ( 31403) ->  532280ms -> MT_STOP ( 44710) -> Comedy_Central: logo interruption
                     if (criteria->IsLogoInterruptionChannel() &&
-                            (prevLogoStart_Stop     >= 23840) && (prevLogoStart_Stop     <= 198360) &&
-                            (stop_nextLogoStart     >=   360) && (stop_nextLogoStart     <=    520) &&
-                            (nextLogoStart_nextStop >= 11600) && (nextLogoStart_nextStop <= 431040)) {
+                            (prevLogoStart_Stop     >= 11720) && (prevLogoStart_Stop     <= 493680) &&
+                            (stop_nextLogoStart     >=   360) && (stop_nextLogoStart     <=   1040) &&
+                            (nextLogoStart_nextStop >=  5120) && (nextLogoStart_nextStop <= 532280)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from short logo interruption, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
@@ -3435,7 +3438,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         int diffPrevStopAssumed  = (prevStopMark->position  - newStopA)                / decoder->GetVideoFrameRate();
         int diffLastStopAssumed  = (lastStopMark->position  - newStopA)                / decoder->GetVideoFrameRate();
         int lastAd               = (lastStartMark->position - prevStopMark->position)  / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::CheckMarks(): MT_START (%6d) -> %4ds -> MT_STOP (%6d) |%4ds| -> %3ds -> MT_START (%6d) -> %3ds -> MT_STOP (%6d) |%ds|", prevStartMark->position, prevBroadcast, prevStopMark->position, diffPrevStopAssumed, lastAd, lastStartMark->position, lastBroadcast, lastStopMark->position, diffLastStopAssumed);
+        dsyslog("cMarkAdStandalone::CheckMarks(): MT_START (%6d) -> %4ds -> MT_STOP (%6d) |%4ds| -> %3ds -> MT_START (%6d) -> %3ds -> MT_STOP (%6d) |%3ds|", prevStartMark->position, prevBroadcast, prevStopMark->position, diffPrevStopAssumed, lastAd, lastStartMark->position, lastBroadcast, lastStopMark->position, diffLastStopAssumed);
         switch(lastStopMark->type) {
         case MT_ASSUMEDSTOP:
             // example of invalid assumed stop mark sequence (short last ad is between two broadcasts)
@@ -3452,12 +3455,15 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         case MT_LOGOSTOP:
             // example of invalid log stop mark sequence (short last ad is between two broadcasts)
             // MT_START ( 73336) ->  960s -> MT_STOP ( 97358)         ->  18s -> MT_START ( 97817) ->  83s -> MT_STOP ( 99916)
-            // MT_START ( 97756) ->    0s -> MT_STOP ( 97761)         ->   0s -> MT_START ( 97766) ->  86s -> MT_STOP ( 99916)               -> more than one false logo stop
-            // MT_START ( 97460) ->    0s -> MT_STOP ( 97465)         ->   0s -> MT_START ( 97469) ->  86s -> MT_STOP ( 99619)               -> more than one false logo stop
+            // MT_START ( 97756) ->    0s -> MT_STOP ( 97761)         ->   0s -> MT_START ( 97766) ->  86s -> MT_STOP ( 99916)        -> more than one false logo stop
+            // MT_START ( 97460) ->    0s -> MT_STOP ( 97465)         ->   0s -> MT_START ( 97469) ->  86s -> MT_STOP ( 99619)        -> more than one false logo stop
             // MT_START ( 66619) ->  694s -> MT_STOP ( 83973)         ->  10s -> MT_START ( 84240) -> 610s -> MT_STOP ( 99507)
             // MT_START ( 39172) ->  931s -> MT_STOP ( 62463) |-280s| ->   5s -> MT_START ( 62601) -> 408s -> MT_STOP ( 72811) |133s|
             // MT_START ( 42975) ->  423s -> MT_STOP ( 53574) |-166s| ->  39s -> MT_START ( 54564) -> 232s -> MT_STOP ( 60368) |105s|
-            if (((diffPrevStopAssumed >= -280) && (lastAd <= 39) && (diffLastStopAssumed > 0)) ||
+            // MT_START ( 12594) -> 1226s -> MT_STOP ( 43264) |-273s| ->  21s -> MT_START ( 43789) -> 177s -> MT_STOP ( 48232) |-74s| -> Comedy_Central: length too big
+            // MT_START ( 36120) ->  675s -> MT_STOP ( 53011) |-140s| ->  21s -> MT_START ( 53536) -> 113s -> MT_STOP ( 56371) | -5s| -> Comedy_Central: length too big
+            // MT_START ( 30964) ->  635s -> MT_STOP ( 46844) |-124s| ->  59s -> MT_START ( 48324) ->  95s -> MT_STOP ( 50712) | 30s| -> Comedy_Central: length too big
+            if (((diffPrevStopAssumed >= -280) && (lastAd <= 59) && (diffLastStopAssumed >= -74)) ||
                     // example of invalid log stop mark sequence (short last broadcasts)
                     // MT_START ( 45380) ->  290s -> MT_STOP ( 52642) |  57s| -> 141s -> MT_START ( 56190) ->   0s -> MT_STOP ( 56199) |200s|
                     (lastBroadcast <= 0)) {
