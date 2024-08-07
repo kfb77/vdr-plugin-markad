@@ -1,6 +1,18 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-08-11: Version 4.1.1
+- fix use of logo cache (thx to hondansx@www.vdr-portal.de for reporting)
+- new parameter --autologo=1 (extract logo from recording, if fails use logo from logo cache)
+- fix memory leak in hwaccel decoding
+- change of recommended minimum FFmpeg from V4.2.7 to V4.4.2
+  issues found with V4.2.7 (not recommended to use with hwaccel):
+    very low hwaccel decoding performance
+    memory leak in av_hwframe_transfer_data()
+    i-frame only hwaccel decoding with H.264 does not work
+    i-frame only decoding with interlaced H.264 does not work
+- some minor bug fixes and optimizations, see git
+
 2024-08-07: Version 4.1.0
 - new feature: hwaccel for encoder
 - some minor bug fixes and optimizations, see git
