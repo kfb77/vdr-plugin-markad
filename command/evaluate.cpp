@@ -838,7 +838,7 @@ int cDetectLogoStopStart::FindFrameEndPixel(const uchar *picture, const int widt
     if ((lengthX > 50) || (lengthY > 50) || // we have a part of the frame found, a vertical or horizontal line
             ((lengthX > 8) && (lengthY > 8))) portion = 1000 * lengthX / width + 1000 * lengthY / height;
 #ifdef DEBUG_FRAME_DETECTION
-    dsyslog("cDetectLogoStopStart::FindFrameEndPixel(): search for end pixel: direction (%2d,%2d): found frame from (%d,%d) to (%d,%d), length (%d,%d) -> portion %d", offsetX, offsetY, startX, startY, *endX, *endY, lengthX, lengthY, portion);
+    dsyslog("cDetectLogoStopStart::FindFrameEndPixel(): search for end pixel: direction (%2d,%2d): found frame from (%d,%d) to (%d,%d) and (%d,%d), length (%d,%d) -> portion %d", offsetX, offsetY, startX, startY, startX, *endX, startY, *endY, lengthX, lengthY, portion);
 #endif
     return portion;
 }
@@ -854,79 +854,52 @@ int cDetectLogoStopStart::DetectFrame(const uchar *picture, const int width, con
 
     switch (corner) {
     case TOP_LEFT:
-        portion = FindFrameFirstPixel(picture, corner, width, height, 0, 0, 1, 1); // search from top left to bottom right
-        // do not start at corner, maybe conrner was not exactly detected
-        if (portion <= 572) {  // maybe we have a text under frame or the logo
-            int portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, 1, 1); // search from top mid to bottom right
-            if (portionTMP > portion) portion = portionTMP;
-            if (portion <= 572) {  // maybe we have a text under frame or the logo
-                portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, 0);  // search horizontal mid right mid left
-                if (portionTMP > portion) portion = portionTMP;
-                if (portion <= 572) {  // maybe we have a text under frame or the logo
-                    portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height * 9 / 10, 1, 0);  // search horizontal from 9/10 button left to right
-                    if (portionTMP > portion) portion = portionTMP;
-                }
-            }
-        }
+        portion = FindFrameFirstPixel(picture, corner, width, height, 0, 0, 1, 1);                                   // search from top left to bottom right
+        // maybe we have a text under frame or the logo
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, 1, 1));        // search from top mid to bottom right
+        // maybe we have a text under frame or the logo
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, 0));       // search horizontal mid right mid left
+        // maybe we have a text under frame or the logo
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, 0, height * 9 / 10, 1, 0));  // search horizontal from 9/10 button left to right
         break;
 
     case TOP_RIGHT:
-        portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, 0, -1, 1); // search from top right to bottom left
-        if (portion <= 275) {
-            // try to get top line of frame
-            int portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, 0, 1, 1); // search from top left to bottom right
-            if (portionTMP > portion) portion = portionTMP;
-        }
-        if (portion <= 275) {  // maybe we have a text right of frame
-            int portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, -1, 1); // search from top mid to bottom left
-            if (portionTMP > portion) portion = portionTMP;
-        }
-        if (portion <= 275) {  // maybe we have a text right of frame
-            int portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height, 1, -1); // search from bottom left to top right
-            if (portionTMP > portion) portion = portionTMP;
-        }
+        portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, 0, -1, 1);                    // search from top right to bottom left
+        // try to get top line of frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, 0, 0, 1, 1));          // search from top left to bottom right
+        // maybe we have a text right of frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, width / 2, 0, -1, 1)); // search from top mid to bottom left
+        // maybe we have a text right of frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, 0, height, 1, -1));    // search from bottom left to top right
         break;
 
     case BOTTOM_LEFT:
-        portion = FindFrameFirstPixel(picture, corner, width, height, 0, height - 1, 1, -1); // search from buttom left to top right
-        if (portion <= 382) {  // maybe we have a text under frame
-            int portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, 1, -1); // search from bottom mid to top right
-            if (portionTMP > portion) portion = portionTMP;
-            if (portion <= 382) {  // maybe we have only a part of the frame
-                portionTMP = FindFrameFirstPixel(picture, corner, width, height, width / 3, height - 1, 1, -1); // search from bottom 1/3 left to top right
-                if (portionTMP > portion) portion = portionTMP;
-                if (portion <= 382) {  // maybe we have only a part of the frame
-                    portionTMP = FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, -1); // search from mid right  to top right
-                    if (portionTMP > portion) portion = portionTMP;
-                    if (portion <= 382) {  // maybe we have only a part of the frame
-                        portionTMP = FindFrameFirstPixel(picture, corner, width, height, width, 0, -1, 1); // search from top right to buttom left (horizontal line with text below)
-                        if (portionTMP > portion) portion = portionTMP;
-                    }
-                }
-            }
-        }
+        portion = FindFrameFirstPixel(picture, corner, width, height, 0, height - 1, 1, -1);                            // search from buttom left to top right
+        // maybe we have a text under frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, 1, -1)); // search from bottom mid to top right
+        // maybe we have only a part of the frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, width / 3, height - 1, 1, -1)); // search from bottom 1/3 left to top right
+        // maybe we have only a part of the frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, -1));         // search from mid right  to top right
+        // maybe we have only a part of the frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, width, 0, -1, 1));              // search from top right to buttom left
         break;
 
     case BOTTOM_RIGHT:
-        portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height - 1, -1, -1);                 // search from buttom right to top left
-        if (portion <= 205) {  // maybe we have a text right from frame
-            portion = FindFrameFirstPixel(picture, corner, width, height, 0, height - 1, 1, -1);                      // search from buttom left to top right
-            if (portion <= 205) {
-                // sixx, text and timer right from frame
-                portion = FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, -1);                  // search from mid left to topright
-                if (portion <= 205) {  // maybe we have a text under frame
-                    portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height / 2, -1, -1);     // search from mid right to top left
-                    if (portion <= 205) {  // maybe we have a text under frame
-                        portion = FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, -1, -1); // search from buttom mid to top left
-                    }
-                }
-            }
-        }
+        portion = FindFrameFirstPixel(picture, corner, width, height, width - 1, height - 1, -1, -1);                    // search from buttom right to top left
+        // maybe we have a text right from frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, 0, height - 1, 1, -1));          // search from buttom left to top right
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, 0, 0, 1, 1));                    // search from top left to buttom right
+        // sixx, text and timer right from frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, 0, height / 2, 1, -1));          // search from mid left to topright
+        // maybe we have a text under frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, width - 1, height / 2, -1, -1)); // search from mid right to top left
+        // maybe we have a text under frame
+        portion = std::max(portion, FindFrameFirstPixel(picture, corner, width, height, width / 2, height - 1, -1, -1)); // search from buttom mid to top left
         break;
-
     default:
         return 0;
-    } // case
+    }
 
 #ifdef DEBUG_FRAME_DETECTION
     dsyslog("cDetectLogoStopStart::DetectFrame(): frame (%5d) corner %d: portion %3d", decoder->GetPacketNumber(), corner, portion);
