@@ -33,11 +33,9 @@ Usage: markad [options] cmd <recording>
 .TP 
 .BI \-\-autologo= <option>
  if there is no suitable logo file found, markad will try to find the logo from the recording and store the result in the recording directory
- <option>   0 = disable, only use logos from logo cache directory
-            1 = deprecated, do not use
-            2 = enable, if there is no suitable logo in the logo cache directory (default)
-                find logo from recording and store it in the recording directory
-                use it only on systems with >= 1 GB main memory
+ <option>   0 = use logo only from logo cache directory
+            1 = extract logo from recording, if fails use logo from logo cache
+            2 = use logo from logo cache directory, if missing extract logo from recording (default)
 .TP 
 .BI \-\-fulldecode
  this option is only available on command line usage

@@ -84,9 +84,10 @@ public:
      * @param decoderParam          decoder
      * @param indexParam            index
      * @param criteriaParam         detection critaria
+     * @param autoLogoParm          mode of logo source
      * @param logoCacheDirParam     logo cache directory
      */
-    explicit cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *logoCacheDirParam);
+    explicit cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const int autoLogoParam, const char *logoCacheDirParam);
 
     ~cLogoDetect();
 
@@ -95,17 +96,18 @@ public:
      */
     cLogoDetect(const cLogoDetect &origin) {
         memcpy(aCorner, origin.aCorner, sizeof(origin.aCorner));
-        logo_xstart = origin.logo_xstart;
-        logo_xend = origin.logo_xend;
-        logo_ystart = origin.logo_ystart;
-        logo_yend = origin.logo_yend;
+        logo_xstart        = origin.logo_xstart;
+        logo_xend          = origin.logo_xend;
+        logo_ystart        = origin.logo_ystart;
+        logo_yend          = origin.logo_yend;
         isInitColourChange = origin.isInitColourChange;
-        sobel = nullptr;
-        recDir = origin.recDir;
-        logoCacheDir = origin.logoCacheDir;
-        criteria = origin.criteria;
-        index = origin.index;
-        decoder = origin.decoder;
+        sobel              = nullptr;
+        recDir             = origin.recDir;
+        autoLogo           = origin.autoLogo;
+        logoCacheDir       = origin.logoCacheDir;
+        criteria           = origin.criteria;
+        index              = origin.index;
+        decoder            = origin.decoder;
     }
 
     /**
@@ -113,17 +115,18 @@ public:
      */
     cLogoDetect &operator =(const cLogoDetect *origin) {
         memcpy(aCorner, origin->aCorner, sizeof(origin->aCorner));
-        logo_xstart = origin->logo_xstart;
-        logo_xend = origin->logo_xend;
-        logo_ystart = origin->logo_ystart;
-        logo_yend = origin->logo_yend;
+        logo_xstart        = origin->logo_xstart;
+        logo_xend          = origin->logo_xend;
+        logo_ystart        = origin->logo_ystart;
+        logo_yend          = origin->logo_yend;
         isInitColourChange = origin->isInitColourChange;
-        sobel = origin->sobel;
-        recDir = origin->recDir;
-        logoCacheDir = origin->logoCacheDir;
-        criteria = origin->criteria;
-        index = origin->index;
-        decoder = origin->decoder;
+        sobel              = origin->sobel;
+        recDir             = origin->recDir;
+        autoLogo           = origin->autoLogo;
+        logoCacheDir       = origin->logoCacheDir;
+        criteria           = origin->criteria;
+        index              = origin->index;
+        decoder            = origin->decoder;
         return *this;
     }
 
@@ -205,6 +208,8 @@ private:
     cIndex *index                     = nullptr;  //!< index
     //!<
     cCriteria *criteria               = nullptr;  //!< decoding states and criteria
+    //!<
+    int autoLogo                      = -1;       //!< mode of logo source
     //!<
     const char *logoCacheDir          = nullptr;  //!< logo cache directory
     //!<
@@ -427,9 +432,10 @@ public:
      * @param indexParam          recording index
      * @param criteriaParam       detection criteria
      * @param recDirParam         recording directory
+     * @param autoLogo            source of logo
      * @param logoCacheDirParam   logo cache directory
      */
-    explicit cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam);
+    explicit cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const int autoLogo, const char *logoCacheDirParam);
     ~cVideo();
 
     /**

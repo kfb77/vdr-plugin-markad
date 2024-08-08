@@ -5713,7 +5713,7 @@ void cMarkAdStandalone::Recording() {
     }
 
     // create object to analyse video picture
-    video = new cVideo(decoder, index, criteria, macontext.Config->recDir, macontext.Config->logoCacheDirectory);
+    video = new cVideo(decoder, index, criteria, macontext.Config->recDir, macontext.Config->autoLogo, macontext.Config->logoCacheDirectory);
     ALLOC(sizeof(*video), "video");
 
     // check aspect ratio of broadcast
@@ -5870,11 +5870,12 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
     if (!macontext.Info.ChannelName) return false;
     if (macontext.Config->perftest) return false;    // nothing to do in perftest
 
+    bool logoFound = false;
     int len = strlen(macontext.Info.ChannelName);
     if (!len) return false;
 
     gettimeofday(&startTime1, nullptr);
-    dsyslog("cMarkAdStandalone::CheckLogo(): using logo directory %s", macontext.Config->logoCacheDirectory);
+    dsyslog("cMarkAdStandalone::CheckLogo(): using logo cache directory %s", macontext.Config->logoCacheDirectory);
     dsyslog("cMarkAdStandalone::CheckLogo(): searching logo for %s", macontext.Info.ChannelName);
     DIR *dir = opendir(macontext.Config->logoCacheDirectory);
     if (!dir) {
@@ -5887,15 +5888,19 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
 
     struct dirent *dirent = nullptr;
     while ((dirent = readdir(dir))) {
-        if (!strncmp(dirent->d_name, macontext.Info.ChannelName, len)) {
-            closedir(dir);
-            return true;
+        if (strncmp(dirent->d_name, macontext.Info.ChannelName, len) == 0) {
+            dsyslog("cMarkAdStandalone::CheckLogo(): logo found: %s", dirent->d_name);
+            if ((macontext.Config->autoLogo == 0) || (macontext.Config->autoLogo == 2)) {
+                closedir(dir);
+                return true; // use only logos from cache or prefer logo from cache
+            }
+            logoFound = true;
         }
     }
     closedir(dir);
 
-    if (macontext.Config->autoLogo > 0) {
-        isyslog("no logo for %s %d:%d found in logo cache directory %s, trying to find logo in recording directory", macontext.Info.ChannelName, macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den, macontext.Config->logoCacheDirectory);
+    if (macontext.Config->autoLogo > 0) {  // we use logo from recording directory or self extracted logo
+        isyslog("search for %s %d:%d logo in recording directory %s", macontext.Info.ChannelName, macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den, macontext.Config->logoCacheDirectory);
         DIR *recDIR = opendir(macontext.Config->recDir);
         if (recDIR) {
             struct dirent *direntRec = nullptr;
@@ -5932,16 +5937,15 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
         if (endpos == 0) {
             dsyslog("cMarkAdStandalone::CheckLogo(): found extracted logo in recording recording directory");
             gettimeofday(&endTime1, nullptr);
-            return true;
+            logoFound = true;
         }
         else {
             dsyslog("cMarkAdStandalone::CheckLogo(): logo search failed");
             gettimeofday(&endTime1, nullptr);
-            return false;
         }
     }
     gettimeofday(&endTime1, nullptr);
-    return false;
+    return logoFound;
 }
 
 
@@ -6726,10 +6730,9 @@ int usage(int svdrpport) {
            "                  re-encode AC3 stream to fix low audio level of cutted video on same devices\n"
            "                  requires --cut\n"
            "                --autologo=<option>\n"
-           "                  <option>   0 = disable, only use logos from logo cache directory\n"
-           "                             1 = deprecated, do not use\n"
-           "                             2 = enable, find logo from recording and store it in the recording directory (default)\n"
-           "                                 speed optimized operation mode, use it only on systems with >= 1 GB main memory\n"
+           "                  <option>   0 = use logo only from logo cache directory\n"
+           "                             1 = extract logo from recording, if fails use logo from logo cache\n"
+           "                             2 = use logo from logo cache directory, if missing extract logo from recording (default)\n"
            "                --fulldecode\n"
            "                  decode all video frame types and set mark position to all frame types\n"
            "                --fullencode=<streams>\n"
@@ -7051,10 +7054,6 @@ int main(int argc, char *argv[]) {
             else {
                 fprintf(stderr, "markad: invalid autologo value: %s\n", optarg);
                 return EXIT_FAILURE;
-            }
-            if (config.autoLogo == 1) {
-                fprintf(stderr,"markad: --autologo=1 is removed, will use --autologo=2 instead, please update your configuration\n");
-                config.autoLogo = 255;
             }
             break;
         case 12: // --fulldecode

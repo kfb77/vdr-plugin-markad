@@ -18,11 +18,12 @@
 extern bool abortNow;
 
 
-cLogoDetect::cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *logoCacheDirParam) {
+cLogoDetect::cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const int autoLogoParam, const char *logoCacheDirParam) {
     decoder      = decoderParam;
     index        = indexParam;
     criteria     = criteriaParam;
     logoCacheDir = logoCacheDirParam;
+    autoLogo     = autoLogoParam;
 
     recDir       = decoder->GetRecordingDir();
 
@@ -72,33 +73,47 @@ bool cLogoDetect::LoadLogo() {
     dsyslog("cLogoDetect::LoadLogo(): try to find logo %s", logoName);
 
     // try logo cache directory
-    dsyslog("cLogoDetect::LoadLogo(): search in logo cache path: %s", logoCacheDir);
-    for (int plane = 0; plane < PLANES; plane++) {
-        int foundPlane = LoadLogoPlane(logoCacheDir, logoName, plane);
-        if (plane == 0) {            // we need at least plane 0
-            foundLogo = foundPlane;
-            if (!foundLogo) break;
+    if (autoLogo != 1) {    // use logo from logo cache if exists
+        dsyslog("cLogoDetect::LoadLogo(): search in logo cache path: %s", logoCacheDir);
+        for (int plane = 0; plane < PLANES; plane++) {
+            int foundPlane = LoadLogoPlane(logoCacheDir, logoName, plane);
+            if (plane == 0) {            // we need at least plane 0
+                foundLogo = foundPlane;
+                if (!foundLogo) break;
+            }
         }
-    }
-    if (foundLogo) {
-        isyslog("logo %s found in logo cache directory: %s", logoName, logoCacheDir);
+        if (foundLogo) {
+            isyslog("logo %s found in logo cache directory: %s", logoName, logoCacheDir);
+        }
     }
 
     // try recording directory
-    dsyslog("cLogoDetect::LoadLogo(): search in recording directory: %s", recDir);
-    for (int plane = 0; plane < PLANES; plane++) {
-        bool foundPlane = LoadLogoPlane(recDir, logoName, plane);
-        if (plane == 0) {            // we need at least plane 0
-            foundLogo = foundPlane;
-            if (!foundLogo) break;
+    if (!foundLogo && (autoLogo > 0)) {   // use self extracted logo from recording directory
+        dsyslog("cLogoDetect::LoadLogo(): search in recording directory: %s", recDir);
+        for (int plane = 0; plane < PLANES; plane++) {
+            bool foundPlane = LoadLogoPlane(recDir, logoName, plane);
+            if (plane == 0) {            // we need at least plane 0
+                foundLogo = foundPlane;
+                if (!foundLogo) break;
+            }
         }
+        if (foundLogo) isyslog("logo %s found in recording directory: %s", logoName, recDir);
+        else isyslog("logo %s not found", logoName);
     }
 
-    // check if we have a logo
-    if (foundLogo) isyslog("logo %s found in recording directory: %s", logoName, recDir);
-    else {
-        isyslog("logo %s not found", logoName);
+    // try logo cache directory
+    if (!foundLogo && (autoLogo == 1)) {    // use logo from logo cache as fallback if exists
+        dsyslog("cLogoDetect::LoadLogo(): search in logo cache path: %s", logoCacheDir);
+        for (int plane = 0; plane < PLANES; plane++) {
+            int foundPlane = LoadLogoPlane(logoCacheDir, logoName, plane);
+            if (plane == 0) {            // we need at least plane 0
+                foundLogo = foundPlane;
+                if (!foundLogo) break;
+            }
+        }
+        if (foundLogo) isyslog("logo %s found in logo cache directory: %s", logoName, logoCacheDir);
     }
+
     FREE(strlen(logoName) + 1, "logoName");
     free(logoName);
 
@@ -1535,7 +1550,7 @@ int cVertBorderDetect::Process(int *borderFrame) {
 }
 
 
-cVideo::cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const char *logoCacheDirParam) {
+cVideo::cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const char *recDirParam, const int autoLogo, const char *logoCacheDirParam) {
     dsyslog("cVideo::cVideo(): new object");
     decoder      = decoderParam;
     index        = indexParam;
@@ -1555,7 +1570,7 @@ cVideo::cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaPa
     vBorderDetect = new cVertBorderDetect(decoder, criteria);
     ALLOC(sizeof(*vBorderDetect), "vBorderDetect");
 
-    logoDetect = new cLogoDetect(decoder, index, criteria, logoCacheDir);
+    logoDetect = new cLogoDetect(decoder, index, criteria, autoLogo, logoCacheDir);
     ALLOC(sizeof(*logoDetect), "logoDetect");
 }
 
