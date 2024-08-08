@@ -136,7 +136,6 @@ void cDecoder::Reset() {
     av_packet_unref(&avpkt);
     av_frame_unref(&avFrame);
     av_frame_unref(&avFrameConvert);
-    if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
 
     if (swsContext) {
         FREE(sizeof(swsContext), "swsContext");  // pointer size, real size not possible because of extern declaration, only as reminder
@@ -153,22 +152,8 @@ void cDecoder::Reset() {
             audioAC3Channels[streamIndex].processed          = true;
         }
     }
-    if (avctx && codecCtxArray) {
-        for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
-            if (codecCtxArray[streamIndex]) {
-                FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
-                avcodec_free_context(&codecCtxArray[streamIndex]);
-            }
-        }
-        FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
-        free(codecCtxArray);
-        codecCtxArray = nullptr;
-    }
-    if (avctx) {
-        FREE(sizeof(avctx), "avctx");
-        avformat_close_input(&avctx);
-        avctx = nullptr;
-    }
+    FreeCodecContext();
+
     fileNumber       = 0;
     packetNumber     = -1;
     dtsBefore        = -1;
@@ -284,19 +269,19 @@ enum AVHWDeviceType cDecoder::GetHWDeviceType() const {
 }
 
 
-bool cDecoder::InitDecoder(const char *filename) {
-    if (!filename) return false;
-
-    LogSeparator(false);
-    dsyslog("cDecoder::InitDecoder(): filename: %s", filename);
-    AVFormatContext *avctxNextFile = nullptr;
-#if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
-    av_register_all();
-#endif
-    // free codec context before alloc for new file
-    if (codecCtxArray && avctx) {
+void cDecoder::FreeCodecContext() {
+    if (hw_device_ctx) {
+        dsyslog("cDecoder::FreeCodecContext(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+        av_buffer_unref(&hw_device_ctx);  // have to unref both to reduce ref-counter
+    }
+    if (avctx && codecCtxArray) {
         for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
             if (codecCtxArray[streamIndex]) {
+                if(codecCtxArray[streamIndex]->hw_device_ctx) {
+                    dsyslog("cDecoder::FreeCodecContext(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(codecCtxArray[streamIndex]->hw_device_ctx));
+                    FREE(sizeof(*hw_device_ctx), "hw_device_ctx");
+                    av_buffer_unref(&codecCtxArray[streamIndex]->hw_device_ctx);
+                }
                 FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
                 avcodec_free_context(&codecCtxArray[streamIndex]);
             }
@@ -305,16 +290,28 @@ bool cDecoder::InitDecoder(const char *filename) {
         free(codecCtxArray);
         codecCtxArray = nullptr;
     }
+    if (avctx) {
+        FREE(sizeof(avctx), "avctx");
+        avformat_close_input(&avctx);
+        avctx = nullptr;
+    }
+
+}
+
+bool cDecoder::InitDecoder(const char *filename) {
+    if (!filename) return false;
+
+    LogSeparator(false);
+    dsyslog("cDecoder::InitDecoder(): filename: %s", filename);
+#if LIBAVCODEC_VERSION_INT < ((58<<16)+(35<<8)+100)
+    av_register_all();
+#endif
+    FreeCodecContext();
 
     // open first/next file
-    if (avformat_open_input(&avctxNextFile, filename, nullptr, nullptr) == 0) {
-        ALLOC(sizeof(avctxNextFile), "avctx");
+    if (avformat_open_input(&avctx, filename, nullptr, nullptr) == 0) {
+        ALLOC(sizeof(avctx), "avctx");
         dsyslog("cDecoder::InitDecoder(): opened file %s", filename);
-        if (avctx) {
-            FREE(sizeof(avctx), "avctx");
-            avformat_close_input(&avctx);
-        }
-        avctx = avctxNextFile;
     }
     else {
         if (fileNumber <= 1) {
@@ -324,7 +321,7 @@ bool cDecoder::InitDecoder(const char *filename) {
         return false;
     }
     if (avformat_find_stream_info(avctx, nullptr) < 0) {
-        dsyslog("cDecoder::InitDecoder(): Could not get stream infos %s", filename);
+        dsyslog("cDecoder::InitDecoder(): could not get stream infos %s", filename);
         return false;
     }
 
@@ -390,9 +387,12 @@ bool cDecoder::InitDecoder(const char *filename) {
         if (useHWaccel && (hw_pix_fmt != AV_PIX_FMT_NONE) && IsVideoStream(streamIndex)) {
             dsyslog("cDecoder::InitDecoder(): create hardware device context for %s", av_hwdevice_get_type_name(hwDeviceType));
             int ret = av_hwdevice_ctx_create(&hw_device_ctx, hwDeviceType, NULL, NULL, 0);
+            dsyslog("cDecoder::InitDecoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
             if (ret >= 0) {
+                ALLOC(sizeof(*hw_device_ctx), "hw_device_ctx");
                 dsyslog("cDecoder::InitDecoder(): linked hardware acceleration device %s successful for stream %d", av_hwdevice_get_type_name(hwDeviceType), streamIndex);
                 codecCtxArray[streamIndex]->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+                dsyslog("cDecoder::InitDecoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(codecCtxArray[streamIndex]->hw_device_ctx));
                 if (codecCtxArray[streamIndex]->hw_device_ctx) {
                     dsyslog("cDecoder::InitDecoder(): hardware device reference created successful for stream %d", streamIndex);
                     codecCtxArray[streamIndex]->get_format = get_hw_format;

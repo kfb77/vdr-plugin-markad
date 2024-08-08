@@ -417,6 +417,11 @@ private:
     void Reset();
 
     /**
+     * free codec context of decoder
+     */
+    void FreeCodecContext();
+
+    /**
      * complete reset decoder without hwaccel
      * @return return code from avcodec_send_packet
      */
