@@ -31,9 +31,9 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     processTexts[PROCESS_DURING] = tr("during");
     processTexts[PROCESS_NEVER]  = tr("never");
 
-    autoLogoTexts[0] = tr("disable");
-    autoLogoTexts[1] = tr("deprecated, do not use");
-    autoLogoTexts[2] = tr("enable");
+    autoLogoTexts[0] = tr("only logo cache");
+    autoLogoTexts[1] = tr("extract from recording, fallback logo cache");
+    autoLogoTexts[2] = tr("logo cache, fallback extract from recording");
 
     lpos = 0;
     write();
@@ -61,7 +61,7 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("verbose logging"), &verbose));
         Add(new cMenuEditBoolItem(tr("log to recording directory"), &log2rec));
         Add(new cMenuEditBoolItem(tr("hide mainmenu entry"), &hidemainmenuentry));
-        if (setup->autoLogoConf < 0) Add(new cMenuEditStraItem(tr("extract logos from recording"), &autologomenu, 3, autoLogoTexts));
+        if (setup->autoLogoConf < 0) Add(new cMenuEditStraItem(tr("logo source"), &autologomenu, 3, autoLogoTexts));
         Add(new cMenuEditBoolItem(tr("full decode recording"), &fulldecode));
         Add(new cMenuEditStraItem(tr("hardware acceleration"), &hwaccel, MAX_HWACCEL, setup->hwaccelTexts));
 
