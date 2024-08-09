@@ -49,18 +49,23 @@ extern "C" {
 
 // supported libavcodec versions
 //
-// full supported markad FFmpeg versions (based on Ubuntu LTS has Standard Support, 5 years)
+// full supported FFmpeg versions for markad
 //
-//  #if LIBAVCODEC_VERSION_INT >= ((60<<16)+( 31<<8)+102)   FFmpeg 6.1.1  (Ubuntu 24.04, End of Standard Support: April 2029)
-//  #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100)   FFmpeg 4.4.2  (Ubuntu 22.04, End of Standard Support: April 2027)
-//  #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100)   FFmpeg 4.2.7  (Ubuntu 20.04, End of Standard Support: April 2025)
-#define LIBAVCODEC_VERSION_VALID  ((58<<16)+( 54<<8)+100) // oldest full supported version
+//  #if LIBAVCODEC_VERSION_INT >= ((60<<16)+( 31<<8)+102) FFmpeg 6.1.1  (Ubuntu 24.04, End of Standard Support: April 2029)
+//  #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100) FFmpeg 4.4.2  (Ubuntu 22.04, End of Standard Support: April 2027)
+#define LIBAVCODEC_VERSION_VALID  ((58<<16)+(134<<8)+100) // oldest full supported version
 
 // deprecated markad FFmpeg versions without full features and with limited support
 //
-#define LIBAVCODEC_VERSION_DEPRECATED ((58<<16)+( 54<<8)+ 99) // oldest deprecated version, older is invalid
+//  #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100) FFmpeg 4.2.7  (Ubuntu 20.04, End of Standard Support: April 2025), same libavcodec version as 4.2.10
+//                                                                      issues found with V4.2.7 (not recommended to use with hwaccel):
+//                                                                      very low hwaccel decoding performance
+//                                                                      memory leak in av_hwframe_transfer_data(), fixed in 4.2.10
+//                                                                      i-frame only hwaccel decoding with H.264 does not work
+//                                                                      i-frame only decoding with interlaced H.264 does not work
+#define LIBAVCODEC_VERSION_DEPRECATED ((58<<16)+( 54<<8)+100) // oldest deprecated version, older is invalid
 
-// end of life markad FFmpeg versions
+// end of life FFmpeg versions for markad
 //
 // #if LIBAVCODEC_VERSION_INT >= ((57<<16)+(107<<8)+100)   FFmpeg 3.4.11 (Ubuntu 18.04, End of Life: April 2028)
 // #if LIBAVCODEC_VERSION_INT >= ((56<<16)+( 60<<8)+100)   FFmpeg 2.8.17 (Ubuntu 16.04) End of Life: April 2026)

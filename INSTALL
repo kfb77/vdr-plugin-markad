@@ -7,7 +7,7 @@ Prerequisite:
 - gcc             >= 4.8.4)
 - git
 - vdr-dev         >= 2.2
-- libavcodec-dev  >= 58.54.100 (FFmpeg 4.2.7)
+- libavcodec-dev  >= 58.134.100 (FFmpeg 4.4.2)
 - libavformat-dev
 - libavfilter-dev
 - libswresample-dev
