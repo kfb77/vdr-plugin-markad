@@ -346,6 +346,11 @@ private:
     cMark *Check_VBORDERSTART(const int maxStart);
 
     /**
+     * check for aspect ratio end mark
+     */
+    cMark *Check_ASPECTSTOP();
+
+    /**
      * check for channel end mark
      */
     cMark *Check_CHANNELSTOP();

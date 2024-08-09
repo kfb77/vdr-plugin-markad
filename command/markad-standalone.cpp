@@ -1385,6 +1385,67 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
 }
 
 
+cMark *cMarkAdStandalone::Check_ASPECTSTOP() {
+    // if we have 16:9 broadcast, aspect ratio stop mark without aspect start before is start of next broadcast
+    if ((criteria->GetMarkTypeState(MT_HBORDERCHANGE) < CRITERIA_USED) && (macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
+        cMark *aspectStop = marks.GetNext(0, MT_ASPECTSTOP);
+        if (aspectStop) {
+            const cMark *aspectStart = marks.GetPrev(aspectStop->position, MT_ASPECTSTOP);
+            if (!aspectStart) {
+                dsyslog("cMarkAdStandalone::Check_ASPECTSTOP(): we have 16:9 bradcast and MT_ASPECTSTOP at frame (%d) without MT_ASPECTSTART before, this is start of next broadcast", aspectStop->position);
+                marks.DelAfterFromToEnd(aspectStop->position);
+                return nullptr;
+            }
+        }
+    }
+    cMark *end = marks.GetAround(400 * (decoder->GetVideoFrameRate()), stopA, MT_ASPECTSTOP);      // changed from 360 to 400
+    if (end) {
+        dsyslog("cMarkAdStandalone::Check_ASPECTSTOP(): MT_ASPECTSTOP found at frame (%d)", end->position);
+        if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) {
+            dsyslog("cMarkAdStandalone::Check_ASPECTSTOP(): delete all weak marks");
+            marks.DelWeakFromTo(marks.GetFirst()->position + 1, end->position, MT_ASPECTCHANGE); // delete all weak marks, except start mark
+        }
+        else { // 16:9 broadcast with 4:3 broadcast after, maybe ad between and we have a better hborder or logo stop mark
+            cMark *stopBefore  = marks.GetPrev(end->position, MT_HBORDERSTOP);         // try hborder
+            if (!stopBefore) {
+                stopBefore  = marks.GetPrev(end->position, MT_LOGOSTOP);  // try logo stop
+                // check position of logo start mark before aspect ratio mark, if it is after logo stop mark, logo stop mark end can be end of preview in advertising
+                if (stopBefore) {
+                    int diffAspectStop = (end->position - stopBefore->position) / decoder->GetVideoFrameRate();
+                    dsyslog("cMarkAdStandalone::Check_ASPECTSTOP(): logo stop mark (%d), %ds before aspect ratio stop mark", stopBefore->position, diffAspectStop);
+                    if (diffAspectStop > 234) {  // check only for early logo stop marks, do not increase, there can be a late advertising and aspect stop on same frame as logo stop
+                        // changed from 153 to 234
+                        cMark *startLogoBefore = marks.GetPrev(end->position, MT_LOGOSTART);
+                        if (startLogoBefore && (startLogoBefore->position > stopBefore->position)) {
+                            dsyslog("cMarkAdStandalone::Check_ASPECTSTOP(): logo start mark (%d) between logo stop mark (%d) and aspect ratio mark (%d), this logo stop mark is end of advertising", startLogoBefore->position, stopBefore->position, end->position);
+                            stopBefore = nullptr;
+                        }
+                    }
+                }
+            }
+            // now we may have a hborder or a logo stop mark before aspect stop mark, check if valid
+            if (stopBefore) { // maybe real stop mark was deleted because on same frame as logo/hborder stop mark
+                int diffStopA      = (stopA - stopBefore->position)        /  decoder->GetVideoFrameRate();
+                int diffAspectStop = (end->position - stopBefore->position) / decoder->GetVideoFrameRate();
+                char *markType = marks.TypeToText(stopBefore->type);
+                dsyslog("cMarkAdStandalone::Check_ASPECTSTOP(): found %s stop mark (%d) %ds before aspect ratio end mark (%d), %ds before assumed stop", markType, stopBefore->position, diffAspectStop, end->position, diffStopA);
+                FREE(strlen(markType)+1, "text");
+                free(markType);
+                if ((diffStopA <= 867) && (diffAspectStop <= 66)) { // changed from 760 to 867, for broadcast length from info file too long
+                    // changed from 39 to 40 to 66, for longer ad found between broadcasts
+                    dsyslog("cMarkAdStandalone::Check_ASPECTSTOP(): there is an advertising before aspect ratio change, use stop mark (%d) before as end mark", stopBefore->position);
+                    end = stopBefore;
+                    // cleanup possible info logo or logo detection failure short before end mark
+                    if (end->type == MT_LOGOSTOP) marks.DelFromTo(end->position - (60 * decoder->GetVideoFrameRate()), end->position - 1, MT_LOGOCHANGE, 0xF0);
+                }
+            }
+        }
+    }
+    else dsyslog("cMarkAdStandalone::Check_ASPECTSTOP(): no MT_ASPECTSTOP mark found");
+    return end;
+}
+
+
 void cMarkAdStandalone::CheckStop() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%d)", decoder->GetPacketNumber());
@@ -1444,63 +1505,7 @@ void cMarkAdStandalone::CheckStop() {
     if (criteria->GetMarkTypeState(MT_CHANNELCHANGE) >= CRITERIA_UNKNOWN) end = Check_CHANNELSTOP();
 
 // try MT_ASPECTSTOP
-    if (!end) {
-        // if we have 16:9 broadcast, every aspect stop without aspect start before is end mark, maybe it is very early in case of wrong recording length
-        if ((macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
-            cMark *aspectStop = marks.GetNext(0, MT_ASPECTSTOP);
-            if (aspectStop) {
-                const cMark *aspectStart = marks.GetPrev(aspectStop->position, MT_ASPECTSTOP);
-                if (!aspectStart) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): we have 16:9 bradcast and MT_ASPECTSTOP at frame (%d) without MT_ASPECTSTART before, this is a possible end mark", aspectStop->position);
-                    end = aspectStop;
-                }
-            }
-        }
-        if (!end) end = marks.GetAround(400 * (decoder->GetVideoFrameRate()), stopA, MT_ASPECTSTOP);      // changed from 360 to 400
-        if (end) {
-            dsyslog("cMarkAdStandalone::CheckStop(): MT_ASPECTSTOP found at frame (%d)", end->position);
-            if ((macontext.Info.AspectRatio.num == 4) && (macontext.Info.AspectRatio.den == 3)) {
-                dsyslog("cMarkAdStandalone::CheckStop(): delete all weak marks");
-                marks.DelWeakFromTo(marks.GetFirst()->position + 1, end->position, MT_ASPECTCHANGE); // delete all weak marks, except start mark
-            }
-            else { // 16:9 broadcast with 4:3 broadcast after, maybe ad between and we have a better hborder or logo stop mark
-                cMark *stopBefore  = marks.GetPrev(end->position, MT_HBORDERSTOP);         // try hborder
-                if (!stopBefore) {
-                    stopBefore  = marks.GetPrev(end->position, MT_LOGOSTOP);  // try logo stop
-                    // check position of logo start mark before aspect ratio mark, if it is after logo stop mark, logo stop mark end can be end of preview in advertising
-                    if (stopBefore) {
-                        int diffAspectStop = (end->position - stopBefore->position) / decoder->GetVideoFrameRate();
-                        dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d), %ds before aspect ratio stop mark", stopBefore->position, diffAspectStop);
-                        if (diffAspectStop > 234) {  // check only for early logo stop marks, do not increase, there can be a late advertising and aspect stop on same frame as logo stop
-                            // changed from 153 to 234
-                            cMark *startLogoBefore = marks.GetPrev(end->position, MT_LOGOSTART);
-                            if (startLogoBefore && (startLogoBefore->position > stopBefore->position)) {
-                                dsyslog("cMarkAdStandalone::CheckStop(): logo start mark (%d) between logo stop mark (%d) and aspect ratio mark (%d), this logo stop mark is end of advertising", startLogoBefore->position, stopBefore->position, end->position);
-                                stopBefore = nullptr;
-                            }
-                        }
-                    }
-                }
-                // now we may have a hborder or a logo stop mark before aspect stop mark, check if valid
-                if (stopBefore) { // maybe real stop mark was deleted because on same frame as logo/hborder stop mark
-                    int diffStopA      = (stopA - stopBefore->position)        /  decoder->GetVideoFrameRate();
-                    int diffAspectStop = (end->position - stopBefore->position) / decoder->GetVideoFrameRate();
-                    char *markType = marks.TypeToText(stopBefore->type);
-                    dsyslog("cMarkAdStandalone::CheckStop(): found %s stop mark (%d) %ds before aspect ratio end mark (%d), %ds before assumed stop", markType, stopBefore->position, diffAspectStop, end->position, diffStopA);
-                    FREE(strlen(markType)+1, "text");
-                    free(markType);
-                    if ((diffStopA <= 867) && (diffAspectStop <= 66)) { // changed from 760 to 867, for broadcast length from info file too long
-                        // changed from 39 to 40 to 66, for longer ad found between broadcasts
-                        dsyslog("cMarkAdStandalone::CheckStop(): there is an advertising before aspect ratio change, use stop mark (%d) before as end mark", stopBefore->position);
-                        end = stopBefore;
-                        // cleanup possible info logo or logo detection failure short before end mark
-                        if (end->type == MT_LOGOSTOP) marks.DelFromTo(end->position - (60 * decoder->GetVideoFrameRate()), end->position - 1, MT_LOGOCHANGE, 0xF0);
-                    }
-                }
-            }
-        }
-        else dsyslog("cMarkAdStandalone::CheckStop(): no MT_ASPECTSTOP mark found");
-    }
+    if (!end) end = Check_ASPECTSTOP();
 
 // try MT_HBORDERSTOP
     // try hborder end if hborder used even if we got another end mark, maybe we found a better one, but not if we have a hborder end mark
