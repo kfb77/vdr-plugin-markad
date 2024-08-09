@@ -1329,23 +1329,30 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
     if (!mark) return false;
     // check logo start mark
     if (mark->type == MT_LOGOSTART) {
+        // MT_LOGOSTART  (mark, info logo detected as logo) -> MT_LOGOSTOP (change from info logo to logo) -> MT_LOGOSTART (logo) -> MT_LOGOSTOP (end of first part)
         cMark *stop1After = marks.GetNext(mark->position, MT_LOGOSTOP);
         if (!stop1After) return false;
         cMark *start2After = marks.GetNext(stop1After->position, MT_LOGOSTART);
         if (!start2After) return false;
-        int diffMarkStop1After        = 1000 * (stop1After->position  - mark->position)       / decoder->GetVideoFrameRate();
-        int diffStop1AfterStart2After = 1000 * (start2After->position - stop1After->position) / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %4dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d)", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position);
-        // valid example
+        cMark *stop2After = marks.GetNext(start2After->position, MT_LOGOSTOP);
+        int endPart1Pos = stopA;
+        if (stop2After) endPart1Pos = stop2After->position;
+        int diffMarkStop1After          = 1000 * (stop1After->position  - mark->position)        / decoder->GetVideoFrameRate();
+        int diffStop1AfterStart2After   = 1000 * (start2After->position - stop1After->position)  / decoder->GetVideoFrameRate();
+        int diffStStart2AfterStop2After = 1000 * (endPart1Pos            - start2After->position) / decoder->GetVideoFrameRate();
+        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %4dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d) -> %4ds -> MT_LOGOSTOP (%5d)", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position, diffStStart2AfterStop2After, endPart1Pos);
+        // valid logo start mark example
         // MT_LOGOSTART ( 5439) -> 5920ms -> MT_LOGOSTOP ( 5587) -> 1120ms -> MT_LOGOSTART ( 5615) -> kabel eins
         // MT_LOGOSTART ( 7913) -> 4480ms -> MT_LOGOSTOP ( 8025) -> 2200ms -> MT_LOGOSTART ( 8080) -> kabel eins
-        // MT_LOGOSTART ( 8298) -> 7760ms -> MT_LOGOSTOP ( 8492) -> 1080ms -> MT_LOGOSTART ( 8519)
+        // MT_LOGOSTART ( 8298) -> 7760ms -> MT_LOGOSTOP ( 8492) -> 1080ms -> MT_LOGOSTART ( 8519) -> kabel eins
         //
-        // invald example
-        // MT_LOGOSTART ( 3833) ->  480ms -> MT_LOGOSTOP ( 3845) ->  480ms  -> MT_LOGOSTART ( 3857) -> DMAX
+        // invald logo start mark example
+        // MT_LOGOSTART ( 3833) ->  480ms -> MT_LOGOSTOP ( 3845) ->  480ms -> MT_LOGOSTART ( 3857) -> DMAX
+        // MT_LOGOSTART ( 3459) -> 5880ms -> MT_LOGOSTOP ( 3606) -> 1160ms -> MT_LOGOSTART ( 3635) -> 20800s -> MT_LOGOSTOP ( 4155) -> kabel eins, end sequence of broadcast before
+        // MT_LOGOSTART ( 3744) -> 6040ms -> MT_LOGOSTOP ( 3895) -> 1160ms -> MT_LOGOSTART ( 3924) -> 20960s -> MT_LOGOSTOP ( 4448) -> kabel eins, end sequence of broadcast before
         if ((diffMarkStop1After >= 4480) && (diffMarkStop1After <= 7760) &&
-                (diffStop1AfterStart2After >= 1080) && (diffStop1AfterStart2After <= 2200)) {
-            dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): found opening info logo sequence");
+                (diffStop1AfterStart2After >= 1080) && (diffStop1AfterStart2After <= 2200) && (diffStStart2AfterStop2After > 20960)) {
+            dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): opening info logo sequence is valid");
             return true;
         }
         else dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): logo start mark (%d): opening info logo sequence is invalid", mark->position);
