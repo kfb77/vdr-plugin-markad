@@ -131,6 +131,7 @@
 // #define DEBUG_FRAME_DETECTION
 
 // write sobel transformed pictures from frame detection to recording directory
+// writes 10 picture before to 10 picture after frame number
 // #define DEBUG_FRAME_DETECTION_PICTURE <frame number>
 
 // debug timestamps from final marks to save

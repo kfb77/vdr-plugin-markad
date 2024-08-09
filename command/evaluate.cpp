@@ -700,7 +700,7 @@ int cDetectLogoStopStart::FindFrameFirstPixel(const uchar *picture, const int co
 
 #ifdef DEBUG_FRAME_DETECTION_PICTURE
     // save plane 0 of sobel transformation
-    if (decoder->GetPacketNumber() == DEBUG_FRAME_DETECTION_PICTURE) {
+    if ((decoder->GetPacketNumber() >= (DEBUG_FRAME_DETECTION_PICTURE - 10)) && (decoder->GetPacketNumber() <= (DEBUG_FRAME_DETECTION_PICTURE + 10))) {
         char *fileName = nullptr;
         if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_FindFrameFirstPixel.pgm", decoder->GetRecordingDir(), decoder->GetPacketNumber(), corner) >= 1) {
             ALLOC(strlen(fileName)+1, "fileName");
@@ -1540,7 +1540,7 @@ int cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, const bool noL
         // best quote 493, all quote 326
         //
         // example of no closing credits
-        // best quote 643, all quote 321  -> long static separator picture
+        // best quote 643, all quote 321  -> long static separator picture (conflict)
         // best quote 403, all quote 465  -> long static ad picture
         if ((framePortionQuote < 493) && (allPortionQuote < 326)) {
             dsyslog("cDetectLogoStopStart::ClosingCredit(): not enough frame pixel found, closing credits not valid");
