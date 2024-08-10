@@ -4145,6 +4145,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
                 if (!mark) break;
             }
         }
+        else decoder->DropFrameFromGPU();   // clenup GPU
         oldPacketNumber = packetNumber;
     }
 }
