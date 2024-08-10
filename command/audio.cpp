@@ -87,8 +87,9 @@ void cAudio::ChannelChange() {
         dsyslog("cAudio::ChannelChange(): frame (%d): AC3 audio stream changed channel from %d to %d", channelChange->videoFrameNumber, channelChange->channelCountBefore, channelChange->channelCountAfter);
 
         if (channelChange->channelCountAfter == 2) AddMark(MT_CHANNELSTOP, channelChange->videoFrameNumber, channelChange->channelCountBefore, channelChange->channelCountAfter);
-        else if ((channelChange->channelCountAfter == 5) || (channelChange->channelCountAfter == 6)) AddMark(MT_CHANNELSTART, channelChange->videoFrameNumber, channelChange->channelCountBefore, channelChange->channelCountAfter);
-        else esyslog("cAudio::Process(): invalid channel count %d", channelChange->channelCountAfter);
+        else if ((channelChange->channelCountBefore == 2) &&   // ignore channel change from 5 to 6 or from 6 to 5
+                 ((channelChange->channelCountAfter == 5) || (channelChange->channelCountAfter == 6))) AddMark(MT_CHANNELSTART, channelChange->videoFrameNumber, channelChange->channelCountBefore, channelChange->channelCountAfter);
+        else dsyslog("cAudio::Process(): ignore channel count change from %d to %d", channelChange->channelCountBefore, channelChange->channelCountAfter);
         channelChange->channelCountBefore = channelChange->channelCountAfter;
         channelChange->processed          = true;
     }
