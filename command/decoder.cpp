@@ -843,7 +843,7 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
 
 void cDecoder::DropFrameFromGPU() {
     // use by logo extraction for skip frame
-    if (frameValid && useHWaccel) {
+    if (avFrame.hw_frames_ctx) {
         AVFrame *avFrameHW = av_frame_alloc();
         ALLOC(sizeof(*avFrameHW), "avFrameHW");
         av_hwframe_transfer_data(avFrameHW, &avFrame, 0);
