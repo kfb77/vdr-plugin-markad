@@ -1732,10 +1732,14 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
             // search for first line of logo
             int topLogoLine = -1;
             for (int line = 0; line < height; line++) {
+                int blackPixel = 0;
                 for (int column = 0; column < width; column++) {
                     if (logoInfo->sobel[plane][(line) * width + column] == 0) {
-                        topLogoLine = line;
-                        break;
+                        blackPixel++;
+                        if (blackPixel > 10) {   // be sure we found logo and not single false pixel
+                            topLogoLine = line;
+                            break;
+                        }
                     }
                 }
                 if (topLogoLine >= 0) break;
@@ -1744,12 +1748,16 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
                 // search for end of logo
                 int whiteLines     = 0;
                 int bottomLogoLine = -1;
-                for (int line = 0; line < height; line++) {
+                for (int line = topLogoLine; line < height; line++) {
                     bool haveBlack = false;
+                    int blackPixel = 0;
                     for (int column = 0; column < width; column++) {
                         if (logoInfo->sobel[plane][(line) * width + column] == 0) {
-                            haveBlack = true;
-                            break;
+                            blackPixel++;
+                            if (blackPixel > 10) {
+                                haveBlack = true;
+                                break;
+                            }
                         }
                     }
                     if (!haveBlack) whiteLines++;
