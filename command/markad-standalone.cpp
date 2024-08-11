@@ -1621,6 +1621,7 @@ void cMarkAdStandalone::CheckStop() {
                 dsyslog("cMarkAdStandalone::CheckStop(): assumed stop (%d) after recording end (%d), use recording end", stopA, lastFrame);
                 stopPos = lastFrame;
             }
+            stopPos = index->GetFrameBefore(stopPos);  // adjust to i-frame if no full decoding
             sMarkAdMark mark = {};
             mark.position = stopPos;  // we are lost, add a end mark at assumed end
             mark.type     = MT_ASSUMEDSTOP;
