@@ -482,6 +482,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     // liftup logo invisible threshold for dark picture after brightness reduction
     if (area.intensity <= 10)      *logo_imark *= 2;
     else if (area.intensity <= 32) *logo_imark *= 1.5;
+    else if (area.intensity <= 58) *logo_imark *= 1.1;
 
 #ifdef DEBUG_LOGO_DETECTION
     char detectStatus[] = "o";
