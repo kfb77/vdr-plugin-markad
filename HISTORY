@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-08-16: Version 4.1.2
+- fix broken overlap detection
+- fix build warning on 32bit systems
+- some minor bug fixes and optimizations, see git
+
 2024-08-11: Version 4.1.1
 - fix use of logo cache (thx to hondansx@www.vdr-portal.de for reporting)
 - new parameter --autologo=1 (extract logo from recording, if fails use logo from logo cache)
