@@ -1334,7 +1334,7 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
     for (int i = 0; i < (area.logoSize.height * area.logoSize.width); i++) {
         if (actLogoInfo->sobel[0][i] == 0) blackPixel1++;
     }
-    if (blackPixel1 <= 304) {
+    if (blackPixel1 < 254) {  // ProSieben SD 254
 #ifdef DEBUG_LOGO_CORNER
         if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has not enough pixel %d in plane 0", actLogoInfo->frameNumber, aCorner[corner], blackPixel1);
 #endif
