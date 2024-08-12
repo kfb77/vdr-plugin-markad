@@ -1666,6 +1666,7 @@ void cMarkAdStandalone::CheckStop() {
 bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
     if (criteria->GetClosingCreditsState(stopMark->position) < CRITERIA_UNKNOWN) return false;
+    if (criteria->NoLogo()) return false;   // not possible to detect without logo
 
     dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits in frame without logo after position (%d)", stopMark->position);
 
