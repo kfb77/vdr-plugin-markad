@@ -1099,7 +1099,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         // current start pos - last stop pos -> length of ad
         // use dts to prevent non monotonically increasing dts
         if (cutInfo.stopPosDTS > 0) cutInfo.offset += (cutInfo.startPosDTS - cutInfo.stopPosDTS);
-        dsyslog("cEncoder::CutOut(): start cut from packet (%6d) PTS %10ld DTS %10ld to frame (%d), offset %ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
+        dsyslog("cEncoder::CutOut(): start cut from packet (%6d) PTS %10" PRId64 " DTS %10" PRId64 " to frame (%d), offset %" PRId64, startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
 
         // read all packets
         while (decoder->GetPacketNumber() <= stopPos) {
@@ -1139,7 +1139,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
                     return false;
                 }
             }
-            else dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %ld, DTS %ld: drop packet before start PTS %ld, DTS %ld", decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
+            else dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %" PRId64 ", DTS %" PRId64 ": drop packet before start PTS %" PRId64 ", DTS %" PRId64, decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
             // read and decode next packet
             while (true) {
                 if (!decoder->ReadNextPacket()) return false;
@@ -1155,7 +1155,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         avFrame = decoder->GetFrame(AV_PIX_FMT_NONE);  // this must be first video packet after cut because we only increase frame counter on video frames
         cutInfo.stopPosPTS = avFrame->pts;
         cutInfo.stopPosDTS = avFrame->pkt_dts;
-        dsyslog("cEncoder::CutOut(): end cut from i-frame (%6d) PTS %10ld DTS %10ld to i-frame (%6d) PTS %10ld DTS %10ld, offset %10ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
+        dsyslog("cEncoder::CutOut(): end cut from i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 " to i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 ", offset %10" PRId64, startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
     }
 // cut without full decoding, only copy all packets
     else {
@@ -1203,7 +1203,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         // current start pos - last stop pos -> length of ad
         // use dts to prevent non monotonically increasing dts
         if (cutInfo.stopPosDTS > 0) cutInfo.offset += (cutInfo.startPosDTS - cutInfo.stopPosDTS);
-        dsyslog("cEncoder::CutOut(): start cut from i-frame (%6d) PTS %10ld DTS %10ld to i-frame (%d), offset %ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
+        dsyslog("cEncoder::CutOut(): start cut from i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 " to i-frame (%d), offset %" PRId64, startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
 
         // copy all packets from startPos to endPos
         while (decoder->GetPacketNumber() < stopPos) {  // end before last i-frame, start frame will be next i-frame
@@ -1231,7 +1231,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
                 }
             }
             else {
-                dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %ld, DTS %ld: drop packet before start PTS %ld, DTS %ld", decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
+                dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %" PRId64", DTS %" PRId64 ": drop packet before start PTS %" PRId64 ", DTS %" PRId64, decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
                 decoder->DropFrameFromGPU();     // we do not use this frame, cleanup GPU buffer
             }
             // read next packet
@@ -1242,7 +1242,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
         avpkt =  decoder->GetPacket();  // this must be first video packet after cut because we only increase packet counter on video packets
         cutInfo.stopPosPTS = avpkt->pts;
         cutInfo.stopPosDTS = avpkt->dts;
-        dsyslog("cEncoder::CutOut(): end cut from i-frame (%6d) PTS %10ld DTS %10ld to i-frame (%6d) PTS %10ld DTS %10ld, offset %10ld", startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
+        dsyslog("cEncoder::CutOut(): end cut from i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 " to i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 ", offset %10" PRId64, startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
     }
     LogSeparator();
     return true;
@@ -1252,7 +1252,7 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
 bool cEncoder::EncodeVideoFrame() {
 #ifdef DEBUG_PTS_DTS_CUT
     if (pass == 2) {
-        dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%5d) stream %d in:  PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", decoderFrameNumber, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - inputFramePTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
+        dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%5d) stream %d in:  PTS %10" PRId64 " DTS %10" PRId64 ", diff PTS %10" PRId64 ", offset %10" PRId64, decoderFrameNumber, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - inputFramePTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
         inputFramePTSbefore[streamIndexIn] = avFrame->pts;
     }
 #endif
@@ -1443,7 +1443,7 @@ bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
     }
     // check monotonically increasing dts
     if (avpkt->dts <= dts[avpkt->stream_index]) {
-        dsyslog("cEncoder::WritePacket(): decoder packet (%5d), stream %d: dts %ld <= last dts %ld, drop packet", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->dts, dts[avpkt->stream_index]);
+        dsyslog("cEncoder::WritePacket(): decoder packet (%5d), stream %d: dts %" PRId64 " <= last dts %" PRId64 ", drop packet", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->dts, dts[avpkt->stream_index]);
         return true;  // continue encoding
     }
     avpkt->pos = -1;   // byte position in stream unknown

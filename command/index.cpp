@@ -34,7 +34,7 @@ cIndex::~cIndex() {
 
 
 void cIndex::SetStartPTS(const int64_t start_time_param, const AVRational time_base_param) {
-    dsyslog("cIndex::SetStartPTS(): PTS %ld: start of video stream, time base %d/%d", start_time_param, time_base_param.num, time_base_param.den);
+    dsyslog("cIndex::SetStartPTS(): PTS %" PRId64 ": start of video stream, time base %d/%d", start_time_param, time_base_param.num, time_base_param.den);
     start_time = start_time_param;
     time_base  = time_base_param;
 }
@@ -80,8 +80,8 @@ int cIndex::GetIFrameBeforePTS(const int64_t pts) {
         if (frameIterator->pts <= pts) iFrameBefore = frameIterator->frameNumber;
         else break;
     }
-    if (iFrameBefore < 0) dsyslog("cIndex::GetIFrameBeforePTS(): PTS %ld: not in index, index content: first PTS %ld , last PTS %ld", pts, indexVector.front().pts, indexVector.back().pts);
-    dsyslog("cIndex::GetIFrameBeforePTS(): PTS %ld: frame (%d) found", pts, iFrameBefore);
+    if (iFrameBefore < 0) dsyslog("cIndex::GetIFrameBeforePTS(): PTS %" PRId64 ": not in index, index content: first PTS %" PRId64 " , last PTS %" PRId64, pts, indexVector.front().pts, indexVector.back().pts);
+    dsyslog("cIndex::GetIFrameBeforePTS(): PTS %" PRId64 ": frame (%d) found", pts, iFrameBefore);
     return iFrameBefore; // frame not (yet) in index
 }
 
@@ -106,10 +106,10 @@ int cIndex::GetIFrameAfterPTS(const int64_t pts) {
 
     std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [pts](sIndexElement const &value) ->bool { if (value.pts >= pts) return true; else return false; });
     if (found == indexVector.end()) {
-        dsyslog("cIndex::GetIFrameAfterPTS(): PTS %ld: not in index, index content: first PTS %ld , last PTS %ld", pts, indexVector.front().pts, indexVector.back().pts);
+        dsyslog("cIndex::GetIFrameAfterPTS(): PTS %" PRId64 ": not in index, index content: first PTS %" PRId64 ", last PTS %" PRId64, pts, indexVector.front().pts, indexVector.back().pts);
         return -1;
     }
-    dsyslog("cIndex::GetIFrameAfterPTS(): PTS %ld: frame (%d) found", pts, found->frameNumber);
+    dsyslog("cIndex::GetIFrameAfterPTS(): PTS %" PRId64 ": frame (%d) found", pts, found->frameNumber);
     return found->frameNumber;
 }
 
@@ -279,7 +279,7 @@ int cIndex::GetFrameFromOffset(int offset_ms) {
     std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [pts](sIndexElement const &value) ->bool { if (value.pts >= pts) return true; else return false; });
     if (found == indexVector.end()) {
         esyslog("cIndex::GetFrameFromOffset(): offset_ms %dms not in index", offset_ms);
-        dsyslog("cIndex::GetFrameFromOffset(): search for PTS %ld, index content: first PTS %ld , last PTS %ld", pts, indexVector.front().pts, indexVector.back().pts);
+        dsyslog("cIndex::GetFrameFromOffset(): search for PTS %" PRId64 ", index content: first PTS %" PRId64 ", last PTS %" PRId64, pts, indexVector.front().pts, indexVector.back().pts);
         return -1;
     }
 
