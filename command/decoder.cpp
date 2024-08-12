@@ -387,9 +387,9 @@ bool cDecoder::InitDecoder(const char *filename) {
         if (useHWaccel && (hw_pix_fmt != AV_PIX_FMT_NONE) && IsVideoStream(streamIndex)) {
             dsyslog("cDecoder::InitDecoder(): create hardware device context for %s", av_hwdevice_get_type_name(hwDeviceType));
             int ret = av_hwdevice_ctx_create(&hw_device_ctx, hwDeviceType, NULL, NULL, 0);
-            dsyslog("cDecoder::InitDecoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
             if (ret >= 0) {
                 ALLOC(sizeof(*hw_device_ctx), "hw_device_ctx");
+                dsyslog("cDecoder::InitDecoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
                 dsyslog("cDecoder::InitDecoder(): linked hardware acceleration device %s successful for stream %d", av_hwdevice_get_type_name(hwDeviceType), streamIndex);
                 codecCtxArray[streamIndex]->hw_device_ctx = av_buffer_ref(hw_device_ctx);
                 dsyslog("cDecoder::InitDecoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(codecCtxArray[streamIndex]->hw_device_ctx));
