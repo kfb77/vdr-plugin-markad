@@ -5372,7 +5372,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     switch (mark->newType) {
                     case MT_SOUNDSTART:
                         // rule 1: prefer scene change short after silence
-                        if ((diffBefore >= 60) && (diffBefore <= 1680) && (diffAfter <= 920)) diffBefore = INT_MAX;
+                        if ((diffBefore > 80) && (diffBefore <= 1680) && (diffAfter <= 920)) diffBefore = INT_MAX;
 
                         // rule 2: scene blend around silence, both are invalid
                         else if ((diffBefore >= 4120) && (diffAfter >= 1160)) {
