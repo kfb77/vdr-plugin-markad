@@ -3473,7 +3473,9 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             // MT_START (  4200) -> 2400s -> MT_STOP ( 64215) |-418s| -> 401s -> MT_START ( 74254) ->  17s -> MT_STOP ( 74685) |  0s|
             // MT_START (  4184) -> 2338s -> MT_STOP ( 62638) |-264s| -> 260s -> MT_START ( 69142) ->   4s -> MT_STOP ( 69259) |  0s|
             // MT_START ( 79040) ->   21s -> MT_STOP ( 79579) | -62s| ->  58s -> MT_START ( 81040) ->   4s -> MT_STOP ( 81151) |  0s|
-            else if ((diffPrevStopAssumed >= -418) && (lastAd <= 401) && (lastBroadcast <= 17)) {
+            // MT_START (  7428) -> 1262s -> MT_STOP ( 38982) |-537s| -> 397s -> MT_START ( 48924) -> 140s -> MT_STOP ( 52427) |  0s|
+            // MT_START (  7642) -> 1263s -> MT_STOP ( 39236) |-536s| -> 362s -> MT_START ( 48297) -> 173s -> MT_STOP ( 52641) |  0s|
+            else if ((diffPrevStopAssumed >= -537) && (lastAd <= 401) && (lastBroadcast <= 173)) {
                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last broadcast too short", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
@@ -3494,7 +3496,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if (((diffPrevStopAssumed >= -280) && (lastAd <= 59) && (diffLastStopAssumed >= -74)) ||
                     // example of invalid log stop mark sequence (short last broadcasts)
                     // MT_START ( 45380) ->  290s -> MT_STOP ( 52642) |  57s| -> 141s -> MT_START ( 56190) ->   0s -> MT_STOP ( 56199) |200s|
-                    (lastBroadcast <= 0)) {
+                    // MT_START (  4106) -> 2700s -> MT_STOP ( 71623) |-691s| -> 595s -> MT_START ( 86503) ->  77s -> MT_STOP ( 88450) |-18s|
+                    (lastBroadcast <= 77)) {
                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
