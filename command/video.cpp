@@ -784,6 +784,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
             dsyslog("cLogoDetect::Detect():           frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", packetNumber, rPixel, quoteInverse, rPixelWithout);
 #endif
 
+            if ((rPixel >= logo_vmark) && (rPixelWithout <= logo_imark) && (quoteInverse >= 63)) return LOGO_NOCHANGE;  // too much background pattern to decide
             rPixel         = rPixelWithout; // now use this result for detection
             area.rPixel[0] = rPixelWithout; // if case of ReduceBrightness(): "very high contrast with not very high brightness in logo area, trust detection"
         }
