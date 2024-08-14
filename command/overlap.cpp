@@ -170,7 +170,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
 #endif
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) continue;
-        overlapAroundAd->Process(picture, &overlapPos, decoder->GetPacketNumber(), frameCount, true, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
+        overlapAroundAd->Process(picture, decoder->GetPacketNumber(), frameCount, true, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
     }
 
     // seek to iFrame before start mark
@@ -215,93 +215,98 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
 
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) continue;
-        overlapAroundAd->Process(picture, &overlapPos, decoder->GetPacketNumber(), frameCount, false, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
+        overlapAroundAd->Process(picture, decoder->GetPacketNumber(), frameCount, false, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
+    }
 
-        if (overlapPos.similarAfterEnd >= 0) {
-            // found overlap
-            int lengthBefore = 1000 * (overlapPos.similarBeforeEnd - overlapPos.similarBeforeStart + 1) / frameRate; // include first and last
-            int lengthAfter  = 1000 * (overlapPos.similarAfterEnd  - overlapPos.similarAfterStart + 1)  / frameRate;
+    dsyslog("cOverlapAroundAd::ProcessMarksOverlap(): start compare frames");
+    overlapAroundAd->Detect(&overlapPos);
+#ifdef DEBUG_OVERLAP
+    dsyslog("cOverlapAroundAd::ProcessMarksOverlap(): overlap from (%d) before stop mark and (%d) after start mark", overlapPos.similarBeforeEnd, overlapPos.similarAfterEnd);
+#endif
+    if (overlapPos.similarAfterEnd >= 0) {
+        // found overlap
+        int lengthBefore = 1000 * (overlapPos.similarBeforeEnd - overlapPos.similarBeforeStart + 1) / frameRate; // include first and last
+        int lengthAfter  = 1000 * (overlapPos.similarAfterEnd  - overlapPos.similarAfterStart + 1)  / frameRate;
 
-            char *indexToHMSFbeforeStart = marks->IndexToHMSF(overlapPos.similarBeforeStart, false);
-            if (indexToHMSFbeforeStart) {
-                ALLOC(strlen(indexToHMSFbeforeStart)+1, "indexToHMSFbeforeStart");
-            }
-
-            char *indexToHMSFbeforeEnd   = marks->IndexToHMSF(overlapPos.similarBeforeEnd, false);
-            if (indexToHMSFbeforeEnd) {
-                ALLOC(strlen(indexToHMSFbeforeEnd)+1, "indexToHMSFbeforeEnd");
-            }
-
-            char *indexToHMSFafterStart  = marks->IndexToHMSF(overlapPos.similarAfterStart, false);
-            if (indexToHMSFafterStart) {
-                ALLOC(strlen(indexToHMSFafterStart)+1, "indexToHMSFafterStart");
-            }
-
-            char *indexToHMSFafterEnd    = marks->IndexToHMSF(overlapPos.similarAfterEnd, false);
-            if (indexToHMSFafterEnd) {
-                ALLOC(strlen(indexToHMSFafterEnd)+1, "indexToHMSFafterEnd");
-            }
-
-            dsyslog("cOverlap::ProcessMarksOverlap(): similar from (%5d) at %s to (%5d) at %s, length %5dms", overlapPos.similarBeforeStart, indexToHMSFbeforeStart, overlapPos.similarBeforeEnd, indexToHMSFbeforeEnd, lengthBefore);
-            dsyslog("cOverlap::ProcessMarksOverlap():              (%5d) at %s to (%5d) at %s, length %5dms",     overlapPos.similarAfterStart,  indexToHMSFafterStart,  overlapPos.similarAfterEnd,  indexToHMSFafterEnd, lengthAfter);
-            dsyslog("cOverlap::ProcessMarksOverlap():              maximum deviation in overlap %6d", overlapPos.similarMax);
-            if (overlapPos.similarEnd > 0) dsyslog("cOverlap::ProcessMarksOverlap():              next deviation after overlap %6d", overlapPos.similarEnd); // can be 0 if overlap ends at the mark
-
-            const char *indexToHMSFmark1  = marks->GetTime(*mark1);
-            const char *indexToHMSFmark2  = marks->GetTime(*mark2);
-
-            int gapStop          = ((*mark1)->position - overlapPos.similarBeforeEnd)   / frameRate;
-            int lengthBeforeStop = ((*mark1)->position - overlapPos.similarBeforeStart) / frameRate;
-            int gapStart         = (overlapPos.similarAfterStart - (*mark2)->position)  / frameRate;
-            int lengthAfterStart = (overlapPos.similarAfterEnd - (*mark2)->position)    / frameRate;
-
-            if (indexToHMSFbeforeStart && indexToHMSFbeforeEnd && indexToHMSFafterStart && indexToHMSFafterEnd && indexToHMSFmark1 && indexToHMSFmark2) {
-                dsyslog("cOverlap::ProcessMarksOverlap(): overlap from (%6d) at %s to (%6d) at %s, before stop mark gap %3ds length %3ds, are identical with",overlapPos.similarBeforeEnd, indexToHMSFbeforeEnd, (*mark1)->position, indexToHMSFmark1, gapStop, lengthBeforeStop);
-                dsyslog("cOverlap::ProcessMarksOverlap():              (%6d) at %s to (%6d) at %s, after start mark gap %3ds length %3ds", (*mark2)->position, indexToHMSFmark2, overlapPos.similarAfterEnd, indexToHMSFafterEnd, gapStart, lengthAfterStart);
-            }
-            if (indexToHMSFbeforeStart) {
-                FREE(strlen(indexToHMSFbeforeStart)+1, "indexToHMSFbeforeStart");
-                free(indexToHMSFbeforeStart);
-            }
-            if (indexToHMSFbeforeEnd) {
-                FREE(strlen(indexToHMSFbeforeEnd)+1, "indexToHMSFbeforeEnd");
-                free(indexToHMSFbeforeEnd);
-            }
-            if (indexToHMSFafterStart) {
-                FREE(strlen(indexToHMSFafterStart)+1, "indexToHMSFafterStart");
-                free(indexToHMSFafterStart);
-            }
-            if (indexToHMSFafterEnd) {
-                FREE(strlen(indexToHMSFafterEnd)+1, "indexToHMSFafterEnd");
-                free(indexToHMSFafterEnd);
-            }
-            // check overlap gap
-            int gapStartMax = 16;                // changed gapStart from 21 to 18 to 16
-            if (gapStop > 0) gapStartMax = 14;   // smaller valid diff if we do not hit stop mark, if both are not 0, this can be a invalid overlap
-            else if (((*mark2)->type == MT_LOGOSTART) && (lengthBefore >= 38080)) gapStartMax = 21;  // trust long overlaps, there can be info logo after logo start mark
-
-            if (((*mark2)->type == MT_ASPECTSTART) || ((*mark2)->type == MT_VBORDERSTART)) gapStartMax = 7; // for strong marks we can check with a lower value
-            dsyslog("cOverlap::ProcessMarksOverlap(): maximum valid gap after start mark: %ds", gapStartMax);
-            if ((lengthBefore >= 46640) ||                            // very long overlaps should be valid
-                    ((gapStop < 23) && (gapStart == 0)) ||            // if we hit start mark, trust greater stop gap, maybe we have no correct stop mark, changed from 34 to 23
-                    ((gapStop < 15) && (gapStart <= gapStartMax))) {  // we can not detect all similars during a scene changes, changed from 27 to 15
-                // but if it is too far away it is a false positiv
-                // changed gapStop from 36 to 27
-                dsyslog("cOverlap::ProcessMarksOverlap(): overlap gap to marks are valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
-                *mark1 = marks->Move((*mark1), overlapPos.similarBeforeEnd, MT_OVERLAPSTOP);
-                if (!(*mark1)) {
-                    esyslog("cOverlap::ProcessMarksOverlap(): move stop mark failed");
-                    return false;
-                }
-                *mark2 = marks->Move((*mark2), overlapPos.similarAfterEnd,  MT_OVERLAPSTART);
-                if (!(*mark2)) {
-                    esyslog("cOverlap::ProcessMarksOverlap(): move start mark failed");
-                    return false;
-                }
-            }
-            else dsyslog("cOverlap::ProcessMarksOverlap(): overlap gap to marks are not valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
-            return true;
+        char *indexToHMSFbeforeStart = marks->IndexToHMSF(overlapPos.similarBeforeStart, false);
+        if (indexToHMSFbeforeStart) {
+            ALLOC(strlen(indexToHMSFbeforeStart)+1, "indexToHMSFbeforeStart");
         }
+
+        char *indexToHMSFbeforeEnd   = marks->IndexToHMSF(overlapPos.similarBeforeEnd, false);
+        if (indexToHMSFbeforeEnd) {
+            ALLOC(strlen(indexToHMSFbeforeEnd)+1, "indexToHMSFbeforeEnd");
+        }
+
+        char *indexToHMSFafterStart  = marks->IndexToHMSF(overlapPos.similarAfterStart, false);
+        if (indexToHMSFafterStart) {
+            ALLOC(strlen(indexToHMSFafterStart)+1, "indexToHMSFafterStart");
+        }
+
+        char *indexToHMSFafterEnd    = marks->IndexToHMSF(overlapPos.similarAfterEnd, false);
+        if (indexToHMSFafterEnd) {
+            ALLOC(strlen(indexToHMSFafterEnd)+1, "indexToHMSFafterEnd");
+        }
+
+        dsyslog("cOverlap::ProcessMarksOverlap(): similar from (%5d) at %s to (%5d) at %s, length %5dms", overlapPos.similarBeforeStart, indexToHMSFbeforeStart, overlapPos.similarBeforeEnd, indexToHMSFbeforeEnd, lengthBefore);
+        dsyslog("cOverlap::ProcessMarksOverlap():              (%5d) at %s to (%5d) at %s, length %5dms",     overlapPos.similarAfterStart,  indexToHMSFafterStart,  overlapPos.similarAfterEnd,  indexToHMSFafterEnd, lengthAfter);
+        dsyslog("cOverlap::ProcessMarksOverlap():              maximum deviation in overlap %6d", overlapPos.similarMax);
+        if (overlapPos.similarEnd > 0) dsyslog("cOverlap::ProcessMarksOverlap():              next deviation after overlap %6d", overlapPos.similarEnd); // can be 0 if overlap ends at the mark
+
+        const char *indexToHMSFmark1  = marks->GetTime(*mark1);
+        const char *indexToHMSFmark2  = marks->GetTime(*mark2);
+
+        int gapStop          = ((*mark1)->position - overlapPos.similarBeforeEnd)   / frameRate;
+        int lengthBeforeStop = ((*mark1)->position - overlapPos.similarBeforeStart) / frameRate;
+        int gapStart         = (overlapPos.similarAfterStart - (*mark2)->position)  / frameRate;
+        int lengthAfterStart = (overlapPos.similarAfterEnd - (*mark2)->position)    / frameRate;
+
+        if (indexToHMSFbeforeStart && indexToHMSFbeforeEnd && indexToHMSFafterStart && indexToHMSFafterEnd && indexToHMSFmark1 && indexToHMSFmark2) {
+            dsyslog("cOverlap::ProcessMarksOverlap(): overlap from (%6d) at %s to (%6d) at %s, before stop mark gap %3ds length %3ds, are identical with",overlapPos.similarBeforeEnd, indexToHMSFbeforeEnd, (*mark1)->position, indexToHMSFmark1, gapStop, lengthBeforeStop);
+            dsyslog("cOverlap::ProcessMarksOverlap():              (%6d) at %s to (%6d) at %s, after start mark gap %3ds length %3ds", (*mark2)->position, indexToHMSFmark2, overlapPos.similarAfterEnd, indexToHMSFafterEnd, gapStart, lengthAfterStart);
+        }
+        if (indexToHMSFbeforeStart) {
+            FREE(strlen(indexToHMSFbeforeStart)+1, "indexToHMSFbeforeStart");
+            free(indexToHMSFbeforeStart);
+        }
+        if (indexToHMSFbeforeEnd) {
+            FREE(strlen(indexToHMSFbeforeEnd)+1, "indexToHMSFbeforeEnd");
+            free(indexToHMSFbeforeEnd);
+        }
+        if (indexToHMSFafterStart) {
+            FREE(strlen(indexToHMSFafterStart)+1, "indexToHMSFafterStart");
+            free(indexToHMSFafterStart);
+        }
+        if (indexToHMSFafterEnd) {
+            FREE(strlen(indexToHMSFafterEnd)+1, "indexToHMSFafterEnd");
+            free(indexToHMSFafterEnd);
+        }
+        // check overlap gap
+        int gapStartMax = 16;                // changed gapStart from 21 to 18 to 16
+        if (gapStop > 0) gapStartMax = 14;   // smaller valid diff if we do not hit stop mark, if both are not 0, this can be a invalid overlap
+        else if (((*mark2)->type == MT_LOGOSTART) && (lengthBefore >= 38080)) gapStartMax = 21;  // trust long overlaps, there can be info logo after logo start mark
+
+        if (((*mark2)->type == MT_ASPECTSTART) || ((*mark2)->type == MT_VBORDERSTART)) gapStartMax = 7; // for strong marks we can check with a lower value
+        dsyslog("cOverlap::ProcessMarksOverlap(): maximum valid gap after start mark: %ds", gapStartMax);
+        if ((lengthBefore >= 46640) ||                            // very long overlaps should be valid
+                ((gapStop < 23) && (gapStart == 0)) ||            // if we hit start mark, trust greater stop gap, maybe we have no correct stop mark, changed from 34 to 23
+                ((gapStop < 15) && (gapStart <= gapStartMax))) {  // we can not detect all similars during a scene changes, changed from 27 to 15
+            // but if it is too far away it is a false positiv
+            // changed gapStop from 36 to 27
+            dsyslog("cOverlap::ProcessMarksOverlap(): overlap gap to marks are valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
+            *mark1 = marks->Move((*mark1), overlapPos.similarBeforeEnd, MT_OVERLAPSTOP);
+            if (!(*mark1)) {
+                esyslog("cOverlap::ProcessMarksOverlap(): move stop mark failed");
+                return false;
+            }
+            *mark2 = marks->Move((*mark2), overlapPos.similarAfterEnd,  MT_OVERLAPSTART);
+            if (!(*mark2)) {
+                esyslog("cOverlap::ProcessMarksOverlap(): move start mark failed");
+                return false;
+            }
+        }
+        else dsyslog("cOverlap::ProcessMarksOverlap(): overlap gap to marks are not valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
+        return true;
     }
     return false;
 }
@@ -334,8 +339,7 @@ cOverlapAroundAd::~cOverlapAroundAd() {
     }
 }
 
-void cOverlapAroundAd::Process(sVideoPicture *picture, sOverlapPos *overlapPos, const int frameNumber, const int frameCount, const bool beforeAd, const bool h264) {
-    if (!overlapPos) return;
+void cOverlapAroundAd::Process(sVideoPicture *picture, const int frameNumber, const int frameCount, const bool beforeAd, const bool h264) {
 #ifdef DEBUG_OVERLAP
     dsyslog("cOverlapAroundAd::Process(): frameNumber %d, frameCount %d, beforeAd %d, isH264 %d", frameNumber, frameCount, beforeAd, h264);
 #endif
@@ -378,14 +382,6 @@ void cOverlapAroundAd::Process(sVideoPicture *picture, sOverlapPos *overlapPos, 
             ALLOC(sizeof(*histbuf[OV_AFTER]), "histbuf");
         }
 
-        if (histcnt[OV_AFTER] >= histframes[OV_AFTER] - 3) {  // for interlaced videos, we will not get some start frames
-            dsyslog("cOverlapAroundAd::Process(): start compare frames");
-            Detect(overlapPos);
-#ifdef DEBUG_OVERLAP
-            dsyslog("cOverlapAroundAd::Process(): overlap from (%d) before stop mark and (%d) after start mark", overlapPos->similarBeforeEnd, overlapPos->similarAfterEnd);
-#endif
-            return;
-        }
         // fill histogram for frames before after start mark
         if (histcnt[OV_AFTER] >= frameCount) {
             dsyslog("cOverlapAroundAd::Process(): got more frames after start mark than expected");

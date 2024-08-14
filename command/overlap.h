@@ -34,13 +34,18 @@ public:
      * if beforeAd == true preload frames before stop mark in histogram buffer array, otherwise preload frames after start mark <br>
      * if we got frameCount, start compare
      * @param[in]     picture      video picture
-     * @param[in,out] overlapPos   new stop and start mark pair after overlap detection, -1 if no overlap was found
      * @param[in]     frameNumber  current frame number
      * @param[in]     frameCount   number of frames to process
      * @param[in]     beforeAd     true if called with a frame before advertising, false otherwise
      * @param[in]     h264         true if HD video, false otherwise
      */
-    void Process(sVideoPicture *picture, sOverlapPos *overlapPos, const int frameNumber, const int frameCount, const bool beforeAd, const bool h264);
+    void Process(sVideoPicture *picture, const int frameNumber, const int frameCount, const bool beforeAd, const bool h264);
+
+    /**
+     * detect overlaps before and after advertising
+     * @param[in,out] overlapPos new stop and start mark pair after overlap detection, -1 if no overlap was found
+     */
+    void Detect(sOverlapPos *overlapPos);
 
 private:
 
@@ -66,12 +71,6 @@ private:
      * @param[in,out] dest       histogram
      */
     void GetHistogram(sVideoPicture *picture, simpleHistogram &dest) const;
-
-    /**
-     * detect overlaps before and after advertising
-     * @param[in,out] overlapPos new stop and start mark pair after overlap detection, -1 if no overlap was found
-     */
-    void Detect(sOverlapPos *overlapPos);
 
     /**
      * histogram buffer for overlap detection
