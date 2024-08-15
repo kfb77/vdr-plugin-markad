@@ -688,7 +688,7 @@ int cDetectLogoStopStart::FindFrameFirstPixel(const uchar *picture, const int co
     int searchY       = startY;   // keep startY for debug function
 #endif
 
-    while ((startX >= X_BOUNDARY) && (startX < (width - X_BOUNDARY) && (startY >= Y_BOUNDARY) && (startY < (height - Y_BOUNDARY)))) {
+    while ((startX >= X_BOUNDARY) && (startX <= (width - X_BOUNDARY) && (startY >= Y_BOUNDARY) && (startY <= (height - Y_BOUNDARY)))) {
         if (picture[startY * width + startX] == 0) {  // pixel found
             foundX = startX;
             foundY = startY;
