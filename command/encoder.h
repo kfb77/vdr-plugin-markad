@@ -219,6 +219,8 @@ private:
     //!<
     int pass                          = 0;                        //!< encoding pass
     //!<
+    int64_t pts[MAXSTREAMS]           = {0};                      //!< pts of last output packet
+    //!<
     int64_t dts[MAXSTREAMS]           = {0};                      //!< dts of last output packet
     //!<
     AVPixelFormat software_pix_fmt                = AV_PIX_FMT_NONE;  //!< software pixel format from decoder

@@ -220,6 +220,7 @@ void cEncoder::Reset(const int passEncoder) {
     cutInfo = {0};
     pass    = passEncoder;
     for (unsigned int i = 0; i < MAXSTREAMS; i++) {
+        pts[i] = 0;
         dts[i] = 0;
     }
 #ifdef DEBUG_PTS_DTS_CUT
@@ -1462,7 +1463,15 @@ bool cEncoder::SendFrameToEncoder(const int streamIndexOut, AVFrame *avFrame) {
     LogSeparator();
 #endif
     // correct PTS uncut to PTS after cut
-    if (avFrame) avFrame->pts -= cutInfo.offset;  // can be nullptr to flush buffer
+    if (avFrame) {
+        avFrame->pts -= cutInfo.offset;  // can be nullptr to flush buffer
+        if (avFrame->pts < pts[streamIndexOut]) {
+            dsyslog("cEncoder::SendFrameToEncoder(): decoder packet (%5d), stream %d: pts %" PRId64 " <= last pts %" PRId64 ", drop packet", decoder->GetPacketNumber(), streamIndexOut, avFrame->pts, dts[streamIndexOut]);
+            return true;   // can happen if we have recording errors
+        }
+        pts[streamIndexOut] = avFrame->pts;
+    }
+
     int rcSend = avcodec_send_frame(codecCtxArrayOut[streamIndexOut], avFrame);
     if (rcSend < 0) {
         switch (rcSend) {
