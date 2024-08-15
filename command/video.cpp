@@ -323,6 +323,13 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo area before reduction: contrast %3d, brightness %3d", decoder->GetPacketNumber(), contrastLogo, brightnessLogo);
 #endif
 
+    // transparent logo decetion on bright backbround is imposible, changed from 189 to 173
+    if (criteria->LogoTransparent() && (brightnessLogo >= 170)) {
+#ifdef DEBUG_LOGO_DETECTION
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d) with transparent logo too bright %d for detection", decoder->GetPacketNumber(), brightnessLogo);
+#endif
+        return false;
+    }
 // check if contrast and brightness is valid
 // build a curve from examples
 
@@ -740,7 +747,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
     // - part of logo in black screen as stop mark instead of no logo (Comedy_Central)
 #define AREA_INTENSITY_TRUST    54 // we trust detection, use higher invisible value
 #define QUOTE_TRUST              2 // uplift factor for logo invisible threshold
-    if (area.intensity <= AREA_INTENSITY_TRUST) logo_imark *= QUOTE_TRUST;
+    if (!criteria->LogoTransparent() && (area.intensity <= AREA_INTENSITY_TRUST)) logo_imark *= QUOTE_TRUST;
 
 #ifdef DEBUG_LOGO_DETECTION
     char detectStatus[] = "o";
@@ -764,7 +771,7 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
         }
 
         // transparent logo decetion on bright backbround is imposible, changed from 189 to 173
-        if (criteria->LogoTransparent() && (area.intensity >= 161)) {  // changed from 173 to 161
+        if (criteria->LogoTransparent() && (area.intensity >= 154)) {  // changed from 161 to 154
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cLogoDetect::Detect(): frame (%6d) with transparent logo too bright %d for detection", packetNumber, area.intensity);
 #endif
