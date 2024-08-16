@@ -926,13 +926,13 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
                 if (rcAudio < 0) {
                     char errTXT[64] = {0};
                     av_strerror(rcAudio, errTXT, sizeof(errTXT));
-                    esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int in_channel_layout to %lu failed: %s", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, errTXT);
+                    esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int in_channel_layout to %" PRIu64 " failed: %s", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, errTXT);
                 }
                 rcAudio = av_opt_set_int(swrArray[streamIndexOut], "out_channel_layout", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, 0);
                 if (rcAudio < 0) {
                     char errTXT[64] = {0};
                     av_strerror(rcAudio, errTXT, sizeof(errTXT));
-                    esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int out_channel_layout to %lu failed: %s", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, errTXT);
+                    esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int out_channel_layout to %" PRIu64 " failed: %s", codecCtxArrayIn[streamIndexIn]->ch_layout.u.mask, errTXT);
                 }
 #else
                 if (av_opt_set_int(swrArray[streamIndexOut], "in_channel_layout",  codecCtxArrayIn[streamIndexIn]->channel_layout,   0) < 0) esyslog("cEncoder::InitEncoderCodec(): av_opt_set_int in_channel_layout failed");
