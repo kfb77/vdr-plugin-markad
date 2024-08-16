@@ -178,7 +178,7 @@ int cDecoder::ResetToSW() {
     // init decoder without hwaccel
     dsyslog("cDecoder::ResetToSW(): reset hardware decoder und init software decoder");
     Reset();
-    useHWaccel   = false;
+    useHWaccel = false;
     ReadNextFile();  // re-init decoder without hwaccel
     ReadPacket();
     return(SendPacketToDecoder(false));
@@ -237,7 +237,12 @@ bool cDecoder::ReadNextFile() {
     int fileExists = stat(filename, &buffer);
     if (fileExists == 0 ) {
         dsyslog("cDecoder:::ReadNextFile(): next file %s found", filename);
-        ret = InitDecoder(filename); // decode file
+        ret = InitDecoder(filename);
+        if (!ret && useHWaccel) {
+            esyslog("cDecoder:::ReadNextFile(): init decoder with hwaccel %s failed, try fallback to software decoder", hwaccel);
+            useHWaccel = false;
+            ret = InitDecoder(filename);
+        }
     }
     else {
         dsyslog("cDecoder:::ReadNextFile(): next file %s does not exists", filename);
@@ -298,6 +303,13 @@ void cDecoder::FreeCodecContext() {
 
 }
 
+
+const AVCodec *cDecoder::GetCodec(AVCodecID codecID) const {
+    if (useHWaccel && (hwDeviceType == AV_HWDEVICE_TYPE_DRM) && (codecID == AV_CODEC_ID_H264)) return avcodec_find_decoder_by_name("h264_v4l2m2m");
+    return avcodec_find_decoder(codecID);
+}
+
+
 bool cDecoder::InitDecoder(const char *filename) {
     if (!filename) return false;
 
@@ -331,7 +343,8 @@ bool cDecoder::InitDecoder(const char *filename) {
 
     for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
         AVCodecID codec_id = avctx->streams[streamIndex]->codecpar->codec_id;
-        codec = avcodec_find_decoder(codec_id);
+        const AVCodec *codec = nullptr;
+        codec = GetCodec(codec_id);
         if (!codec) {  // ignore not supported DVB subtitle by libavcodec
 #if LIBAVCODEC_VERSION_INT < ((59<<16)+(18<<8)+100)
             if (codec_id == 100359)
@@ -348,7 +361,7 @@ bool cDecoder::InitDecoder(const char *filename) {
             }
         }
 
-        dsyslog("cDecoder::InitDecoder(): using decoder for stream %i: codec id %5i -> %s", streamIndex, codec_id, codec->long_name);
+        dsyslog("cDecoder::InitDecoder(): using decoder for stream %d: codec id %5d -> %5d %s", streamIndex, codec_id, codec->id, codec->long_name);
         if (useHWaccel && !forceHWaccel && (codec_id == AV_CODEC_ID_MPEG2VIDEO)) {
             dsyslog("cDecoder::InitDecoder(): hwaccel is slower than software decoding with this codec, disable hwaccel");
             useHWaccel = false;
@@ -358,7 +371,7 @@ bool cDecoder::InitDecoder(const char *filename) {
         }
 
         // check if hardware acceleration device type supports codec, only video supported by FFmpeg
-        if (useHWaccel && IsVideoStream(streamIndex)) {
+        if (useHWaccel && (hwDeviceType != AV_HWDEVICE_TYPE_DRM) && IsVideoStream(streamIndex)) {
             for (int i = 0; ; i++) {
                 const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
                 if (!config) {
@@ -366,6 +379,7 @@ bool cDecoder::InitDecoder(const char *filename) {
                     useHWaccel= false;
                     break;
                 }
+                dsyslog("cDecoder::InitDecoder(): codec %s , config->methods %d, hwDeviceType %d %s, config->device_type %d %s, pixel format %d %s", codec->name, config->methods, hwDeviceType, av_hwdevice_get_type_name(hwDeviceType), config->device_type, av_hwdevice_get_type_name(config->device_type), config->pix_fmt, av_get_pix_fmt_name(config->pix_fmt));
                 if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) && (config->device_type == hwDeviceType)) {
                     hw_pix_fmt = config->pix_fmt;
                     hwPixelFormat = config->pix_fmt;
@@ -855,7 +869,10 @@ void cDecoder::DropFrameFromGPU() {
 
 
 bool cDecoder::ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat) {
-    if (!frameValid) return false;
+    if (!frameValid) {
+        dsyslog("cDecoder::ConvertVideoPixelFormat(): frame not valid");
+        return false;
+    }
     Time(true);
     av_frame_unref(&avFrameConvert);
     avFrameConvert.width  = GetVideoWidth();
@@ -912,14 +929,28 @@ bool cDecoder::ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat) {
 
 
 sVideoPicture *cDecoder::GetVideoPicture() {
-    if (!frameValid)     return nullptr;
-    if (!IsVideoFrame()) return nullptr;
-    if (videoPicture.packetNumber == packetNumber) return &videoPicture;  // use cached picture
+    if (!frameValid) {
+        dsyslog("cDecoder::GetVideoPicture(): frame not valid");
+        return nullptr;
+    }
+    if (!IsVideoFrame()) {
+        dsyslog("cDecoder::GetVideoPicture(): no video frame");
+        return nullptr;
+    }
+    Time(true);
+    if (videoPicture.packetNumber == packetNumber) {
+        Time(false);
+        return &videoPicture;  // use cached picture
+    }
 
     AVFrame *avFrameResult = &avFrame;
     // have to convert pixel format to AV_PIX_FMT_YUV420P
     if (avFrame.format != AV_PIX_FMT_YUV420P) {
-        if (!ConvertVideoPixelFormat(AV_PIX_FMT_YUV420P)) return nullptr;    // we always use AV_PIX_FMT_YUV420P for mark detection
+        if (!ConvertVideoPixelFormat(AV_PIX_FMT_YUV420P)) {
+            dsyslog("cDecoder::GetVideoPicture(): ConvertVideoPixelFormat() from %d to %d failed", avFrame.format, AV_PIX_FMT_YUV420P);
+            Time(false);
+            return nullptr;    // we always use AV_PIX_FMT_YUV420P for mark detection
+        }
         avFrameResult = &avFrameConvert;
     }
 
@@ -936,9 +967,14 @@ sVideoPicture *cDecoder::GetVideoPicture() {
         videoPicture.packetNumber = packetNumber;
         videoPicture.width        = GetVideoWidth();
         videoPicture.height       = GetVideoHeight();
+        Time(false);
         return &videoPicture;
     }
-    else return nullptr;
+    else {
+        dsyslog("cDecoder::GetVideoPicture(): picture not valid");
+        Time(false);
+        return nullptr;
+    }
 }
 
 
@@ -1008,12 +1044,12 @@ void cDecoder::Time(bool start) {
 
 
 int cDecoder::SendPacketToDecoder(const bool flush) {
-    Time(true);
     if (!avctx) return AVERROR_EXIT;
     if (!IsVideoPacket() && !IsAudioPacket()) {
         esyslog("cDecoder::cDecoder::SendPacketToDecoder():     packet (%5d) stream %d: type not supported", packetNumber, avpkt.stream_index);
         return AVERROR_EXIT;
     }
+    Time(true);
 
 #ifdef DEBUG_DECODER
     LogSeparator();
@@ -1145,7 +1181,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
 
 // we got a frame check if we used hardware acceleration for this frame
     if (avFrame.hw_frames_ctx && !firstHWaccelReceivedOK) {
-        dsyslog("cDecoder::ReceiveFrameFromDecoder(): first video packet received from hwaccel decoder, codec and pixel format are valid");
+        dsyslog("cDecoder::ReceiveFrameFromDecoder(): first video frame received from hwaccel decoder, codec and pixel format are valid");
         firstHWaccelReceivedOK = true;
     }
 
@@ -1158,11 +1194,16 @@ int cDecoder::ReceiveFrameFromDecoder() {
         dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%d), stream %d: frame corrupt: decode_error_flags %d, decoding errors %d", packetNumber, avpkt.stream_index, avFrame.decode_error_flags, decodeErrorCount);
         av_frame_unref(&avFrame);
         avcodec_flush_buffers(codecCtxArray[avpkt.stream_index]);
+        Time(false);
         return -EAGAIN;   // no valid frame, try decode next
     }
-    Time(false);
     // decoding successful, frame is valid
     frameValid = true;
+#ifdef DEBUG_DECODER
+    LogSeparator();
+    dsyslog("cDecoder::cDecoder::ReceiveFrameFromDecoder(): packet (%5d), stream %d: avFrame.pict_type %d, avcodec_receive_frame", packetNumber, avpkt.stream_index, avFrame.pict_type);
+#endif
+    Time(false);
     return 0;
 }
 
@@ -1195,6 +1236,7 @@ bool cDecoder::IsVideoKeyPacket() const {
 
 bool cDecoder::IsVideoFrame() const {
     if (!avctx) return false;
+    if ((hwDeviceType == AV_HWDEVICE_TYPE_DRM) && IsVideoPacket()) return true;  // avFrame.pict_type not set in DRM decoded H.264 B and P frames
     if (avFrame.pict_type == AV_PICTURE_TYPE_NONE) return false;
     return true;
 }

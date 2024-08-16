@@ -405,6 +405,12 @@ public:
     void DropFrameFromGPU();
 
 private:
+    /** get codec object from codec ID
+     * @param codecID   codec id
+     * @return pointer to codec, nullptr if not found
+     */
+    const AVCodec *GetCodec(AVCodecID codecID) const;
+
     /** convert frame pixel format to AV_PIX_FMT_YUV420P
      * @param pixelFormat   target pixel format
      * @return true if successful, false otherwise
@@ -460,13 +466,6 @@ private:
     //!<
     struct SwsContext *swsContext      = nullptr;                 //!< pixel format conversion context
     //!<
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100)               // FFmpeg 4.5
-    const AVCodec *codec               = nullptr;                 //!< codec
-    //!<
-#else
-    AVCodec *codec                     = nullptr;                 //!< codec
-    //!<
-#endif
     int fileNumber                     = 0;                       //!< current ts file number
     //!<
     int maxFileNumber                  = 0;                       //!< max ts file number
