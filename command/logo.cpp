@@ -534,11 +534,13 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMin =  48;
         }
 
-        // TELE_5                  16:9  720W  576H:->  110W  66H BOTTOM_RIGHT
-        // TELE_5                  16:9  720W  576H:->   70W  76H TOP_LEFT
-        // TELE_5                  16:9  720W  576H:->   96W  76H TOP_LEFT
-        // TELE_5                  16:9  720W  576H:->   98W  76H TOP_LEFT
-        // TELE_5                   4:3  720W  576H:->   96W  76H BOTTOM_RIGHT
+        //   1 TELE_5                  16:9  720W  576H:->  108W  64H BOTTOM_RIGHT
+        //   9 TELE_5                  16:9  720W  576H:->  108W  66H BOTTOM_RIGHT
+        //   1 TELE_5                  16:9  720W  576H:->  108W  68H BOTTOM_RIGHT
+        //   2 TELE_5                  16:9  720W  576H:->  108W  72H BOTTOM_RIGHT
+        //   1 TELE_5                   4:3  720W  576H:->  144W  66H BOTTOM_RIGHT
+        //
+        //   2 TELE_5                  16:9  720W  576H:->   70W  76H TOP_LEFT
         if (CompareChannelName(channelName, "TELE_5", IGNORE_NOTHING)) {
             switch (logoCorner) {
             case TOP_LEFT:
@@ -548,10 +550,10 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
                 logo.widthMax  =  71;
                 break;
             case BOTTOM_RIGHT:
-                logo.heightMin =  66;
-                logo.heightMax =  76;
-                logo.widthMin  =  70;
-                logo.widthMax  =  110;
+                logo.heightMin =  54;
+                logo.heightMax =  82;
+                logo.widthMin  =  98;
+                logo.widthMax  = 154;
                 break;
             default:                   // no logo possible
                 logo.heightMin =  INT_MAX;
