@@ -1547,7 +1547,7 @@ void cMarkAdStandalone::CheckStop() {
     if (!end && (criteria->GetMarkTypeState(MT_VBORDERCHANGE) >= CRITERIA_UNKNOWN)) end = Check_VBORDERSTOP();
 
 // try MT_LOGOSTOP
-    if (!end && (criteria->GetMarkTypeState(MT_LOGOCHANGE) >= CRITERIA_UNKNOWN)) end = Check_LOGOSTOP();
+    if (!end) end = Check_LOGOSTOP();   // logo detection can be disabled in end part after aspect ratio change
     // detect very short channel start before, this is start from next broadcast
     if (end && (criteria->GetMarkTypeState(MT_CHANNELCHANGE) < CRITERIA_USED)) {
         cMark *prevChannelStart = marks.GetPrev(end->position, MT_CHANNELSTART);
