@@ -1757,7 +1757,8 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
                         if (logoInfo->sobel[plane][(line) * width + column] == 0) {
                             blackPixel++;
                             if (blackPixel > 10) {
-                                haveBlack = true;
+                                haveBlack  = true;
+                                whiteLines = 0;
                                 break;
                             }
                         }
