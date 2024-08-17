@@ -3493,7 +3493,11 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             // MT_START ( 79040) ->   21s -> MT_STOP ( 79579) | -62s| ->  58s -> MT_START ( 81040) ->   4s -> MT_STOP ( 81151) |  0s|
             // MT_START (  7428) -> 1262s -> MT_STOP ( 38982) |-537s| -> 397s -> MT_START ( 48924) -> 140s -> MT_STOP ( 52427) |  0s|
             // MT_START (  7642) -> 1263s -> MT_STOP ( 39236) |-536s| -> 362s -> MT_START ( 48297) -> 173s -> MT_STOP ( 52641) |  0s|
-            else if ((diffPrevStopAssumed >= -537) && (lastAd <= 401) && (lastBroadcast <= 173)) {
+            // MT_START (  5836) -> 1311s -> MT_STOP ( 38629) |-488s| -> 486s -> MT_START ( 50798) ->   1s -> MT_STOP ( 50835) |  0s|
+            // MT_START (  8450) -> 1296s -> MT_STOP ( 40853) |-503s| -> 307s -> MT_START ( 48532) -> 196s -> MT_STOP ( 53449) |  0s|
+            // MT_START ( 10748) -> 1311s -> MT_STOP ( 43547) |-488s| -> 265s -> MT_START ( 50185) -> 211s -> MT_STOP ( 55461) |-11s|   // assumed stop after recording end
+            // MT_START (  7443) -> 1303s -> MT_STOP ( 40021) |-496s| -> 278s -> MT_START ( 46979) -> 218s -> MT_STOP ( 52442) |  0s|
+            else if ((diffPrevStopAssumed >= -537) && (lastBroadcast <= 218)) {
                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last broadcast too short", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
