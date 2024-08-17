@@ -404,8 +404,13 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMin =  72;
         }
 
-        if (CompareChannelName(channelName, "MDR_Sachsen", IGNORE_NOTHING)) {           // MDR_Sachsen             16:9  720W  576H:->   92W  56H TOP_LEFT
-            logo.heightMin =  56;
+//   1 MDR_Sachsen_HD          16:9 1280W  720H:->  160W  68H TOP_LEFT
+//   1 MDR_Sachsen_HD          16:9 1280W  720H:->  162W  68H TOP_LEFT
+        if (CompareChannelName(channelName, "MDR_HD", IGNORE_CITY)) {
+            logo.widthMin  = 150;
+            logo.widthMax  = 172;
+            logo.heightMin =  58;
+            logo.heightMax =  78;
         }
 
         // kabel_eins_Doku         16:9  720W  576H:->  132W  64H TOP_RIGHT
@@ -421,21 +426,35 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax =  74;
         }
 
+//     Nickelodeon             16:9  720W  576H:    150W  94H TOP_LEFT   -> invalid ad logo
+//
+//   1 Nickelodeon             16:9  720W  576H:->  144W  90H TOP_LEFT
+//   6 Nickelodeon             16:9  720W  576H:->  146W  88H TOP_LEFT
+//   5 Nickelodeon             16:9  720W  576H:->  146W  90H TOP_LEFT
+//   1 Nickelodeon             16:9  720W  576H:->  154W  84H TOP_LEFT
+//   1 Nickelodeon             16:9  720W  576H:->  170W  80H TOP_LEFT
+//   2 Nickelodeon             16:9  720W  576H:->  176W  80H TOP_LEFT
+//   4 Nickelodeon             16:9  720W  576H:->  180W  78H TOP_LEFT
+//  19 Nickelodeon             16:9  720W  576H:->  180W  80H TOP_LEFT
+//   5 Nickelodeon             16:9  720W  576H:->  182W  78H TOP_LEFT
+//   1 Nickelodeon             16:9  720W  576H:->  182W  80H TOP_LEFT
+//   3 Nickelodeon             16:9  720W  576H:->  184W  78H TOP_LEFT
+//   4 Nickelodeon             16:9  720W  576H:->  184W  80H TOP_LEFT
+        if (CompareChannelName(channelName, "Nickelodeon", IGNORE_NOTHING)) {
+            logo.widthMin  = 134;
+            logo.widthMax  = 194;
+            logo.heightMin =  68;
+            logo.heightMax =  93;
+            logo.corner    = TOP_LEFT;  // too much different logos, but all in same corner
+        }
+
         // NICK_CC+1               16:9  720W  576H:->  146W  88H TOP_LEFT
         // NICK_CC+1               16:9  720W  576H:->  146W  92H TOP_LEFT
         // NICK_CC+1               16:9  720W  576H:->  148W  92H TOP_LEFT
-        // Nickelodeon             16:9  720W  576H:->  146W  88H TOP_LEFT
-        // Nickelodeon             16:9  720W  576H:->  146W  90H TOP_LEFT
-        // Nickelodeon             16:9  720W  576H:->  180W  78H TOP_LEFT
-        // Nickelodeon             16:9  720W  576H:->  180W  80H TOP_LEFT
-        // Nickelodeon             16:9  720W  576H:->  182W  78H TOP_LEFT
-        // Nickelodeon             16:9  720W  576H:->  184W  78H TOP_LEFT
-        // Nickelodeon             16:9  720W  576H:->  184W  80H TOP_LEFT
         // NICK_MTV+               16:9  720W  576H:->  146W  88H TOP_LEFT
         // NICK_MTV+               16:9  720W  576H:->  146W  90H TOP_LEFT
         if (CompareChannelName(channelName, "NICK_CC+1", IGNORE_NOTHING) ||
-                CompareChannelName(channelName, "NICK_MTV+", IGNORE_NOTHING) ||
-                CompareChannelName(channelName, "Nickelodeon", IGNORE_NOTHING)) {
+                CompareChannelName(channelName, "NICK_MTV+", IGNORE_NOTHING)) {
             logo.widthMin  = 144;
             logo.widthMax  = 184;
             logo.heightMin =  78;
@@ -800,7 +819,10 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
 
         // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
         if (CompareChannelName(channelName, "arte_HD", IGNORE_NOTHING)) {
-            logo.widthMax = 130;
+            logo.widthMin  = 120;
+            logo.widthMax  = 140;
+            logo.heightMin = 190;
+            logo.heightMax = 210;
         }
 
         // Kutonen_HD              16:9 1920W 1080H:->  252W 142H TOP_RIGHT
@@ -1350,13 +1372,15 @@ bool cExtractLogo::CheckValid(const sLogoInfo *actLogoInfo, const int corner) {
 #define WHITEHORIZONTAL_BIG   20
 #define WHITEHORIZONTAL_SMALL 10
     if (corner <= TOP_RIGHT) {
-        for (int i = 0 ; i < WHITEHORIZONTAL_BIG * area.logoSize.width; i++) { // a valid top logo should have a white top part
-            if ((actLogoInfo->sobel[0][i] == 0) ||
-                    ((i < WHITEHORIZONTAL_BIG * area.logoSize.width / 4) && ((actLogoInfo->sobel[1][i] == 0) || (actLogoInfo->sobel[2][i] == 0)))) {
+        // check for big white space above logo
+        for (int line = 0; line < WHITEHORIZONTAL_BIG; line++) {
+            for (int column = 0; column < area.logoSize.width; column++) {
+                if (actLogoInfo->sobel[0][line * area.logoSize.width + column] == 0) {
 #ifdef DEBUG_LOGO_CORNER
-                if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white top part", actLogoInfo->frameNumber, aCorner[corner]);
+                    if (corner == DEBUG_LOGO_CORNER) dsyslog("cExtractLogo::CheckValid(): frame (%5d): logo %s has no big white top part", actLogoInfo->frameNumber, aCorner[corner]);
 #endif
-                return false;
+                    return false;
+                }
             }
         }
         if ((corner != TOP_RIGHT) || !CompareChannelName(channelName, "SPORT1", IGNORE_NOTHING)) { // this channels have sometimes a big preview text below the logo on the right side
