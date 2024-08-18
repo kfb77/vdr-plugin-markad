@@ -42,6 +42,7 @@ enum {
 };
 
 enum {
+    BLACKSCREEN_ERROR         = -4,
     BLACKSCREEN_UNINITIALIZED = -3,
     BLACKLOWER_INVISIBLE      = -2,
     BLACKSCREEN_INVISIBLE     = -1,

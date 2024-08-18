@@ -1161,15 +1161,15 @@ int cBlackScreenDetect::Process() {
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cBlackScreenDetect::Process(): picture not valid");
-        return VBORDER_ERROR;
+        return BLACKSCREEN_ERROR;
     }
     if(!picture->plane[0]) {
         dsyslog("cBlackScreenDetect::Process()(): picture plane 0 not valid");
-        return VBORDER_ERROR;
+        return BLACKSCREEN_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
         dsyslog("cBlackScreenDetect::Process()(): picture planeLineSize[0] valid");
-        return VBORDER_ERROR;
+        return BLACKSCREEN_ERROR;
     }
 
     int maxBrightnessAll;
