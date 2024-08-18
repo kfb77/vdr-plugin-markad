@@ -27,22 +27,41 @@ public:
     /**
      * all decoder performance test
      */
-    void Perf();
+    void Perf() const;
+
+private:
+    /**
+     * performance test result structure
+    */
+    typedef struct sPerfResult {
+        int pass        = 0;          //!< test run pass
+        //!<
+        int threads     = 0;          //!< count threads
+        //!<
+        char *hwaccel   = nullptr;    //!< hwaccel methode
+        //!<
+        double decode   = 0;          //!< avg time to read from file and decoding
+        //!<
+        double transfer = 0;          //!< avg time to transfert picture from GPU to CPU and convert pixel format
+        //!<
+        double read     = 0;          //!< avg time to read picture from memory
+        //!<
+        double test     = 0;          //!< time of whole test
+        //!<
+
+    } sPerfResult;
 
     /**
     * decoder performance test
-    * @param testFrames count of test rames for performance test
-    * @param threads    count of FFmpeg threads
-    * @param hwaccel    string of hwaccel methode
+    * @param result    performce test result
     */
-    int PerfDecoder(const int testFrames, const int threads, char *hwaccel) const;
+    void PerfDecoder(sPerfResult *result) const;
 
-private:
-    const char * recDir = nullptr;  //!< recording directory
+    const char * recDir    = nullptr;  //!< recording directory
     //!<
-    bool fullDecode     = false;    //!< true if full decoding, false if decoding only i-frames
+    bool fullDecode        = false;    //!< true if full decoding, false if decoding only i-frames
     //!<
-    char *hwaccel       = nullptr;  //!< hwaccel methode
+    char *hwaccel          = nullptr;  //!< hwaccel methode
     //!<
 };
 
