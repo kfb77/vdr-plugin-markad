@@ -1021,15 +1021,15 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cSceneChangeDetect::Process(): packet (%d): picture not valid", packetNumber);
-        return VBORDER_ERROR;
+        return SCENE_ERROR;
     }
     if(!picture->plane[0]) {
         dsyslog("cSceneChangeDetect::Process(): packet (%d): picture plane 0 not valid", packetNumber);
-        return VBORDER_ERROR;
+        return SCENE_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
         dsyslog("cSceneChangeDetect::Process(): packet (%d): picture planeLineSize[0] valid", packetNumber);
-        return VBORDER_ERROR;
+        return SCENE_ERROR;
     }
 
     // get simple histogramm from current frame
