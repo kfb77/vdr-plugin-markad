@@ -73,6 +73,34 @@ enum {
 };
 
 
+class cVideoTools {
+public:
+    /**
+     * class for basic video tools
+     */
+    cVideoTools() {};
+    ~cVideoTools() {};
+
+    /**
+     * get brightness of picture
+     * @param picture video picture
+     * @return avg pixel value
+     */
+    int GetPictureBrightness(sVideoPicture *picture);
+
+private:
+    /**
+      * picture brightness info
+      */
+    struct sPictureBrightness {
+        int packetNumber = -1 ;  //!< cached picture packet number
+        //!<
+        int brightness   = 0;    //!< avg pixel value of plane 0
+        //!<
+    } pictureBrightness;         //!< picture brightness info
+    //!<
+};
+
 
 /**
  * class to detect logo in recording
@@ -372,7 +400,7 @@ private:
 /**
  * class to detect vertical border
  */
-class cVertBorderDetect {
+class cVertBorderDetect : private cVideoTools {
 public:
 
     /**
@@ -402,26 +430,22 @@ public:
     void Clear(const bool isRestart = false);
 
 private:
-    cDecoder *decoder      = nullptr;   //!< pointer to decoder
+    cDecoder *decoder      = nullptr;                //!< pointer to decoder
     //!<
-    cCriteria *criteria       = nullptr;   //!< pointer to class with decoding states and criteria
+    cCriteria *criteria    = nullptr;                //!< pointer to class with decoding states and criteria
     //!<
-    bool logoInBorder         = false;     //!< true if channel has logo in border
+    bool logoInBorder      = false;                  //!< true if channel has logo in border
     //!<
-    bool infoInBorder         = false;     //!< true if channel has info banner in border
+    bool infoInBorder      = false;                  //!< true if channel has info banner in border
     //!<
-    int frameRate             = 0;         //!< frame rate of video
+    int frameRate          = 0;                      //!< frame rate of video
     //!<
-    int borderstatus;                      //!< status of vertical border detection
+    int borderstatus       = VBORDER_UNINITIALIZED;  //!< status of vertical border detection
     //!<
-    int borderframenumber     = -1;        //!< frame number of detected vertical border
+    int vBorderStart       = -1;                     //!< packet number from start of detected vertical border
     //!<
-    int darkFrameNumber       = INT_MAX;   //!< first vborder frame, but need to check, because of dark picture
+    bool valid             = false;                  //!< first vborder frame, but need to check, because of dark picture
     //!<
-#ifdef DEBUG_VBORDER
-    int minBrightness         = INT_MAX;
-    int maxBrightness         = 0;
-#endif
 };
 
 

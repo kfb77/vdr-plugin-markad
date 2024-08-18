@@ -18,6 +18,20 @@
 extern bool abortNow;
 
 
+int cVideoTools::GetPictureBrightness(sVideoPicture *picture) {
+    if (!picture) return -1;
+    if (picture->packetNumber == pictureBrightness.packetNumber) return pictureBrightness.brightness;
+
+    int  brightness = 0;
+    for (int line = 0; line < picture->height ; line++) {
+        for (int column = 9; column < picture->width; column++) brightness += picture->plane[0][(line * picture->planeLineSize[0] + column)];
+    }
+    pictureBrightness.packetNumber = picture->packetNumber;
+    pictureBrightness.brightness   = brightness / (picture->width * picture->height);
+    return pictureBrightness.brightness;
+}
+
+
 cLogoDetect::cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const int autoLogoParam, const char *logoCacheDirParam) {
     decoder      = decoderParam;
     index        = indexParam;
@@ -1404,13 +1418,13 @@ cVertBorderDetect::cVertBorderDetect(cDecoder *decoderParam, cCriteria *criteria
 void cVertBorderDetect::Clear(const bool isRestart) {
     if (isRestart) borderstatus = VBORDER_RESTART;
     else           borderstatus = VBORDER_UNINITIALIZED;
-    borderframenumber = -1;
-    darkFrameNumber   = INT_MAX;
+    vBorderStart = -1;
+    valid        = false;
 }
 
 
 int cVertBorderDetect::GetFirstBorderFrame() const {
-    if (borderstatus != VBORDER_VISIBLE) return borderframenumber;
+    if (borderstatus != VBORDER_VISIBLE) return vBorderStart;
     else return -1;
 }
 
@@ -1482,53 +1496,26 @@ int cVertBorderDetect::Process(int *borderFrame) {
     else valRight = INT_MAX;  // left side has no border, so we have not to check right side
 
 #ifdef DEBUG_VBORDER
-    dsyslog("cVertBorderDetect::Process(): frame (%7d): vborder status: %d, valLeft: %10d, valRight: %10d", frameNumber, borderstatus, valLeft, valRight);
-    if (darkFrameNumber < INT_MAX) dsyslog("cVertBorderDetect::Process(): frame (%7d):  frist vborder in dark picture: (%5d)", frameNumber, darkFrameNumber);
-    if (borderframenumber >= 0) dsyslog("cVertBorderDetect::Process(): frame (%7d):  frist vborder: [bright (%5d), dark (%5d)], duration: %ds", frameNumber, borderframenumber, darkFrameNumber, static_cast<int> ((frameNumber - borderframenumber) / frameRate));
+    dsyslog("cVertBorderDetect::Process(): packet (%6d): status: %d, left: %3d, right: %3d, limit: %d|%d, bright: %3d, start: (%5d), valid %d, duration: %3d", decoder->GetPacketNumber(), borderstatus, valLeft, valRight, brightnessSure, brightnessMaybe, GetPictureBrightness(picture), vBorderStart, valid, static_cast<int> ((decoder->GetPacketNumber() - vBorderStart) / frameRate));
 #endif
-#define BRIGHTNESS_MIN (38 * picture->height * picture->width)  // changed from 51 to 38, dark part with vborder
+
     if (((valLeft <= brightnessMaybe) && (valRight <= brightnessSure)) || ((valLeft <= brightnessSure) && (valRight <= brightnessMaybe))) {
         // vborder detected
-        if (borderframenumber == -1) {   // first vborder detected
-            // prevent false detection in a very dark scene, we have to get at least one vborder in a bright picture to accept start frame
-#ifndef DEBUG_VBORDER
-            bool end_loop   = false;
-#endif
-            int  brightness = 0;
-            for (int y = 0; y < picture->height ; y++) {
-                for (int x = 0; x < picture->width; x++) {
-                    brightness += picture->plane[0][x + (y * picture->planeLineSize[0])];
-                    if (brightness >= BRIGHTNESS_MIN) {
-#ifndef DEBUG_VBORDER
-                        end_loop = true;
-                        break;
-#endif
-                    }
-                }
-#ifndef DEBUG_VBORDER
-                if (end_loop) break;
-#endif
-            }
-            if (brightness < BRIGHTNESS_MIN) {
-                darkFrameNumber = std::min(darkFrameNumber, picture->packetNumber);  // set to first packet with vborder
+        if (vBorderStart == -1) {   // first vborder detected
+            vBorderStart = picture->packetNumber;
 #ifdef DEBUG_VBORDER
-                minBrightness = std::min(brightness, minBrightness);
-                maxBrightness = std::max(brightness, maxBrightness);
-                dsyslog("cVertBorderDetect::Process(): packet (%7d) has a dark picture: %d, delay vborder start at (%7d), minBrightness %d, maxBrightness %d", picture->packetNumber, brightness, darkFrameNumber, minBrightness, maxBrightness);
+            dsyslog("cVertBorderDetect::Process(): packet (%6d): vborder start detected", decoder->GetPacketNumber());
 #endif
-            }
-            else {
-                borderframenumber = std::min(picture->packetNumber, darkFrameNumber);      // use first vborder
+        }
+        if (!valid && (GetPictureBrightness(picture) > 61)) {
+            valid = true;
 #ifdef DEBUG_VBORDER
-                minBrightness = INT_MAX;
-                maxBrightness = 0;
-                dsyslog("cVertBorderDetect::Process(): packet (%7d) has a bright picture %d, accept vborder start at (%7d)", picture->packetNumber, brightness, borderframenumber);
+            dsyslog("cVertBorderDetect::Process(): packet (%6d): vborder start is valid", decoder->GetPacketNumber());
 #endif
-                darkFrameNumber = INT_MAX;
-            }
+
         }
         if (borderstatus != VBORDER_VISIBLE) {
-            if ((borderframenumber >= 0) && (picture->packetNumber > (borderframenumber + frameRate * MIN_V_BORDER_SECS))) {
+            if (valid && (vBorderStart >= 0) && (picture->packetNumber > (vBorderStart + frameRate * MIN_V_BORDER_SECS))) {
                 switch (borderstatus) {
                 case VBORDER_UNINITIALIZED:
                     *borderFrame = 0;
@@ -1537,25 +1524,22 @@ int cVertBorderDetect::Process(int *borderFrame) {
                     *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
                     break;
                 default:
-                    *borderFrame = borderframenumber;
+                    *borderFrame = vBorderStart;
                 }
                 borderstatus = VBORDER_VISIBLE; // detected start of black border
             }
         }
     }
     else {
-#ifdef DEBUG_VBORDER
-        minBrightness = INT_MAX;
-        maxBrightness = 0;
-#endif
         // no vborder detected
         if (borderstatus != VBORDER_INVISIBLE) {
             if ((borderstatus == VBORDER_UNINITIALIZED) || (borderstatus == VBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change, only set internal state
             else *borderFrame = picture->packetNumber;
             borderstatus = VBORDER_INVISIBLE; // detected stop of black border
         }
-        borderframenumber = -1; // restart from scratch
-        darkFrameNumber = INT_MAX;
+        // restart from scratch
+        vBorderStart = -1;
+        valid        = false;
     }
     return borderstatus;
 }
