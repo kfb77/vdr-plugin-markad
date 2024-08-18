@@ -1288,15 +1288,15 @@ int cHorizBorderDetect::Process(int *borderFrame) {
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cVertBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
-        return VBORDER_ERROR;
+        return HBORDER_ERROR;
     }
     if(!picture->plane[0]) {
         dsyslog("cVertBorderDetect::Process(): packet (%d): picture plane 0 not valid", decoder->GetPacketNumber());
-        return VBORDER_ERROR;
+        return HBORDER_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
         dsyslog("cVertBorderDetect::Process(): packet (%d): picture planeLineSize[0] valid", decoder->GetPacketNumber());
-        return VBORDER_ERROR;
+        return HBORDER_ERROR;
     }
 
     // set limits
