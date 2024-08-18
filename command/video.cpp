@@ -206,7 +206,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cLogoDetect::ReduceBrightness(): picture not valid");
-        return VBORDER_ERROR;
+        return false;
     }
     int xstart, xend, ystart, yend;
     if (!sobel->SetCoordinates(&area, 0, &xstart, &xend, &ystart, &yend)) return false;   // plane 0
