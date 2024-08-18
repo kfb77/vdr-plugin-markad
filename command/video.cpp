@@ -654,15 +654,15 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cLogoDetect::Detect(): packet (%d): picture not valid", packetNumber);
-        return VBORDER_ERROR;
+        return LOGO_ERROR;
     }
     if(!picture->plane[0]) {
         dsyslog("cLogoDetect::Detect(): packet (%d): picture plane 0 not valid", packetNumber);
-        return VBORDER_ERROR;
+        return LOGO_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
         dsyslog("cLogoDetect::Detect(): packet (%d): picture planeLineSize[0] valid", packetNumber);
-        return VBORDER_ERROR;
+        return LOGO_ERROR;
     }
 
     // apply sobel transformation to all planes
