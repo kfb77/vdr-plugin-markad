@@ -6366,8 +6366,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         ALLOC(strlen(libver)+1, "libver");
         isyslog("using libavcodec.so.%s (%d) with %i threads", libver, ver, config->threads);
         if (ver != LIBAVCODEC_VERSION_INT) {
-            esyslog("libavcodec header version %s", AV_STRINGIFY(LIBAVCODEC_VERSION));
-            esyslog("header and library mismatch, do not report decoder bugs");
+            esyslog("markad build with libavcodec header version %s, but runs with libavcodec lib version %s", AV_STRINGIFY(LIBAVCODEC_VERSION), libver);
+            esyslog("libav header and library mismatch, fix your system");
+            exit(EXIT_FAILURE);
         }
         if (ver < LIBAVCODEC_VERSION_VALID) isyslog("your libavcodec is deprecated, please update");
         FREE(strlen(libver)+1, "libver");
