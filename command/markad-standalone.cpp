@@ -691,8 +691,9 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
 
 
 
-// detect short logo stop/start before final end mark or after final start mark
+// detect short logo stop/start short after final start mark or short before final end mark
 // they can be logo detection failure, undetected info logos, introduction logos or text previews over the logo (e.g. SAT.1)
+// short after a valid start mark/short before a valid stop mark can not be a valid logo stop/start pair
 // only called if we are sure this is the correct logo start/end mark by closing credit detected or separator detected
 // prevent to later move end mark/start mark to previous/after logo mark from invalid logo stop/start pairs
 void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
@@ -706,12 +707,16 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
             int deltaStop = 1000 * (nextLogoStop->position  - mark->position)         / decoder->GetVideoFrameRate();
             int adLength  = 1000 * (nextLogoStart->position - nextLogoStop->position) / decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): MT_LOGOSTART (%5d) -> %6dms -> MT_LOGOSTOP (%5d) -> %6dms -> MT_LOGOSTART (%5d)", mark->position, deltaStop, nextLogoStop->position, adLength, nextLogoStart->position);
+            // example of valid logo stop/start pair in start part
+            // MT_LOGOSTART (12669) -> 146520ms -> MT_LOGOSTOP (16332) ->   1320ms -> MT_LOGOSTART (16365)  -> Comedy Central: short first broadcast part
+            //
             // example of invald logo stop/start pairs in start part
             // MT_LOGOSTART ( 5343) ->  33280ms -> MT_LOGOSTOP ( 6175) ->   1240ms -> MT_LOGOSTART ( 6206)
             // MT_LOGOSTART ( 5439) ->  33320ms -> MT_LOGOSTOP ( 6272) ->   1120ms -> MT_LOGOSTART ( 6300)
             // MT_LOGOSTART ( 5439) ->  41040ms -> MT_LOGOSTOP ( 6465) ->    400ms -> MT_LOGOSTART ( 6475)
-            // MT_LOGOSTART (13421) ->  55220ms -> MT_LOGOSTOP (16182) ->    900ms -> MT_LOGOSTART (16227)  -> arte HD, logo detection failure
-            if ((deltaStop <= 55220) && (adLength <= 6240)) {
+            // MT_LOGOSTART (13421) ->  55220ms -> MT_LOGOSTOP (16182) ->    900ms -> MT_LOGOSTART (16227)  -> arte HD: logo detection failure
+            // MT_LOGOSTART ( 9442) -> 157000ms -> MT_LOGOSTOP (13367) ->   6160ms -> MT_LOGOSTART (13521)  -> Nickelodeon: logo detection failure  (conflict)
+            if ((deltaStop <= 55220) && (adLength <= 1240)) {
                 dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo detection failure or undetected info logo from (%d) to (%d), delete marks", nextLogoStop->position, nextLogoStart->position);
                 marks.Del(nextLogoStop->position);
                 marks.Del(nextLogoStart->position);
@@ -728,10 +733,14 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
             int stopStart = 1000 * (prevLogoStart->position - prevLogoStop->position)  / decoder->GetVideoFrameRate();
             int startEnd  = 1000 * (mark->position          - prevLogoStart->position) / decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo stop (%d) -> %dms -> start (%d) -> %dms -> end mark (%d)", prevLogoStop->position, stopStart, prevLogoStart->position, startEnd, mark->position);
-            // valid info logo sequence
+            // no info logo sequence, do not delete
+            // logo stop (99273) -> 14760ms -> start (99642) -> 9400ms -> end mark (99877)
+            //
+            // info logo sequence before end mark, delete marks
             // logo stop (77361) -> 12840ms -> start (77682) -> 71680ms -> end mark (79474)
             // logo stop (78852) -> 12720ms -> start (79170) -> 75400ms -> end mark (81055)
-            if ((stopStart <= 30000) && (startEnd <= 75400)) {
+            if ((stopStart <= 30000) &&
+                    (startEnd > 9400) && (startEnd <= 75400)) {
                 dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo start (%5d) stop (%5d): undetected info logo or text preview over the logo, delete marks", prevLogoStart->position, prevLogoStop->position);
                 marks.Del(prevLogoStart);
                 marks.Del(prevLogoStop);
