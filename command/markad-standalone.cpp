@@ -4508,8 +4508,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     if (silenceAfter && (diffAfter <= 40)) diffBefore = INT_MAX;
 
                     if      ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >= 160) && silenceBefore) maxBefore = 12760;
-                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >   40) && silenceBefore) maxBefore =  8859;
-                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >   40))                  maxBefore =  5680;
+                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >   40) && silenceBefore) maxBefore =  6840;
+                    else if (criteria->LogoFadeInOut() & FADE_IN)                                             maxBefore =  5360;
                     else                                                                                      maxBefore =  2999;
                     break;
                 case MT_CHANNELSTART:
