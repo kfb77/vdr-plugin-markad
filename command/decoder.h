@@ -33,8 +33,8 @@ extern "C" {
 }
 
 
-#define AVLOGLEVEL AV_LOG_ERROR
-// #define AVLOGLEVEL AV_LOG_VERBOSE
+// #define AVLOGLEVEL AV_LOG_ERROR
+#define AVLOGLEVEL AV_LOG_VERBOSE
 
 
 // error codes from AC3 parser
@@ -405,11 +405,37 @@ public:
     void DropFrameFromGPU();
 
 private:
+    /**
+     * codec info structure
+    */
+    typedef struct sCodecInfo {
+        const AVCodec *codec = nullptr;  //!<  pointer to codec
+        //!<
+        bool noHWaccelMPEG2  = false;    //!<  hwaccel decoder can decode MPEG2 codec
+        //!<
+        bool hwaccelDevice   = true;     //!<  hwaccel decoder uses hardware device
+        //!<
+    } sCodecInfo;
+
+    /** read a line from a file
+     * @param buf  read buffer
+     * @param size buffer size
+     * @param file name of file
+     * @return  size of data read
+     */
+    static size_t ReadLineFromFile(char *buf, size_t size, char *file);
+
+    /** read ARM hardware info and set codec requirements
+     * @param codecInfo codec info structure
+     * @return true if hardware info read successful, false otherwise
+     */
+    static void ReadHWPlatform(sCodecInfo *codecInfo);
+
     /** get codec object from codec ID
      * @param codecID   codec id
      * @return pointer to codec, nullptr if not found
      */
-    const AVCodec *GetCodec(AVCodecID codecID) const;
+    void GetVideoCodec(AVCodecID codecID, sCodecInfo *codecInfo) const;
 
     /** convert frame pixel format to AV_PIX_FMT_YUV420P
      * @param pixelFormat   target pixel format

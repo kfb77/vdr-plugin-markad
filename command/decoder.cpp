@@ -304,10 +304,70 @@ void cDecoder::FreeCodecContext() {
 }
 
 
-const AVCodec *cDecoder::GetCodec(AVCodecID codecID) const {
-    if (useHWaccel && (hwDeviceType == AV_HWDEVICE_TYPE_DRM) && (codecID == AV_CODEC_ID_H264)) return avcodec_find_decoder_by_name("h264_v4l2m2m");
-    return avcodec_find_decoder(codecID);
+// copied and adapted from https://github.com/rellla/vdr-plugin-softhddevice-drm-gles/blob/4c85964f56682c9d73a72731916f742340ed308e/video_drm.c#L250C1-L267C1
+size_t cDecoder::ReadLineFromFile(char *buf, size_t size, char *file) {
+    FILE *fd = NULL;
+    size_t character;
+
+    fd = fopen(file, "r");
+    if (fd == NULL) {
+        esyslog("cDecoder::ReadLineFromFile((): Can't open file %s", file);
+        return 0;
+    }
+
+    character = getline(&buf, &size, fd);
+    fclose(fd);
+    return character;
 }
+
+
+// copied and adapted from https://github.com/rellla/vdr-plugin-softhddevice-drm-gles/blob/4c85964f56682c9d73a72731916f742340ed308e/video_drm.c#L268C1-L306C2
+void cDecoder::ReadHWPlatform(sCodecInfo *codecInfo) {
+    char *txt_buf;
+    char *read_ptr;
+    size_t bufsize = 128;
+    size_t read_size;
+
+    txt_buf = static_cast<char *>(calloc(bufsize, sizeof(char)));
+
+    char fileName[] = "/sys/firmware/devicetree/base/compatible";
+    read_size = ReadLineFromFile(txt_buf, bufsize, fileName);
+    if (!read_size) {
+        free(static_cast<void *>(txt_buf));
+        esyslog("cDecoder::ReadHWPlatform(): failed to read /sys/firmware/devicetree/base/compatible");
+        return;
+    }
+    read_ptr = txt_buf;
+
+    while(read_size) {
+        if (strstr(read_ptr, "bcm2711")) {
+            dsyslog("cDecoder::ReadHWPlatform(): CPU Broadcom bcm2711 (e.g. RasPi 4) found, disable MPGEG2 hwaccel and disable use of hardware device");
+            codecInfo->noHWaccelMPEG2 = true;
+            codecInfo->hwaccelDevice  = false;
+            break;
+        }
+        if (strstr(read_ptr, "amlogic")) {
+            dsyslog("cDecoder::ReadHWPlatform(): CPU amlogic (e.g. Odroid N2+) found, enable MPGEG2 hwaccel and enable use of hardware device");
+            codecInfo->hwaccelDevice = false;
+            break;
+        }
+        read_size -= (strlen(read_ptr) + 1);
+        read_ptr = static_cast<char *>(&read_ptr[(strlen(read_ptr) + 1)]);
+    }
+    free(static_cast<void *>(txt_buf));
+    return;
+}
+
+
+void cDecoder::GetVideoCodec(AVCodecID codecID, sCodecInfo *codecInfo) const {
+    // drm hwaccel on ARM hardware
+    if (useHWaccel && (hwDeviceType == AV_HWDEVICE_TYPE_DRM)) {
+        ReadHWPlatform(codecInfo);
+        if (codecID == AV_CODEC_ID_H264 && !codecInfo->hwaccelDevice) codecInfo->codec = avcodec_find_decoder_by_name("h264_v4l2m2m");
+    }
+    if (!codecInfo->codec) codecInfo->codec = avcodec_find_decoder(codecID);
+}
+
 
 
 bool cDecoder::InitDecoder(const char *filename) {
@@ -343,9 +403,13 @@ bool cDecoder::InitDecoder(const char *filename) {
 
     for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
         AVCodecID codec_id = avctx->streams[streamIndex]->codecpar->codec_id;
-        const AVCodec *codec = nullptr;
-        codec = GetCodec(codec_id);
-        if (!codec) {  // ignore not supported DVB subtitle by libavcodec
+        sCodecInfo codecInfo = {};
+        if (IsVideoStream(streamIndex)) {
+            GetVideoCodec(codec_id, &codecInfo);
+            if (!codecInfo.codec) return false;   // we can not work without video codec
+        }
+        else codecInfo.codec= avcodec_find_decoder(codec_id);
+        if (!codecInfo.codec) {  // ignore not supported DVB subtitle by libavcodec
 #if LIBAVCODEC_VERSION_INT < ((59<<16)+(18<<8)+100)
             if (codec_id == 100359)
 #else
@@ -361,7 +425,7 @@ bool cDecoder::InitDecoder(const char *filename) {
             }
         }
 
-        dsyslog("cDecoder::InitDecoder(): using decoder for stream %d: codec id %5d -> %5d %s", streamIndex, codec_id, codec->id, codec->long_name);
+        dsyslog("cDecoder::InitDecoder(): using decoder for stream %d: codec id %5d -> id %5d: %s", streamIndex, codec_id, codecInfo.codec->id, codecInfo.codec->long_name);
         if (useHWaccel && !forceHWaccel && (codec_id == AV_CODEC_ID_MPEG2VIDEO)) {
             dsyslog("cDecoder::InitDecoder(): hwaccel is slower than software decoding with this codec, disable hwaccel");
             useHWaccel = false;
@@ -369,28 +433,29 @@ bool cDecoder::InitDecoder(const char *filename) {
         if ((firstMP2Index < 0) && (codec_id == AV_CODEC_ID_MP2)) {
             firstMP2Index = streamIndex;
         }
+        if (codec_id == AV_CODEC_ID_MPEG2VIDEO && codecInfo.noHWaccelMPEG2) useHWaccel = false;
 
         // check if hardware acceleration device type supports codec, only video supported by FFmpeg
-        if (useHWaccel && (hwDeviceType != AV_HWDEVICE_TYPE_DRM) && IsVideoStream(streamIndex)) {
+        if (useHWaccel && codecInfo.hwaccelDevice && IsVideoStream(streamIndex)) {
             for (int i = 0; ; i++) {
-                const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
+                const AVCodecHWConfig *config = avcodec_get_hw_config(codecInfo.codec, i);
                 if (!config) {
-                    isyslog("cDecoder::InitDecoder(): codec %s not supported by hardware acceleration device type %s", codec->name, av_hwdevice_get_type_name(hwDeviceType));
+                    isyslog("cDecoder::InitDecoder(): codec %s not supported by hardware acceleration device type %s", codecInfo.codec->name, av_hwdevice_get_type_name(hwDeviceType));
                     useHWaccel= false;
                     break;
                 }
-                dsyslog("cDecoder::InitDecoder(): codec %s , config->methods %d, hwDeviceType %d %s, config->device_type %d %s, pixel format %d %s", codec->name, config->methods, hwDeviceType, av_hwdevice_get_type_name(hwDeviceType), config->device_type, av_hwdevice_get_type_name(config->device_type), config->pix_fmt, av_get_pix_fmt_name(config->pix_fmt));
+                dsyslog("cDecoder::InitDecoder(): codec %s , config->methods %d, hwDeviceType %d %s, config->device_type %d %s, pixel format %d %s", codecInfo.codec->name, config->methods, hwDeviceType, av_hwdevice_get_type_name(hwDeviceType), config->device_type, av_hwdevice_get_type_name(config->device_type), config->pix_fmt, av_get_pix_fmt_name(config->pix_fmt));
                 if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) && (config->device_type == hwDeviceType)) {
                     hw_pix_fmt = config->pix_fmt;
                     hwPixelFormat = config->pix_fmt;
-                    dsyslog("cDecoder::InitDecoder(): codec %s supported by hardware acceleration device type %s with pixel format %d %s", codec->name, av_hwdevice_get_type_name(hwDeviceType), hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
+                    dsyslog("cDecoder::InitDecoder(): codec %s supported by hardware acceleration device type %s with pixel format %d %s", codecInfo.codec->name, av_hwdevice_get_type_name(hwDeviceType), hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
                     break;
                 }
             }
         }
 
         dsyslog("cDecoder::InitDecoder(): create codec context");
-        codecCtxArray[streamIndex] = avcodec_alloc_context3(codec);
+        codecCtxArray[streamIndex] = avcodec_alloc_context3(codecInfo.codec);
         if (!codecCtxArray[streamIndex]) {
             dsyslog("cDecoder::InitDecoder(): avcodec_alloc_context3 failed");
             return false;
@@ -437,7 +502,7 @@ bool cDecoder::InitDecoder(const char *filename) {
             return false;
         }
         codecCtxArray[streamIndex]->thread_count = threads;
-        if (avcodec_open2(codecCtxArray[streamIndex], codec, nullptr) < 0) {
+        if (avcodec_open2(codecCtxArray[streamIndex], codecInfo.codec, nullptr) < 0) {
             dsyslog("cDecoder::InitDecoder(): avcodec_open2 failed");
             return false;
         }
