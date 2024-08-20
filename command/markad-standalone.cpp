@@ -1555,6 +1555,27 @@ void cMarkAdStandalone::CheckStop() {
 // try MT_VBORDERSTOP
     if (!end && (criteria->GetMarkTypeState(MT_VBORDERCHANGE) >= CRITERIA_UNKNOWN)) end = Check_VBORDERSTOP();
 
+    // cleanup all marks after vborder start from next broadcast
+    if (!end && (criteria->GetMarkTypeState(MT_VBORDERCHANGE) <= CRITERIA_UNKNOWN)) {
+        cMark *vBorderStart = marks.GetNext(stopA - (60 * decoder->GetVideoFrameRate()), MT_VBORDERSTART);
+        if (vBorderStart) {
+            // use logo stop mark short after vborder as end mark
+            cMark *logoStop = marks.GetNext(vBorderStart->position, MT_LOGOSTOP);
+            if (logoStop) {
+                int diff = (logoStop->position - vBorderStart->position) / decoder->GetVideoFrameRate();
+                if (diff <= 2) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) %ds after vborder start mark (%d), use it as end mark", logoStop->position, diff, vBorderStart->position);
+                    marks.Del(vBorderStart->position);
+                    end = logoStop;
+                }
+            }
+            if (!end) {
+                dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after vborder start (%d) from next broadcast", vBorderStart->position);
+                marks.DelTill(vBorderStart->position, false);
+            }
+        }
+    }
+
 // try MT_LOGOSTOP
     if (!end) end = Check_LOGOSTOP();   // logo detection can be disabled in end part after aspect ratio change
     // detect very short channel start before, this is start from next broadcast
