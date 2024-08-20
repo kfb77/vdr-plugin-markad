@@ -1067,6 +1067,11 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
 bool cEncoder::CutOut(int startPos, int stopPos) {
     LogSeparator();
     dsyslog("cEncoder::CutOut(): packet (%d): %s from start position (%d) to stop position (%d) in pass: %d", decoder->GetPacketNumber(), (fullEncode) ? "full encode" : "copy packets", startPos, stopPos, pass);
+    if (startPos < decoder->GetPacketNumber()) {
+        int newStartPos = index->GetIFrameAfter(decoder->GetPacketNumber());
+        dsyslog("cEncoder::CutOut(): startPos (%d) before decoder read position (%d) new startPos (%d)", startPos,  decoder->GetPacketNumber(), newStartPos);  // happens for too late recording starts
+        startPos = newStartPos;
+    }
 
     // cut with full encoding
     if (fullEncode) {
