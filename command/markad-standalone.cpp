@@ -5245,8 +5245,8 @@ void cMarkAdStandalone::SilenceOptimization() {
                     // rule 1: second silence is after preview
                     if ((diffBefore <= 11680) && (diffAfter >= 1040) && (diffAfter <= 6640)) diffAfter = INT_MAX;
 
-                    if (criteria->LogoFadeInOut() & FADE_OUT) maxAfter = 4640;
-                    else                                                               maxAfter = 1079;
+                    if (criteria->LogoFadeInOut() & FADE_OUT) maxAfter = 4800;
+                    else                                      maxAfter = 1079;
                     break;
                 case MT_VBORDERSTOP:
                     maxAfter = 0;
