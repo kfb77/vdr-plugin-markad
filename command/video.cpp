@@ -18,16 +18,20 @@
 extern bool abortNow;
 
 
-int cVideoTools::GetPictureBrightness(sVideoPicture *picture) {
+int cVideoTools::GetPictureBrightness(sVideoPicture *picture, const int ignoreV) {
     if (!picture) return -1;
+    if (ignoreV >= 90) return -1;   // prevent division by zero
     if (picture->packetNumber == pictureBrightness.packetNumber) return pictureBrightness.brightness;
 
+    // in case of vborder ignore a part from left and right
+    int startColumn = picture->width * ignoreV / 100;
+    int endColumn   = picture->width - startColumn;
     int  brightness = 0;
     for (int line = 0; line < picture->height ; line++) {
-        for (int column = 9; column < picture->width; column++) brightness += picture->plane[0][(line * picture->planeLineSize[0] + column)];
+        for (int column = startColumn; column < endColumn; column++) brightness += picture->plane[0][(line * picture->planeLineSize[0] + column)];
     }
     pictureBrightness.packetNumber = picture->packetNumber;
-    pictureBrightness.brightness   = brightness / (picture->width * picture->height);
+    pictureBrightness.brightness   = brightness / ((endColumn - startColumn) * picture->height);
     return pictureBrightness.brightness;
 }
 
@@ -1496,7 +1500,7 @@ int cVertBorderDetect::Process(int *borderFrame) {
     else valRight = INT_MAX;  // left side has no border, so we have not to check right side
 
 #ifdef DEBUG_VBORDER
-    dsyslog("cVertBorderDetect::Process(): packet (%6d): status: %d, left: %3d, right: %3d, limit: %d|%d, bright: %3d, start: (%5d), valid %d, duration: %3d", decoder->GetPacketNumber(), borderstatus, valLeft, valRight, brightnessSure, brightnessMaybe, GetPictureBrightness(picture), vBorderStart, valid, static_cast<int> ((decoder->GetPacketNumber() - vBorderStart) / frameRate));
+    dsyslog("cVertBorderDetect::Process(): packet (%6d): status: %d, left: %3d, right: %3d, limit: %d|%d, bright: %3d, start: (%5d), valid %d, duration: %3d", decoder->GetPacketNumber(), borderstatus, valLeft, valRight, brightnessSure, brightnessMaybe, GetPictureBrightness(picture, 20), vBorderStart, valid, static_cast<int> ((decoder->GetPacketNumber() - vBorderStart) / frameRate));
 #endif
 
     if (((valLeft <= brightnessMaybe) && (valRight <= brightnessSure)) || ((valLeft <= brightnessSure) && (valRight <= brightnessMaybe))) {
@@ -1507,7 +1511,7 @@ int cVertBorderDetect::Process(int *borderFrame) {
             dsyslog("cVertBorderDetect::Process(): packet (%6d): vborder start detected", decoder->GetPacketNumber());
 #endif
         }
-        if (!valid && (GetPictureBrightness(picture) > 61)) {
+        if (!valid && (GetPictureBrightness(picture, 20) > 61)) {  // ignore 20% right and left in case of we realy have a vborder
             valid = true;
 #ifdef DEBUG_VBORDER
             dsyslog("cVertBorderDetect::Process(): packet (%6d): vborder start is valid", decoder->GetPacketNumber());

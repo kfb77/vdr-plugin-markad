@@ -84,9 +84,10 @@ public:
     /**
      * get brightness of picture
      * @param picture video picture
+     * @param quote of pixel to ignore left and right
      * @return avg pixel value
      */
-    int GetPictureBrightness(sVideoPicture *picture);
+    int GetPictureBrightness(sVideoPicture *picture, const int ignoreV);
 
 private:
     /**
