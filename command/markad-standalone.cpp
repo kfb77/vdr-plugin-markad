@@ -3223,10 +3223,11 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART (  4725) ->  198360ms -> MT_LOGOSTOP (  9684) ->     520ms -> MT_LOGOSTART (  9697) ->   17920ms -> MT_STOP ( 10145) -> Comedy_Central: logo interruption
 // MT_LOGOSTART ( 31403) ->  493680ms -> MT_LOGOSTOP ( 43745) ->     920ms -> MT_LOGOSTART ( 43768) ->   37680ms -> MT_STOP ( 44710) -> Comedy_Central: logo interruption
 // MT_LOGOSTART ( 30498) ->  653840ms -> MT_LOGOSTOP ( 46844) ->     560ms -> MT_LOGOSTART ( 46858) ->   26000ms -> MT_STOP ( 47508) -> Comedy_Central: logo interruption
+// MT_LOGOSTART ( 16305) ->   34920ms -> MT_LOGOSTOP ( 17178) ->    1160ms -> MT_LOGOSTART ( 17207) ->    5000ms -> MT_STOP ( 17332)
                     if (criteria->IsLogoInterruptionChannel() &&
                             (prevLogoStart_Stop     >= 5000) && (prevLogoStart_Stop     <  653840) &&
-                            (stop_nextLogoStart     >=  360) && (stop_nextLogoStart     <=   1040) &&
-                            (nextLogoStart_nextStop >= 5120) && (nextLogoStart_nextStop <= 635200)) {
+                            (stop_nextLogoStart     >=  360) && (stop_nextLogoStart     <=   1160) &&
+                            (nextLogoStart_nextStop >= 5000) && (nextLogoStart_nextStop <= 635200)) {
                         cMark *black = blackMarks.GetAround(1 * decoder->GetVideoFrameRate(), mark->position, MT_BLACKCHANGE, 0xF0);
                         if (black) dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair short but black screen around, stop mark is valid", mark->position, nextLogoStart->position);
                         else {
