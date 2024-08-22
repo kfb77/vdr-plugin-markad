@@ -2454,15 +2454,16 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         return nullptr;
     }
 
-    // check if we have a logo start direce before vborder start, prevent a false vborder start/stop from dark scene as start mark
+    // check if we have a logo start direct before vborder start, prevent a false vborder start/stop from dark scene as start mark
     if (!criteria->LogoInBorder()) {  // not possible for logo in border channel because vborder start and logo start can be on same position or logo start after vborder start
-        // valid vborder example:
-        // MT_LOGOSTART (7599) -> 371s -> MT_VBORDERSTART (26172)  -> rbb HB, no logo stop before vborder broadcast, maybe logo in border
         cMark *logoStart  = marks.GetPrev(vStart->position, MT_ALL);
         if (logoStart && (logoStart->type == MT_LOGOSTART) && (logoStart->position >= IGNORE_AT_START)) {
             int diff = (vStart->position - logoStart->position) / decoder->GetVideoFrameRate();
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_LOGOSTART (%d) -> %ds -> MT_VBORDERSTART (%d)", logoStart->position, diff, vStart->position);
-            if ((diff > 50) && (diff < 371)) {
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_LOGOSTART (%4d) -> %3ds -> MT_VBORDERSTART (%4d)", logoStart->position, diff, vStart->position);
+            // valid vborder example:
+            // MT_LOGOSTART (7599) -> 371s -> MT_VBORDERSTART (26172) -> rbb HB, no logo stop before vborder broadcast, maybe logo in border
+            // MT_LOGOSTART (  13) -> 352s -> MT_VBORDERSTART (17660) -> ARD alpha HD, start of recoring, logo start from previous broadcast
+            if ((diff > 50) && (diff < 352)) {  // changed from 371 to 352
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): logo start mark before vborder start found, delete invalid vborder marks from dark scene");
                 marks.DelType(MT_VBORDERCHANGE, 0xF0);
                 return nullptr;
