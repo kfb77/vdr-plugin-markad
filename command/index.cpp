@@ -176,9 +176,9 @@ int cIndex::GetIFrameBefore(int frameNumber) {
 }
 
 
-// get iFrame after given frame
-// if frame is a iFrame, next i-frame will be returned
-// return: i-frame number
+// get key packet number after given packet number
+// if packetNumber is a key packet, packet number self will be returned
+// return: next key packet number
 //
 int cIndex::GetIFrameAfter(int packetNumber) {
     if (indexVector.empty()) {
@@ -191,7 +191,7 @@ int cIndex::GetIFrameAfter(int packetNumber) {
         return indexVector.back().frameNumber;
     }
 
-    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [packetNumber](const sIndexElement &value) ->bool { if (value.frameNumber > packetNumber) return true; else return false; });
+    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [packetNumber](const sIndexElement &value) ->bool { if (value.frameNumber >= packetNumber) return true; else return false; });
     if (found != indexVector.end()) return found->frameNumber;
 
     esyslog("cIndex::GetIFrameAfter(): packet (%d): failed, index content: first frame (%d), last frame (%d)", packetNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
