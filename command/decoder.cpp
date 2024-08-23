@@ -223,7 +223,6 @@ bool cDecoder::ReadNextFile() {
 
     char *filename;
     fileNumber++;
-    if (fileNumber > maxFileNumber) maxFileNumber = fileNumber;
     if (asprintf(&filename, "%s/%05i.ts", recordingDir, fileNumber) == -1) {
         esyslog("cDecoder:::ReadNextFile(): failed to allocate string, out of memory?");
         return false;
@@ -237,6 +236,7 @@ bool cDecoder::ReadNextFile() {
     int fileExists = stat(filename, &buffer);
     if (fileExists == 0 ) {
         dsyslog("cDecoder:::ReadNextFile(): next file %s found", filename);
+        if (fileNumber > maxFileNumber) maxFileNumber = fileNumber;
         ret = InitDecoder(filename);
         if (!ret && useHWaccel) {
             esyslog("cDecoder:::ReadNextFile(): init decoder with hwaccel %s failed, try fallback to software decoder", hwaccel);
