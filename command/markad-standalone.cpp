@@ -683,9 +683,6 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         }
     }
     else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): no MT_LOGOSTOP mark found");
-
-    // clean undeteced info logos / logo changes
-    if (end) CleanupUndetectedInfoLogo(end);
     return end;
 }
 
