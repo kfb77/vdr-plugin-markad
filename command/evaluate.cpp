@@ -1154,7 +1154,9 @@ bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos) {
         }
 
         if (((*cornerResultIt).rate[logoCorner] > INFO_LOGO_MACTH_MIN) || // do not rededuce to prevent false positiv
-                ((*cornerResultIt).rate[logoCorner] >= 142) && (lowMatchCornerCount <= 1)) { // allow one lower match for the change from new logo to normal logo
+                // allow 3 lower matches for the change from one info logo to another, changed from 1 to 3
+                // limit changed from 142 to 7
+                ((*cornerResultIt).rate[logoCorner] >= 7) && (lowMatchCornerCount <= 3)) { // allow 3 lower match for the change from one info logo to another, changed from 1 to 3
             if ((*cornerResultIt).rate[logoCorner] <= INFO_LOGO_MACTH_MIN) {
                 lowMatchCornerCount++;
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INFOLOGO)
@@ -1247,7 +1249,7 @@ bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos) {
 #define INFO_LOGO_MAX_AFTER_START  6239  // max distance for info logo start to range start (logo stop)
 #define INFO_LOGO_MIN_LENGTH       3801  // changed from 3761 to 3801
     // prevent to get info box after preview as info logo, length 3760
-#define INFO_LOGO_MAX_LENGTH      17040  // chnaged from 15640 to 15880 to 17040
+#define INFO_LOGO_MAX_LENGTH      17160  // chnaged from 17040 to 17160 (RTL2)
     // RTL2 has very long info logos
 #define INFO_LOGO_MIN_QUOTE          71  // changed from 67 to 71, no info logo: separator image with part time logo 70
     if (found) {
@@ -1262,12 +1264,12 @@ bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos) {
             found = false;
         }
         else {
-            if (diffStart < 1920) newStartPos = infoLogo.startFinal;  // do not increase
-            if (diffEnd <= 1800) newEndPos = infoLogo.endFinal;  // changed from 250 to 960 to 1440 to 1800
-            dsyslog("cDetectLogoStopStart::IsInfoLogo(): final range start (%d) end (%d)", newStartPos, newEndPos);
-            int quote  = 100  * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
+            if (diffStart <  1920) newStartPos = infoLogo.startFinal;  // do not increase
+            if (diffEnd   <= 1800) newEndPos   = infoLogo.endFinal;    // changed from 1440 to 1800
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): final info logo range start (%d) end (%d)", newStartPos, newEndPos);
+            int quote  =  100 * (infoLogo.endFinal - infoLogo.startFinal) / (newEndPos - newStartPos);
             int length = 1000 * (infoLogo.endFinal - infoLogo.startFinal) / frameRate;
-            dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
+            dsyslog("cDetectLogoStopStart::IsInfoLogo(): detected info logo: start (%d), end (%d), length %dms (expect >=%dms and <=%dms), quote %d%% (expect >= %d%%)", infoLogo.startFinal, infoLogo.endFinal, length, INFO_LOGO_MIN_LENGTH, INFO_LOGO_MAX_LENGTH, quote, INFO_LOGO_MIN_QUOTE);
             if ((length >= INFO_LOGO_MIN_LENGTH) && (length <= INFO_LOGO_MAX_LENGTH) && (quote >= INFO_LOGO_MIN_QUOTE)) {
                 dsyslog("cDetectLogoStopStart::IsInfoLogo(): found info logo");
             }
