@@ -423,13 +423,13 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
 // (-) contrast  39, brightness 187  -> bright background with logo
 // (-) contrast  37, brightness 188  -> bright background with logo
 // (-) contrast  36, brightness 189  -> bright background with logo NEW
-            ((contrastLogo  >  35) && (contrastLogo <=  60) && (brightnessLogo > 186)) ||
-// (+) contrast 139, brightness 180  -> bright background without logo
-            ((contrastLogo  >  60) && (contrastLogo <= 140) && (brightnessLogo > 180)) ||
+            ((contrastLogo  >  35) && (contrastLogo <= 130) && (brightnessLogo > 180)) ||
 // (+) contrast 170, brightness 141  -> bright background without logo
+// (+) contrast 139, brightness 180  -> bright background without logo  (conflict)
 // (-) contrast 175, brightness 154  -> bright background with patten, not detected logo after pattern reduction
 // (-) contrast 169, brightness 145  -> bright background with patten, not detected logo after pattern reduction
-            ((contrastLogo  > 140) && (contrastLogo <= 180) && (brightnessLogo > 144)) ||
+// (-) contrast 135, brightness 151
+            ((contrastLogo  > 130) && (contrastLogo <= 180) && (brightnessLogo > 144)) ||
 // (+) contrast 197, brightness 124  -> invalid shifted logo in ad, not detected as invalid without brigthness reduction
             ((contrastLogo  > 180) && (contrastLogo <= 200) && (brightnessLogo > 124)) ||
 // (-) contrast 233, brightness 105
