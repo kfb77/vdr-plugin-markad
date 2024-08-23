@@ -1758,12 +1758,13 @@ int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): average of all corners portion quote in possible ad in frame range: %3d", allFramePortionQuote);
 
         // example of ad in frame
-        // average of all corners 445
+        // average of all corners 445 (conflict)
         //
         // example for no ad in frame (static scene with vertial or horizontal lines, blinds, windows frames or stairs):
         // average of all corners 442   door frame
+        // average of all corners 447   window frame
         //
-        if (allFramePortionQuote <= 442) {
+        if (allFramePortionQuote <= 447) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enough frame pixel found on best corner found, advertising in frame not valid");
             return -1;
         }
