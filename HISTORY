@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-08-28: Version 4.1.4
+- cDecoder::ReadPacket(): add packets without PTS to duration (thx to pmrb@www.vdr-portal.de for reporting)
+- some minor bug fixes and optimizations, see git
+
 2024-08-21: Version 4.1.3
 - new feature: drm hwaccel decoding for H.264 for Broadcom bcm2711 (e.g. RasPi 4)
 - new feature: drm hwaccel decoding for MPEG2 and H.264 for amlogic (e.g. Odroid N2+) thx to rell@www.vdr-portal.de for code and testing
