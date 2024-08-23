@@ -444,7 +444,7 @@ bool cDecoder::InitDecoder(const char *filename) {
                     useHWaccel= false;
                     break;
                 }
-                dsyslog("cDecoder::InitDecoder(): codec %s , config->methods %d, hwDeviceType %d %s, config->device_type %d %s, pixel format %d %s", codecInfo.codec->name, config->methods, hwDeviceType, av_hwdevice_get_type_name(hwDeviceType), config->device_type, av_hwdevice_get_type_name(config->device_type), config->pix_fmt, av_get_pix_fmt_name(config->pix_fmt));
+                dsyslog("cDecoder::InitDecoder(): codec %s: available config->methods %2d, hwDeviceType %d %s, config->device_type %d %s, pixel format %3d %s", codecInfo.codec->name, config->methods, hwDeviceType, av_hwdevice_get_type_name(hwDeviceType), config->device_type, av_hwdevice_get_type_name(config->device_type), config->pix_fmt, av_get_pix_fmt_name(config->pix_fmt));
                 if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) && (config->device_type == hwDeviceType)) {
                     hw_pix_fmt = config->pix_fmt;
                     hwPixelFormat = config->pix_fmt;
