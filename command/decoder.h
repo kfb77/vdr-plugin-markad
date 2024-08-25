@@ -33,8 +33,8 @@ extern "C" {
 }
 
 
-// #define AVLOGLEVEL AV_LOG_ERROR
-#define AVLOGLEVEL AV_LOG_VERBOSE
+#define AVLOGLEVEL AV_LOG_ERROR
+// #define AVLOGLEVEL AV_LOG_VERBOSE
 
 
 // error codes from AC3 parser
