@@ -1887,7 +1887,7 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         }
 
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
-        dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame (%5d) and (%5d): %5d (%4d) %5d (%4d) %5d (%4d) %5d (%4d) -> %5d (%5d)", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).framePortion[0], (*cornerResultIt).rate[1], (*cornerResultIt).framePortion[1], (*cornerResultIt).rate[2], (*cornerResultIt).framePortion[2], (*cornerResultIt).rate[3], (*cornerResultIt).framePortion[3], sumPixel, sumFramePortion);
+        dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame (%6d) and (%6d): %5d (%4d) %5d (%4d) %5d (%4d) %5d (%4d) -> %5d (%5d)", (*cornerResultIt).frameNumber1, (*cornerResultIt).frameNumber2, (*cornerResultIt).rate[0], (*cornerResultIt).framePortion[0], (*cornerResultIt).rate[1], (*cornerResultIt).framePortion[1], (*cornerResultIt).rate[2], (*cornerResultIt).framePortion[2], (*cornerResultIt).rate[3], (*cornerResultIt).framePortion[3], sumPixel, sumFramePortion);
 #endif
 
         // examples of separator frames before introduction logo
@@ -1900,16 +1900,19 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         // frame (111307) and (111308):   991 ( 497)   937 ( 659)   999 (   0)   991 ( 805) ->  3918 ( 1961)
         // frame (111308) and (111309):    78 (   0)    23 ( 129)    33 (   0)    13 (   0) ->   147 (  129)
         //
-        // example of no separator frames (l = logo corner)
-        //  34   206(l)   0     0 = 240
-        //   0   201(l)  30     0 = 231
-        //   0    35(l) 109     0 = 144
-        //   0   147(l)   0     0 = 147
-        //   0    91(l)   0     0 =  91
-        //   0    74(l)   0     0 =  74
-        //   0    65(l)   0    -1 =  64
-        // new separator image before introduction logo, restart detection
-        if (((sumPixelBefore >= 3918) && (sumFramePortionBefore >= 1961) && (sumPixel <= 225) && (sumFramePortion <= 129)) ||
+        // frame ( 69378) and ( 69379):   991 ( 992)   946 (1001)   940 ( 842)   989 ( 993) ->  3866 ( 3828)
+        // frame ( 69379) and ( 69380):    12 (   0)    58 ( 275)    57 (   0)   188 (   0) ->   315 (  275)
+        if (((sumPixelBefore >= 3866) && (sumFramePortionBefore >= 1961) && (sumPixel <= 315) && (sumFramePortion <= 275)) ||
+                //
+                // example of no separator frames (l = logo corner)
+                //  34   206(l)   0     0 = 240
+                //   0   201(l)  30     0 = 231
+                //   0    35(l) 109     0 = 144
+                //   0   147(l)   0     0 = 147
+                //   0    91(l)   0     0 =  91
+                //   0    74(l)   0     0 =  74
+                //   0    65(l)   0    -1 =  64
+                // new separator image before introduction logo, restart detection
                 ((countNoMatch == 2) && (sumPixel <   63)) ||
                 ((countNoMatch >= 3) && (sumPixel <   64)) ||  // changed from 74 to 64
                 ((countNoPixel == 3) && (sumPixel == 997) && (introductionLogo.start == -1))) {  // special case blackscreen with logo, end of previous broadcast
