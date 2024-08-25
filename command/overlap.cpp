@@ -106,15 +106,15 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
     // calculate overlap check positions
     int fRangeBegin = (*mark1)->position - (frameRate * OVERLAP_CHECK_BEFORE);
     if (fRangeBegin < 0) fRangeBegin = 0;                    // not before beginning of broadcast
-    fRangeBegin = index->GetIFrameAfter(fRangeBegin);
+    fRangeBegin = index->GetKeyPacketNumberAfter(fRangeBegin);
     if (fRangeBegin < 0) {
-        esyslog("cOverlap::ProcessMarksOverlap(): GetIFrameAfter() failed for frame (%d)", fRangeBegin);
+        esyslog("cOverlap::ProcessMarksOverlap(): GetKeyPacketNumberAfter() failed for frame (%d)", fRangeBegin);
         return false;
     }
     int fRangeEnd = (*mark2)->position + (frameRate * OVERLAP_CHECK_AFTER);
-    fRangeEnd = index->GetIFrameBefore(fRangeEnd);
+    fRangeEnd = index->GetKeyPacketNumberBefore(fRangeEnd);
     if (fRangeEnd < 0) {
-        esyslog("cOverlap::ProcessMarksOverlap(): GetIFrameBefore() failed for frame (%d)", fRangeEnd);
+        esyslog("cOverlap::ProcessMarksOverlap(): GetKeyPacketNumberBefore() failed for frame (%d)", fRangeEnd);
         return false;
     }
 
@@ -174,9 +174,9 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
     }
 
     // seek to iFrame before start mark
-    fRangeBegin = index->GetIFrameBefore((*mark2)->position);
+    fRangeBegin = index->GetKeyPacketNumberBefore((*mark2)->position);
     if (fRangeBegin <= 0) {
-        dsyslog("cOverlap::ProcessMarksOverlap(): GetIFrameBefore failed for frame (%d)", fRangeBegin);
+        dsyslog("cOverlap::ProcessMarksOverlap(): GetKeyPacketNumberBefore failed for frame (%d)", fRangeBegin);
         return false;
     }
     if (fRangeBegin <  decoder->GetPacketNumber()) fRangeBegin = decoder->GetPacketNumber(); // on very short stop/start pairs we have no room to go before start mark
@@ -294,12 +294,14 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
             // but if it is too far away it is a false positiv
             // changed gapStop from 36 to 27
             dsyslog("cOverlap::ProcessMarksOverlap(): overlap gap to marks are valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
-            *mark1 = marks->Move((*mark1), overlapPos.similarBeforeEnd, MT_OVERLAPSTOP);
+            int offset = overlapPos.similarBeforeEnd - (*mark1)->position;
+            *mark1 = marks->Move((*mark1), *mark1, offset, MT_OVERLAPSTOP);
             if (!(*mark1)) {
                 esyslog("cOverlap::ProcessMarksOverlap(): move stop mark failed");
                 return false;
             }
-            *mark2 = marks->Move((*mark2), overlapPos.similarAfterEnd,  MT_OVERLAPSTART);
+            offset = overlapPos.similarAfterEnd - (*mark2)->position;
+            *mark2 = marks->Move((*mark2), (*mark2), offset, MT_OVERLAPSTART);
             if (!(*mark2)) {
                 esyslog("cOverlap::ProcessMarksOverlap(): move start mark failed");
                 return false;

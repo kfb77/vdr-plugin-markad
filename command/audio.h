@@ -40,13 +40,13 @@ private:
      * MP2 stream silence
      */
     typedef struct sAudioMP2Silence {
-        int64_t startPTS     = -1;    //!< start PTS
+        int startPacketNumber = -1;    //!< start packet number
         //!<
-        int startFrameNumber = -1;    //!< start frame number
+        int64_t startFramePTS = -1;    //!< start PTS of decoded frame
         //!<
-        int64_t stopPTS      = -1;    //!< stop PTS
+        int stopPacketNumber  = -1;    //!< stop packet number
         //!<
-        int stopFrameNumber  = -1;    //!< stop frame number
+        int64_t stopFramePTS  = -1;    //!< stop PTS of decoded frame
         //!<
     } sAudioMP2Silence;
 
@@ -68,11 +68,12 @@ private:
     /**
      *  add a new mark ti mark array
      *  @param type           mark type (MT_CHANNELSTART or MT_CHANNELSTOP)
-     *  @param position frame number of the mark
+     *  @param packetNumber   packet number of the mark
+     *  @param framePTS       PTS of decoded frame
      *  @param channelsBefore number of channels before change
      *  @param channelsAfter  number of channels after change
      */
-    void AddMark(const int type, const int position, const int channelsBefore, const int channelsAfter);
+    void AddMark(const int type, const int packetNumber, const int64_t framePTS, const int channelsBefore, const int channelsAfter);
 
     cDecoder *decoder              = nullptr;                //!< pointer to decoder
     //!<

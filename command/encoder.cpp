@@ -1064,19 +1064,22 @@ bool cEncoder::ReSampleAudio(AVFrame *avFrameIn, AVFrame *avFrameOut, const int 
 }
 */
 
-bool cEncoder::CutOut(int startPos, int stopPos) {
+bool cEncoder::CutOut(cMark *startMark, cMark *stopMark) {
     LogSeparator();
-    dsyslog("cEncoder::CutOut(): packet (%d): %s from start position (%d) to stop position (%d) in pass: %d", decoder->GetPacketNumber(), (fullEncode) ? "full encode" : "copy packets", startPos, stopPos, pass);
-    if (startPos < decoder->GetPacketNumber()) {
-        int newStartPos = index->GetIFrameAfter(decoder->GetPacketNumber());
-        dsyslog("cEncoder::CutOut(): startPos (%d) before decoder read position (%d) new startPos (%d)", startPos,  decoder->GetPacketNumber(), newStartPos);  // happens for too late recording starts
-        startPos = newStartPos;
-    }
+    dsyslog("cEncoder::CutOut(): packet (%d): %s from start position (%d) to stop position (%d) in pass: %d", decoder->GetPacketNumber(), (fullEncode) ? "full encode" : "copy packets", startMark->position, stopMark->position, pass);
 
     // cut with full encoding
     if (fullEncode) {
+        int startPos = startMark->position;
+        int stopPos  = stopMark->position;
+        if (startPos < decoder->GetPacketNumber()) {
+            int newStartPos = index->GetKeyPacketNumberAfter(decoder->GetPacketNumber());
+            dsyslog("cEncoder::CutOut(): startPos (%d) before decoder read position (%d) new startPos (%d)", startPos,  decoder->GetPacketNumber(), newStartPos);  // happens for too late recording starts
+            startPos = newStartPos;
+        }
+
         // seek to start position
-        if (!decoder->SeekToPacket(index->GetIFrameBefore(startPos))) {
+        if (!decoder->SeekToPacket(index->GetKeyPacketNumberBefore(startPos))) {
             esyslog("cEncoder::CutOut(): seek to i-frame before start mark (%d) failed", startPos);
             return false;
         }
@@ -1165,32 +1168,39 @@ bool cEncoder::CutOut(int startPos, int stopPos) {
     }
 // cut without full decoding, only copy all packets
     else {
-        // without decoding/encoding adjust cut position to i-frame
-        startPos = index->GetIFrameAfter(startPos);
+        // get start position
+        int startPos  = -1;
+        if (startMark->pts >= 0) startPos = index->GetKeyPacketNumberAfterPTS(startMark->pts);
         if (startPos < 0) {
-            esyslog("cEncoder::CutOut(): get i-frame after failed");
+            dsyslog("cEncoder::CutOut(): mark (%d): pts based cut position failed, use packet number", stopMark->position);
+            startPos = startMark->position;
+        }
+        if (startPos < decoder->GetPacketNumber()) {
+            dsyslog("cEncoder::CutOut(): startPos (%d) before decoder read position (%d)", startPos,  decoder->GetPacketNumber());  // happens for too late recording starts
+            startPos = decoder->GetPacketNumber();
+        }
+        startPos = index->GetKeyPacketNumberAfter(startPos);  // adjust to i-frame
+        if (startPos < 0) {
+            esyslog("cEncoder::CutOut():: get i-frame after (%d) failed", startPos);
             return false;
         }
-        stopPos = index->GetIFrameBefore(stopPos);
+
+        // get stop position
+        int stopPos  = -1;
+        if (stopMark->pts >= 0) stopPos  = index->GetKeyPacketNumberBeforePTS(stopMark->pts);
+        if (stopPos < 0) {
+            dsyslog("cEncoder::CutOut(): mark (%d): pts based cut position failed, use packet number", stopMark->position);
+            stopPos = stopMark->position;
+        }
+        stopPos = index->GetKeyPacketNumberBefore(stopPos);  // adjust to i-frame
         if (stopPos < 0) {
             esyslog("cEncoder::CutOut():: get i-frame before (%d) failed", stopPos);
             return false;
         }
-        if (!decoder->GetFullDecode()) {
-            stopPos = index->GetIFrameBefore(stopPos - 1);  // marks are not exact, end one i-frame before to prevent to copy packets after stop picture
-            if (stopPos < 0) {
-                esyslog("cEncoder::CutOut():: get i-frame before (%d) failed", stopPos - 1);
-                return false;
-            }
-        }
         dsyslog("cEncoder::CutOut(): adjust cut position from i-frame (%d) to i-frame (%d)", startPos, stopPos);
 
-        // if we do not encode, we do not decode and so we have no valid decoder frame number, use packet number
-        if (decoder->GetPacketNumber() > startPos) {
-            esyslog("cEncoder::CutOut(): invalid decoder read position");
-        }
         // seek to start position
-        if (!decoder->SeekToPacket(startPos)) {  // ReadNextPacket() will read startPos
+        if (!decoder->SeekToPacket(startPos)) {  // this read startPos
             esyslog("cEncoder::CutOut(): seek to packet (%d) failed", startPos);
             return false;
         }

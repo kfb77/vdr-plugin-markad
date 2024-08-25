@@ -22,14 +22,15 @@ class cMark {
 public:
     /**
      * mark constructor
-     * @param typeParam        mark type
-     * @param oldTypeParam     original mark type before move
-     * @param newTypeParam     new mark type after move
-     * @param positionParam    mark position
-     * @param commentParam     mark comment
-     * @param inBroadCastParam true if mark is in broadcast, false if mark is in advertising
+     * @param typeParam         mark type
+     * @param oldTypeParam      original mark type before move
+     * @param newTypeParam      new mark type after move
+     * @param positionParam     mark position
+     * @param pts               mark pts
+     * @param commentParam      mark comment
+     * @param inBroadCastParam  true if mark is in broadcast, false if mark is in advertising
      */
-    explicit cMark(const int typeParam = MT_UNDEFINED, const int oldTypeParam = MT_UNDEFINED, const int newTypeParam = MT_UNDEFINED, const int positionParam = 0, const char *commentParam = nullptr, const bool inBroadCastParam = false);
+    explicit cMark(const int typeParam, const int oldTypeParam, const int newTypeParam, const int positionParam, const int64_t ptsParam, const char *commentParam = nullptr, const bool inBroadCastParam = false);
 
     ~cMark();
 
@@ -101,9 +102,11 @@ public:
     //!<
     int newType      = MT_UNDEFINED;   //!< new mark type after mark moved
     //!<
-    int position     = -1;             //!< mark frame position
+    int position     = -1;             //!< mark frame position (on continuous read/decoding, this packet number was read, when mark picture was decoded, used markad intern)
     //!<
-    char *comment    = nullptr;           //!< mark comment
+    int64_t pts      = -1;             //!< pts from frame of mark (used for mark timestamps)
+    //!<
+    char *comment    = nullptr;        //!< mark comment
     //!<
     bool inBroadCast = false;          //!< true if mark is in broadcast, false if mark is in advertising
     //!<
@@ -183,19 +186,20 @@ public:
 
     /**
      * add mark
-     * @param type        mark type
-     * @param oldType     original mark type before move
-     * @param newType     new mark type after move
-     * @param position    mark position
-     * @param comment     mark comment
+     * @param type         mark type
+     * @param oldType      original mark type before move
+     * @param newType      new mark type after move
+     * @param position     mark position
+     * @param framePTS     PTS of decoded frame
+     * @param comment      mark comment
      * @param inBroadCast true if mark is in broacast, false if mark is in advertising
      * @return ointer to new mark
      */
-    cMark *Add(const int type, const int oldType, const int newType, const int position, const char *comment = nullptr, const bool inBroadCast = false);
+    cMark *Add(const int type, const int oldType, const int newType, const int position, const int64_t framePTS, const char *comment = nullptr, const bool inBroadCast = false);
 
     /**
      * convert frame number to time string
-     * @param frameNumber frame number
+     * @param frameNumber packet number
      * @param isVDR true: calculate timestamp based on frame number, false: calculate timestamp based on PTS of frame number
      * @param offsetSeconds offset in seconds since recording start
      * @return time string
@@ -269,7 +273,6 @@ public:
      */
     void Del(const int position);
 
-
     /**
      * change mark type (START or STOP)
      * @param mark    move this mark
@@ -278,23 +281,22 @@ public:
      */
     static cMark *ChangeType(cMark *mark, const int newType);
 
-
     /**
      * move mark position
-     * @param mark        move this mark
-     * @param newPosition new position of mark
-     * @param newType     new type of mark
-     * @return mark with new position
+     * @param dscMark        move this mark
+     * @param srcMark        source of new position
+     * @param newType        new type of mark
+     * @param frameOffet     packet number offset for new mark
+     * @param ptsOffset      packet PTS offset for new mark position
+     * @return               mark with new position and new tye
      */
-    cMark *Move(cMark *mark, const int newPosition, const int newType);
-
+    cMark *Move(cMark *dscMark, cMark *srcMark, const int frameOffset, const int newType);
 
     /**
      * get first mark
      * @return first mark
      */
     cMark *First();
-
 
     /**
      * get mark from position

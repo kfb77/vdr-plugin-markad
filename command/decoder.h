@@ -349,6 +349,11 @@ public:
      */
     sAudioAC3Channels *GetChannelChange();
 
+    /** get current frame PTS
+     * @return PTS
+     */
+    int64_t GetFramePTS() const;
+
     /** get current packet PTS
      * @return PTS
      */
@@ -416,6 +421,15 @@ private:
         bool hwaccelDevice   = true;     //!<  hwaccel decoder uses hardware device
         //!<
     } sCodecInfo;
+
+    /**
+     * PTS to frame cache
+    */
+    typedef struct sPtsFrameCache {
+        int64_t pts     = -1;  //!<  cached PTS
+        //!<
+        int frameNumber = -1;  //!<  frame number to cached PTS
+    } sPtsFrameCache;
 
     /** read a line from a file
      * @param buf  read buffer
@@ -509,6 +523,10 @@ private:
     AVCodecContext **codecCtxArray     = nullptr;                 //!< codec context per stream
     //!<
     int packetNumber                   = -1;                      //!< current read video packet number
+    //!<
+    int frameNumber                    = -1;                      //!< current decoded frame number
+    //!<
+    sPtsFrameCache ptsFrameCache       = {};                      //!< cached PTS to frame map
     //!<
     int videoWidth                     = 0;                       //!< video width
     //!<

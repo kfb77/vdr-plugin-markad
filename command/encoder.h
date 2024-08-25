@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "tools.h"
 #include "index.h"
+#include "marks.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -101,11 +102,11 @@ public:
     bool OpenFile();
 
     /** cut out video from start frame number to stop frame number
-     * @param startPos start frame position
-     * @param stopPos  stop frame position
-     * @return true if successful, false otherwise
-     */
-    bool CutOut(int startPos, int stopPos);
+    * @param startPos start frame position
+    * @param stopPos  stop frame position
+    * @return true if successful, false otherwise
+    */
+    bool CutOut(cMark *startMark, cMark *stopMark);
 
     /**
      * close output file

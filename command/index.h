@@ -44,18 +44,18 @@ public:
     void Add(const int fileNumber, const int packetNumber, const int64_t pts, const int frameTimeOffset_ms);
 
     /**
-     * get frameNumber before PTS
+     * get key packet number before PTS
      * @param pts frame PTS
      * @return frame number before pts
      */
-    int GetIFrameBeforePTS(const int64_t pts);
+    int GetKeyPacketNumberBeforePTS(const int64_t pts);
 
     /**
-     * get frameNumber after PTS
+     * get key packet number after PTS
      * @param pts frame PTS
      * @return frame number after pts
      */
-    int GetIFrameAfterPTS(const int64_t pts);
+    int GetKeyPacketNumberAfterPTS(const int64_t pts);
 
     /**
      * get last frame number from index
@@ -78,18 +78,18 @@ public:
     int GetFrameBefore(int frameNumber);
 
     /**
-     * get i-frame before frameNumber
-     * @param frameNumber number of frame
-     * @return number of i-frame before frameNumber
+     * get key packet before frameNumber
+     * @param frameNumber number of packet
+     * @return number of key packet before frameNumber
      */
-    int GetIFrameBefore(int frameNumber);
+    int GetKeyPacketNumberBefore(int frameNumber);
 
     /**
      * get key packet after packetNumber
      * @param packetNumber packet number
      * @return number of key packet frame after packetNumber
      */
-    int GetIFrameAfter(int packetNumber);
+    int GetKeyPacketNumberAfter(int packetNumber);
 
     /**
      * get offset time from recording start in ms
@@ -121,17 +121,17 @@ public:
      */
     void AddPTS(const int frameNumber, const int64_t pts);
 
-    /** video frame number before given PTS of called PTS
+    /** video frame number before called PTS
      * @param pts  presentation timestamp
      * @return video frame number before given presentation timestamp
      */
-    int GetFrameBeforePTS(const int64_t pts);
+    int GetPacketNumberBeforePTS(const int64_t pts);
 
     /** video frame number after given PTS of called PTS
      * @param pts  presentation timestamp
      * @return video frame number after given presentation timestamp
      */
-    int GetFrameAfterPTS(const int64_t pts);
+    int GetPacketNumberAfterPTS(const int64_t pts);
 
     /** return sum of packet duration from i-frame if called with an i-frame number, otherwise from i-frame after
      * @param  frameNumber frame number
@@ -139,17 +139,28 @@ public:
      */
     int GetSumDurationFromFrame(const int frameNumber);
 
-    /** return PTS from i-frame if called with an i-frame number, otherwise from i-frame after
-     * @param  frameNumber frame number
+    /** return PTS from packet if called with an key packet number, otherwise from packet after
+     * @param    frameNumber frame number
      * @return   presentation timestamp of frame
      */
-    int64_t GetPTSfromFrame(const int frameNumber);
+    int64_t GetPTSFromKeyPacket(const int frameNumber);
+
+    /** return PTS from packet
+     * @param    packetNumber packet number
+     * @return   presentation timestamp of frame
+     */
+    int64_t GetPTSFromPacketNumber(const int packetNumber);
 
     /** set start PTS of video stream
      * @param start_time_param  PTS start time of video stream
      * @param time_base_param   time base of video stream
      */
     void SetStartPTS(const int64_t start_time_param, const AVRational time_base_param);
+
+    /** set start PTS of video stream
+     *  @return  start PTS of video stream
+     */
+    int64_t GetStartPTS() const;
 
 private:
     bool fullDecode       = false;               //!< decoder full decode modi
@@ -187,6 +198,6 @@ private:
     std::vector<sPTS_RingbufferElement> ptsRing; //!< ring buffer for PTS per frameA
     //!<
 
-#define MAX_PTSRING 100                          // maximum Element in ptsRing Ring Buffer
+#define MAX_PTSRING 200                          // maximum Element in ptsRing Ring Buffer
 };
 #endif

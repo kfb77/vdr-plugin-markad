@@ -31,6 +31,9 @@ typedef unsigned char uchar;
 #define MAXSTREAMS 10
 #define PLANES 3
 #define CORNERS 4
+// ignore this number of frames at the start for start marks, they are initial marks from recording before
+#define IGNORE_AT_START 12
+
 
 // global types
 #define MT_UNDEFINED          (unsigned char) 0x00
@@ -210,9 +213,9 @@ typedef struct sAudioAC3Channels {
     //!<
     int channelCountBefore = 0;     //!< channel count before channel change
     //!<
-    int64_t pts            = -1;     //!< packet pts of last change
+    int videoPacketNumber  = -1;    //!< associated video packet number from PTS ring buffer
     //!<
-    int videoFrameNumber   = -1;    //!< associated video frame number from PTS ring buffer
+    int64_t videoFramePTS  = -1;    //!< decode frame PTS of last change
     //!<
     bool processed         = true;  //!< true if channel change is processed by audio channel mark detection
     //!<
@@ -223,35 +226,37 @@ typedef struct sAudioAC3Channels {
  * corner area after sobel transformation
  */
 typedef struct sAreaT {
-    uchar **sobel        = nullptr;              //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
+    uchar **sobel         = nullptr;              //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
     //!<
-    uchar **logo         = nullptr;              //!< monochrome mask of logo, memory will be allocated after we know video resolution
+    uchar **logo          = nullptr;              //!< monochrome mask of logo, memory will be allocated after we know video resolution
     //!<
-    uchar **result       = nullptr;              //!< result of sobel + mask, memory will be allocated after we know video resolution
+    uchar **result        = nullptr;              //!< result of sobel + mask, memory will be allocated after we know video resolution
     //!<
-    uchar **inverse      = nullptr;              //!< inverse result of sobel + mask, memory will be allocated after we know video resolution
+    uchar **inverse       = nullptr;              //!< inverse result of sobel + mask, memory will be allocated after we know video resolution
     //!<
-    bool valid[PLANES]   = {false};              //!< true if plane is valid
+    bool valid[PLANES]    = {false};              //!< true if plane is valid
     //!<
-    int mPixel[PLANES]   = {0};                  //!< black pixel in mask
+    int mPixel[PLANES]    = {0};                  //!< black pixel in mask
     //!<
-    int rPixel[PLANES]   = {0};                  //!< black pixel in result
+    int rPixel[PLANES]    = {0};                  //!< black pixel in result
     //!<
-    int iPixel[PLANES]   = {0};                  //!< black pixel in inverse result
+    int iPixel[PLANES]    = {0};                  //!< black pixel in inverse result
     //!<
-    int status           = LOGO_UNINITIALIZED;   //!< logo status: on, off, uninitialized
+    int status            = LOGO_UNINITIALIZED;   //!< logo status: on, off, uninitialized
     //!<
-    int stateFrameNumber = -1;                   //!< last detected logo start/stop state change frame number
+    int statePacketNumber = -1;                   //!< packet number last detected logo start/stop state change frame number
     //!<
-    int counter          = 0;                    //!< how many logo on, offs detected
+    int64_t stateFramePTS = -1;                   //!< frame PTS last detected logo start/stop state change frame number
     //!<
-    int intensity        = 0;                    //!< area intensity (higher -> brighter)
+    int counter           = 0;                    //!< how many logo on, offs detected
     //!<
-    sLogoSize logoSize   = {0};                  //!< logo size
+    int intensity         = 0;                    //!< area intensity (higher -> brighter)
     //!<
-    int logoCorner       = -1;                   //!< corner of logo
+    sLogoSize logoSize    = {0};                  //!< logo size
     //!<
-    sAspectRatio logoAspectRatio;                //!< logo for video with this aspect ratio
+    int logoCorner        = -1;                   //!< corner of logo
+    //!<
+    sAspectRatio logoAspectRatio = {};            //!< logo for video with this aspect ratio
     //!<
 } sAreaT;
 
@@ -279,17 +284,19 @@ typedef struct sOverlapPos {
  * new mark to add
  */
 typedef struct sMarkAdMark {
-    int type                       = 0;   //!< type of the new mark, see global.h
+    int type                       = MT_UNDEFINED;   //!< type of the new mark, see global.h
     //!<
-    int position                   = 0;   //!< frame position
+    int packetNumber               = -1;             //!< internal packet read/decode position
     //!<
-    int channelsBefore             = 0;   //!< audio channel count before mark (set if channel changed at this mark)
+    int64_t framePTS               = -1;             //!< decoded frame PTS
     //!<
-    int channelsAfter              = 0;   //!< audio channel count after mark (set if channel changed at this mark)
+    int channelsBefore             = 0;              //!< audio channel count before mark (set if channel changed at this mark)
     //!<
-    sAspectRatio AspectRatioBefore;       //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
+    int channelsAfter              = 0;              //!< audio channel count after mark (set if channel changed at this mark)
     //!<
-    sAspectRatio AspectRatioAfter;        //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
+    sAspectRatio AspectRatioBefore = {};             //!< video aspect ratio before mark (set if video aspect ratio changed at this mark)
+    //!<
+    sAspectRatio AspectRatioAfter  = {};             //!< video aspect ratio after mark (set if video aspect ratio changed at this mark)
     //!<
 } sMarkAdMark;
 

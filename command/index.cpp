@@ -40,6 +40,11 @@ void cIndex::SetStartPTS(const int64_t start_time_param, const AVRational time_b
 }
 
 
+int64_t cIndex::GetStartPTS() const {
+    return start_time;
+}
+
+
 // add a new entry to the list of frame timestamps
 void cIndex::Add(const int fileNumber, const int packetNumber, const int64_t pts, const int frameTimeOffset_ms) {
     if ((packetNumber > 0) && (frameTimeOffset_ms == 0)) {
@@ -67,12 +72,12 @@ void cIndex::Add(const int fileNumber, const int packetNumber, const int64_t pts
 }
 
 
-// get iFrame before given PTS
+// get key packet number before given PTS
 // return: iFrame number, -1 if index is not initialized or PTS not in index
 //
-int cIndex::GetIFrameBeforePTS(const int64_t pts) {
+int cIndex::GetKeyPacketNumberBeforePTS(const int64_t pts) {
     if (indexVector.empty()) {
-        esyslog("cIndex::GetIFrameBeforePTS(): frame index not initialized");
+        esyslog("cIndex::GetKeyPacketNumberBeforePTS(): frame index not initialized");
         return -1;
     }
     int iFrameBefore  = -1;
@@ -80,18 +85,18 @@ int cIndex::GetIFrameBeforePTS(const int64_t pts) {
         if (frameIterator->pts <= pts) iFrameBefore = frameIterator->frameNumber;
         else break;
     }
-    if (iFrameBefore < 0) dsyslog("cIndex::GetIFrameBeforePTS(): PTS %" PRId64 ": not in index, index content: first PTS %" PRId64 " , last PTS %" PRId64, pts, indexVector.front().pts, indexVector.back().pts);
-    dsyslog("cIndex::GetIFrameBeforePTS(): PTS %" PRId64 ": frame (%d) found", pts, iFrameBefore);
+    if (iFrameBefore < 0) dsyslog("cIndex::GetKeyPacketNumberBeforePTS(): PTS %" PRId64 ": not in index, index content: first PTS %" PRId64 " , last PTS %" PRId64, pts, indexVector.front().pts, indexVector.back().pts);
+    dsyslog("cIndex::GetKeyPacketNumberBeforePTS(): PTS %" PRId64 ": frame (%d) found", pts, iFrameBefore);
     return iFrameBefore; // frame not (yet) in index
 }
 
 
-// get iFrame after given PTS
+// get key packet number after given PTS
 // return: iFrame number, -1 if index is not initialized or PTS not in index
 //
-int cIndex::GetIFrameAfterPTS(const int64_t pts) {
+int cIndex::GetKeyPacketNumberAfterPTS(const int64_t pts) {
     if (indexVector.empty()) {
-        esyslog("cIndex::GetIFrameAfterPTS(): frame index not initialized");
+        esyslog("cIndex::GetKeyPacketNumberAfterPTS(): frame index not initialized");
         return -1;
     }
 
@@ -106,10 +111,10 @@ int cIndex::GetIFrameAfterPTS(const int64_t pts) {
 
     std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [pts](sIndexElement const &value) ->bool { if (value.pts >= pts) return true; else return false; });
     if (found == indexVector.end()) {
-        dsyslog("cIndex::GetIFrameAfterPTS(): PTS %" PRId64 ": not in index, index content: first PTS %" PRId64 ", last PTS %" PRId64, pts, indexVector.front().pts, indexVector.back().pts);
+        dsyslog("cIndex::GetKeyPacketNumberAfterPTS(): PTS %" PRId64 ": not in index, index content: first PTS %" PRId64 ", last PTS %" PRId64, pts, indexVector.front().pts, indexVector.back().pts);
         return -1;
     }
-    dsyslog("cIndex::GetIFrameAfterPTS(): PTS %" PRId64 ": frame (%d) found", pts, found->frameNumber);
+    dsyslog("cIndex::GetKeyPacketNumberAfterPTS(): PTS %" PRId64 ": frame (%d) found", pts, found->frameNumber);
     return found->frameNumber;
 }
 
@@ -118,9 +123,9 @@ int cIndex::GetFrameBefore(int frameNumber) {
     if (frameNumber == 0) return 0;
     if (fullDecode) return frameNumber - 1;
     else {
-        int iFrameBefore = GetIFrameBefore(frameNumber - 1);  // if frameNumber is i-frame, GetIFrameBefore() will return same frameNumber
+        int iFrameBefore = GetKeyPacketNumberBefore(frameNumber - 1);  // if frameNumber is i-frame, GetKeyPacketBefore() will return same frameNumber
         if (iFrameBefore < 0) {
-            esyslog("cIndex::GetFrameBefore(): frame (%d): GetIFrameBefore() failed", frameNumber);
+            esyslog("cIndex::GetFrameBefore(): frame (%d): GetKeyPacketBefore() failed", frameNumber);
             iFrameBefore = frameNumber - 1;  // fallback
         }
         return iFrameBefore;
@@ -131,9 +136,9 @@ int cIndex::GetFrameBefore(int frameNumber) {
 int cIndex::GetFrameAfter(int frameNumber) {
     if (fullDecode) return (frameNumber + 1);
     else {
-        int iFrameAfter = GetIFrameAfter(frameNumber);
+        int iFrameAfter = GetKeyPacketNumberAfter(frameNumber);
         if (iFrameAfter < 0) {
-            esyslog("cIndex::GetFrameAfter(): frame (%d): GetIFrameAfter() failed", frameNumber);
+            esyslog("cIndex::GetFrameAfter(): frame (%d): GetKeyPacketAfter() failed", frameNumber);
             return - 1;
         }
         return iFrameAfter;
@@ -150,13 +155,13 @@ int cIndex::GetLastFrame() {
 }
 
 
-// get iFrame before given frame
-// if frame is a iFrame, i-frame before will be returned
-// return: iFrame number, -1 if index is not initialized
+// get key packet before given packet
+// if packet is a key packet, key packet before will be returned
+// return: key packet number, -1 if index is not initialized
 //
-int cIndex::GetIFrameBefore(int frameNumber) {
+int cIndex::GetKeyPacketNumberBefore(int frameNumber) {
     if (indexVector.empty()) {
-        esyslog("cIndex::GetIFrameBefore(): frame index not initialized");
+        esyslog("cIndex::GetKeyPacketNumberBefore(): frame index not initialized");
         return -1;
     }
     int before_iFrame = -1;
@@ -169,7 +174,7 @@ int cIndex::GetIFrameBefore(int frameNumber) {
         else before_iFrame = frameIterator->frameNumber;
     }
     if (iFrameBefore < 0) {
-        dsyslog("cIndex::GetIFrameBefore(): frame (%d): failed, index content: first frame (%d), last frame (%d)", frameNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
+        dsyslog("cIndex::GetKeyPacketNumberBefore(): frame (%d): failed, index content: first frame (%d), last frame (%d)", frameNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
         return -1;
     }
     return iFrameBefore; // frame not (yet) in index
@@ -180,21 +185,21 @@ int cIndex::GetIFrameBefore(int frameNumber) {
 // if packetNumber is a key packet, packet number self will be returned
 // return: next key packet number
 //
-int cIndex::GetIFrameAfter(int packetNumber) {
+int cIndex::GetKeyPacketNumberAfter(int packetNumber) {
     if (indexVector.empty()) {
-        dsyslog("cIndex::GetIFrameAfter(): packet index not initialized");
+        dsyslog("cIndex::GetKeyPacketNumberAfter(): packet index not initialized");
         return -1;
     }
     // request from current packet after last key packet, this can happen if markad runs during recording
     if ((packetNumber > indexVector.back().frameNumber) && (packetNumber < indexVector.back().frameNumber - 100)) {  // max alowed key packet distance
-        dsyslog("cIndex::GetIFrameAfter(): packet (%d) > last packet in index, return last index element (%d)", packetNumber, indexVector.back().frameNumber);
+        dsyslog("cIndex::GetKeyPacketNumberAfter(): packet (%d) > last packet in index, return last index element (%d)", packetNumber, indexVector.back().frameNumber);
         return indexVector.back().frameNumber;
     }
 
     std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [packetNumber](const sIndexElement &value) ->bool { if (value.frameNumber >= packetNumber) return true; else return false; });
     if (found != indexVector.end()) return found->frameNumber;
 
-    esyslog("cIndex::GetIFrameAfter(): packet (%d): failed, index content: first frame (%d), last frame (%d)", packetNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
+    esyslog("cIndex::GetKeyPacketNumberAfter(): packet (%d): failed, index content: first frame (%d), last frame (%d)", packetNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
     return -1;
 }
 
@@ -221,15 +226,15 @@ int cIndex::GetSumDurationFromFrame(const int frameNumber) {
 }
 
 
-// return PTS from i-frame if called with an i-frame number, otherwise from i-frame after
-int64_t cIndex::GetPTSfromFrame(const int frameNumber) {
+// return PTS from key packet if called with an key number, otherwise from packet after
+int64_t cIndex::GetPTSFromKeyPacket(const int frameNumber) {
     // if frame number not yet in index, return PTS from last frame
     if (frameNumber >= indexVector.back().frameNumber) return indexVector.back().pts;
 
     std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](sIndexElement const &value) ->bool { if (value.frameNumber >= frameNumber) return true; else return false; });
     if (found == indexVector.end()) {
-        esyslog("cIndex::GetSumDurationFromFrame(): frame (%d) not in index", frameNumber);
-        dsyslog("cIndex::GetSumDurationFromFrame(): index content: first frame (%d) , last frame (%d)", indexVector.front().frameNumber, indexVector.back().frameNumber);
+        esyslog("cIndex::GetPTSFromKeyPacket(): frame (%d) not in index", frameNumber);
+        dsyslog("cIndex::GetPTSFromKeyPacket(): index content: first frame (%d) , last frame (%d)", indexVector.front().frameNumber, indexVector.back().frameNumber);
         return -1;
     }
     return found->pts;
@@ -253,7 +258,7 @@ int cIndex::GetTimeFromFrame(const int packetNumber, const bool isVDR) {
         return GetSumDurationFromFrame(packetNumber);
     }
     else {  // use PTS based time from i-frame index
-        int64_t framePTS = GetPTSfromFrame(packetNumber);
+        int64_t framePTS = GetPTSFromKeyPacket(packetNumber);
         if (framePTS < 0) {
             esyslog("cIndex::GetTimeFromFrame(): packet (%d): get PTS failed", packetNumber);
             return -1;
@@ -334,9 +339,72 @@ void cIndex::AddPTS(const int frameNumber, const int64_t pts) {
 }
 
 
-int cIndex::GetFrameBeforePTS(const int64_t pts) {
+int64_t cIndex::GetPTSFromPacketNumber(const int packetNumber) {
     if (ptsRing.size() == 0) {
-        esyslog("cIndex::GetFrameBeforePTS(): index is empty");
+        esyslog("cIndex::GetPTSFromPacketNumber(): index is empty");
+        return -1;
+    }
+    std::vector<sPTS_RingbufferElement>::iterator found = std::find_if(ptsRing.begin(), ptsRing.end(), [packetNumber](sPTS_RingbufferElement const &value) ->bool { if (value.frameNumber == packetNumber) return true; else return false; });
+    if (found != ptsRing.end()) {
+        return found->pts;
+    }
+    /*
+        for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
+            if (ptsIterator->frameNumber == packetNumber) {
+                return ptsIterator->pts;
+            }
+        }
+    */
+    esyslog("cIndex::GetPTSFromPacketNumber(): packet %d: not found, index contains from (%d) to (%d)", packetNumber, ptsRing.front().frameNumber, ptsRing.back().frameNumber);
+    return -1;
+}
+
+
+/* unused
+int cIndex::GetPacketNumberFromPTS(const int64_t pts) {
+    if (ptsRing.size() == 0) {
+        esyslog("cIndex::GetPacketNumberFromPTS(): index is empty");
+        return -1;
+    }
+    struct sFrameType {
+        int frameNumber = -1;
+        int64_t pts     =  0;
+    } frame;
+    int64_t ptsMin =  INT64_MAX;
+    int64_t ptsMax =  0;
+#ifdef DEBUG_RING_PTS_LOOKUP
+    dsyslog("----------------------------------------------------------------------------------------------------------------------");
+#endif
+
+    for (std::vector<sPTS_RingbufferElement>::iterator ptsIterator = ptsRing.begin(); ptsIterator != ptsRing.end(); ++ptsIterator) { // get framenumber after
+#ifdef DEBUG_RING_PTS_LOOKUP
+//        dsyslog("cIndex::GetPacketNumberFromPTS(): frame (%6d) PTS %" PRId64, ptsIterator->frameNumber, ptsIterator->pts);
+#endif
+        ptsMin = std::min(ptsMin, ptsIterator->pts);
+        ptsMax = std::max(ptsMax, ptsIterator->pts);
+        if (ptsIterator->pts == pts) {
+            frame.frameNumber = ptsIterator->frameNumber;
+            break;
+        }
+    }
+#ifdef DEBUG_RING_PTS_LOOKUP
+    dsyslog("cIndex::GetPacketNumberFromPTS(): PTS      min: %" PRId64, ptsMin);
+    dsyslog("cIndex::GetPacketNumberFromPTS(): PTS searched: %" PRId64, pts);
+    dsyslog("cIndex::GetPacketNumberFromPTS(): PTS      max: %" PRId64, ptsMax);
+    dsyslog("cIndex::GetPacketNumberFromPTS(): index size %lu", ptsRing.size());
+    dsyslog("cIndex::GetPacketNumberFromPTS(): found video frame (%d) PTS %" PRId64 " from PTS %" PRId64, frame.frameNumber, frame.pts, pts);
+    dsyslog("----------------------------------------------------------------------------------------------------------------------");
+    // missing audio PTS in index can happen if audio PTS is after video PTS
+#endif
+    if (frame.frameNumber < 0) esyslog("cIndex::GetPacketNumberFromPTS(): pts %ld: not found, index contains from %ld to %ld", pts, ptsMin, ptsMax);
+    return frame.frameNumber;
+}
+*/
+
+
+int cIndex::GetPacketNumberBeforePTS(const int64_t pts) {
+    if (ptsRing.size() == 0) {
+        esyslog("cIndex::GetPacketNumberBeforePTS(): index is empty");
         return -1;
     }
     struct sFrameType {
@@ -361,23 +429,23 @@ int cIndex::GetFrameBeforePTS(const int64_t pts) {
         }
     }
 #ifdef DEBUG_RING_PTS_LOOKUP
-    dsyslog("cIndex::GetFrameBeforePTS(): PTS      min: %" PRId64, ptsMin);
-    dsyslog("cIndex::GetFrameBeforePTS(): PTS searched: %" PRId64, pts);
-    dsyslog("cIndex::GetFrameBeforePTS(): PTS      max: %" PRId64, ptsMax);
-    dsyslog("cIndex::GetFrameBeforePTS(): index size %lu", ptsRing.size());
-    dsyslog("cIndex::GetFrameBeforePTS(): found video frame (%d) PTS %" PRId64 " before PTS %" PRId64, frame.frameNumber, frame.pts, pts);
+    dsyslog("cIndex::GetPacketNumberBeforePTS(): PTS      min: %" PRId64, ptsMin);
+    dsyslog("cIndex::GetPacketNumberBeforePTS(): PTS searched: %" PRId64, pts);
+    dsyslog("cIndex::GetPacketNumberBeforePTS(): PTS      max: %" PRId64, ptsMax);
+    dsyslog("cIndex::GetPacketNumberBeforePTS(): index size %lu", ptsRing.size());
+    dsyslog("cIndex::GetPacketNumberBeforePTS(): found video frame (%d) PTS %" PRId64 " before PTS %" PRId64, frame.frameNumber, frame.pts, pts);
     dsyslog("----------------------------------------------------------------------------------------------------------------------");
     // missing audio PTS in index can happen if audio PTS is after video PTS
-    dsyslog("cIndex::GetFrameBeforePTS(): pts %ld: not found, index contains from %ld to %ld", pts, ptsMin, ptsMax);
+    dsyslog("cIndex::GetPacketNumberBeforePTS(): pts %ld: not found, index contains from %ld to %ld", pts, ptsMin, ptsMax);
 #endif
     return frame.frameNumber;
 }
 
 
 
-int cIndex::GetFrameAfterPTS(const int64_t pts) {
+int cIndex::GetPacketNumberAfterPTS(const int64_t pts) {
     if (ptsRing.size() == 0) {
-        esyslog("cIndex::GetFrameAfterPTS(): index is empty");
+        esyslog("cIndex::GetPacketNumberAfterPTS(): index is empty");
         return -1;
     }
     struct sFrameType {
@@ -403,15 +471,15 @@ int cIndex::GetFrameAfterPTS(const int64_t pts) {
         }
     }
 #ifdef DEBUG_RING_PTS_LOOKUP
-    dsyslog("cIndex::GetFrameAfterPTS(): PTS      min: %" PRId64, ptsMin);
-    dsyslog("cIndex::GetFrameAfterPTS(): PTS searched: %" PRId64, pts);
-    dsyslog("cIndex::GetFrameAfterPTS(): PTS      max: %" PRId64, ptsMax);
-    dsyslog("cIndex::GetFrameAfterPTS(): index size %lu", ptsRing.size());
-    if (frame.frameNumber == -1) dsyslog("cIndex::GetFrameAfterPTS(): video frame after PTS %ld not found", pts);
-    else    dsyslog("cIndex::GetFrameAfterPTS(): found video frame (%d) PTS %" PRId64 " after PTS %" PRId64, frame.frameNumber, frame.pts, pts);
+    dsyslog("cIndex::GetPacketNumberAfterPTS(): PTS      min: %" PRId64, ptsMin);
+    dsyslog("cIndex::GetPacketNumberAfterPTS(): PTS searched: %" PRId64, pts);
+    dsyslog("cIndex::GetPacketNumberAfterPTS(): PTS      max: %" PRId64, ptsMax);
+    dsyslog("cIndex::GetPacketNumberAfterPTS(): index size %lu", ptsRing.size());
+    if (frame.frameNumber == -1) dsyslog("cIndex::GetPacketNumberAfterPTS(): video frame after PTS %ld not found", pts);
+    else    dsyslog("cIndex::GetPacketNumberAfterPTS(): found video frame (%d) PTS %" PRId64 " after PTS %" PRId64, frame.frameNumber, frame.pts, pts);
     dsyslog("----------------------------------------------------------------------------------------------------------------------");
     // missing audio PTS in index can happen if audio PTS is after video PTS
-    dsyslog("cIndex::GetFrameAfterPTS(): PTS %ld: not found, index contains from %ld to %ld", pts, ptsMin, ptsMax);
+    dsyslog("cIndex::GetPacketNumberAfterPTS(): PTS %ld: not found, index contains from %ld to %ld", pts, ptsMin, ptsMax);
 #endif
     return frame.frameNumber;
 }

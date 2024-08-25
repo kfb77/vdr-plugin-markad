@@ -56,7 +56,7 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
         sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 6);  // boundary 6
         ALLOC(sizeof(*sobel), "sobel");
 
-        hBorder = new cHorizBorderDetect(decoder, criteria);
+        hBorder = new cHorizBorderDetect(decoder, nullptr, criteria);
         ALLOC(sizeof(*hBorder), "hBorder");
 
         vborder = new cVertBorderDetect(decoder, criteria);
@@ -1932,10 +1932,10 @@ void cExtractLogo::ManuallyExtractLogo(const int corner, const int width, const 
 int cExtractLogo::SearchLogo(int startPacket, const bool force) {
     LogSeparator(true);
     dsyslog("cExtractLogo::SearchLogo(): extract logo from packet %d requested aspect ratio %d:%d, force = %d", startPacket, requestedLogoAspectRatio.num, requestedLogoAspectRatio.den, force);
-    if (startPacket < 0) return LOGO_ERROR;
+    if (startPacket < 0) return LOGO_SEARCH_ERROR;
     if (criteria->NoLogo()) {
         dsyslog("cExtractLogo::SearchLogo(): channel have no continuous logo");
-        return LOGO_ERROR;
+        return LOGO_SEARCH_ERROR;
     }
 
     // set start time for statistics
@@ -1953,7 +1953,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
 
     if (!WaitForFrames(decoder)) {
         dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed");
-        return LOGO_ERROR;
+        return LOGO_SEARCH_ERROR;
     }
 
 // set start point
@@ -1972,11 +1972,11 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         dsyslog("cExtractLogo::SearchLogo(): frame (%d): seek to packet (%d)", packetNumber, startPacket);
         if (!WaitForFrames(decoder, startPacket)) {
             dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() for start packet (%d) failed", startPacket);
-            return LOGO_ERROR;
+            return LOGO_SEARCH_ERROR;
         }
         if (!decoder->SeekToPacket(startPacket)) {
             dsyslog("cExtractLogo::SearchLogo(): seek to start packet (%d) failed", startPacket);
-            return LOGO_ERROR;
+            return LOGO_SEARCH_ERROR;
         }
     }
 
@@ -1986,7 +1986,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
     if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0))  {
         sAspectRatio *aspectRatio = nullptr;
         while (!aspectRatio) {   // read and decode until we got a valid frame
-            if (abortNow) return LOGO_ERROR;
+            if (abortNow) return LOGO_SEARCH_ERROR;
             if (!decoder->DecodeNextFrame(false)) break;
             aspectRatio = decoder->GetFrameAspectRatio();
         }
@@ -1996,12 +1996,12 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         }
         else {
             esyslog("cExtractLogo::SearchLogo(): no valid aspect ratio in video found");
-            return LOGO_ERROR;
+            return LOGO_SEARCH_ERROR;
         }
     }
 
     while (decoder->DecodeNextFrame(false)) {  // no audio decode
-        if (abortNow) return LOGO_ERROR;
+        if (abortNow) return LOGO_SEARCH_ERROR;
 
         if (!WaitForFrames(decoder)) {
             dsyslog("cExtractLogo::SearchLogo(): WaitForFrames() failed at packet (%d), got %d valid frames of %d packets read", decoder->GetPacketNumber(), frameCountValid, packetsRead);
@@ -2034,15 +2034,17 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         }
 
         if (!criteria->LogoInBorder()) {
-            int hBorderIFrame = -1;
-            int vBorderIFrame = -1;
-            int isHBorder = hBorder->Process(&hBorderIFrame);
-            int isVBorder = vborder->Process(&vBorderIFrame);
+            int hBorderPacketNumber = -1;
+            int64_t hBorderFramePTS = -1;
+            int vBorderPacketNumber = -1;
+            int64_t vBorderFramePTS = -1;
+            int isHBorder = hBorder->Process(&hBorderPacketNumber, &hBorderFramePTS);
+            int isVBorder = vborder->Process(&vBorderPacketNumber, &vBorderFramePTS);
             if (isHBorder != HBORDER_ERROR) {
-                if (hBorderIFrame >= 0) {  // we had a change
+                if (hBorderPacketNumber >= 0) {  // we had a change
                     if (isHBorder == HBORDER_VISIBLE) {
-                        dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderIFrame, packetNumber);
-                        frameCountValid -= DeleteFrames(hBorderIFrame, packetNumber);
+                        dsyslog("cExtractLogo::SearchLogo(): detect new horizontal border from frame (%d) to frame (%d)", hBorderPacketNumber, packetNumber);
+                        frameCountValid -= DeleteFrames(hBorderPacketNumber, packetNumber);
                     }
                     else {
                         dsyslog("cExtractLogo::SearchLogo(): no horizontal border from frame (%d)", packetNumber);
@@ -2050,10 +2052,10 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                 }
             }
             if (isVBorder != VBORDER_ERROR) {
-                if (vBorderIFrame >= 0) {  // we had a change
+                if (vBorderPacketNumber >= 0) {  // we had a change
                     if (isVBorder == VBORDER_VISIBLE) {
-                        dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderIFrame, packetNumber);
-                        frameCountValid -= DeleteFrames(vBorderIFrame, packetNumber);
+                        dsyslog("cExtractLogo::SearchLogo(): detect new vertical border from frame (%d) to frame (%d)", vBorderPacketNumber, packetNumber);
+                        frameCountValid -= DeleteFrames(vBorderPacketNumber, packetNumber);
                     }
                     else {
                         dsyslog("cExtractLogo::SearchLogo(): no vertical border from frame (%d)", packetNumber);
@@ -2302,17 +2304,17 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
 
     if (abortNow) {
         dsyslog("cExtractLogo::SearchLogo(): aborted by user");
-        return LOGO_ERROR;
+        return LOGO_SEARCH_ERROR;
     }
 
     if (logoFound) {
         dsyslog("cExtractLogo::SearchLogo(): finished successfully, last frame %d", packetNumber);
-        return LOGO_FOUND;
+        return LOGO_SEARCH_FOUND;
     }
     else {
         dsyslog("cExtractLogo::SearchLogo(): failed, last frame %d", packetNumber);
         if (packetNumber > 0) return packetNumber;   // return last frame from search to setup new search after this
-        else return LOGO_ERROR;                // nothing read, retry makes no sense
+        else return LOGO_SEARCH_ERROR;                // nothing read, retry makes no sense
 
     }
 }

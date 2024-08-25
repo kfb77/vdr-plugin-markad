@@ -147,8 +147,8 @@ void cDecoder::Reset() {
         for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
             audioAC3Channels[streamIndex].channelCountBefore = 0;
             audioAC3Channels[streamIndex].channelCountAfter  = 0;
-            audioAC3Channels[streamIndex].pts                = -1;
-            audioAC3Channels[streamIndex].videoFrameNumber   = -1;
+            audioAC3Channels[streamIndex].videoPacketNumber  = -1;
+            audioAC3Channels[streamIndex].videoFramePTS      = -1;
             audioAC3Channels[streamIndex].processed          = true;
         }
     }
@@ -704,8 +704,8 @@ bool cDecoder::ReadPacket() {
                     dsyslog("cDecoder::ReadPacket(): packet (%d), stream %d: audio channels changed from %d to %d at PTS %" PRId64, packetNumber, avpkt.stream_index, audioAC3Channels[avpkt.stream_index].channelCountBefore, channelCount, avpkt.pts);
                     audioAC3Channels[avpkt.stream_index].processed          = false;
                     audioAC3Channels[avpkt.stream_index].channelCountAfter  = channelCount;
-                    audioAC3Channels[avpkt.stream_index].pts                = avpkt.pts;
-                    audioAC3Channels[avpkt.stream_index].videoFrameNumber   = -1;
+                    audioAC3Channels[avpkt.stream_index].videoFramePTS      = avpkt.pts;
+                    audioAC3Channels[avpkt.stream_index].videoPacketNumber  = -1;
                 }
             }
         }
@@ -747,13 +747,21 @@ AVFrame *cDecoder::GetFrame(enum AVPixelFormat pixelFormat) {
 }
 
 
+int64_t cDecoder::GetFramePTS() const {
+    if (!frameValid) return -1;
+    return avFrame.pts;
+}
+
+
 int64_t cDecoder::GetPacketPTS() const {
     return avpkt.pts;
 }
 
+
 int cDecoder::GetVolume() {
     if (!fullDecode) return -1;                           // no audio frames decoded
     if (avpkt.stream_index != firstMP2Index) return -1;   // only check first MP2 stream
+    if (avpkt.pts < index->GetStartPTS())    return -1;   // audio PTS is before video stream start
 
     // get volume of MP2 frame
     if (avFrame.format == AV_SAMPLE_FMT_S16P) {
@@ -797,24 +805,34 @@ sAudioAC3Channels *cDecoder::GetChannelChange() {
 
     for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
         if (!audioAC3Channels[streamIndex].processed) {
-            dsyslog("cDecoder::GetChannelChange(): stream %d: unprocessed channel change", streamIndex);
-            if (audioAC3Channels[streamIndex].videoFrameNumber < 0) {  // we have no video frame number, try to get from index it now
-                dsyslog("cDecoder::GetChannelChange(): stream %d: calculate video packet number for PTS %" PRId64, streamIndex, audioAC3Channels[streamIndex].pts);
-                if (fullDecode) {   // use PTS ring buffer to get exact video frame number
+            dsyslog("cDecoder::GetChannelChange(): packet (%d), stream %d: unprocessed channel change", packetNumber, streamIndex);
+            if (audioAC3Channels[streamIndex].videoPacketNumber < 0) {  // we have no video frame number, try to get from index it now
+                dsyslog("cDecoder::GetChannelChange(): packet (%d), stream %d: calculate video packet number for PTS %" PRId64, packetNumber, streamIndex, audioAC3Channels[streamIndex].videoFramePTS);
+                if (fullDecode) {   // full decode, use PTS ring buffer to get exact video frame number
                     // 6 -> 2 channel, this will result in stop  mark, use nearest video i-frame with PTS before
-                    if (audioAC3Channels[streamIndex].channelCountAfter == 2) audioAC3Channels[streamIndex].videoFrameNumber = index->GetFrameBeforePTS(audioAC3Channels[streamIndex].pts);
+                    if (audioAC3Channels[streamIndex].channelCountAfter == 2) {
+                        audioAC3Channels[streamIndex].videoPacketNumber = index->GetPacketNumberBeforePTS(audioAC3Channels[streamIndex].videoFramePTS);
+                    }
                     // 2 -> 6 channel, this will result in start mark, use nearest video i-frame with PTS after
-                    else audioAC3Channels[streamIndex].videoFrameNumber = index->GetFrameAfterPTS(audioAC3Channels[streamIndex].pts);
+                    else {
+                        audioAC3Channels[streamIndex].videoPacketNumber = index->GetPacketNumberAfterPTS(audioAC3Channels[streamIndex].videoFramePTS);
+                    }
+                    audioAC3Channels[streamIndex].videoFramePTS = index->GetPTSFromPacketNumber(audioAC3Channels[streamIndex].videoPacketNumber);  // set PTS from video packet
                 }
-                else {              // use i-frame index
+                else {  // no full decode,use i-frame index
                     // 6 -> 2 channel, this will result in stop  mark, use nearest video i-frame with PTS before
-                    if (audioAC3Channels[streamIndex].channelCountAfter == 2) audioAC3Channels[streamIndex].videoFrameNumber = index->GetIFrameBeforePTS(audioAC3Channels[streamIndex].pts);
-                    // 2 -> 6 channel, this will result in start mark, use nearest video i-frame with PTS after
-                    else audioAC3Channels[streamIndex].videoFrameNumber = index->GetIFrameAfterPTS(audioAC3Channels[streamIndex].pts);
+                    if (audioAC3Channels[streamIndex].channelCountAfter == 2) {  // stop mark
+                        audioAC3Channels[streamIndex].videoPacketNumber = index->GetKeyPacketNumberBeforePTS(audioAC3Channels[streamIndex].videoFramePTS);
+                    }
+                    // 2 -> 6 channel, this will result in start mark, use nearest video key packet with PTS after
+                    else {  // start mark
+                        audioAC3Channels[streamIndex].videoPacketNumber = index->GetKeyPacketNumberAfterPTS(audioAC3Channels[streamIndex].videoFramePTS);
+                    }
+                    audioAC3Channels[streamIndex].videoFramePTS = index->GetPTSFromKeyPacket(audioAC3Channels[streamIndex].videoPacketNumber); // set PTS from video packet
                 }
             }
-            if (audioAC3Channels[streamIndex].videoFrameNumber < 0) {   // PTS not yet in index
-                dsyslog("cDecoder::GetChannelChange(): stream %d: PTS %" PRId64 " not found in index", streamIndex, audioAC3Channels[streamIndex].pts);
+            if (audioAC3Channels[streamIndex].videoPacketNumber < 0) {   // PTS not yet in index
+                dsyslog("cDecoder::GetChannelChange(): packet (%d), stream %d: PTS %" PRId64 " not found in index", packetNumber, streamIndex, audioAC3Channels[streamIndex].videoFramePTS);
                 return nullptr;
             }
             return &audioAC3Channels[streamIndex];                                      // valid channel change, no need to check all streams
@@ -1276,7 +1294,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
     // decoding successful, frame is valid
     frameValid = true;
 #ifdef DEBUG_DECODER
-    dsyslog("cDecoder::cDecoder::ReceiveFrameFromDecoder(): packet (%5d), stream %d: avFrame.pict_type %d, avcodec_receive_frame() successful", packetNumber, avpkt.stream_index, avFrame.pict_type);
+    dsyslog("cDecoder::cDecoder::ReceiveFrameFromDecoder(): packet (%5d), stream %d: avFrame.pict_type %d, PTS %ld, avcodec_receive_frame() successful", packetNumber, avpkt.stream_index, avFrame.pict_type, avFrame.pts);
     LogSeparator();
 #endif
     Time(false);
@@ -1402,11 +1420,26 @@ bool cDecoder::IsSubtitleStream(const unsigned int streamIndex) const {
     return false;
 }
 
+
 /*  unused
 bool cDecoder::IsSubtitlePacket() {
     if (!avctx) return false;
     if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
     return false;
+}
+*/
+
+
+/* unused
+int cDecoder::GetFrameNumber() {
+    if (!frameValid) return -1;
+    if (!index)      return -1;
+    if (avFrame.pts != ptsFrameCache.pts) {
+        ptsFrameCache.pts = avFrame.pts;
+        ptsFrameCache.frameNumber = index->GetPacketNumberFromPTS(avFrame.pts);
+        if (ptsFrameCache.frameNumber < 0) esyslog("cDecoder::GetFrameNumber(): packet (%d): GetPacketNumberFromPTS() failed", packetNumber);
+    }
+    return ptsFrameCache.frameNumber;
 }
 */
 

@@ -614,7 +614,7 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
     // sobel transformation of colored planes
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
-        esyslog("cLogoDetect::LogoColourChange(): picture not valid");
+        dsyslog("cLogoDetect::LogoColourChange(): picture not valid");
         return false;
     }
 
@@ -661,25 +661,29 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
 }
 
 
-int cLogoDetect::Detect(int *logoFrameNumber) {
-    int rPixel       =  0;
-    int mPixel       =  0;
-    int iPixel       =  0;
-    int processed    =  0;
-    *logoFrameNumber = -1;
+int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
+    int rPixel        =  0;
+    int mPixel        =  0;
+    int iPixel        =  0;
+    int processed     =  0;
+    *logoPacketNumber = -1;
+    *logoFramePTS     = -1;
 
     int packetNumber = decoder->GetPacketNumber();
+    int64_t framePTS = decoder->GetFramePTS();
+    if (framePTS < 0) return LOGO_ERROR;
+
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cLogoDetect::Detect(): packet (%d): picture not valid", packetNumber);
         return LOGO_ERROR;
     }
     if(!picture->plane[0]) {
-        dsyslog("cLogoDetect::Detect(): packet (%d): picture plane 0 not valid", packetNumber);
+        esyslog("cLogoDetect::Detect(): packet (%d): picture plane 0 not valid", packetNumber);
         return LOGO_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cLogoDetect::Detect(): packet (%d): picture planeLineSize[0] valid", packetNumber);
+        esyslog("cLogoDetect::Detect(): packet (%d): picture planeLineSize[0] valid", packetNumber);
         return LOGO_ERROR;
     }
 
@@ -889,15 +893,22 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
     if (area.status == LOGO_UNINITIALIZED) {
         if (rPixel >= logo_vmark) area.status = LOGO_VISIBLE;
         if (rPixel <= logo_imark) area.status = LOGO_INVISIBLE;  // wait for a clear result
-        if (area.stateFrameNumber == -1) area.stateFrameNumber = packetNumber;
-        *logoFrameNumber = area.stateFrameNumber;
+        if (area.statePacketNumber == -1) {
+            area.statePacketNumber = packetNumber;
+            area.stateFramePTS     = framePTS;
+        }
+        *logoPacketNumber = area.statePacketNumber;
+        *logoFramePTS     = area.stateFramePTS;
         return area.status;
     }
     if (area.status == LOGO_RESTART) {
         if (rPixel >= logo_vmark) area.status = LOGO_VISIBLE;
         if (rPixel <= logo_imark) area.status = LOGO_INVISIBLE;  // wait for a clear result
-        *logoFrameNumber = -1;   // no logo change report after detection restart
-        area.stateFrameNumber = packetNumber;
+        // no logo change report after detection restart
+        *logoPacketNumber = -1;
+        *logoFramePTS     = -1;
+        area.statePacketNumber = packetNumber;
+        area.stateFramePTS     = framePTS;
         return area.status;
     }
 
@@ -907,29 +918,38 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
         if (area.status == LOGO_INVISIBLE) {
             if (area.counter >= LOGO_VMAXCOUNT) {
                 area.status = ret = LOGO_VISIBLE;
-                *logoFrameNumber = area.stateFrameNumber;
-                area.counter = 0;
+                *logoPacketNumber = area.statePacketNumber;
+                *logoFramePTS     = area.stateFramePTS;
+                area.counter      = 0;
             }
             else {
-                if (!area.counter) area.stateFrameNumber = packetNumber;
+                if (!area.counter) {
+                    area.statePacketNumber = packetNumber;
+                    area.stateFramePTS     = framePTS;
+                }
                 area.counter++;
             }
         }
         else {
-            area.stateFrameNumber = packetNumber;
+            area.statePacketNumber = packetNumber;
+            area.stateFramePTS     = framePTS;
             area.counter = 0;
         }
     }
 
-    if (rPixel <=logo_imark) {
+    if (rPixel <= logo_imark) {
         if (area.status == LOGO_VISIBLE) {
             if (area.counter >= LOGO_IMAXCOUNT) {
                 area.status = ret = LOGO_INVISIBLE;
-                *logoFrameNumber = area.stateFrameNumber;
-                area.counter = 0;
+                *logoPacketNumber = area.statePacketNumber;
+                *logoFramePTS     = area.stateFramePTS;
+                area.counter      = 0;
             }
             else {
-                if (!area.counter) area.stateFrameNumber = index->GetFrameBefore(packetNumber);
+                if (!area.counter) {
+                    area.statePacketNumber = packetNumber;
+                    area.stateFramePTS     = framePTS;
+                }
                 area.counter++;
                 if (area.intensity < 200) {   // do not overweight result on bright pictures
                     if (rPixel <= (logo_imark / 2)) area.counter++;   // good detect for logo invisible
@@ -939,7 +959,8 @@ int cLogoDetect::Detect(int *logoFrameNumber) {
                         if (area.intensity <= 80) { // best detect, blackscreen without logo, increased from 30 to 70 to 80
                             dsyslog("cLogoDetect::Detect(): black screen without logo detected at frame (%d)", packetNumber);
                             area.status = ret = LOGO_INVISIBLE;
-                            *logoFrameNumber = area.stateFrameNumber;
+                            *logoPacketNumber = area.statePacketNumber;
+                            *logoFramePTS     = area.stateFramePTS;
                             area.counter = 0;
                         }
                     }
@@ -995,16 +1016,16 @@ bool cLogoDetect::ChangeLogoAspectRatio(sAspectRatio *aspectRatio) {
     }
     FREE(sizeof(*extractLogo), "extractLogo");
     delete extractLogo;
-    if (endPos == LOGO_FOUND) return LoadLogo();   // logo in recording found und stored in recording directory
+    if (endPos == LOGO_SEARCH_FOUND) return LoadLogo();   // logo in recording found und stored in recording directory
     return false;
 }
 
 
-int cLogoDetect::Process(int *logoFrameNumber) {
-    int frameNumber = decoder->GetPacketNumber();
+int cLogoDetect::Process(int *logoPacketNumber, int64_t *logoFramePTS) {
+    int packetNumber = decoder->GetPacketNumber();
     sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
     if (area.logoAspectRatio != *aspectRatio) {
-        dsyslog("cLogoDetect::Process(): frame (%d): aspect ratio changed from %d:%d to %d:%d, reload logo", frameNumber, area.logoAspectRatio.num, area.logoAspectRatio.den, aspectRatio->num, aspectRatio->den);
+        dsyslog("cLogoDetect::Process(): frame (%d): aspect ratio changed from %d:%d to %d:%d, reload logo", packetNumber, area.logoAspectRatio.num, area.logoAspectRatio.den, aspectRatio->num, aspectRatio->den);
         if (!ChangeLogoAspectRatio(aspectRatio)) {
             isyslog("no valid logo found for %s %d:%d, disable logo detection", criteria->GetChannelName(), aspectRatio->num, aspectRatio->den);
             criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED, decoder->GetFullDecode());
@@ -1013,7 +1034,7 @@ int cLogoDetect::Process(int *logoFrameNumber) {
         }
         area.logoAspectRatio = *aspectRatio;
     }
-    return Detect(logoFrameNumber);
+    return Detect(logoPacketNumber, logoFramePTS);
 }
 
 
@@ -1032,21 +1053,25 @@ cSceneChangeDetect::~cSceneChangeDetect() {
 }
 
 
-int cSceneChangeDetect::Process(int *changeFrameNumber) {
-    if (!changeFrameNumber) return SCENE_ERROR;
+int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS) {
+    if (!changePacketNumber) return SCENE_ERROR;
+    if (!changeFramePTS)     return SCENE_ERROR;
 
+    int64_t framePTS = decoder->GetFramePTS();
+    if (framePTS < 0) return SCENE_ERROR;
     int packetNumber = decoder->GetPacketNumber();
+
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cSceneChangeDetect::Process(): packet (%d): picture not valid", packetNumber);
         return SCENE_ERROR;
     }
     if(!picture->plane[0]) {
-        dsyslog("cSceneChangeDetect::Process(): packet (%d): picture plane 0 not valid", packetNumber);
+        esyslog("cSceneChangeDetect::Process(): packet (%d): picture plane 0 not valid", packetNumber);
         return SCENE_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cSceneChangeDetect::Process(): packet (%d): picture planeLineSize[0] valid", packetNumber);
+        esyslog("cSceneChangeDetect::Process(): packet (%d): picture planeLineSize[0] valid", packetNumber);
         return SCENE_ERROR;
     }
 
@@ -1073,7 +1098,7 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
     }
     int diffQuote = 1000 * difference / (picture->height * picture->width * 2);
 #ifdef DEBUG_SCENE_CHANGE
-    dsyslog("cSceneChangeDetect::Process(): previous frame (%7d) and current frame (%7d): status %2d, blendCount %2d, blendFrame %7d, difference %7ld, diffQute %4d", prevFrameNumber, packetNumber, sceneStatus, blendCount, blendFrame, difference, diffQuote);
+    dsyslog("cSceneChangeDetect::Process(): previous frame (%7d) and current frame (%7d): status %2d, blendCount %2d, blendFrame %7d, difference %7ld, diffQute %4d", prevPacketNumber, packetNumber, sceneStatus, blendCount, blendPacketNumber, difference, diffQuote);
 #endif
     FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
     free(prevHistogram);
@@ -1085,35 +1110,44 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
 #define SCENE_BLEND_FRAMES       5
 // end of scene during active scene blend
     if ((diffQuote >= DIFF_SCENE_NEW) && (sceneStatus == SCENE_BLEND)) {
-        *changeFrameNumber = prevFrameNumber;
-        sceneStatus        = SCENE_STOP;
+        *changePacketNumber = prevPacketNumber;
+        *changeFramePTS     = prevFramePTS;
+        sceneStatus         = SCENE_STOP;
 #ifdef DEBUG_SCENE_CHANGE
-        dsyslog("cSceneChangeDetect::Process(): frame (%7d) end of scene during active blend", prevFrameNumber);
+        dsyslog("cSceneChangeDetect::Process(): frame (%7d) end of scene during active blend", prevPacketNumber);
 #endif
     }
 // end of scene
     else if (diffQuote >= DIFF_SCENE_CHANGE) {
-        if (blendFrame < 0) blendFrame = prevFrameNumber;
+        if (blendFramePTS < 0) {
+            blendPacketNumber = prevPacketNumber;
+            blendFramePTS     = prevFramePTS;
+        }
         blendCount++;
         if ((blendCount <= SCENE_BLEND_FRAMES) && (sceneStatus != SCENE_STOP)) {
             if (blendCount < SCENE_BLEND_FRAMES) blendCount = SCENE_BLEND_FRAMES;  // use blendCount as active scene change
-            *changeFrameNumber = blendFrame;
-            sceneStatus        = SCENE_STOP;
+            *changePacketNumber = blendPacketNumber;
+            *changeFramePTS     = blendFramePTS;
+            sceneStatus         = SCENE_STOP;
 #ifdef DEBUG_SCENE_CHANGE
-            dsyslog("cSceneChangeDetect::Process(): frame (%7d) end of scene", prevFrameNumber);
+            dsyslog("cSceneChangeDetect::Process(): frame (%7d) end of scene", prevPacketNumber);
 #endif
         }
         else sceneStatus = SCENE_BLEND;
     }
 // activ scene blend
     else if (diffQuote >= DIFF_SCENE_BLEND_START) {
-        if (blendFrame < 0) blendFrame = prevFrameNumber;
+        if (blendFramePTS < 0) {
+            blendPacketNumber = prevPacketNumber;
+            blendFramePTS     = prevFramePTS;
+        }
         blendCount++;
         if ((blendCount == SCENE_BLEND_FRAMES)) {
-            *changeFrameNumber = blendFrame;
-            sceneStatus = SCENE_STOP;
+            *changePacketNumber = blendPacketNumber;
+            *changeFramePTS     = blendFramePTS;
+            sceneStatus         = SCENE_STOP;
 #ifdef DEBUG_SCENE_CHANGE
-            dsyslog("cSceneChangeDetect::Process(): frame (%7d) scene blend start at frame (%d)", prevFrameNumber, blendFrame);
+            dsyslog("cSceneChangeDetect::Process(): frame (%7d) scene blend start at frame (%d)", prevPacketNumber, blendPacketNumber);
 #endif
         }
         else sceneStatus = SCENE_BLEND;
@@ -1121,34 +1155,36 @@ int cSceneChangeDetect::Process(int *changeFrameNumber) {
 // unclear result, keep state
     else if ((diffQuote < DIFF_SCENE_BLEND_START) && (diffQuote > DIFF_SCENE_BLEND_STOP)) {
 #ifdef DEBUG_SCENE_CHANGE
-        if (sceneStatus == SCENE_BLEND) dsyslog("cSceneChangeDetect::Process(): frame (%7d) scene blend continue at frame (%d)", prevFrameNumber, blendFrame);
+        if (sceneStatus == SCENE_BLEND) dsyslog("cSceneChangeDetect::Process(): frame (%7d) scene blend continue at frame (%d)", prevPacketNumber, blendPacketNumber);
 #endif
     }
 // start of next scene
     else {
         if ((sceneStatus == SCENE_STOP) || ((sceneStatus == SCENE_BLEND) && (blendCount >= SCENE_BLEND_FRAMES))) {
-            *changeFrameNumber = prevFrameNumber;
-            sceneStatus        = SCENE_START;
+            *changePacketNumber = prevPacketNumber;
+            *changeFramePTS     = prevFramePTS;
+            sceneStatus         = SCENE_START;
 #ifdef DEBUG_SCENE_CHANGE
-            dsyslog("cSceneChangeDetect::Process(): frame (%7d) start of scene", prevFrameNumber);
+            dsyslog("cSceneChangeDetect::Process(): frame (%7d) start of scene", prevPacketNumber);
 #endif
         }
         else sceneStatus = SCENE_NOCHANGE;
-        blendFrame = -1;
-        blendCount =  0;
+        blendFramePTS = -1;
+        blendCount    =  0;
     }
 
-    prevHistogram   = currentHistogram;
-    prevFrameNumber = packetNumber;
+    prevHistogram    = currentHistogram;
+    prevPacketNumber = packetNumber;
+    prevFramePTS     = framePTS;
 
 #ifdef DEBUG_SCENE_CHANGE
-    if (*changeFrameNumber >= 0) {
-        if (sceneStatus == SCENE_START) dsyslog("cSceneChangeDetect::Process(): new mark: MT_SCENESTART at frame (%7d)", *changeFrameNumber);
-        if (sceneStatus == SCENE_STOP)  dsyslog("cSceneChangeDetect::Process(): new mark: MT_SCENESTOP  at frame (%7d)", *changeFrameNumber);
+    if (*changePacketNumber >= 0) {
+        if (sceneStatus == SCENE_START) dsyslog("cSceneChangeDetect::Process(): new mark: MT_SCENESTART at frame (%7d)", *changePacketNumber);
+        if (sceneStatus == SCENE_STOP)  dsyslog("cSceneChangeDetect::Process(): new mark: MT_SCENESTOP  at frame (%7d)", *changePacketNumber);
     }
 #endif
 
-    if (*changeFrameNumber >= 0) return sceneStatus;
+    if (*changePacketNumber >= 0) return sceneStatus;
     else return SCENE_NOCHANGE;
 }
 
@@ -1264,8 +1300,9 @@ int cBlackScreenDetect::Process() {
 }
 
 
-cHorizBorderDetect::cHorizBorderDetect(cDecoder *decoderParam, cCriteria *criteriaParam) {
+cHorizBorderDetect::cHorizBorderDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam) {
     decoder      = decoderParam;
+    index        = indexParam;
     criteria     = criteriaParam;
     frameRate    = decoder->GetVideoFrameRate();
     logoInBorder = criteria->LogoInBorder();
@@ -1279,7 +1316,7 @@ cHorizBorderDetect::~cHorizBorderDetect() {
 
 
 int cHorizBorderDetect::GetFirstBorderFrame() const {
-    if (borderstatus != HBORDER_VISIBLE) return borderframenumber;
+    if (borderstatus != HBORDER_VISIBLE) return hBorderStartPacketNumber;
     else return -1;
 }
 
@@ -1293,27 +1330,34 @@ void cHorizBorderDetect::Clear(const bool isRestart) {
     dsyslog("cHorizBorderDetect::Clear():  clear hborder state");
     if (isRestart) borderstatus = HBORDER_RESTART;
     else           borderstatus = HBORDER_UNINITIALIZED;
-    borderframenumber = -1;
+    hBorderStartPacketNumber = -1;
+    hBorderStartFramePTS     = -1;
 }
 
 
-int cHorizBorderDetect::Process(int *borderFrame) {
+int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFramePTS) {
+    if (!hBorderPacketNumber) return HBORDER_ERROR;
+    if (!hBorderFramePTS)     return HBORDER_ERROR;
 #define CHECKHEIGHT           5  // changed from 8 to 5
 #define BRIGHTNESS_H_SURE    22
 #define BRIGHTNESS_H_MAYBE  148  // some channel have logo or infos in border, so we will detect a higher value, changed from 137 to 148
 #define NO_HBORDER          200  // internal limit for early loop exit, must be more than BRIGHTNESS_H_MAYBE
 
+    int packetNumber = decoder->GetPacketNumber();
+    int64_t framePTS = decoder->GetFramePTS();
+    if (framePTS < 0) return HBORDER_ERROR;     // frame not valid
+
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
-        dsyslog("cVertBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
+        dsyslog("cHorizBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return HBORDER_ERROR;
     }
     if(!picture->plane[0]) {
-        dsyslog("cVertBorderDetect::Process(): packet (%d): picture plane 0 not valid", decoder->GetPacketNumber());
+        dsyslog("cHorizBorderDetect::Process::Process(): packet (%d): picture plane 0 not valid", decoder->GetPacketNumber());
         return HBORDER_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cVertBorderDetect::Process(): packet (%d): picture planeLineSize[0] valid", decoder->GetPacketNumber());
+        dsyslog("cHorizBorderDetect::Process::Process(): packet (%d): picture planeLineSize[0] valid", decoder->GetPacketNumber());
         return HBORDER_ERROR;
     }
 
@@ -1323,7 +1367,8 @@ int cHorizBorderDetect::Process(int *borderFrame) {
     int brightnessMaybe = BRIGHTNESS_H_SURE;
     if (infoInBorder) brightnessMaybe = BRIGHTNESS_H_MAYBE;    // for pixel from info in border
 
-    *borderFrame = -1;   // framenumber of first hborder, otherwise -1
+    *hBorderPacketNumber = -1;   // packet number of first hborder, otherwise -1
+    *hBorderFramePTS     = -1;   // frame  number of first hborder, otherwise -1
     int height = picture->height;
 
     int start     = (height - CHECKHEIGHT) * picture->planeLineSize[0];
@@ -1368,23 +1413,28 @@ int cHorizBorderDetect::Process(int *borderFrame) {
     if ((valTop <= brightnessMaybe) && (valBottom <= brightnessSure) || (valTop <= brightnessSure) && (valBottom <= brightnessMaybe)) {
         // hborder detected
 #ifdef DEBUG_HBORDER
-        int duration = (picture->packetNumber - borderframenumber) / decoder->GetVideoFrameRate();
-        dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ++++++: borderstatus %d, borderframenumber (%d), duration %ds", picture->packetNumber, borderstatus, borderframenumber, duration);
+        int duration = (picture->packetNumber - hBorderStartPacketNumber) / decoder->GetVideoFrameRate();
+        dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ++++++: borderstatus %d, hBorderStartPacketNumber (%d), duration %ds", picture->packetNumber, borderstatus, hBorderStartPacketNumber, duration);
 #endif
-        if (borderframenumber == -1) {  // got first frame with hborder
-            borderframenumber =picture->packetNumber;
+        if (hBorderStartPacketNumber == -1) {  // got first frame with hborder
+            hBorderStartPacketNumber = packetNumber;
+            hBorderStartFramePTS     = framePTS;
         }
         if (borderstatus != HBORDER_VISIBLE) {
-            if (picture->packetNumber > (borderframenumber + frameRate * MIN_H_BORDER_SECS)) {
+            if (packetNumber > (hBorderStartPacketNumber + frameRate * MIN_H_BORDER_SECS)) {
                 switch (borderstatus) {
                 case HBORDER_UNINITIALIZED:
-                    *borderFrame = 0;  // report back a border change after recording start
+                    *hBorderPacketNumber        = 0;                    // report back a border change after recording start
+                    if (index) *hBorderFramePTS = index->GetStartPTS(); // use PTS of recording start
+                    else *hBorderFramePTS = -1;                         // called by logo extraction, we have no index
                     break;
                 case HBORDER_RESTART:
-                    *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
+                    *hBorderPacketNumber = -1;  // do not report back a border change after detection restart, only set internal state
+                    *hBorderFramePTS     = -1;  // do not report back a border change after detection restart, only set internal state
                     break;
                 default:
-                    *borderFrame = borderframenumber;
+                    *hBorderPacketNumber = hBorderStartPacketNumber;
+                    *hBorderFramePTS     = hBorderStartFramePTS;
                 }
                 borderstatus = HBORDER_VISIBLE; // detected start of black border
             }
@@ -1393,18 +1443,27 @@ int cHorizBorderDetect::Process(int *borderFrame) {
     else {
         // no hborder detected
 #ifdef DEBUG_HBORDER
-        dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ------: borderstatus %d, borderframenumber (%d)", picture->packetNumber, borderstatus, borderframenumber);
+        dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ------: borderstatus %d, hBorderStartPacketNumber (%d)", picture->packetNumber, borderstatus, hBorderStartPacketNumber);
 #endif
         if (borderstatus != HBORDER_INVISIBLE) {
-            if ((borderstatus == HBORDER_UNINITIALIZED) || (borderstatus == HBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
-            else *borderFrame = borderframenumber;
-            borderstatus = HBORDER_INVISIBLE; // detected stop of black border
+            if ((borderstatus == HBORDER_UNINITIALIZED) || (borderstatus == HBORDER_RESTART)) {
+                *hBorderPacketNumber = -1;  // do not report back a border change after detection restart, only set internal state
+                *hBorderFramePTS     = -1;  // do not report back a border change after detection restart, only set internal state
+            }
+            else {  // HBORDER_VISIBLE -> HBORDER_INVISIBLE
+                *hBorderPacketNumber = prevPacketNumber;   // report back last packet with hborder
+                *hBorderFramePTS     = prevFramePTS;
+            }
+            borderstatus = HBORDER_INVISIBLE; // detected stop of horizontal border
         }
-        borderframenumber = -1; // restart from scratch
+        hBorderStartPacketNumber = -1; // restart from scratch
+        hBorderStartFramePTS     = -1; // restart from scratch
     }
 #ifdef DEBUG_HBORDER
-    dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder return: borderstatus %d, borderframenumber (%d), borderFrame (%d)", picture->packetNumber, borderstatus, borderframenumber, *borderFrame);
+    dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder return: borderstatus %d, hBorderStartPacketNumber (%d), hBorderPacketNumber (%d)", picture->packetNumber, borderstatus, hBorderStartPacketNumber, *hBorderPacketNumber);
 #endif
+    prevPacketNumber = packetNumber;
+    prevFramePTS     = framePTS;
     return borderstatus;
 }
 
@@ -1422,21 +1481,34 @@ cVertBorderDetect::cVertBorderDetect(cDecoder *decoderParam, cCriteria *criteria
 void cVertBorderDetect::Clear(const bool isRestart) {
     if (isRestart) borderstatus = VBORDER_RESTART;
     else           borderstatus = VBORDER_UNINITIALIZED;
-    vBorderStart = -1;
-    valid        = false;
+    vBorderStartPacketNumber = -1;
+    vBorderStartFramePTS     = -1;
+    valid                    = false;
 }
 
 
 int cVertBorderDetect::GetFirstBorderFrame() const {
-    if (borderstatus != VBORDER_VISIBLE) return vBorderStart;
+    if (borderstatus != VBORDER_VISIBLE) return vBorderStartPacketNumber;
     else return -1;
 }
 
 
-int cVertBorderDetect::Process(int *borderFrame) {
+int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePTS) {
+    if (!vBorderPacketNumber) {
+        dsyslog("cVertBorderDetect::Process(): packet (%d): vBorderPacketNumber not valid", decoder->GetPacketNumber());
+        return VBORDER_ERROR;
+    }
+    if (!vBorderFramePTS) {
+        dsyslog("cVertBorderDetect::Process(): packet (%d): vBorderFramePTS not valid", decoder->GetPacketNumber());
+        return VBORDER_ERROR;
+    }
 #define CHECKWIDTH 10           // do not reduce, very small vborder are unreliable to detect, better use logo in this case
 #define BRIGHTNESS_V_SURE   27  // changed from 33 to 27, some channels has dark separator before vborder start
 #define BRIGHTNESS_V_MAYBE 101  // some channel have logo or infos in one border, so we must accept a higher value, changed from 100 to 101
+    int packetNumber = decoder->GetPacketNumber();
+    int64_t framePTS = decoder->GetFramePTS();
+    if (framePTS < 0) return VBORDER_ERROR;
+
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cVertBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
@@ -1448,10 +1520,6 @@ int cVertBorderDetect::Process(int *borderFrame) {
     }
     if(picture->planeLineSize[0] <= 0) {
         dsyslog("cVertBorderDetect::Process(): packet (%d): picture planeLineSize[0] valid", decoder->GetPacketNumber());
-        return VBORDER_ERROR;
-    }
-    if (!borderFrame) {
-        dsyslog("cVertBorderDetect::Process(): packet (%d): borderFrame not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
     if (picture->width == 0) {
@@ -1471,10 +1539,11 @@ int cVertBorderDetect::Process(int *borderFrame) {
     int brightnessMaybe = BRIGHTNESS_V_SURE;
     if (infoInBorder) brightnessMaybe = BRIGHTNESS_V_MAYBE;    // for pixel from info in border
 
-    *borderFrame = -1;
-    int valLeft  =  0;
-    int valRight =  0;
-    int cnt      =  0;
+    *vBorderPacketNumber = -1;
+    *vBorderFramePTS     = -1;
+    int valLeft          =  0;
+    int valRight         =  0;
+    int cnt              =  0;
 
 
     // check left border
@@ -1505,8 +1574,9 @@ int cVertBorderDetect::Process(int *borderFrame) {
 
     if (((valLeft <= brightnessMaybe) && (valRight <= brightnessSure)) || ((valLeft <= brightnessSure) && (valRight <= brightnessMaybe))) {
         // vborder detected
-        if (vBorderStart == -1) {   // first vborder detected
-            vBorderStart = picture->packetNumber;
+        if (vBorderStartPacketNumber == -1) {   // first vborder detected
+            vBorderStartPacketNumber = packetNumber;
+            vBorderStartFramePTS     = framePTS;
 #ifdef DEBUG_VBORDER
             dsyslog("cVertBorderDetect::Process(): packet (%6d): vborder start detected", decoder->GetPacketNumber());
 #endif
@@ -1519,16 +1589,19 @@ int cVertBorderDetect::Process(int *borderFrame) {
 
         }
         if (borderstatus != VBORDER_VISIBLE) {
-            if (valid && (vBorderStart >= 0) && (picture->packetNumber > (vBorderStart + frameRate * MIN_V_BORDER_SECS))) {
+            if (valid && (vBorderStartPacketNumber >= 0) && (packetNumber > (vBorderStartPacketNumber + frameRate * MIN_V_BORDER_SECS))) {
                 switch (borderstatus) {
                 case VBORDER_UNINITIALIZED:
-                    *borderFrame = 0;
+                    *vBorderPacketNumber = 0;
+                    *vBorderFramePTS     = -1;
                     break;
                 case VBORDER_RESTART:
-                    *borderFrame = -1;  // do not report back a border change after detection restart, only set internal state
+                    *vBorderPacketNumber = -1;  // do not report back a border change after detection restart, only set internal state
+                    *vBorderFramePTS     = -1;  // do not report back a border change after detection restart, only set internal state
                     break;
                 default:
-                    *borderFrame = vBorderStart;
+                    *vBorderPacketNumber = vBorderStartPacketNumber;
+                    *vBorderFramePTS     = vBorderStartFramePTS;
                 }
                 borderstatus = VBORDER_VISIBLE; // detected start of black border
             }
@@ -1537,13 +1610,20 @@ int cVertBorderDetect::Process(int *borderFrame) {
     else {
         // no vborder detected
         if (borderstatus != VBORDER_INVISIBLE) {
-            if ((borderstatus == VBORDER_UNINITIALIZED) || (borderstatus == VBORDER_RESTART)) *borderFrame = -1;  // do not report back a border change, only set internal state
-            else *borderFrame = picture->packetNumber;
+            if ((borderstatus == VBORDER_UNINITIALIZED) || (borderstatus == VBORDER_RESTART)) {
+                *vBorderPacketNumber = -1;  // do not report back a border change, only set internal state
+                *vBorderFramePTS     = -1;  // do not report back a border change, only set internal state
+            }
+            else {
+                *vBorderPacketNumber = packetNumber;
+                *vBorderFramePTS     = framePTS;
+            }
             borderstatus = VBORDER_INVISIBLE; // detected stop of black border
         }
         // restart from scratch
-        vBorderStart = -1;
-        valid        = false;
+        vBorderStartPacketNumber = -1;
+        vBorderStartFramePTS     = -1;
+        valid                    = false;
     }
     return borderstatus;
 }
@@ -1563,7 +1643,7 @@ cVideo::cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaPa
     blackScreenDetect = new cBlackScreenDetect(decoder, criteria);
     ALLOC(sizeof(*blackScreenDetect), "blackScreenDetect");
 
-    hBorderDetect = new cHorizBorderDetect(decoder, criteria);
+    hBorderDetect = new cHorizBorderDetect(decoder, index, criteria);
     ALLOC(sizeof(*hBorderDetect), "hBorderDetect");
 
     vBorderDetect = new cVertBorderDetect(decoder, criteria);
@@ -1630,7 +1710,7 @@ void cVideo::ClearBorder() {
 }
 
 
-bool cVideo::AddMark(int type, int position, const sAspectRatio *before, const sAspectRatio *after) {
+bool cVideo::AddMark(int type, int packetNumber, int64_t framePTS, const sAspectRatio *before, const sAspectRatio *after) {
     if (videoMarks.Count >= videoMarks.maxCount) {  // array start with 0
         esyslog("cVideo::AddMark(): too much marks %d at once detected", videoMarks.Count);
         return false;
@@ -1643,8 +1723,9 @@ bool cVideo::AddMark(int type, int position, const sAspectRatio *before, const s
         videoMarks.Number[videoMarks.Count].AspectRatioAfter.num = after->num;
         videoMarks.Number[videoMarks.Count].AspectRatioAfter.den = after->den;
     }
-    videoMarks.Number[videoMarks.Count].position = position;
-    videoMarks.Number[videoMarks.Count].type     = type;
+    videoMarks.Number[videoMarks.Count].packetNumber = packetNumber;
+    videoMarks.Number[videoMarks.Count].framePTS     = framePTS;
+    videoMarks.Number[videoMarks.Count].type         = type;
     videoMarks.Count++;
     return true;
 }
@@ -1657,32 +1738,36 @@ void cVideo::SetAspectRatioBroadcast(sAspectRatio aspectRatio) {
 
 
 sMarkAdMarks *cVideo::Process() {
-    int frameNumber = decoder->GetPacketNumber();
+    int64_t framePTS = decoder->GetFramePTS();
+    if (framePTS < 0) return nullptr;    // current frame invalid or not yet decoded
+
+    int packetNumber = decoder->GetPacketNumber();
     videoMarks = {};   // reset array of new marks
 
     // scene change detection
     if (criteria->GetDetectionState(MT_SCENECHANGE)) {
-        int changeFrame = -1;
-        int sceneRet = sceneChangeDetect->Process(&changeFrame);
-        if (sceneRet == SCENE_START) AddMark(MT_SCENESTART, changeFrame);
-        if (sceneRet == SCENE_STOP)  AddMark(MT_SCENESTOP,  changeFrame);
+        int scenePacketNumber = -1;
+        int64_t scenePTS      = -1;
+        int sceneRet = sceneChangeDetect->Process(&scenePacketNumber, &scenePTS);
+        if (sceneRet == SCENE_START) AddMark(MT_SCENESTART, scenePacketNumber, scenePTS);
+        if (sceneRet == SCENE_STOP)  AddMark(MT_SCENESTOP,  scenePacketNumber, scenePTS);
     }
 
     // black screen change detection
-    if ((frameNumber > 0) && criteria->GetDetectionState(MT_BLACKCHANGE)) { // first frame can be invalid result
+    if ((packetNumber > 0) && criteria->GetDetectionState(MT_BLACKCHANGE)) { // first frame can be invalid result
         int blackret = blackScreenDetect->Process();
         switch (blackret) {
         case BLACKSCREEN_INVISIBLE:
-            AddMark(MT_NOBLACKSTART, frameNumber);  // first frame without blackscreen is start mark position
+            AddMark(MT_NOBLACKSTART, packetNumber, framePTS);         // first frame without blackscreen is start mark position
             break;
         case BLACKSCREEN_VISIBLE:
-            AddMark(MT_NOBLACKSTOP,  frameNumber);
+            AddMark(MT_NOBLACKSTOP, packetNumber, framePTS);
             break;
         case BLACKLOWER_INVISIBLE:
-            AddMark(MT_NOLOWERBORDERSTART, frameNumber);  // first frame without lower border is start mark position
+            AddMark(MT_NOLOWERBORDERSTART, packetNumber, framePTS);   // first frame without lower border is start mark position
             break;
         case BLACKLOWER_VISIBLE:
-            AddMark(MT_NOLOWERBORDERSTOP,  frameNumber);
+            AddMark(MT_NOLOWERBORDERSTOP, packetNumber, framePTS);
             break;
         default:
             break;
@@ -1691,13 +1776,13 @@ sMarkAdMarks *cVideo::Process() {
 
     // hborder change detection
     if (criteria->GetDetectionState(MT_HBORDERCHANGE)) {
-        int hborderframenumber;
-        int hret = hBorderDetect->Process(&hborderframenumber);  // we get start frame of hborder back
-        if ((hret == HBORDER_VISIBLE) && (hborderframenumber >= 0)) {
-            AddMark(MT_HBORDERSTART, hborderframenumber);
-        }
-        if ((hret == HBORDER_INVISIBLE) && (hborderframenumber >= 0)) {
-            AddMark(MT_HBORDERSTOP, index->GetFrameBefore(frameNumber));
+        int hBorderPacketNumber = -1;
+        int64_t hBorderFramePTS = -1;
+        int hret = hBorderDetect->Process(&hBorderPacketNumber, &hBorderFramePTS);  // we get start frame of hborder back
+        if (hBorderPacketNumber >= 0) {
+            // ignore rest of return codes
+            if (hret == HBORDER_VISIBLE)   AddMark(MT_HBORDERSTART, hBorderPacketNumber, hBorderFramePTS);
+            if (hret == HBORDER_INVISIBLE) AddMark(MT_HBORDERSTOP,  hBorderPacketNumber, hBorderFramePTS);
         }
     }
     else {
@@ -1706,11 +1791,11 @@ sMarkAdMarks *cVideo::Process() {
 
     // vborder change detection
     if (criteria->GetDetectionState(MT_VBORDERCHANGE)) {
-        int vborderframenumber;
-
-        int vret = vBorderDetect->Process(&vborderframenumber);
-        if ((vret == VBORDER_VISIBLE) && (vborderframenumber >= 0)) AddMark(MT_VBORDERSTART, vborderframenumber);
-        if ((vret == VBORDER_INVISIBLE) && (vborderframenumber >= 0)) AddMark(MT_VBORDERSTOP, index->GetFrameBefore(frameNumber));
+        int vBorderPacketNumber = -1;
+        int64_t vBorderFramePTS = -1;;
+        int vret = vBorderDetect->Process(&vBorderPacketNumber, &vBorderFramePTS);
+        if ((vret == VBORDER_VISIBLE)   && (vBorderPacketNumber >= 0)) AddMark(MT_VBORDERSTART, vBorderPacketNumber, vBorderFramePTS);
+        if ((vret == VBORDER_INVISIBLE) && (vBorderPacketNumber >= 0)) AddMark(MT_VBORDERSTOP,  vBorderPacketNumber, vBorderFramePTS);
     }
     else if (vBorderDetect) vBorderDetect->Clear();
 
@@ -1722,41 +1807,42 @@ sMarkAdMarks *cVideo::Process() {
             if (aspectRatioFrameBefore != *aspectRatioFrame) {     // change of aspect ratio
                 // we assume 4:3 broadcast
                 if ((aspectRatioBroadcast.num == 4) && (aspectRatioBroadcast.den == 3)) {
-                    if ((aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) AddMark(MT_ASPECTSTART, frameNumber, &aspectRatioFrameBefore, aspectRatioFrame);
-                    else                                                              AddMark(MT_ASPECTSTOP, index->GetFrameBefore(frameNumber), &aspectRatioFrameBefore, aspectRatioFrame);
+                    if ((aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) AddMark(MT_ASPECTSTART, packetNumber, framePTS, &aspectRatioFrameBefore, aspectRatioFrame);
+                    else                                                              AddMark(MT_ASPECTSTOP, index->GetFrameBefore(packetNumber), framePTS, &aspectRatioFrameBefore, aspectRatioFrame);
                 }
                 // we assume 16:9 broadcast
                 if ((aspectRatioBroadcast.num == 16) && (aspectRatioBroadcast.den == 9)) {
                     if ((aspectRatioFrame->num == 16) && (aspectRatioFrame->den == 9)) {
                         if ((aspectRatioFrameBefore.num) > 0 && (aspectRatioFrameBefore.den > 0)) {  // no 16:9 aspect ratio start at recording start of 16:9 broadcast
-                            AddMark(MT_ASPECTSTART, frameNumber, &aspectRatioFrameBefore, aspectRatioFrame);
+                            AddMark(MT_ASPECTSTART, packetNumber, framePTS, &aspectRatioFrameBefore, aspectRatioFrame);
                         }
                         else {
                         }
                     }
                     else {
-                        AddMark(MT_ASPECTSTOP, index->GetFrameBefore(frameNumber), &aspectRatioFrameBefore, aspectRatioFrame); // stop is one frame before aspect ratio change
+                        AddMark(MT_ASPECTSTOP, index->GetFrameBefore(packetNumber), framePTS, &aspectRatioFrameBefore, aspectRatioFrame); // stop is one frame before aspect ratio change
                         // 16:9 -> 4:3, this is end of broadcast (16:9) and start of next broadcast (4:3)
                         // if we have activ hborder add hborder stop mark, because hborder state will be cleared after aspect ratio change
                         if (hBorderDetect->State() == HBORDER_VISIBLE) {
                             dsyslog("cVideo::Process(): hborder activ during aspect ratio change from 16:9 to 4:3, add hborder stop mark");
-                            AddMark(MT_HBORDERSTOP, index->GetFrameBefore(index->GetFrameBefore(frameNumber)));
+                            AddMark(MT_HBORDERSTOP, index->GetFrameBefore(index->GetFrameBefore(packetNumber)), -1);
                         }
                     }
                 }
                 aspectRatioFrameBefore = *aspectRatioFrame;   // store new aspect ratio
             }
         }
-        else esyslog("cVideo::Process(): frame (%d): get aspect ratio failed", frameNumber);
+        else esyslog("cVideo::Process(): packet (%d): get aspect ratio failed", packetNumber);
     }
 
     // logo change detection
     if (criteria->GetDetectionState(MT_LOGOCHANGE)) {
-        int logoframenumber = -1;
-        int lret=logoDetect->Process(&logoframenumber);
-        if (logoframenumber != -1) {
-            if (lret == LOGO_VISIBLE)   AddMark(MT_LOGOSTART, logoframenumber);
-            if (lret == LOGO_INVISIBLE) AddMark(MT_LOGOSTOP,  logoframenumber);
+        int logoPacketNumber = -1;
+        int64_t logoFramePTS = -1;
+        int lret = logoDetect->Process(&logoPacketNumber, &logoFramePTS);
+        if (logoPacketNumber != -1) {
+            if (lret == LOGO_VISIBLE)   AddMark(MT_LOGOSTART, logoPacketNumber, logoFramePTS);
+            if (lret == LOGO_INVISIBLE) AddMark(MT_LOGOSTOP,  logoPacketNumber, logoFramePTS);
         }
     }
 

@@ -170,10 +170,11 @@ public:
 
     /**
      * detect logo status
-     * @param[out] logoFrameNumber frame number of logo change
+     * @param[out] logoPacketNumber packet number of logo change
+     * @param[out] logoFramePTS     frame PTS of logo change
      * @return 1 = logo, 0 = unknown, -1 = no logo
      */
-    int Detect(int *logoFrameNumber); // return: 1 = logo, 0 = unknown, -1 = no logo
+    int Detect(int *logoPacketNumber, int64_t *logoFramePTS);
 
     /**
      * reduce used logo planes to plane 0
@@ -182,10 +183,11 @@ public:
 
     /**
      * process logo detection of current frame
-     * @param[out] logoFrameNumber frame number of detected logo state change
+     * @param[out] logoPacketNumber packet number of detected logo state change
+     * @param[out] logoFramePTS     frame PTS^ of detected logo state change
      * @return #eLogoStatus
      */
-    int Process(int *logoFrameNumber);
+    int Process(int *logoPacketNumber, int64_t *logoFramePTS);
 
     /**
      * clear status and free memory
@@ -280,28 +282,33 @@ public:
 
     /**
      * process scene change detection
-     * @param[out]  changeFrameNumber  frame number of scene change
+     * @param[out]  changePacketNumber  packet number of scene change
+     * @param[out]  changeFramePTS      decoded frame PTS of scene change
      * @return      scene change status: <br>
      *              -1 scene stop <br>
      *              0 no status change <br>
      *              1 scene start
      */
-    int Process(int *changeFrameNumber);
+    int Process(int *changePacketNumber, int64_t *changeFramePTS);
 
 private:
-    cDecoder *decoder = nullptr;               //!< pointer to decoder
+    cDecoder *decoder     = nullptr;               //!< pointer to decoder
     //!<
-    cCriteria *criteria  = nullptr;               //!< analyse criteria
+    cCriteria *criteria   = nullptr;               //!< analyse criteria
     //!<
-    int prevFrameNumber  = -1;                    //!< previous frame number
+    int prevPacketNumber  = -1;                    //!< previous packet number
     //!<
-    int *prevHistogram   = nullptr;               //!< histogram of previous frame
+    int64_t prevFramePTS  = -1;                    //!< previous frame number
     //!<
-    int sceneStatus      = SCENE_UNINITIALIZED;   //!< status of scene change
+    int *prevHistogram    = nullptr;               //!< histogram of previous frame
     //!<
-    int blendFrame       = -1;                    //!< frames number of first frame over blend limit
+    int sceneStatus       = SCENE_UNINITIALIZED;   //!< status of scene change
     //!<
-    int blendCount       = 0;                     //!< number of frames over blend limit
+    int blendPacketNumber = -1;                    //!< packet number of first frame over blend limit
+    //!<
+    int64_t blendFramePTS = -1;                    //!< frames PTS of first frame over blend limit
+    //!<
+    int blendCount        = 0;                     //!< number of frames over blend limit
     //!<
 };
 
@@ -352,9 +359,10 @@ public:
     /**
      * constructor of class to detect horizental border
      * @param decoderParam      pointer to decoder
+     * @param indexParam        pointer to index
      * @param criteriaParam     detection criteria
      */
-    explicit cHorizBorderDetect(cDecoder *decoderParam, cCriteria *criteriaParam);
+    explicit cHorizBorderDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam);
     ~cHorizBorderDetect();
 
     /**
@@ -364,10 +372,11 @@ public:
     int GetFirstBorderFrame() const;
 
     /**
-     * @param  borderFrame frame number of detected border
-     * @return             border detection status
+     * @param  hBorderPacketNumber frame number of detected border
+     * @param  hBorderFramePTS     frame PTS of detected border
+     * @return                     border detection status
      */
-    int Process(int *borderFrame);
+    int Process(int *hBorderPacketNumber, int64_t *hBorderFramePTS);
 
     /**
      * get horizontal border detection status
@@ -381,19 +390,27 @@ public:
     void Clear(const bool isRestart = false);
 
 private:
-    cDecoder *decoder      = nullptr;   //!< pointer to decoder
+    cDecoder *decoder            = nullptr;               //!< pointer to decoder
     //!<
-    cCriteria *criteria       = nullptr;   //!< pointer to class with decoding states and criteria
+    cIndex *index                = nullptr;               //!< pointer to index
     //!<
-    bool logoInBorder         = false;     //!< true if channel has logo in border
+    cCriteria *criteria          = nullptr;               //!< pointer to class with decoding states and criteria
     //!<
-    bool infoInBorder         = false;     //!< true if channel has info banner in border
+    bool logoInBorder            = false;                 //!< true if channel has logo in border
     //!<
-    int frameRate             = 0;         //!< frame rate
+    bool infoInBorder            = false;                 //!< true if channel has info banner in border
     //!<
-    int borderstatus;                      //!< status of horizontal border detection
+    int frameRate                = 0;                     //!< frame rate
     //!<
-    int borderframenumber;                 //!< frame number of detected horizontal border
+    int borderstatus             = HBORDER_UNINITIALIZED; //!< status of horizontal border detection
+    //!<
+    int prevPacketNumber         = -1;                    //!< packet number of previous packet
+    //!<
+    int64_t prevFramePTS         = -1;;                   //!< frame PTS of previous packet
+    //!<
+    int hBorderStartPacketNumber = -1;                    //!< packet number of detected horizontal border
+    //!<
+    int64_t hBorderStartFramePTS = -1;;                   //!< frame PTS of detected horizontal border
     //!<
 };
 
@@ -419,10 +436,11 @@ public:
 
     /**
      * process vertical border detection of current frame
-     * @param borderFrame frame number of detected border
-     * @return border detection status
+     * @param vBorderPacketNumber packet number of detected border
+     * @param vBorderFramePTS     frame PTS of detected border
+     * @return                    border detection status
      */
-    int Process(int *borderFrame);
+    int Process(int *vBorderPacketNumber, int64_t *vBorderFramePTS);
 
 
     /**
@@ -431,21 +449,23 @@ public:
     void Clear(const bool isRestart = false);
 
 private:
-    cDecoder *decoder      = nullptr;                //!< pointer to decoder
+    cDecoder *decoder            = nullptr;                //!< pointer to decoder
     //!<
-    cCriteria *criteria    = nullptr;                //!< pointer to class with decoding states and criteria
+    cCriteria *criteria          = nullptr;                //!< pointer to class with decoding states and criteria
     //!<
-    bool logoInBorder      = false;                  //!< true if channel has logo in border
+    bool logoInBorder            = false;                  //!< true if channel has logo in border
     //!<
-    bool infoInBorder      = false;                  //!< true if channel has info banner in border
+    bool infoInBorder            = false;                  //!< true if channel has info banner in border
     //!<
-    int frameRate          = 0;                      //!< frame rate of video
+    int frameRate                = 0;                      //!< frame rate of video
     //!<
-    int borderstatus       = VBORDER_UNINITIALIZED;  //!< status of vertical border detection
+    int borderstatus             = VBORDER_UNINITIALIZED;  //!< status of vertical border detection
     //!<
-    int vBorderStart       = -1;                     //!< packet number from start of detected vertical border
+    int vBorderStartPacketNumber = -1;                     //!< packet number from start of detected vertical border
     //!<
-    bool valid             = false;                  //!< first vborder frame, but need to check, because of dark picture
+    int64_t vBorderStartFramePTS = -1;                     //!< frame number from start of detected vertical border
+    //!<
+    bool valid                   = false;                  //!< first vborder frame, but need to check, because of dark picture
     //!<
 };
 
@@ -541,13 +561,14 @@ private:
 
     /**
      * add a new mark to array of new marks
-     * @param type     mark type
-     * @param position frame number
+     * @param type         mark type
+     * @param packetNumber packet number
+     * @param framePTS     TPS of the decoded frame
      * @param before   video aspect ratio before mark position
      * @param after    video aspect ratio after mark position
      * @return true if free position in new mark array found, false otherwise
      */
-    bool AddMark(int type, int position, const sAspectRatio *before = nullptr, const sAspectRatio *after = nullptr);
+    bool AddMark(int type, int packetNumber, int64_t framePTS, const sAspectRatio *before = nullptr, const sAspectRatio *after = nullptr);
 
     cDecoder *decoder                     = nullptr;  //!< pointer to decoder
     //!<

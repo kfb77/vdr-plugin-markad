@@ -27,11 +27,12 @@
 extern bool abortNow;
 
 
-cMark::cMark(const int typeParam, const int oldTypeParam, const int newTypeParam, const int positionParam, const char *commentParam, const bool inBroadCastParam) {
+cMark::cMark(const int typeParam, const int oldTypeParam, const int newTypeParam, const int positionParam, const int64_t ptsParam, const char *commentParam, const bool inBroadCastParam) {
     type        = typeParam;
     newType     = newTypeParam;
     oldType     = oldTypeParam;
     position    = positionParam;
+    pts         = ptsParam;
     inBroadCast = inBroadCastParam;
     if (commentParam) {
         comment = strdup(commentParam);
@@ -128,25 +129,6 @@ void cMarks::Debug() {           // write all marks to log file
         else esyslog("cMarkAdStandalone::DebugMarks(): could not get time to mark (%d) type %d", mark->position, mark->type);
         mark = mark->Next();
     }
-#ifdef DEBUG_WEAK_MARKS
-    // weak marks
-    dsyslog("------------------------------------------------------------");
-    dsyslog("cMarkAdStandalone::DebugMarks(): current black marks:");
-    mark = blackMarks.GetFirst();
-    while (mark) {
-        const char *indexToHMSF = marks.GetTime(mark);
-        if (indexToHMSF) {
-            char *markType = marks.TypeToText(mark->type);
-            if (markType) {
-                dsyslog("mark at position %6d: %-5s %-18s at %s inBroadCast %d", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->inBroadCast);
-                FREE(strlen(markType)+1, "text");
-                free(markType);
-            }
-            else esyslog("cMarkAdStandalone::DebugMarks(): could not get type to mark (%d) type %d", mark->position, mark->type);
-        }
-        mark=mark->Next();
-    }
-#endif
     dsyslog("***********************************************************************************************************************");
 }
 
@@ -448,15 +430,14 @@ cMark *cMarks::GetNext(const int position, const int type, const int mask) {
 }
 
 
-cMark *cMarks::Add(const int type, const int oldType, const int newType, const int position, const char *comment, const bool inBroadCast) {
-
+cMark *cMarks::Add(const int type, const int oldType, const int newType, const int position, const int64_t framePTS, const char *comment, const bool inBroadCast) {
     cMark *dupMark;
     if ((dupMark = Get(position))) {
         if ((type & 0xF0) != MT_SCENECHANGE) dsyslog("cMarks::Add(): duplicate mark on position (%d) type 0x%X and type 0x%X", position, type, dupMark->type); // duplicate scene changes happens frequently
 #ifdef DEBUG_SCENECHANGE
         dsyslog("cMarks::Add(): duplicate mark on position (%d) type 0x%X and type 0x%X", position, type, dupMark->type); // duplicate scene changes happens frequently
 #endif
-        if (type == dupMark->type) return dupMark;      // same type at same position, ignore add
+        if (type == dupMark->type) return dupMark;      // same type at same position, ignore add()
         if ((type & 0xF0) == (dupMark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
             Del(dupMark->position);
             return nullptr;
@@ -476,7 +457,7 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, const i
         return dupMark;
     }
 
-    cMark *newMark = new cMark(type, oldType, newType, position, comment, inBroadCast);
+    cMark *newMark = new cMark(type, oldType, newType, position, framePTS, comment, inBroadCast);
     if (!newMark) return nullptr;
     ALLOC(sizeof(*newMark), "mark");
 
@@ -700,11 +681,15 @@ cMark *cMarks::ChangeType(cMark *mark, const int newType) {
 // move mark to new posiition
 // return pointer to new mark
 //
-cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType) {
-    if (!mark) return nullptr;
+cMark *cMarks::Move(cMark *dscMark, cMark *srcMark, const int frameOffset, const int newType) {
+    if (!dscMark)                return nullptr;
+    if (!srcMark)                return nullptr;
+    if (newType <= MT_UNDEFINED) return nullptr;
+
+    int newPosition = srcMark->position + frameOffset;
     // check if old and new type is valid
-    if ((mark->type & 0x0F) != (newType & 0x0F)) {
-        esyslog("cMarks::Move(): old mark (%d) type 0x%X and new mark (%d) type 0x%X is invalid", mark->position, mark->type, newPosition, newType);
+    if ((dscMark->type & 0x0F) != (newType & 0x0F)) {
+        esyslog("cMarks::Move(): old mark (%d) type 0x%X and new mark (%d) type 0x%X is invalid", dscMark->position, dscMark->type, newPosition, newType);
         return nullptr;
     }
     // prevent move to position on with a mark exists with different base type (START/STOP)
@@ -715,13 +700,13 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType) {
     }
     // prevent invalid sequence after move
     const cMark *beforeNewPos = GetPrev(newPosition, MT_ALL);
-    if (beforeNewPos && (beforeNewPos->position == mark->position)) beforeNewPos = GetPrev(mark->position, MT_ALL);
+    if (beforeNewPos && (beforeNewPos->position == dscMark->position)) beforeNewPos = GetPrev(dscMark->position, MT_ALL);
     if (beforeNewPos && ((beforeNewPos->type & 0x0F) == (newType & 0x0F))) {
         esyslog("cMarks::Move(): move to (%d) will result in invalid sequence, mark before (%d) has same type", newPosition, beforeNewPos->position);
         return nullptr;
     }
     const cMark *afterNewPos = GetNext(newPosition, MT_ALL);
-    if (afterNewPos && (afterNewPos->position == mark->position)) afterNewPos = GetNext(mark->position, MT_ALL);
+    if (afterNewPos && (afterNewPos->position == dscMark->position)) afterNewPos = GetNext(dscMark->position, MT_ALL);
     if (afterNewPos && ((afterNewPos->type & 0x0F) == (newType & 0x0F))) {
         esyslog("cMarks::Move(): move to (%d) will result in invalid sequence, mark after (%d) has same type", newPosition, afterNewPos->position);
         return nullptr;
@@ -729,24 +714,27 @@ cMark *cMarks::Move(cMark *mark, const int newPosition, const int newType) {
 
     // delete old mark, add new mark
     char *comment = nullptr;
-    const char *indexToHMSF = GetTime(mark);
+    const char *indexToHMSF = GetTime(dscMark);
     cMark *newMark = nullptr;
     char* typeText = TypeToText(newType);
 
     if (indexToHMSF && typeText) {
         char suffix[10] = {0};
-        if (newPosition > mark->position)      strcpy(suffix,"after ");
-        else if (newPosition < mark->position) strcpy(suffix,"before");
-        if (asprintf(&comment,"%s %s -> %s %s (%d)", mark->comment, indexToHMSF, typeText, suffix, newPosition)) {
+        if (newPosition > dscMark->position)      strcpy(suffix,"after ");
+        else if (newPosition < dscMark->position) strcpy(suffix,"before");
+        if (asprintf(&comment,"%s %s -> %s %s (%d)", dscMark->comment, indexToHMSF, typeText, suffix, newPosition)) {
             ALLOC(strlen(comment)+1, "comment");
             dsyslog("cMarks::Move(): %s",comment);
 
             int oldType = MT_UNDEFINED;
-            if (((mark->type & 0xF0) == MT_MOVED) && (mark->newType != MT_UNDEFINED)) oldType = mark->newType;
-            else oldType = mark->type;
-            int type = ((mark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
-            Del(mark);
-            newMark = Add(type, oldType, newType, newPosition, comment);
+            if (((dscMark->type & 0xF0) == MT_MOVED) && (dscMark->newType != MT_UNDEFINED)) oldType = dscMark->newType;
+            else oldType = dscMark->type;
+            int type = ((dscMark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
+            int64_t newPTS = -1;
+            if ((srcMark->pts >= 0) && (frameOffset == 0)) newPTS = srcMark->pts;  // if there is  a frame offset, we do not know new PTS
+            Del(dscMark);
+
+            newMark = Add(type, oldType, newType, newPosition, newPTS, comment);
 
             FREE(strlen(typeText)+1, "text");
             free(typeText);
@@ -778,6 +766,9 @@ char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSe
     dsyslog("cMarks::IndexToHMSF():      frame (%d), offset from start %d, isVDR %d", frameNumber, time_ms, isVDR);
 #endif
 
+    if ((frameNumber > 50) && (time_ms <= 0)) {  // first frames have offset 0
+        esyslog("cMarks::IndexToHMSF(): packet (%d): invalid time offset %dms", frameNumber, time_ms);
+    }
     int f = int(modf(float(time_ms) / 1000, &Seconds) * 100);                 // convert ms to 1/100 s
     int s = int(Seconds);
     if (offsetSeconds) *offsetSeconds = s;
@@ -885,17 +876,18 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
     }
     cMark *mark = first;
     while (mark) {
-        // index only contains i-frames
-        int iFrame = mark->position;
-        if (index) {
-            if ((mark->type & 0x0F) == MT_START) iFrame = index->GetIFrameAfter(mark->position  - 1);  // if mark position is i-frame, we want to use it
-            else                                 iFrame = index->GetIFrameBefore(mark->position + 1);
+        // index only contains i-frames, VDR also uses only i-frames
+        int iFrame = -1;
+        if (index && (mark->pts >= 0)) {
+            if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfterPTS(mark->pts);
+            else                                 iFrame = index->GetKeyPacketNumberBeforePTS(mark->pts);
+            dsyslog("cMarks::Save(): %s mark (%5d), PTS %10ld: key packet (%5d)", ((mark->type & 0x0F) == MT_START) ? "start" : "stop ", mark->position, mark->pts, iFrame);
+        }
+        if (iFrame < 0) {   // fallback if PTS lookup failed
+            if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfter(mark->position);  // if mark position is i-frame, we want to use it
+            else                                 iFrame = index->GetKeyPacketNumberBefore(mark->position);
         }
         if (iFrame < 0) iFrame = mark->position;  // fallback if index is not yet initialized
-#ifdef DEBUG_SAVEMARKS
-        dsyslog("-----------------------------------------------------------------------------");
-        dsyslog("cMarks::Save(): mark frame number (%d): i-frame (%d)", mark->position, iFrame);
-#endif
         // PTS based timestamp
         char *indexToHMSF_PTS = IndexToHMSF(iFrame, false);;      // PTS based timestamp
         if (indexToHMSF_PTS) {

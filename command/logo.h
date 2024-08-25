@@ -24,8 +24,8 @@
 #define BOTTOM_LEFT  2
 #define BOTTOM_RIGHT 3
 
-#define LOGO_ERROR  -1
-#define LOGO_FOUND   0
+#define LOGO_SEARCH_ERROR  -1
+#define LOGO_SEARCH_FOUND   0
 
 /**
  * logo after sobel transformation
