@@ -1859,7 +1859,7 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
     int separatorFrameAfter   = -1;
 
 #define INTRODUCTION_MIN_LENGTH          4480  // short introduction logo (sixx)
-#define INTRODUCTION_MAX_LENGTH         29080  // changed from 13840 to 29080, RTL2 have very long introduction logo
+#define INTRODUCTION_MAX_LENGTH         29440  // changed from 29080 to 29440, RTL2 have very long introduction logo
 #define INTRODUCTION_MAX_DIFF_SEPARATOR 20160  // max distance from sepatator frame to introduction logo start, changed from 10119 to 20160
     // somtime broacast start without logo before intruduction logo
     // sometime we have a undetected info logo or ad in frame without log before introduction logo and separtion frame is far before
