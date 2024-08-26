@@ -1746,7 +1746,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
     // use local variables with same name as global
     cDecoder *decoder_local = decoder;
     if (checkStart) {
-        decoder_local = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW,  macontext.Config->forceInterlaced, index);
+        decoder_local = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW,  macontext.Config->forceInterlaced, nullptr);  // no index
         ALLOC(sizeof(*decoder_local), "decoder_local");
         if (!decoder_local->ReadNextFile()) { // force init decoder to get infos about video (frame rate is used by cEvaluateLogoStopStartPair)
             esyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): failed to open first video file");
