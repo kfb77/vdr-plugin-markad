@@ -625,10 +625,15 @@ bool cDecoder::ReadPacket() {
     av_packet_unref(&avpkt);
     if (av_read_frame(avctx, &avpkt) == 0 ) {
         // check packet DTS and PTS
-        if ((avpkt.dts == AV_NOPTS_VALUE) || (avpkt.pts == AV_NOPTS_VALUE)) {
-            dsyslog("cDecoder::ReadPacket(): framenumber %5d: invalid packet, DTS or PTS not set", packetNumber);
+        if (avpkt.pts == AV_NOPTS_VALUE) {
+            dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d: PTS not set", packetNumber, avpkt.stream_index);
             return true;   // false only on EOF
         }
+        if (avpkt.dts == AV_NOPTS_VALUE) {
+            dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d: DTS not set", packetNumber, avpkt.stream_index);
+            return true;   // false only on EOF
+        }
+
         // analyse video packet
         if (IsVideoPacket()) {
             packetNumber++;
