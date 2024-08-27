@@ -825,6 +825,15 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 210;
         }
 
+//    1 C8                      16:9 1920W 1080H:->  218W 124H TOP_RIGHT
+        if (CompareChannelName(channelName, "C8", IGNORE_NOTHING)) {
+            logo.widthMin  = 208;
+            logo.widthMax  = 228;
+            logo.heightMin = 114;
+            logo.heightMax = 134;
+//            logo.corner    = TOP_RIGHT;
+        }
+
         // Kutonen_HD              16:9 1920W 1080H:->  252W 142H TOP_RIGHT
         if (CompareChannelName(channelName, "Kutonen_HD", IGNORE_NOTHING)) {
             logo.widthMin  = 242;
