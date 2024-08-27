@@ -74,15 +74,16 @@ bool cCriteria::LogoInBorder() {
     if (!channelName) return false;
 
 //    if (CompareChannelName(channelName, "ARD_alpha",      IGNORE_HD)) return true;   // in border with very small vertical border, out of border otherwise
-    if (CompareChannelName(channelName, "arte",           IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "Bibel_TV",       IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "Comedy_Central", IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "arte",           IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "Bibel_TV",       IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "C8",             IGNORE_NOTHING)) return true;
+    if (CompareChannelName(channelName, "Comedy_Central", IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD))      return true;
 //    if (CompareChannelName(channelName, "NITRO",          IGNORE_HD)) return true;   // not in border
-    if (CompareChannelName(channelName, "ONE_HD",         IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "RTLZWEI",        IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "SUPER_RTL",      IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "ONE_HD",         IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "RTLZWEI",        IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "SUPER_RTL",      IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD))      return true;
 
     return false;
 }
