@@ -626,11 +626,13 @@ bool cDecoder::ReadPacket() {
     if (av_read_frame(avctx, &avpkt) == 0 ) {
         // check packet DTS and PTS
         if (avpkt.pts == AV_NOPTS_VALUE) {
-            dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d: PTS not set", packetNumber, avpkt.stream_index);
+            dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d, duration %ld: PTS not set", packetNumber, avpkt.stream_index, avpkt.duration);
+            if ((packetNumber > 0) && IsVideoPacket()) sumDuration += avpkt.duration;
             return true;   // false only on EOF
         }
         if (avpkt.dts == AV_NOPTS_VALUE) {
-            dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d: DTS not set", packetNumber, avpkt.stream_index);
+            dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d, duration %ld: DTS not set", packetNumber, avpkt.stream_index, avpkt.duration);
+            if ((packetNumber > 0) && IsVideoPacket()) sumDuration += avpkt.duration;
             return true;   // false only on EOF
         }
 
