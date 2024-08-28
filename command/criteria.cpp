@@ -89,10 +89,11 @@ bool cCriteria::LogoInBorder() {
 }
 
 
-bool cCriteria::NoLogo() {   // channel have no continuous logo
+bool cCriteria::NoLogo() {   // channel were logo detection is not possible
     if (!channelName) return false;
 
-    if (CompareChannelName(channelName, "Sky_Cinema_Special_HD", IGNORE_NOTHING)) return true;
+    if (CompareChannelName(channelName, "Sky_Cinema_Special_HD", IGNORE_NOTHING)) return true;  // channel have no continuous logo
+    if (CompareChannelName(channelName, "TF1",                   IGNORE_NOTHING)) return true;  // channel have no logo
 
     return false;
 }
