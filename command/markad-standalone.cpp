@@ -5902,7 +5902,7 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
     }
 
     // (try to get from mtime)
-    // (and hope info.vdr has not changed after the start of the recording)
+    // (and hope vdr info file has not changed after the start of the recording)
     // since vdr 2.6 with the recording error count in the info file, this is not longer valid
     // use it only if mtime fits a common pre timer value
     if (fstat(fd,&statbuf) != -1) {
@@ -5911,7 +5911,7 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
             dsyslog("cMarkAdStandalone::GetRecordingStart(): use recording start from VDR info file modification time         %s", strtok(ctime(&statbuf.st_mtime), "\n"));
             return (time_t) statbuf.st_mtime;
         }
-        else dsyslog("cMarkAdStandalone::GetRecordingStart(): vdr info file modification time %ds after recording start, file was modified because of vdr error counter", int(difftime(statbuf.st_mtime, start)));
+        else dsyslog("cMarkAdStandalone::GetRecordingStart(): vdr info file modification time %ds after recording start", int(difftime(statbuf.st_mtime, start)));
     }
 
     // fallback to the directory name (time part)
@@ -6166,9 +6166,13 @@ void cMarkAdStandalone::LoadInfo() {
             dsyslog("cMarkAdStandalone::LoadInfo(): recording start at %s", strtok(ctime(&rStart), "\n"));
             dsyslog("cMarkAdStandalone::LoadInfo(): timer     start at %s", strtok(ctime(&startTime), "\n"));
 
-            //  start offset of broadcast from timer event
+            //  start offset of broadcast from timer event to recording start
             int startEvent = static_cast<int> (startTime - rStart);
             dsyslog("cMarkAdStandalone::LoadInfo(): event start at offset:               %5ds -> %d:%02d:%02dh", startEvent, startEvent / 3600, (startEvent % 3600) / 60, startEvent % 60);
+            if (startEvent > 60 * 60) {  // assume max 1h pre-timer
+                isyslog("cMarkAdStandalone::LoadInfo(): offset invald, maybe recording was copied, set to default 2min");
+                startEvent = 2 * 60;
+            }
             // start offset of broadcast from VPS event
             int startVPS = vps->GetStart();
             if (startVPS >= 0) {
