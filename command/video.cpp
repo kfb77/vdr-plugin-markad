@@ -1300,7 +1300,7 @@ void cHorizBorderDetect::Clear(const bool isRestart) {
 int cHorizBorderDetect::Process(int *borderFrame) {
 #define CHECKHEIGHT           5  // changed from 8 to 5
 #define BRIGHTNESS_H_SURE    22
-#define BRIGHTNESS_H_MAYBE  137  // some channel have logo or infos in border, so we will detect a higher value, changed from 131 to 137
+#define BRIGHTNESS_H_MAYBE  148  // some channel have logo or infos in border, so we will detect a higher value, changed from 137 to 148
 #define NO_HBORDER          200  // internal limit for early loop exit, must be more than BRIGHTNESS_H_MAYBE
 
     sVideoPicture *picture = decoder->GetVideoPicture();
