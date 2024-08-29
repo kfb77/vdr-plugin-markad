@@ -1,8 +1,15 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-08-31: Version 4.1.5
+- optimize detection of hborder from opening credits (thx to pmrb@www.vdr-portal.de for reporting)
+- take into account of closing banner in border (thx to pmrb@www.vdr-portal.de for reporting)
+- keep logo start mark short before hborder stop from previous broadcast (thx to pmrb@www.vdr-portal.de for reporting)
+- optimize cut position without full encoding
+- some minor bug fixes and optimizations, see git
+
 2024-08-28: Version 4.1.4
-- cDecoder::ReadPacket(): add packets without PTS to duration (thx to pmrb@www.vdr-portal.de for reporting)
+- add packets without PTS to duration (thx to pmrb@www.vdr-portal.de for reporting)
 - some minor bug fixes and optimizations, see git
 
 2024-08-21: Version 4.1.3
