@@ -2245,10 +2245,11 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                     int diffBorderStarthBorderStop = (hStop->position  - hStart->position)          / decoder->GetVideoFrameRate();
                     int diffhBorderStopLogoStart   = (logoStopAfter->position - hStart->position)   / decoder->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): check for false detected hborder from opening credits");
-                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): MT_LOGOSTART (%d) -> %ds -> MT_HBORDERSTART (%d) -> %ds -> MT_HBORDERSTOP (%d) -> %ds -> MT_LOGOSTOP (%d)", logoStartBefore->position, diffLogoStarthBorderStart, hStart->position, diffBorderStarthBorderStop, hStop->position, diffhBorderStopLogoStart, logoStopAfter->position);
+                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): MT_LOGOSTART (%5d) -> %3ds -> MT_HBORDERSTART (%5d) -> %3ds -> MT_HBORDERSTOP (%5d) -> %ds -> MT_LOGOSTOP (%5d)", logoStartBefore->position, diffLogoStarthBorderStart, hStart->position, diffBorderStarthBorderStop, hStop->position, diffhBorderStopLogoStart, logoStopAfter->position);
                     // exampe of openeing credits false detected as hborder
-                    // MT_LOGOSTART (15994) -> 3s -> MT_HBORDERSTART (16074) -> 82s -> MT_HBORDERSTOP (18131) -> 1460s -> MT_LOGOSTOP (52588)
-                    if ((diffLogoStarthBorderStart <= 3) && (diffBorderStarthBorderStop <= 82) && (diffhBorderStopLogoStart >= 1460)) {
+                    // MT_LOGOSTART (15994) ->   3s -> MT_HBORDERSTART (16074) ->  82s -> MT_HBORDERSTOP (18131) -> 1460s -> MT_LOGOSTOP ( 52588)
+                    // MT_LOGOSTART (39468) -> -19s -> MT_HBORDERSTART (38502) -> 119s -> MT_HBORDERSTOP (44474) -> 1593s -> MT_LOGOSTOP (118182)
+                    if ((diffLogoStarthBorderStart <= 3) && (diffBorderStarthBorderStop <= 119) && (diffhBorderStopLogoStart >= 1460)) {
                         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): false detected hborder from opening credits found, delete hborder marks");
                         // there can also be a false vborder start from opening credits around logo start
                         const cMark *vStart = marks.GetAround(decoder->GetVideoFrameRate(), logoStartBefore->position, MT_VBORDERSTART);
