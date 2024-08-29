@@ -72,7 +72,6 @@ int cCriteria::LogoFadeInOut() {
 
 bool cCriteria::LogoInBorder() {
     if (!channelName) return false;
-
 //    if (CompareChannelName(channelName, "ARD_alpha",      IGNORE_HD)) return true;   // in border with very small vertical border, out of border otherwise
     if (CompareChannelName(channelName, "arte",           IGNORE_HD))      return true;
     if (CompareChannelName(channelName, "Bibel_TV",       IGNORE_HD))      return true;
@@ -84,7 +83,7 @@ bool cCriteria::LogoInBorder() {
     if (CompareChannelName(channelName, "RTLZWEI",        IGNORE_HD))      return true;
     if (CompareChannelName(channelName, "SUPER_RTL",      IGNORE_HD))      return true;
     if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD))      return true;
-
+    if (CompareChannelName(channelName, "TMC",            IGNORE_NOTHING)) return true;
     return false;
 }
 
