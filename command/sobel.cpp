@@ -286,7 +286,7 @@ sLogoSize cSobel::GetMaxLogoSize() const {
         logoSizeMax.height =  130;
         break;
     case 720:
-        logoSizeMax.width  =  230;
+        logoSizeMax.width  =  240;  // change from 230 to 240 because of text left of top right logo
         logoSizeMax.height =  130;
         break;
     case 1280:
