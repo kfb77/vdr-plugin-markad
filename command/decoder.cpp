@@ -246,6 +246,10 @@ bool cDecoder::ReadNextFile() {
     }
     else {
         dsyslog("cDecoder:::ReadNextFile(): next file %s does not exists", filename);
+        if (fileNumber <= 1) {
+            esyslog("cDecoder:::ReadNextFile(): file 00001.ts does not exists");
+            exit(EXIT_FAILURE);
+        }
         eof = true;
     }
     FREE(strlen(filename), "filename");
