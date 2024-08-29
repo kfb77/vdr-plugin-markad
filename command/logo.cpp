@@ -1049,7 +1049,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
             int countWhite = bottomWhiteLine - topWhiteLine + 1;
             int textHeight = logoSizeFinal->height - bottomWhiteLine - 1;
             dsyslog("cExtractLogo::Resize(): repeat %d, top logo:: found white from line %d -> %d, height %d, text below from line %d -> %d, height %d", repeat, topWhiteLine, bottomWhiteLine, countWhite, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight);
-            if ((countWhite <= 11) && (textHeight < logoSizeFinal->height)) {    // too much white is not possible for text under logo, changed from 10 to 11
+            if ((countWhite <= 22) && (textHeight < logoSizeFinal->height)) {    // too much white is not possible for text under logo, changed from 11 to 22
                 // get width of text
                 int leftColumn  = -1;
                 int rightColumn = -1;
@@ -1066,10 +1066,13 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                         break;
                     }
                 }
-                int textWidth = rightColumn - leftColumn + 1;
-                dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found text under logo: line %d -> %d, height %d, column %d -> %d, width %d", repeat, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, leftColumn, rightColumn, textWidth);
+                int textWidth       = rightColumn - leftColumn + 1;
+                int textWidthQuote  = 1000 * textWidth / decoder->GetVideoWidth();
+                int textHeightQuote = 1000 * textHeight / decoder->GetVideoHeight();
+                dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found text under logo: line %d -> %d, height %d (%d), column %d -> %d, width %d (%d)", repeat, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, textHeightQuote, leftColumn, rightColumn, textWidth, textWidthQuote);
+                // line 86 -> 97, height 12 (20), column 185 -> 205, width 21 (29)   -> Pro7 MAXX "neu" under logo
                 if ((textHeight <= 2) || // pixel error
-                        ((textWidth > 23) && (textHeight > 15))) {  // keep "HD"
+                        ((textHeight >= 12) && (textWidth >= 21))) {
                     dsyslog("cExtractLogo::Resize(): repeat %d, top logo: cut out valid text under logo", repeat);
                     if ((logoSizeFinal->height - topWhiteLine) > 0) {
                         CutOut(bestLogoInfo, logoSizeFinal->height - topWhiteLine, 0, logoSizeFinal, bestLogoCorner);
