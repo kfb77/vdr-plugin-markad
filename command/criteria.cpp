@@ -154,7 +154,7 @@ bool cCriteria::LogoTransparent() {
 bool cCriteria::IsInfoLogoChannel() {
     if (!channelName) return false;
     // for performance reason only known and tested channels
-    if (CompareChannelName(channelName, "Comedy_Central",  IGNORE_HD)) return true;
+    if (CompareChannelName(channelName, "Comedy_Central",  IGNORE_HD))                  return true;
     if (CompareChannelName(channelName, "DMAX",            IGNORE_HD | IGNORE_COUNTRY)) return true;
     if (CompareChannelName(channelName, "kabel_eins",      IGNORE_HD))                  return true;   // only for info (e.g. Teletext)
     if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD | IGNORE_COUNTRY)) return true;   // only for info (e.g. Teletext)
@@ -162,6 +162,7 @@ bool cCriteria::IsInfoLogoChannel() {
     if (CompareChannelName(channelName, "SAT_1",           IGNORE_HD | IGNORE_COUNTRY)) return true;
     if (CompareChannelName(channelName, "WELT",            IGNORE_HD))                  return true;
     if (CompareChannelName(channelName, "RTL2",            IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "TMC",             IGNORE_NOTHING))             return true;
     return false;
 }
 
