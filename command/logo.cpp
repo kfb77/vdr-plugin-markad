@@ -485,10 +485,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax  =  86;
         }
 
-        // Pro7_MAXX               16:9  720W  576H:->  114W  64H TOP_RIGHT
-        // Pro7_MAXX               16:9  720W  576H:->  140W  64H TOP_RIGHT
+//  87 Pro7_MAXX               16:9  720W  576H:->  112W  64H TOP_RIGHT
+//   2 Pro7_MAXX               16:9  720W  576H:->  114W  64H TOP_RIGHT
+//  10 Pro7_MAXX                4:3  720W  576H:->  138W  64H TOP_RIGHT
         if (CompareChannelName(channelName, "Pro7_MAXX", IGNORE_NOTHING)) {
-            logo.heightMax  =   64;
+            logo.widthMin  = 102;
+            logo.widthMax  = 148;
+            logo.heightMin =  54;
+            logo.heightMax =  74;
         }
 
         if (CompareChannelName(channelName, "RTL_Television", IGNORE_NOTHING)) {        // RTL_Television          16:9  720W  576H:->  104W  60H TOP_LEFT (before 09/2021)
@@ -825,6 +829,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 210;
         }
 
+//   1 a_tv_HD                 16:9 1920W 1080H:->  300W 172H BOTTOM_LEFT
+        if (CompareChannelName(channelName, "a_tv", IGNORE_HD)) {
+            logo.widthMin  = 290;
+            logo.widthMax  = 310;
+            logo.heightMin = 162;
+            logo.heightMax = 182;
+        }
+
 //    1 C8                      16:9 1920W 1080H:->  218W 124H TOP_RIGHT
         if (CompareChannelName(channelName, "C8", IGNORE_NOTHING)) {
             logo.widthMin  = 208;
@@ -865,6 +877,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax  = 342;
             logo.heightMin = 100;
             logo.heightMax = 120;
+        }
+
+//   1 TMC                     16:9 1920W 1080H:->  270W 116H TOP_RIGHT
+        if (CompareChannelName(channelName, "TMC", IGNORE_NOTHING)) {
+            logo.widthMin  = 260;
+            logo.widthMax  = 280;
+            logo.heightMin = 106;
+            logo.heightMax = 126;
         }
 
         // TV5_HD                  16:9 1920W 1080H:->  260W 164H TOP_RIGHT
