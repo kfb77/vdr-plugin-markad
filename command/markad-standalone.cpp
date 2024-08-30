@@ -3550,7 +3550,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     // example of invalid log stop mark sequence (short last broadcasts)
                     // MT_START ( 45380) ->  290s -> MT_STOP ( 52642) |  57s| -> 141s -> MT_START ( 56190) ->   0s -> MT_STOP ( 56199) |200s|
                     // MT_START (  4106) -> 2700s -> MT_STOP ( 71623) |-691s| -> 595s -> MT_START ( 86503) ->  77s -> MT_STOP ( 88450) |-18s|
-                    (lastBroadcast <= 77)) {
+                    // MT_START (  8469) -> 2395s -> MT_STOP ( 68361) |-401s| -> 222s -> MT_START ( 73925) ->  82s -> MT_STOP ( 75995) |-95s|
+                    (lastBroadcast <= 82)) {
                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
