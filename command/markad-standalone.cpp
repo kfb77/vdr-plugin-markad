@@ -4252,11 +4252,15 @@ void cMarkAdStandalone::MarkadCut() {
         cMark *startMark = marks.GetFirst();
         if ((startMark->type & 0x0F) != MT_START) {
             esyslog("got invalid start mark at (%d) type 0x%X", startMark->position, startMark->type);
+            FREE(sizeof(*encoder), "encoder");
+            delete encoder;  // encoder must be valid here because it is used above
             return;
         }
         cMark *stopMark = startMark->Next();
         if ((stopMark->type & 0x0F) != MT_STOP) {
             esyslog("got invalid stop mark at (%d) type 0x%X", stopMark->position, stopMark->type);
+            FREE(sizeof(*encoder), "encoder");
+            delete encoder;  // encoder must be valid here because it is used above
             return;
         }
         // open output file
