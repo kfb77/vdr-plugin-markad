@@ -912,8 +912,8 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
         dsyslog("cMarks::Save(): offset VDR %s", indexToHMSF_VDR);
 #endif
 
-        if (writePTS) fprintf(mf, "%s (%6d)%s %s <- %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
-        else fprintf(mf, "%s (%6d)%s %s\n", indexToHMSF_VDR, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");
+        if (writePTS) fprintf(mf, "%s (%6d) <%6d>%s %s <- %s\n", indexToHMSF_VDR, iFrame, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
+        else fprintf(mf, "%s (%6d)%s %s\n", indexToHMSF_VDR, iFrame, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");
 
         FREE(strlen(indexToHMSF_PTS)+1, "indexToHMSF_PTS");
         free(indexToHMSF_PTS);

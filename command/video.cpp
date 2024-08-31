@@ -1761,7 +1761,6 @@ sMarkAdMarks *cVideo::Process() {
             AddMark(MT_NOBLACKSTART, packetNumber, framePTS);         // first frame without blackscreen is start mark position
             break;
         case BLACKSCREEN_VISIBLE:
-        dsyslog("xxxxx packetNumber %d, framePTS %ld", packetNumber, framePTS);
             AddMark(MT_NOBLACKSTOP, packetNumber, framePTS);
             break;
         case BLACKLOWER_INVISIBLE:
