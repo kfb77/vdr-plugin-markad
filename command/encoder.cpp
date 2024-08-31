@@ -1166,7 +1166,7 @@ bool cEncoder::CutOut(cMark *startMark, cMark *stopMark) {
         cutInfo.stopPosDTS = avFrame->pkt_dts;
         dsyslog("cEncoder::CutOut(): end cut from i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 " to i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 ", offset %10" PRId64, startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
     }
-// cut without full decoding, only copy all packets
+// cut without decoding, only copy all packets
     else {
         // get start position
         int startPos  = -1;
@@ -1240,16 +1240,16 @@ bool cEncoder::CutOut(cMark *startMark, cMark *stopMark) {
 
             // write current packet
             AVPacket *avpktIn = decoder->GetPacket();
-            if ((avpktIn->pts >= cutInfo.startPosPTS) && (avpktIn->dts >= cutInfo.startPosDTS)) {
-                if (!WritePacket(avpktIn, false)) {  // no re-encode done
-                    esyslog("cEncoder::CutOut(): WritePacket() failed");
-                    return false;
+            if (avpktIn) {
+                if ((avpktIn->pts >= cutInfo.startPosPTS) && (avpktIn->dts >= cutInfo.startPosDTS)) {
+                    if (!WritePacket(avpktIn, false)) {  // no re-encode done
+                        esyslog("cEncoder::CutOut(): WritePacket() failed");
+                        return false;
+                    }
                 }
+                else dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %" PRId64", DTS %" PRId64 ": drop packet before start PTS %" PRId64 ", DTS %" PRId64, decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
             }
-            else {
-                dsyslog("cEncoder::CutOut(): packet (%d), stream %d, PTS %" PRId64", DTS %" PRId64 ": drop packet before start PTS %" PRId64 ", DTS %" PRId64, decoder->GetPacketNumber(), avpktIn->stream_index, avpktIn->pts, avpktIn->dts, cutInfo.startPosPTS, cutInfo.startPosDTS);
-                decoder->DropFrameFromGPU();     // we do not use this frame, cleanup GPU buffer
-            }
+            else esyslog("cEncoder::CutOut(): GetPacket() failed");
             // read next packet
             if (!decoder->ReadNextPacket()) return false;
         }
@@ -1478,8 +1478,8 @@ bool cEncoder::SendFrameToEncoder(const int streamIndexOut, AVFrame *avFrame) {
     LogSeparator();
 #endif
     // correct PTS uncut to PTS after cut
-    if (avFrame) {
-        avFrame->pts -= cutInfo.offset;  // can be nullptr to flush buffer
+    if (avFrame) { // can be nullptr to flush buffer
+        avFrame->pts -= cutInfo.offset;
         if (avFrame->pts < pts[streamIndexOut]) {
             dsyslog("cEncoder::SendFrameToEncoder(): decoder packet (%5d), stream %d: pts %" PRId64 " <= last pts %" PRId64 ", drop packet", decoder->GetPacketNumber(), streamIndexOut, avFrame->pts, dts[streamIndexOut]);
             return true;   // can happen if we have recording errors
