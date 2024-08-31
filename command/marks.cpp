@@ -753,18 +753,29 @@ char *cMarks::IndexToHMSF(const int packetNumber, const bool isVDR, int *offsetS
     }
     // offsetSeconds may be nullptr
     char *indexToHMSF = nullptr;
-#ifdef DEBUG_SAVEMARKS
-    dsyslog("cMarks::IndexToHMSF():     packet (%d), offset from start %d, isVDR %d", packetNumber, time_ms, isVDR);
-#endif
-    // convert to hh:hm:ss.frame number offset
-    double Seconds;
-    int f = int(modf((packetNumber + 0.5) / frameRate, &Seconds) * frameRate);
-    int s = int(Seconds);
-    if (offsetSeconds) *offsetSeconds = s;
-    int m = s / 60 % 60;
-    int h = s / 3600;
-    s %= 60;
-    if (asprintf(&indexToHMSF, "%d:%02d:%02d.%02d", h, m, s, f) == -1) return nullptr;  // memory debug managed by calling function
+    if (isVDR) {  // packet number based time stamp, convert to hh:hm:ss.frame offset
+        double Seconds;
+        int f = int(modf((packetNumber + 0.5) / frameRate, &Seconds) * frameRate);
+        int s = int(Seconds);
+        if (offsetSeconds) *offsetSeconds = s;
+        int m = s / 60 % 60;
+        int h = s / 3600;
+        s %= 60;
+        if (asprintf(&indexToHMSF, "%d:%02d:%02d.%02d", h, m, s, f) == -1) return nullptr;  // memory debug managed by calling function
+    }
+    else { // PTS based timestamp for debug with VLC
+        int time_ms  = -1;
+        if (index) time_ms = index->GetTimeFromFrame(packetNumber, false);  // TODO: remove unused VDR timesptamp from duration
+        if (time_ms < 0) { // called by logo search, we have no index, or called for broadcast start time during recording, we have not yet frames in index
+            dsyslog("cMarks::IndexToHMSF(): no index available, use frame rate %d", frameRate);
+            time_ms = packetNumber * 1000 / frameRate;
+        }
+        int s = round(time_ms / 1000);
+        int m = s / 60 % 60;
+        int h = s / 3600;
+        s %= 60;
+        if (asprintf(&indexToHMSF, "%d:%02d:%02d", h, m, s) == -1) return nullptr;  // memory debug managed by calling function
+    }
     return indexToHMSF;
 }
 
