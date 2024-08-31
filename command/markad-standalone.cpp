@@ -2474,7 +2474,8 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
             // MT_LOGOSTART (7599) -> 371s -> MT_VBORDERSTART (26172) -> rbb HB, no logo stop before vborder broadcast, maybe logo in border
             // MT_LOGOSTART (  13) -> 352s -> MT_VBORDERSTART (17660) -> ARD alpha HD, start of recoring, logo start from previous broadcast, no logo stop
             // MT_LOGOSTART ( 186) -> 323s -> MT_VBORDERSTART (16358) -> ARD alpha HD, start of recoring, logo start from previous broadcast, no logo stop
-            if ((diff > 50) && (diff < 323)) {  // changed from 352 to 323
+            // MT_LOGOSTART (  13) -> 316s -> MT_VBORDERSTART (15846) -> ARD alpha HD, start of recoring, logo start from previous broadcast, no logo stop
+            if ((diff > 50) && (diff < 316)) {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): logo start mark before vborder start found, delete invalid vborder marks from dark scene");
                 marks.DelType(MT_VBORDERCHANGE, 0xF0);
                 return nullptr;
