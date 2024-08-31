@@ -746,30 +746,19 @@ cMark *cMarks::Move(cMark *dscMark, cMark *srcMark, const int frameOffset, const
 }
 
 
-char *cMarks::IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSeconds) {
+char *cMarks::IndexToHMSF(const int packetNumber, const bool isVDR, int *offsetSeconds) {
+    if (frameRate <= 0) {
+        esyslog("cMarks::IndexToHMSF(): frame rate not set");
+        return nullptr;
+    }
     // offsetSeconds may be nullptr
     char *indexToHMSF = nullptr;
-    double Seconds    = 0;
-    int time_ms       = -1;
-
-    if (index) time_ms = index->GetTimeFromFrame(frameNumber, isVDR);
-    if (time_ms < 0) { // called by logo search, we have no index, or called for broadcast start time during recording, we have not yet frames in index
-        dsyslog("cMarks::IndexToHMSF(): no index available, use frame rate %d", frameRate);
-        if (frameRate <= 0) {
-            esyslog("cMarks::IndexToHMSF(): no frame rate set");
-            return nullptr;
-        }
-        else time_ms = frameNumber * 1000 / frameRate;
-    }
-
 #ifdef DEBUG_SAVEMARKS
-    dsyslog("cMarks::IndexToHMSF():      frame (%d), offset from start %d, isVDR %d", frameNumber, time_ms, isVDR);
+    dsyslog("cMarks::IndexToHMSF():     packet (%d), offset from start %d, isVDR %d", packetNumber, time_ms, isVDR);
 #endif
-
-    if ((frameNumber > 50) && (time_ms <= 0)) {  // first frames have offset 0
-        esyslog("cMarks::IndexToHMSF(): packet (%d): invalid time offset %dms", frameNumber, time_ms);
-    }
-    int f = int(modf(float(time_ms) / 1000, &Seconds) * 100);                 // convert ms to 1/100 s
+    // convert to hh:hm:ss.frame number offset
+    double Seconds;
+    int f = int(modf((packetNumber + 0.5) / frameRate, &Seconds) * frameRate);
     int s = int(Seconds);
     if (offsetSeconds) *offsetSeconds = s;
     int m = s / 60 % 60;

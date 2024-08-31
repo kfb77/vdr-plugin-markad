@@ -198,13 +198,14 @@ public:
     cMark *Add(const int type, const int oldType, const int newType, const int position, const int64_t framePTS, const char *comment = nullptr, const bool inBroadCast = false);
 
     /**
-     * convert frame number to time string
-     * @param frameNumber packet number
-     * @param isVDR true: calculate timestamp based on frame number, false: calculate timestamp based on PTS of frame number
+     * convert packet number to time string
+     * if isVDR packetNumber / frameRate is used, else PTS based time offset is used
+     * @param packetNumber packet number
+     * @param isVDR true: calculate timestamp based on packet number, false: calculate timestamp based on PTS of packet number
      * @param offsetSeconds offset in seconds since recording start
      * @return time string
      */
-    char *IndexToHMSF(const int frameNumber, const bool isVDR, int *offsetSeconds = nullptr);
+    char *IndexToHMSF(const int packetNumber, const bool isVDR, int *offsetSeconds = nullptr);
 
     /**
      * get PTS based time offset of mark position
