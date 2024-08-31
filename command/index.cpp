@@ -46,17 +46,13 @@ int64_t cIndex::GetStartPTS() const {
 
 
 // add a new entry to the list of frame timestamps
-void cIndex::Add(const int fileNumber, const int packetNumber, const int64_t pts, const int frameTimeOffset_ms) {
-    if ((packetNumber > 0) && (frameTimeOffset_ms == 0)) {
-        esyslog("cIndex::Add(): invalid index entry at packet (%5d): frameTimeOffset_ms %d", packetNumber, frameTimeOffset_ms);
-    }
+void cIndex::Add(const int fileNumber, const int packetNumber, const int64_t pts) {
     if (indexVector.empty() || (packetNumber > indexVector.back().frameNumber)) {
         // add new frame timestamp to vector
         sIndexElement newIndex;
         newIndex.fileNumber         = fileNumber;
         newIndex.frameNumber        = packetNumber;
         newIndex.pts                = pts;
-        newIndex.frameTimeOffset_ms = frameTimeOffset_ms;
 
         if (indexVector.size() == indexVector.capacity()) {
             indexVector.reserve(1000);
@@ -204,28 +200,6 @@ int cIndex::GetKeyPacketNumberAfter(int packetNumber) {
 }
 
 
-// return sum of packet duration from i-frame if called with an i-frame number, otherwise from i-frame after
-int cIndex::GetSumDurationFromFrame(const int frameNumber) {
-    // if frame number not yet in index, return PTS from last frame
-    if (frameNumber >= indexVector.back().frameNumber) return indexVector.back().frameTimeOffset_ms;
-
-    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](sIndexElement const &value) ->bool { if (value.frameNumber >= frameNumber) return true; else return false; });
-    if (found == indexVector.end()) {
-        esyslog("cIndex::GetSumDurationFromFrame(): frame (%d) not in index", frameNumber);
-        dsyslog("cIndex::GetSumDurationFromFrame(): index content: first frame (%d) , last frame (%d)", indexVector.front().frameNumber, indexVector.back().frameNumber);
-        return -1;
-    }
-    return found->frameTimeOffset_ms;
-
-    /*
-        for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-            if (frameIterator->frameNumber >= frameNumber) return frameIterator->frameTimeOffset_ms;
-        }
-
-    */
-}
-
-
 // return PTS from key packet if called with an key number, otherwise from packet after
 int64_t cIndex::GetPTSFromKeyPacket(const int frameNumber) {
     // if frame number not yet in index, return PTS from last frame
@@ -249,27 +223,23 @@ int64_t cIndex::GetPTSFromKeyPacket(const int frameNumber) {
 }
 
 
-int cIndex::GetTimeFromFrame(const int packetNumber, const bool isVDR) {
+int cIndex::GetTimeFromFrame(const int packetNumber) {
     if (indexVector.empty()) {  // expected if called to write start mark during running recording
         dsyslog("cIndex::GetTimeFromFrame(): packet (%d): index not initialized", packetNumber);
         return -1;
     }
-    if (isVDR) {  // use sum of packet duration
-        return GetSumDurationFromFrame(packetNumber);
+    // use PTS based time from i-frame index
+    int64_t framePTS = GetPTSFromKeyPacket(packetNumber);
+    if (framePTS < 0) {
+        esyslog("cIndex::GetTimeFromFrame(): packet (%d): get PTS failed", packetNumber);
+        return -1;
     }
-    else {  // use PTS based time from i-frame index
-        int64_t framePTS = GetPTSFromKeyPacket(packetNumber);
-        if (framePTS < 0) {
-            esyslog("cIndex::GetTimeFromFrame(): packet (%d): get PTS failed", packetNumber);
-            return -1;
-        }
-        framePTS -= start_time;
-        if (framePTS < 0 ) {
-            framePTS += 0x200000000;    // libavodec restart at 0 if pts greater than 0x200000000
-        }
-        int offsetTime_ms = round(1000 * framePTS * av_q2d(time_base));
-        return offsetTime_ms;
+    framePTS -= start_time;
+    if (framePTS < 0 ) {
+        framePTS += 0x200000000;    // libavodec restart at 0 if pts greater than 0x200000000
     }
+    int offsetTime_ms = round(1000 * framePTS * av_q2d(time_base));
+    return offsetTime_ms;
 }
 
 

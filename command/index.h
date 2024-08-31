@@ -39,9 +39,8 @@ public:
      * @param fileNumber         number of ts file
      * @param packetNumber       number of packet
      * @param pts                frame PTS
-     * @param frameTimeOffset_ms offset in ms from recording start based sum of duration
      */
-    void Add(const int fileNumber, const int packetNumber, const int64_t pts, const int frameTimeOffset_ms);
+    void Add(const int fileNumber, const int packetNumber, const int64_t pts);
 
     /**
      * get key packet number before PTS
@@ -94,14 +93,13 @@ public:
     /**
      * get offset time from recording start in ms
      * @param packetNumber number of the packet
-     * @param isVDR true if timestamp should calculated based on vdr rules (packet duration offset), false if timestamp should claculated based on vlc rules (packet pts)
      * @return offset time from recoring start in ms
      */
-    int GetTimeFromFrame(const int packetNumber, const bool isVDR);
+    int GetTimeFromFrame(const int packetNumber);
 
     /**
      * get frame number to offset of recording start
-     * @param offset_ms offset from recording start in ms
+     * @param packetNumber packet number
      * @return frame number to offset of recording start
      */
     int GetFrameFromOffset(int offset_ms);
@@ -132,12 +130,6 @@ public:
      * @return video frame number after given presentation timestamp
      */
     int GetPacketNumberAfterPTS(const int64_t pts);
-
-    /** return sum of packet duration from i-frame if called with an i-frame number, otherwise from i-frame after
-     * @param  frameNumber frame number
-     * @return   sum of duration
-     */
-    int GetSumDurationFromFrame(const int frameNumber);
 
     /** return PTS from packet if called with an key packet number, otherwise from packet after
      * @param    frameNumber frame number
@@ -179,8 +171,6 @@ private:
         int frameNumber        = -1;             //!< video i-frame number
         //!<
         int64_t pts            = -1;             //!< pts of i-frame
-        //!<
-        int frameTimeOffset_ms = -1;             //!< time offset from start of the recording in ms based in frame duration, missing frames are ignored (timestamps for VDR)
         //!<
     };
     std::vector<sIndexElement> indexVector;      //!< recording index

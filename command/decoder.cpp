@@ -159,7 +159,6 @@ void cDecoder::Reset() {
     dtsBefore        = -1;
     decoderSendState = 0;
     eof              = false;
-    sumDuration      = 0;
     decoderRestart   = true;
 }
 
@@ -633,12 +632,10 @@ bool cDecoder::ReadPacket() {
         // check packet DTS and PTS
         if (avpkt.pts == AV_NOPTS_VALUE) {
             dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d, duration %ld: PTS not set", packetNumber, avpkt.stream_index, avpkt.duration);
-            if ((packetNumber > 0) && IsVideoPacket()) sumDuration += avpkt.duration;
             return true;   // false only on EOF
         }
         if (avpkt.dts == AV_NOPTS_VALUE) {
             dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d, duration %ld: DTS not set", packetNumber, avpkt.stream_index, avpkt.duration);
-            if ((packetNumber > 0) && IsVideoPacket()) sumDuration += avpkt.duration;
             return true;   // false only on EOF
         }
 
@@ -669,15 +666,11 @@ bool cDecoder::ReadPacket() {
 
             // build index
             if (index) {
-                if (packetNumber > 0) sumDuration += avpkt.duration;   // offset to packet start, first packet is offset 0
                 // store each frame number and pts in a PTS ring buffer
                 index->AddPTS(packetNumber, avpkt.pts);
 
                 // store PTS and sum duration of all i-frames
-                if (IsVideoKeyPacket()) {
-                    int64_t frameTimeOffset_ms = 1000 * static_cast<int64_t>(sumDuration) * avctx->streams[avpkt.stream_index]->time_base.num / avctx->streams[avpkt.stream_index]->time_base.den;  // need more space to calculate value
-                    index->Add(fileNumber, packetNumber, avpkt.pts, frameTimeOffset_ms);
-                }
+                if (IsVideoKeyPacket()) index->Add(fileNumber, packetNumber, avpkt.pts);
             }
 
         }

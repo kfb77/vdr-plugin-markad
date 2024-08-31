@@ -765,7 +765,7 @@ char *cMarks::IndexToHMSF(const int packetNumber, const bool isVDR, int *offsetS
     }
     else { // PTS based timestamp for debug with VLC
         int time_ms  = -1;
-        if (index) time_ms = index->GetTimeFromFrame(packetNumber, false);  // TODO: remove unused VDR timesptamp from duration
+        if (index) time_ms = index->GetTimeFromFrame(packetNumber);
         if (time_ms < 0) { // called by logo search, we have no index, or called for broadcast start time during recording, we have not yet frames in index
             dsyslog("cMarks::IndexToHMSF(): no index available, use frame rate %d", frameRate);
             time_ms = packetNumber * 1000 / frameRate;
