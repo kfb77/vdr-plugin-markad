@@ -44,7 +44,7 @@ bool restartLogoDetectionDone  = false;
 int SysLogLevel                = 2;
 bool abortNow                  = false;
 int logoSearchTime_ms          = 0;
-long int decodeTime_us         = 0;
+double decodeTime_ms           = 0;
 
 struct timeval startAll, endAll = {};
 struct timeval startTime1, endTime1 = {}; // pass 1 (logo search) time
@@ -6725,7 +6725,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         if ((sec + usec) > 0) dsyslog("pass 6 (mark pictures):      time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
         dsyslog("global statistics: --------------------------------------------------------------------------");
-        int decodeTime_s = decodeTime_us / 1000000;
+        int decodeTime_s = round(decodeTime_ms / 1000);
         dsyslog("decoding:                    time %5ds -> %d:%02d:%02dh", decodeTime_s, decodeTime_s / 3600, (decodeTime_s % 3600) / 60,  decodeTime_s % 60);
 
         gettimeofday(&endAll, nullptr);

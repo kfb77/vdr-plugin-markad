@@ -17,7 +17,7 @@
 
 
 // global variables
-extern long int decodeTime_us;
+extern double decodeTime_ms;
 extern bool abortNow;
 
 
@@ -1109,22 +1109,16 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
 
 void cDecoder::Time(bool start) {
     if (start) {
-        gettimeofday(&startDecode, nullptr); // store start time of SendPacketToDecoder()
+        startDecode = std::chrono::high_resolution_clock::now();
         timeStartCalled = true;
     }
     else {
         if (timeStartCalled) {   // sometimes we call receive without send to check for more frames, ignore this
             // store end time
-            struct timeval endDecode = {};
-            gettimeofday(&endDecode, nullptr);
-            time_t sec = endDecode.tv_sec - startDecode.tv_sec;
-            suseconds_t usec = endDecode.tv_usec - startDecode.tv_usec;
-            if (usec < 0) {
-                usec += 1000000;
-                sec--;
-            }
+            std::chrono::high_resolution_clock::time_point stopDecode = std::chrono::high_resolution_clock::now();
             // calculate elapsed time and add to global statistics variable
-            decodeTime_us += sec * 1000000 + usec;
+            std::chrono::duration<double, std::milli> durationDecode = stopDecode - startDecode;
+            decodeTime_ms += durationDecode.count();
             timeStartCalled = false;
         }
     }

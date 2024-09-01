@@ -9,7 +9,8 @@
 #define __decoder_h_
 
 #include <vector>
-#include <deque>
+// #include <deque>
+#include <chrono>
 
 #include "global.h"
 #include "debug.h"
@@ -558,9 +559,9 @@ private:
     //!<
     int decodeErrorFrame               = -1;                      //!< frame number of last decoding error
     //!<
-    struct timeval startDecode         = {};                      //!< time stamp of SendPacketToDecoder()
-    //!<
     bool timeStartCalled               = false;                   //!< state of Time(true) was called
+    //!<
+    std::chrono::high_resolution_clock::time_point startDecode;   //!< time stamp of SendPacketToDecoder()
     //!<
     sAudioAC3Channels audioAC3Channels[MAXSTREAMS] = {};          //!< AC3 audio stream channel count state
     //!<
