@@ -1441,6 +1441,10 @@ bool cEncoder::EncodeAC3Frame() {
 
 
 bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
+    if (!avpkt) {
+        esyslog("cEncoder::WritePacket(): decoder packet (%d): invalid packet", decoder->GetPacketNumber());  // packet invalid, try next
+        return true;
+    }
     if (!reEncoded) {
         // map input stream index to output stream index, drop packet if not used
         CheckInputFileChange();  // check if input file has changed
