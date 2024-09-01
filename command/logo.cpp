@@ -1069,10 +1069,14 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 int textWidth       = rightColumn - leftColumn + 1;
                 int textWidthQuote  = 1000 * textWidth / decoder->GetVideoWidth();
                 int textHeightQuote = 1000 * textHeight / decoder->GetVideoHeight();
-                dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found text under logo: line %d -> %d, height %d (%d), column %d -> %d, width %d (%d)", repeat, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, textHeightQuote, leftColumn, rightColumn, textWidth, textWidthQuote);
-                // line 86 -> 97, height 12 (20), column 185 -> 205, width 21 (29)   -> Pro7 MAXX "neu" under logo
+                dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found text under logo: line %3d -> %3d, height %d (%d), column %d -> %d, width %d (%d)", repeat, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, textHeightQuote, leftColumn, rightColumn, textWidth, textWidthQuote);
+                // example of valid test to delete
+                // line  86 ->  97, height 12 (20), column 185 -> 205, width 21 (29)   -> Pro7 MAXX "neu" under logo
+                //
+                // example of part of the logo, do nt delete
+                // line 101 -> 113, height 13 (18), column 267 -> 289, width 23 (17)   -> Das Erste "HD" under logo
                 if ((textHeight <= 2) || // pixel error
-                        ((textHeight >= 12) && (textWidth >= 21))) {
+                        ((textHeightQuote > 18) && (textWidthQuote > 17))) {
                     dsyslog("cExtractLogo::Resize(): repeat %d, top logo: cut out valid text under logo", repeat);
                     if ((logoSizeFinal->height - topWhiteLine) > 0) {
                         CutOut(bestLogoInfo, logoSizeFinal->height - topWhiteLine, 0, logoSizeFinal, bestLogoCorner);
