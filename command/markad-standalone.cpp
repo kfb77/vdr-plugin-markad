@@ -4589,10 +4589,10 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     // rule 1: very short blackscreen with silence after
                     if (silenceAfter && (diffAfter <= 40)) diffBefore = INT_MAX;
 
-                    if      ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >= 160) && silenceBefore) maxBefore = 12760;
-                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >   40) && silenceBefore) maxBefore =  6840;
-                    else if (criteria->LogoFadeInOut() & FADE_IN)                                             maxBefore =  5360;
-                    else                                                                                      maxBefore =  2999;
+                    if      ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >= 160) && silenceBefore) maxBefore = 7119;
+                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >   40) && silenceBefore) maxBefore = 6840;
+                    else if  (criteria->LogoFadeInOut() & FADE_IN)                                            maxBefore = 5360;
+                    else                                                                                      maxBefore = 2999;
                     break;
                 case MT_CHANNELSTART:
                     maxBefore = 1240;
@@ -4680,8 +4680,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     case MT_VPSSTART:
                         if (criteria->GoodVPS())        maxAfter =   7020;
                         else if (silenceAfter)          maxAfter = 139480;
-                        else if (diffBefore == INT_MAX) maxAfter = 124520;  // broadcast does not have a black screen before, trust black screen after
-                        else                            maxAfter =  21680;  // use only very near short black screen
+                        else                            maxAfter =  21680;
                         break;
                     case MT_INTRODUCTIONSTART:
                         if (lengthAfter >= 3800) maxAfter = 3760;
