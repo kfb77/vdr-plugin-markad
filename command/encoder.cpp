@@ -261,10 +261,6 @@ bool cEncoder::OpenFile() {
     ALLOC(sizeof(SwrContext *) * avctxIn->nb_streams, "swrArray");
     memset(swrArray, 0, sizeof(SwrContext *) * avctxIn->nb_streams);
 
-    streamMap = static_cast<int *>(malloc(sizeof(int) * avctxIn->nb_streams));
-    ALLOC(sizeof(int) * avctxIn->nb_streams, "streamMap");
-    memset(streamMap, -1, sizeof(int) * avctxIn->nb_streams);
-
     if (asprintf(&buffCutName,"%s", recDir) == -1) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
         return false;
@@ -385,8 +381,6 @@ bool cEncoder::OpenFile() {
                     // cleanup memory
                     FREE(strlen(filename)+1, "filename");
                     free(filename);
-                    FREE(sizeof(int) * avctxIn->nb_streams, "streamMap");
-                    free(streamMap);
                     for (unsigned int i = 0; i < avctxIn->nb_streams; i++) {
                         if (codecCtxArrayOut[i]) {
                             avcodec_free_context(&codecCtxArrayOut[i]);
@@ -1449,7 +1443,7 @@ bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
         // map input stream index to output stream index, drop packet if not used
         CheckInputFileChange();  // check if input file has changed
         int streamIndexIn = decoder->GetPacket()->stream_index;
-        if ((streamIndexIn < 0) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) { // prevent to overrun stream array
+        if ((streamIndexIn < 0) || (streamIndexIn >= MAXSTREAMS) || (streamIndexIn >= static_cast<int>(avctxIn->nb_streams))) { // prevent to overrun stream array
             esyslog("cEncoder::WritePacket(): decoder packet (%5d), stream %d: invalid input stream", decoder->GetPacketNumber(), streamIndexIn);
             return false;
         }
@@ -1622,10 +1616,6 @@ bool cEncoder::CloseFile() {
     }
     FREE(sizeof(AVCodecContext *) *avctxIn->nb_streams, "codecCtxArrayOut");
     free(codecCtxArrayOut);
-
-    // free cut status
-    FREE(sizeof(int) * avctxIn->nb_streams, "streamMap");
-    free(streamMap);
 
     // free sample context
     for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {  // we have alocaed codec context for all possible input streams

@@ -216,7 +216,7 @@ private:
     //!<
     int64_t ptsAfterCut               = 0;                        //!< presentation timestamp of frame after cut mark
     //!<
-    int *streamMap                    = nullptr;                  //!< input stream to output stream map
+    int streamMap[MAXSTREAMS]         = {-1};                     //!< input stream to output stream map
     //!<
     int pass                          = 0;                        //!< encoding pass
     //!<
