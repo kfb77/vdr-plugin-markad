@@ -206,8 +206,6 @@ private:
     //!<
     AVCodecContext **codecCtxArrayIn  = nullptr;                  //!< avcodec context for each input stream
     //!<
-    AVCodecContext **codecCtxArrayOut = nullptr;                  //!< avcodec context for each output stream
-    //!<
     SwrContext **swrArray             = nullptr;                  //!< array of libswresample (lswr) for audiosample format conversion
     //!<
     int64_t ptsBefore                 = 0;                        //!< presentation timestamp of frame before
@@ -223,6 +221,8 @@ private:
     int64_t pts[MAXSTREAMS]           = {0};                      //!< pts of last output packet
     //!<
     int64_t dts[MAXSTREAMS]           = {0};                      //!< dts of last output packet
+    //!<
+    AVCodecContext *codecCtxArrayOut[MAXSTREAMS]  = {nullptr};        //!< avcodec context for each output stream
     //!<
     AVPixelFormat software_pix_fmt                = AV_PIX_FMT_NONE;  //!< software pixel format from decoder
     //!<

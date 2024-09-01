@@ -253,10 +253,6 @@ bool cEncoder::OpenFile() {
         return false;
     }
 
-    codecCtxArrayOut = static_cast<AVCodecContext **>(malloc(sizeof(AVCodecContext *) * avctxIn->nb_streams));
-    ALLOC(sizeof(AVCodecContext *) * avctxIn->nb_streams, "codecCtxArrayOut");
-    memset(codecCtxArrayOut, 0, sizeof(AVCodecContext *) * avctxIn->nb_streams);
-
     swrArray = static_cast<SwrContext **>(malloc(sizeof(SwrContext *) * avctxIn->nb_streams));
     ALLOC(sizeof(SwrContext *) * avctxIn->nb_streams, "swrArray");
     memset(swrArray, 0, sizeof(SwrContext *) * avctxIn->nb_streams);
@@ -388,8 +384,6 @@ bool cEncoder::OpenFile() {
                         }
                     }
                     FREE(sizeof(AVCodecContext *) * avctxIn->nb_streams, "codecCtxArrayOut");
-                    free(codecCtxArrayOut);
-                    FREE(sizeof(SwrContext *) * avctxIn->nb_streams, "swrArray");
                     free(swrArray);
                     return false;
                 }
@@ -1619,8 +1613,6 @@ bool cEncoder::CloseFile() {
             avcodec_free_context(&codecCtxArrayOut[streamIndex]);
         }
     }
-    FREE(sizeof(AVCodecContext *) *avctxIn->nb_streams, "codecCtxArrayOut");
-    free(codecCtxArrayOut);
 
     // free sample context
     for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {  // we have alocaed codec context for all possible input streams
