@@ -98,7 +98,8 @@
 // #define DEBUG_CUT 5
 
 // debug PTS and DTS of video cut
-// #define DEBUG_PTS_DTS_CUT
+// #define DEBUG_PTS_DTS_CUT <stream number>
+// #define DEBUG_PTS_DTS_CUT 0
 
 // debug decoder send/receive
 // #define DEBUG_DECODER

@@ -1191,7 +1191,7 @@ bool cEncoder::CutOut(cMark *startMark, cMark *stopMark) {
             esyslog("cEncoder::CutOut():: get i-frame before (%d) failed", stopPos);
             return false;
         }
-        dsyslog("cEncoder::CutOut(): adjust cut position from i-frame (%d) to i-frame (%d)", startPos, stopPos);
+        dsyslog("cEncoder::CutOut(): PTS based cut from key packet (%d) to key packet (%d)", startPos, stopPos);
 
         // seek to start position
         if (!decoder->SeekToPacket(startPos)) {  // this read startPos
@@ -1213,10 +1213,12 @@ bool cEncoder::CutOut(cMark *startMark, cMark *stopMark) {
         // current start pos - last stop pos -> length of ad
         // use dts to prevent non monotonically increasing dts
         if (cutInfo.stopPosDTS > 0) cutInfo.offset += (cutInfo.startPosDTS - cutInfo.stopPosDTS);
-        dsyslog("cEncoder::CutOut(): start cut from i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 " to i-frame (%d), offset %" PRId64, startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
+        dsyslog("cEncoder::CutOut(): start cut from key packet (%6d) PTS %10" PRId64 " DTS %10" PRId64 " to key packet (%d), offset %" PRId64, startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.offset);
 
         // copy all packets from startPos to endPos
-        while (decoder->GetPacketNumber() < stopPos) {  // end before last i-frame, start frame will be next i-frame
+        // end before last key packet, B/P frame refs are always backward in TS stream
+        // start packet will be next key packet
+        while (decoder->GetPacketNumber() < stopPos) {
             if (abortNow) return false;
 
 #ifdef DEBUG_CUT  // first pictures after start mark after
@@ -1252,7 +1254,7 @@ bool cEncoder::CutOut(cMark *startMark, cMark *stopMark) {
         avpkt =  decoder->GetPacket();  // this must be first video packet after cut because we only increase packet counter on video packets
         cutInfo.stopPosPTS = avpkt->pts;
         cutInfo.stopPosDTS = avpkt->dts;
-        dsyslog("cEncoder::CutOut(): end cut from i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 " to i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 ", offset %10" PRId64, startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
+        dsyslog("cEncoder::CutOut(): end cut from key packet (%6d) PTS %10" PRId64 " DTS %10" PRId64 " to key packet (%6d) PTS %10" PRId64 " DTS %10" PRId64 ", offset %10" PRId64, startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
     }
     LogSeparator();
     return true;
@@ -1260,13 +1262,6 @@ bool cEncoder::CutOut(cMark *startMark, cMark *stopMark) {
 
 
 bool cEncoder::EncodeVideoFrame() {
-#ifdef DEBUG_PTS_DTS_CUT
-    if (pass == 2) {
-        dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%5d) stream %d in:  PTS %10" PRId64 " DTS %10" PRId64 ", diff PTS %10" PRId64 ", offset %10" PRId64, decoderFrameNumber, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - inputFramePTSbefore[streamIndexIn], EncoderStatus.pts_dts_CutOffset);
-        inputFramePTSbefore[streamIndexIn] = avFrame->pts;
-    }
-#endif
-
     // map input stream index to output stream index, should always be 0->0 for video stream
     CheckInputFileChange();
     int streamIndexIn = decoder->GetPacket()->stream_index;
@@ -1279,18 +1274,22 @@ bool cEncoder::EncodeVideoFrame() {
         esyslog("cEncoder::EncodeVideoFrame(): decoder packet (%d), stream %d: out stream index %d invalid", decoder->GetPacketNumber(), decoder->GetPacket()->stream_index, streamIndexOut);
         return false; // no target for this stream
     }
-
     AVFrame *avFrame = decoder->GetFrame(codecCtxArrayOut[streamIndexOut]->pix_fmt);  // get video frame with converted data planes
     if (!avFrame) {
         dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%d): got no valid frame", decoder->GetPacketNumber());
         return true;  // can happen, try with next packet
     }
-
+#ifdef DEBUG_PTS_DTS_CUT
+    if (pass == 2) {
+        dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%5d) stream %d in:  PTS %10" PRId64 " DTS %10" PRId64 ", diff PTS %10" PRId64 ", offset %10" PRId64, decoder->GetPacketNumber(), streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - inputFramePTSbefore[streamIndexIn], cutInfo.offset);
+        inputFramePTSbefore[streamIndexIn] = avFrame->pts;
+    }
+#endif
     codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio = avFrame->sample_aspect_ratio; // aspect ratio can change, set encoder pixel aspect ratio to decoded frames aspect ratio
 
 #ifdef DEBUG_PTS_DTS_CUT
     if (pass == 2) {
-        dsyslog("cEncoder::EncodeVideoFrame(): out frame (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameOut, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - outputFramePTSbefore[streamIndexOut], EncoderStatus.pts_dts_CutOffset);
+        dsyslog("cEncoder::EncodeVideoFrame(): out frame (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameOut, streamIndexOut, avFrame->pts, avFrame->pts, avFrame->pts - outputFramePTSbefore[streamIndexOut], cutInfo.offset);
         outputFramePTSbefore[streamIndexOut] = avFrame->pts;
     }
 #endif
@@ -1338,9 +1337,9 @@ bool cEncoder::EncodeVideoFrame() {
 
 #ifdef DEBUG_PTS_DTS_CUT
         if (pass == 2) {
-            dsyslog("cEncoder::EncodeVideoFrame(): out packet (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameOut, avpktOut.stream_index, avpktOut.pts, avpktOut.dts, avpktOut.pts - outputPacketPTSbefore[streamIndexOut], EncoderStatus.pts_dts_CutOffset);
+            dsyslog("cEncoder::EncodeVideoFrame(): out packet (%5d) stream index %d PTS %10ld DTS %10ld, diff PTS %10ld, offset %10ld", frameOut, avpktOut->stream_index, avpktOut->pts, avpktOut->dts, avpktOut->pts - outputPacketPTSbefore[streamIndexOut], cutInfo.offset);
             if (decoder->IsVideoPacket()) frameOut++;
-            outputPacketPTSbefore[streamIndexOut] = avpktOut.pts;
+            outputPacketPTSbefore[streamIndexOut] = avpktOut->pts;
         }
 #endif
 
@@ -1461,6 +1460,12 @@ bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
         return true;  // continue encoding
     }
     avpkt->pos = -1;   // byte position in stream unknown
+#ifdef DEBUG_PTS_DTS_CUT
+    if ((avpkt->stream_index == DEBUG_PTS_DTS_CUT) || (DEBUG_PTS_DTS_CUT == -1)) {
+        dsyslog("cEncoder::WritePacket():      decoder packet (%5d), stream %d: output packet -> flags %d, PTS %10ld DTS %10ld, diff PTS to Key %10ld, offset %10ld", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts, avpkt->pts - outputPacketPTSbefore[avpkt->stream_index], cutInfo.offset);
+        if (decoder->IsVideoKeyPacket()) outputPacketPTSbefore[avpkt->stream_index] = avpkt->pts;
+    }
+#endif
     int rc = av_write_frame(avctxOut, avpkt);
     if (rc < 0) {
         esyslog("cEncoder::WritePacket(): decoder packet (%5d), stream %d: av_write_frame() failed, rc = %d: %s", decoder->GetPacketNumber(), avpkt->stream_index, rc, av_err2str(rc));
