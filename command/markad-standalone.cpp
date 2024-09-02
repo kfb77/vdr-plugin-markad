@@ -5151,7 +5151,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                     switch (mark->newType) {
                     case MT_VPSSTOP:
                         if (criteria->GoodVPS()) maxBefore =   6579;
-                        else                     maxBefore = 120040;
+                        else                     maxBefore = 104079;
                         break;
                     default:
                         maxBefore = -1;
