@@ -1596,7 +1596,7 @@ int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool
 
 #define AD_IN_FRAME_STOP_OFFSET_MAX   8599  // changed from 9759 to 8599 because of false detection of scene with door frame
 #define AD_IN_FRAME_START_OFFSET_MAX  4319  // changed from 4799 to 4319
-#define AD_IN_FRAME_LENGTH_MAX       34680  // changed from 30720 to 34680
+#define AD_IN_FRAME_LENGTH_MAX       40000  // changed from 34680 to 40000 (40s long ad in frame found)
 #define AD_IN_FRAME_LENGTH_MIN        6920  // shortest ad in frame found 6920ms, changed from 6960 to 6920
     // prevent to get additional info logo as frame
     int isCornerLogo[CORNERS] = {0};
