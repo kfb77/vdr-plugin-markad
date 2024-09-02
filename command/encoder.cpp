@@ -252,11 +252,6 @@ bool cEncoder::OpenFile() {
         dsyslog("cEncoder::OpenFile(): failed to get input video context");
         return false;
     }
-
-    swrArray = static_cast<SwrContext **>(malloc(sizeof(SwrContext *) * avctxIn->nb_streams));
-    ALLOC(sizeof(SwrContext *) * avctxIn->nb_streams, "swrArray");
-    memset(swrArray, 0, sizeof(SwrContext *) * avctxIn->nb_streams);
-
     if (asprintf(&buffCutName,"%s", recDir) == -1) {
         dsyslog("cEncoder::OpenFile(): failed to allocate string, out of memory?");
         return false;
@@ -383,8 +378,6 @@ bool cEncoder::OpenFile() {
                             FREE(sizeof(*codecCtxArrayOut[i]), "codecCtxArrayOut[streamIndex]");
                         }
                     }
-                    FREE(sizeof(AVCodecContext *) * avctxIn->nb_streams, "codecCtxArrayOut");
-                    free(swrArray);
                     return false;
                 }
             }
@@ -1621,8 +1614,6 @@ bool cEncoder::CloseFile() {
             swr_free(&swrArray[streamIndex]);
         }
     }
-    FREE(sizeof(SwrContext *) * avctxIn->nb_streams, "swrArray");
-    free(swrArray);
 
     // free output context
     if (pass == 1) {  // in other cases free in destructor
