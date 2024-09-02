@@ -4517,7 +4517,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                     if (!macontext.Config->fullDecode) newStopPosition = index->GetKeyPacketNumberBefore(newStopPosition - 1);  // we got first frame of ad, go one iFrame back for stop mark
                     else newStopPosition--; // get frame before ad in frame as stop mark
                     evaluateLogoStopStartPair->AddAdInFrame(newStopPosition, markLogo->position);  // store info that we found here adinframe
-                    int offset = markLogo->position - newStopPosition;
+                    int offset = newStopPosition - markLogo->position;
                     markLogo = marks.Move(markLogo, markLogo, offset, MT_NOADINFRAMESTOP);
                     if (!markLogo) {
                         esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
