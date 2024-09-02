@@ -2294,7 +2294,9 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                     int diffStop  = (logoStop->position  - hStart->position) / decoder->GetVideoFrameRate();
                     int diffStart = (logoStart->position - hStart->position) / decoder->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): found logo stop (%d) %ds and logo start (%d) %ds after hborder start (%d)", logoStop->position, diffStop, logoStart->position, diffStart, hStart->position);
-                    if ((diffStop >= -1) && (diffStop <= 13) && (diffStart <= 17)) {
+                    // example of hborder start in dark closing credits from previous recording
+                    // found logo stop (7569) 17s and logo start (7649) 21s after hborder start (7122)
+                    if ((diffStop >= -1) && (diffStop <= 17) && (diffStart <= 21)) {
                         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): hborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", hStart->position, logoStart->position);
                         marks.Del(hStart->position);
                         hStart = logoStart;
