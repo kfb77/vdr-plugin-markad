@@ -878,14 +878,16 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
     while (mark) {
         // index only contains i-frames, VDR also uses only i-frames
         int iFrame = -1;
-        if (index && (mark->pts >= 0)) {
-            if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfterPTS(mark->pts);
-            else                                 iFrame = index->GetKeyPacketNumberBeforePTS(mark->pts);
-            dsyslog("cMarks::Save(): %s mark (%5d), PTS %10ld: key packet (%5d)", ((mark->type & 0x0F) == MT_START) ? "start" : "stop ", mark->position, mark->pts, iFrame);
-        }
-        if (iFrame < 0) {   // fallback if PTS lookup failed
-            if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfter(mark->position);  // if mark position is i-frame, we want to use it
-            else                                 iFrame = index->GetKeyPacketNumberBefore(mark->position);
+        if (index) {
+            if (mark->pts >= 0) {
+                if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfterPTS(mark->pts);
+                else                                 iFrame = index->GetKeyPacketNumberBeforePTS(mark->pts);
+                dsyslog("cMarks::Save(): %s mark (%5d), PTS %10ld: key packet (%5d)", ((mark->type & 0x0F) == MT_START) ? "start" : "stop ", mark->position, mark->pts, iFrame);
+            }
+            if (iFrame < 0) {   // fallback if PTS lookup failed
+                if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfter(mark->position);  // if mark position is i-frame, we want to use it
+                else                                 iFrame = index->GetKeyPacketNumberBefore(mark->position);
+            }
         }
         if (iFrame < 0) iFrame = mark->position;  // fallback if index is not yet initialized
         // PTS based timestamp
