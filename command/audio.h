@@ -42,11 +42,15 @@ private:
     typedef struct sAudioMP2Silence {
         int startPacketNumber = -1;    //!< start packet number
         //!<
-        int64_t startFramePTS = -1;    //!< start PTS of decoded frame
+        int64_t startAudioPTS = -1;    //!< start PTS of decoded audio frame
+        //!<
+        int64_t startVideoPTS = -1;    //!< start PTS of nearest video packet
         //!<
         int stopPacketNumber  = -1;    //!< stop packet number
         //!<
-        int64_t stopFramePTS  = -1;    //!< stop PTS of decoded frame
+        int64_t stopAudioPTS  = -1;    //!< stop PTS of decoded audio frame
+        //!<
+        int64_t stopVideoPTS  = -1;    //!< stop PTS of nearest video packet
         //!<
     } sAudioMP2Silence;
 

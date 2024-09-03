@@ -22,8 +22,16 @@ extern "C" {
 #include <libswresample/swresample.h>
 }
 
-
 #define VOLUME 2dB
+
+
+enum {
+    CUT_MODE_INVALID   = -1,
+    CUT_MODE_KEY       =  0,
+    CUT_MODE_SMART     =  1,
+    CUT_MODE_FULL      =  2
+};
+
 
 /**
  * libav volume filter class
@@ -80,11 +88,11 @@ public:
      * @param decoderParam      pointer to decoder
      * @param indexParam        recording index
      * @param recDirParam       recording directory
-     * @param fullEncodeParam   true if full re-encodin
+     * @param cutModeParam      cut mode
      * @param bestStreamParam   true only encode best video and audio stream
      * @param ac3ReEncodeParam  true if AC3 re-endcode with volume adjust
      */
-    explicit cEncoder(cDecoder *decoderParam, cIndex *indexParam, const char* recDirParam, const bool fullEncodeParam, const bool bestStreamParam, const bool ac3ReEncodeParam);
+    explicit cEncoder(cDecoder *decoderParam, cIndex *indexParam, const char* recDirParam, const int cutModeParam, const bool bestStreamParam, const bool ac3ReEncodeParam);
 
     ~cEncoder();
 
@@ -101,11 +109,11 @@ public:
      */
     bool OpenFile();
 
-    /** cut out video from start frame number to stop frame number
-    * @param startMark start mark
-    * @param stopMark  stop mark
-    * @return true if successful, false otherwise
-    */
+    /** cut out video from start PTS to stop PTS
+     * @param startMark start mark
+     * @param stopMark  stop mark
+     * @return true if successful, false otherwise
+     */
     bool CutOut(cMark *startMark, cMark *stopMark);
 
     /**
@@ -115,8 +123,29 @@ public:
     bool CloseFile();
 
 private:
+    /** cut out video from start position to stop position of mark with full re-encode
+     * @param startMark start mark
+     * @param stopMark  stop mark
+     * @return true if successful, false otherwise
+     */
+    bool CutFullReEncode(cMark *startMark, cMark *stopMark);
+
+    /** smart cut video from start PTS to stop PTS of mark
+     * @param startMark start mark
+     * @param stopMark  stop mark
+     * @return true if successful, false otherwise
+     */
+    bool CutSmart(cMark *startMark, cMark *stopMark);
+
+    /** cut out H.265 video from key packet after start mark to key packet before stop mark
+     * @param startMark start mark
+     * @param stopMark  stop mark
+     * @return true if successful, false otherwise
+     */
+    bool CutKeyPacket(cMark *startMark, cMark *stopMark);
+
     /** check if input file changed an set new decoder context
-    */
+     */
     void CheckInputFileChange();
 
     /** get hwaccel encoder name appropriate hwaccel decoder
@@ -164,9 +193,33 @@ private:
      * init encoder codec
      * @param streamIndexIn  input stream index
      * @param streamIndexOut output stream index
+     * @param addOutStream   if true add output stream will be added to format context
+     * @param forcePixFmt    force this pixel format
+     * @param verbose        if true log codec parameters
+     * @return               true if successful, false otherwise
+     */
+    bool InitEncoderCodec(const unsigned int streamIndexIn, const unsigned int streamIndexOut, const bool addOutStream, AVPixelFormat forcePixFmt, const bool verbose);
+
+    /**
+     * reset decoder and encoder codex context
+     * have to start with empty decoder end encoder queues
      * @return true if successful, false otherwise
      */
-    bool InitEncoderCodec(const unsigned int streamIndexIn, const unsigned int streamIndexOut);
+    bool ResetDecoderEncodeCodec();
+
+    /**
+     * drain decoder and encoder queue
+     * @param stopPTS  PTS of stop mark
+     * @return true if successful, false otherwise
+     */
+    bool DrainVideoReEncode(const int64_t stopPTS);
+
+    /**
+     * calculate and set encoder queue PTS/DTS offset
+     * @param avpkt current output packet
+     * @param startPart true if re-encode around start mark, false otherwise
+     */
+    void SetReEncodeOffset(AVPacket *avpkt, const bool startPart);
 
     /**
      * change audio encoder channel count
@@ -184,21 +237,37 @@ private:
      */
     bool CheckStats(const int max_b_frames) const;
 
+    /**
+     * get next p-slice after PTS
+     * used if we have no p-slice index from decoder because of no full decode
+     * @param pts                       presentation timestamp
+     * @param pSlicePTS                 PTS from key packet number of next p-slice
+     * @param keyPacketNumberBeforeStop key packet before next stop
+     * @return                          key packet number of next p-slice
+     */
+    int GetPSliceKeyPacketNumberAfterPTS(int64_t pts, int64_t *pSlicePTS, const int keyPacketNumberBeforeStop);
+
     cDecoder *decoder                 = nullptr;                  //!< decoder
+    //!<
+    cDecoder *decoderLocal            = nullptr;                  //!< local decoder, used if we have no p-slice index
     //!<
     bool useHWaccel                   = false;                    //!< encoder use hwaccel (same as decoder)
     //!<
     cIndex *index                     = nullptr;                  //!< index
     //!<
+    cIndex *indexLocal                = nullptr;                  //!< local index, used if we have no p-slice index
+    //!<
     const char *recDir                = nullptr;                  //!< recording directory
     //!<
-    bool fullEncode                   = false;                    //!< true for full re-encode video and audio
+    int cutMode                       = CUT_MODE_INVALID;         //!< cut mode
     //!<
     bool bestStream                   = false;                    //!< true if only endcode best video and audio stream
     //!<
     bool ac3ReEncode                  = false;                    //!< true if ac3 re-encode with volume adjust
     //!<
     int fileNumber                    = 0;                        //!< input file number
+    //!<
+    bool forceIFrame                  = false;                    //!< force next encoded frame to i-frame
     //!<
     AVFormatContext *avctxIn          = nullptr;                  //!< avformat context for input
     //!<
@@ -214,11 +283,13 @@ private:
     //!<
     int streamMap[MAXSTREAMS]         = {-1};                     //!< input stream to output stream map
     //!<
+    int videoInputStreamIndex         = -1;                       //!< video input stream index
+    //!<
+    int videoOutputStreamIndex        = -1;                       //!< video output stream index
+    //!<
     int pass                          = 0;                        //!< encoding pass
     //!<
-    int64_t pts[MAXSTREAMS]           = {0};                      //!< pts of last output packet
-    //!<
-    int64_t dts[MAXSTREAMS]           = {0};                      //!< dts of last output packet
+    bool rollover                     = false;                    //!< PTS/DTS rollover
     //!<
     SwrContext *swrArray[MAXSTREAMS]              = {nullptr};        //!< array of libswresample (lswr) for audiosample format conversion
     //!<
@@ -229,21 +300,56 @@ private:
     cAC3VolumeFilter *volumeFilterAC3[MAXSTREAMS] = {nullptr};        //!< AC3 volume filter
     //!<
 
+
+    /**
+      * stream PTS/DTS infos
+      */
+    struct sStreamInfo {
+        int64_t lastInPTS[MAXSTREAMS]     = {-1};               //!< pts of last intput packet
+        //!<
+        int64_t lastOutPTS[MAXSTREAMS]    = {-1};               //!< pts of last output packet
+        //!<
+        int64_t lastOutDTS[MAXSTREAMS]    = {-1};               //!< dts of last output packet
+        //!<
+        int64_t maxPTSofGOP               = -1;                 //!< max PTS of current output video GOP
+        //!<
+    } streamInfo;                                               //!< infos of stream PTS/DTS
+    //!<
+
+    enum {
+        CUT_STATE_NULL         = 0,
+        CUT_STATE_FIRSTPACKET  = 1,
+        CUT_STATE_START        = 2,
+        CUT_STATE_STOP         = 3,
+    };
+
     /**
       * cut PTS/DTS infos
       */
     struct sCutInfo {
-        int64_t startPosDTS         = 0;  //!< DTS timestamp of last start position
+        int startPacketNumber       = -1;                    //!< packet number of start position
         //!<
-        int64_t startPosPTS         = 0;  //!< PTS timestamp of last start position
+        int64_t startDTS            =  0;                    //!< DTS timestamp of start position
         //!<
-        int64_t stopPosDTS          = 0;  //!< DTS timestamp of last stop position
+        int64_t startPTS            =  0;                    //!< PTS timestamp of start position
         //!<
-        int64_t stopPosPTS          = 0;  //!< PTS timestamp of last stop position
+        int stopPacketNumber        = -1;                    //!< packet number of stop position
         //!<
-        int64_t offset              = 0;  //!< current PTS/DTS offset from input stream to output stream
+        int64_t stopDTS             =  0;                    //!< DTS timestamp of stop position
         //!<
-    } cutInfo;                            //!< infos of cut positions
+        int64_t stopPTS             =  0;                    //!< PTS timestamp of stop position
+        //!<
+        int64_t offset              =  0;                    //!< current offset from input stream to output stream
+        //!<
+        int64_t offsetPTSReEncode   =  0;                    //!< additional PTS offset for re-encoded packets
+        //!<
+        int64_t offsetDTSReEncode   =  0;                    //!< additional DTS offset for re-encoded packets
+        //!<
+        int64_t videoPacketDuration =  0;                    //!< duration of video packet
+        //!<
+        int state                   = CUT_STATE_FIRSTPACKET; //!< state of smart cut
+        //!<
+    } cutInfo;                                               //!< infos of cut positions
     //!<
 
     /**
@@ -258,10 +364,13 @@ private:
     //!<
 
 #ifdef DEBUG_PTS_DTS_CUT
-    int64_t inputPacketPTSbefore[MAXSTREAMS]  = {0};
-    int64_t inputFramePTSbefore[MAXSTREAMS]   = {0};
-    int64_t outputPacketPTSbefore[MAXSTREAMS] = {0};
-    int64_t outputFramePTSbefore[MAXSTREAMS]  = {0};
-    int frameOut = 0;
+    int64_t inputPacketPTSbefore[MAXSTREAMS]     = {-1};
+    int64_t inputFramePTSbefore[MAXSTREAMS]      = {-1};
+    int64_t inputKeyPacketPTSbefore[MAXSTREAMS]  = {-1};
+    int64_t outputKeyPacketPTSbefore[MAXSTREAMS] = {-1};
+    int64_t lastInDTS[MAXSTREAMS]                = {-1};      //!< dts of last input packet
+    int64_t lastFrameInDTS[MAXSTREAMS]           = {-1};      //!< dts of last input frame send to encoder
+    int64_t lastPacketOutDTS[MAXSTREAMS]         = {-1};      //!< dts of last output packet from encoder
+    //!<
 #endif
 };

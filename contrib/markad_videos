@@ -116,6 +116,7 @@ class Config:
         self.markad_loglevel = 1
         self.autologo = 2
         self.fulldecode = False
+        self.smartencode = False
         self.fullencode = None
         self.hwaccel = None
         self.threads = 1
@@ -221,6 +222,12 @@ class Config:
         if ret: self.fulldecode = ret
 
         try:
+            ret = config.getboolean('MARKAD', 'smartencode')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            ret = False
+        if ret: self.smartencode = ret
+
+        try:
             ret = config.getint('MARKAD', 'threads')
         except (configparser.NoSectionError, configparser.NoOptionError):
             ret = None
@@ -292,6 +299,7 @@ class Config:
         if args.threads is not None: self.threads = args.threads
         if args.log2rec: self.log2rec = args.log2rec
         if args.fulldecode: self.fulldecode = args.fulldecode
+        if args.smartencode: self.smartencode = args.smartencode
         if args.fullencode: self.fullencode = args.fullencode
         if args.hwaccel: self.hwaccel = args.hwaccel
         if args.cut: self.cut = args.cut
@@ -535,6 +543,7 @@ class CheckPath:
             if config.log2rec: cmd = cmd + " --log2rec"
             if config.vps: cmd = cmd + " --vps"
             if config.fulldecode: cmd = cmd + " --fulldecode"
+            if config.smartencode: cmd = cmd + " --smartencode"
             if config.fullencode: cmd = cmd + " --fullencode=" + config.fullencode
             if config.hwaccel: cmd = cmd + " --hwaccel=" + config.hwaccel
             if config.cut: cmd = cmd + " --cut"
@@ -620,6 +629,7 @@ parser.add_argument('--backuplogo=', dest="backuplogo", metavar="<user>", action
 parser.add_argument('--logocachedir', dest="logocachedir",  metavar="<directory>", action="store", help='directory where logos stored, default /var/lib/markad')
 parser.add_argument('--autologo=', metavar="<option>", type=int, choices=range(0, 3), dest="autologo", action="store", help='sets --autologo of markad to the specified value, see markad for more detailsi (default 2)')
 parser.add_argument('--fulldecode', dest="fulldecode", action='store_true', default=False, help='sets --fulldecode of markad to the specified value, see markad for more details')
+parser.add_argument('--smartencode', dest="smartencode", action='store_true', default=False, help='sets --smartencode of markad to the specified value, see markad for more details')
 parser.add_argument('--fullencode=', dest="fullencode",  metavar="<streams>", action="store", help='streams to encode (best or all)')
 parser.add_argument('--hwaccel=', dest="hwaccel",  metavar="<hwaccel_method>", action="store", help='hwaccel')
 parser.add_argument('--threads=', metavar="<number>", type=int, choices=range(1, 17), dest="threads", action="store", help='sets --threads of markad to the specified value, see markad for more details (default 1)')

@@ -996,11 +996,10 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
         if (abortNow) return false;
 
         if (decoder->GetPacketNumber() >= endFrame) break;  // use packet number to prevent overlapping seek (before mark, after mark)
-        int frameNumber =  decoder->GetPacketNumber();
 
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) {
-            dsyslog("cDetectLogoStopStart::Detect(): frame (%d): picture not valid", frameNumber);
+            dsyslog("cDetectLogoStopStart::Detect(): frame (%d): picture not valid", decoder->GetPacketNumber());
             continue;
         }
 
@@ -1027,7 +1026,8 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 
             logo2[corner] = new sLogoInfo;
             ALLOC(sizeof(*logo2[corner]), "logo");
-            logo2[corner]->frameNumber = frameNumber;
+            logo2[corner]->frameNumber = picture->packetNumber;
+            logo2[corner]->pts         = picture->pts;
 
             // alloc memory and copy sobel transformed corner picture
             logo2[corner]->sobel = new uchar*[PLANES];
@@ -1043,7 +1043,9 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
             }
             if (corner == 0) {  // set current frame numbers, needed only once
                 compareInfo.frameNumber1 = logo1[corner]->frameNumber;
+                compareInfo.pts1         = logo1[corner]->pts;
                 compareInfo.frameNumber2 = logo2[corner]->frameNumber;
+                compareInfo.pts2         = logo2[corner]->pts;
             }
 
             // free memory
@@ -1281,14 +1283,16 @@ bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos) {
     }
 
     // check if it is a closing credit, we may not delete this because it contains end mark
+    sMarkPos endClosingCredits = {-1};
     if (found) {
-        if (ClosingCredit(startPos, endPos, true) >= 0) {
+        ClosingCredit(startPos, endPos, &endClosingCredits, true);
+        if (endClosingCredits.position >= 0) {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): stop/start part is closing credit, no info logo");
             found = false;
         }
     }
     else { // we have to check for closing credits anyway, because we use this info to select start or end mark
-        if (evaluateLogoStopStartPair && (staticQuote < MAX_STATIC_QUOTE)) ClosingCredit(startPos, endPos);  // do not check if detected static pictures
+        if (evaluateLogoStopStartPair && (staticQuote < MAX_STATIC_QUOTE)) ClosingCredit(startPos, endPos, &endClosingCredits);  // do not check if detected static pictures
     }
     return found;
 }
@@ -1401,12 +1405,12 @@ bool cDetectLogoStopStart::IsLogoChange(int startPos, int endPos) {
 
 
 // search for closing credits in frame without logo after broadcast end
-int cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, const bool noLogoCorner) {
-    if (!criteria->IsClosingCreditsChannel()) return -1;
+void cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, sMarkPos *endClosingCredits, const bool noLogoCorner) {
+    if (!criteria->IsClosingCreditsChannel()) return;
 
     if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startPos, endPos) == STATUS_NO) {
         dsyslog("cDetectLogoStopStart::ClosingCredit(): already known no closing credits from (%d) to (%d)", startPos, endPos);
-        return -1;
+        return;
     }
 
     dsyslog("cDetectLogoStopStart::ClosingCredit(): detect from (%d) to (%d)", startPos, endPos);
@@ -1416,15 +1420,16 @@ int cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, const bool noL
     int minLength = (1000 * (endPos - startPos) / frameRate) - 2000;  // 2s buffer for change from closing credit to logo start
     if (minLength <= 3760) { // too short will result in false positive, changed from 1840 to 3760
         dsyslog("cDetectLogoStopStart::ClosingCredit(): length %dms too short for detection", minLength);
-        return -1;
+        return;
     }
     if (minLength > CLOSING_CREDITS_LENGTH_MIN) minLength = CLOSING_CREDITS_LENGTH_MIN;
     dsyslog("cDetectLogoStopStart::ClosingCredit(): min length %dms", minLength);
 
-    int closingCreditsFrame = -1;
     struct sClosingCredits {
-        int start                    = -1;
-        int end                      = -1;
+        int startPosition            = -1;
+        int64_t startPTS             = -1;
+        int endPosition              = -1;
+        int64_t endPTS               = -1;
         int frameCount               =  0;
         int sumFramePortion[CORNERS] = {0};
 
@@ -1459,26 +1464,30 @@ int cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, const bool noL
         if (darkCorner >= 2) countDark++;  // if at least two corners but logo corner has no match, this is a very dark scene
 
         if ((similarCorners >= 3) && (noPixelCount < CORNERS)) {  // at least 3 corners has a match, at least one corner has pixel
-            if (ClosingCredits.start == -1) {
-                ClosingCredits.start = (*cornerResultIt).frameNumber1;
+            if (ClosingCredits.startPosition == -1) {
+                ClosingCredits.startPosition = (*cornerResultIt).frameNumber1;
+                ClosingCredits.startPTS      = (*cornerResultIt).pts1;
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_CLOSINGCREDITS)
                 dsyslog("cDetectLogoStopStart::ClosingCredit(): start");
 #endif
             }
-            ClosingCredits.end = (*cornerResultIt).frameNumber2;
+            ClosingCredits.endPosition = (*cornerResultIt).frameNumber2;
+            ClosingCredits.endPTS      = (*cornerResultIt).pts2;
             ClosingCredits.frameCount++;
             for (int corner = 0; corner < CORNERS; corner++) ClosingCredits.sumFramePortion[corner] += framePortion[corner];
         }
         else {
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_CLOSINGCREDITS)
-            if (ClosingCredits.start != -1) dsyslog("cDetectLogoStopStart::ClosingCredit(): end");
+            if (ClosingCredits.startPosition != -1) dsyslog("cDetectLogoStopStart::ClosingCredit(): end");
 #endif
-            if ((ClosingCredits.end - ClosingCredits.start) >= (minLength *frameRate / 1000)) {  // first long enough part is the closing credit
+            if ((ClosingCredits.endPosition - ClosingCredits.startPosition) >= (minLength *frameRate / 1000)) {  // first long enough part is the closing credit
                 break;
             }
             // restet state
-            ClosingCredits.start      = -1;
-            ClosingCredits.end        = -1;
+            ClosingCredits.startPosition = -1;
+            ClosingCredits.startPTS      = -1;
+            ClosingCredits.endPosition   = -1;
+            ClosingCredits.endPTS        = -1;
             ClosingCredits.frameCount =  0;
             for (int corner = 0; corner < CORNERS; corner++) ClosingCredits.sumFramePortion[corner] = 0;
         }
@@ -1494,17 +1503,16 @@ int cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, const bool noL
     dsyslog("cDetectLogoStopStart::ClosingCredit(): dark scene quote %d%%", darkQuote);
     if (darkQuote >= 95) {  // changed from 100 to 95
         dsyslog("cDetectLogoStopStart::ClosingCredit(): too much dark scene, closing credits are not dark");
-        return -1;
+        return;
     }
 
     // check if it is a closing credit
-    int startOffset = 1000 * (ClosingCredits.start - startPos) / frameRate;
-    int endOffset   = 1000 * (endPos - ClosingCredits.end) / frameRate;
-    int length      = 1000 * (ClosingCredits.end - ClosingCredits.start) / frameRate;
-    dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d), offset start %dms end %dms, length %dms",
-            ClosingCredits.start, ClosingCredits.end, startOffset, endOffset, length);
+    int startOffset = 1000 * (ClosingCredits.startPosition - startPos)                   / frameRate;
+    int endOffset   = 1000 * (endPos - ClosingCredits.endPosition)                       / frameRate;
+    int length      = 1000 * (ClosingCredits.endPosition - ClosingCredits.startPosition) / frameRate;
+    dsyslog("cDetectLogoStopStart::ClosingCredit(): closing credits: start (%d) end (%d), offset start %dms end %dms, length %dms", ClosingCredits.startPosition, ClosingCredits.endPosition, startOffset, endOffset, length);
 
-    if ((ClosingCredits.start > 0) && (ClosingCredits.end > 0) && // we found something
+    if ((ClosingCredits.startPosition > 0) && (ClosingCredits.endPosition > 0) && // we found something
             (startOffset <= 4320) && (endOffset < 87200) && (length <= 28720) && // do not reduce start offset, if logo fade out, we got start a little too late
             // changed length from 19000 to 28720, long ad in frame between broadcast, detect as closing credit to get correct start mark
             // startOffset increases from 1440 to 4320 because of silence detection before closing credits detection
@@ -1514,7 +1522,8 @@ int cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, const bool noL
         // - we also should detect ad in frame
         // changed from <= 1440 to 1920 to < 1200 to 480
         dsyslog("cDetectLogoStopStart::ClosingCredit(): this is a closing credits, pair contains a valid mark");
-        closingCreditsFrame = ClosingCredits.end;
+        endClosingCredits->position = ClosingCredits.endPosition;
+        endClosingCredits->pts      = ClosingCredits.endPTS;
     }
     else dsyslog("cDetectLogoStopStart::ClosingCredit(): no closing credits found");
 
@@ -1545,12 +1554,14 @@ int cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, const bool noL
         // best quote 403, all quote 465  -> long static ad picture
         if ((framePortionQuote < 493) && (allPortionQuote < 326)) {
             dsyslog("cDetectLogoStopStart::ClosingCredit(): not enough frame pixel found, closing credits not valid");
-            closingCreditsFrame = -1;  // no valid closing credits
+            // no valid closing credits
+            endClosingCredits->position = -1;
+            endClosingCredits->pts      = -1;
         }
     }
 
-    if (evaluateLogoStopStartPair && (closingCreditsFrame >= 0)) evaluateLogoStopStartPair->SetIsClosingCredits(startPos, endPos);
-    return closingCreditsFrame;
+    if (evaluateLogoStopStartPair && (endClosingCredits->position >= 0)) evaluateLogoStopStartPair->SetIsClosingCredits(startPos, endPos);
+    return;
 }
 
 
@@ -1559,14 +1570,14 @@ int cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, const bool noL
 // start search at current position, end at stopPosition
 // return first/last of advertising in frame with logo
 //
-int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool isStartMark, const bool isEndMark) {
-    if (!decoder)         return -1;
-    if (compareResult.empty()) return -1;
+void cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, sMarkPos *adInFrame, const bool isStartMark, const bool isEndMark) {
+    if (!decoder)              return;
+    if (compareResult.empty()) return;
 
 // for performance reason only for known and tested channels for now
     if (!criteria->IsAdInFrameWithLogoChannel()) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): skip this channel");
-        return -1;
+        return;
     }
 
     if (isStartMark) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): start search advertising in frame between i-frame after logo start mark (%d) and (%d)", startPos, endPos);
@@ -1574,10 +1585,14 @@ int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool
     int frameRate = decoder->GetVideoFrameRate();
 
     struct sAdInFrame {
-        int start                         = -1;
-        int startFinal                    = -1;
-        int end                           = -1;
-        int endFinal                      = -1;
+        int startPosition                 = -1;
+        int64_t startPTS                  = -1;
+        int startFinalPosition            = -1;
+        int64_t startFinalPTS             = -1;
+        int endPosition                   = -1;
+        int64_t endPTS                    = -1;
+        int endFinalPosition              = -1;
+        int64_t endFinalPTS               = -1;
         int frameCount                    =  0;
         int frameCountFinal               =  0;
         int sumFramePortion[CORNERS]      = {0};
@@ -1590,8 +1605,6 @@ int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool
         int end        = -1;
         int endFinal   = -1;
     } StillImage;
-
-    int retFrame              = -1;
 
 #define AD_IN_FRAME_STOP_OFFSET_MAX   8599  // changed from 9759 to 8599 because of false detection of scene with door frame
 #define AD_IN_FRAME_START_OFFSET_MAX  4319  // changed from 4799 to 4319
@@ -1665,43 +1678,52 @@ int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool
         // check advertising in frame
         // at least 3 corners has low match and 2 corner with high match (text in the frame)
         if ((similarCornersLow >= 3) && (similarCornersHigh >= 2)) {
-            if (AdInFrame.start == -1) {
-                AdInFrame.start = (*cornerResultIt).frameNumber1;
+            if (AdInFrame.startPosition == -1) {
+                AdInFrame.startPosition = (*cornerResultIt).frameNumber1;
+                AdInFrame.startPTS      = (*cornerResultIt).pts1;
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined (DEBUG_ADINFRAME)
                 dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): ad in frame start (%d)", AdInFrame.start);
                 for (int corner = 0; corner < CORNERS; corner++) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): corner %d: AdInFrame.sumFramePortion %7d", corner, AdInFrame.sumFramePortion[corner]);
 #endif
             }
-            AdInFrame.end = (*cornerResultIt).frameNumber2;
+            AdInFrame.endPosition = (*cornerResultIt).frameNumber2;
+            AdInFrame.endPTS      = (*cornerResultIt).pts2;
             AdInFrame.frameCount++;
             for (int corner = 0; corner < CORNERS; corner++) AdInFrame.sumFramePortion[corner] += (*cornerResultIt).framePortion[corner];
         }
         else {
-            if ((AdInFrame.start != -1) && (AdInFrame.end != -1)) {  // we have a new pair
-                int startOffset = 1000 * (AdInFrame.start - startPos) / frameRate;
+            if ((AdInFrame.startPosition != -1) && (AdInFrame.endPosition != -1)) {  // we have a new pair
+                int startOffset = 1000 * (AdInFrame.startPosition - startPos) / frameRate;
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined (DEBUG_ADINFRAME)
                 dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): ad in frame start (%d) end (%d), isStartMark %d, length %dms, startOffset %dms",  AdInFrame.start, AdInFrame.end, isStartMark, 1000 * (AdInFrame.end - AdInFrame.start) / frameRate, startOffset);
 #endif
                 // if we search for ad in frame after start mark, we end search after first valid match
-                if (isStartMark && ((1000 * (AdInFrame.end - AdInFrame.start) / frameRate) >= AD_IN_FRAME_LENGTH_MIN)) {
-                    AdInFrame.startFinal      = AdInFrame.start;
-                    AdInFrame.endFinal        = AdInFrame.end;
-                    AdInFrame.frameCountFinal = AdInFrame.frameCount;
+                if (isStartMark && ((1000 * (AdInFrame.endPosition - AdInFrame.startPosition) / frameRate) >= AD_IN_FRAME_LENGTH_MIN)) {
+                    AdInFrame.startFinalPosition = AdInFrame.startPosition;
+                    AdInFrame.startFinalPTS      = AdInFrame.startPTS;
+                    AdInFrame.endFinalPosition   = AdInFrame.endPosition;
+                    AdInFrame.endFinalPTS        = AdInFrame.endPTS;
+                    AdInFrame.frameCountFinal    = AdInFrame.frameCount;
                     for (int corner = 0; corner < CORNERS; corner++) AdInFrame.sumFramePortionFinal[corner] = AdInFrame.sumFramePortion[corner];
                     break;
                 }
 
                 // if we search for ad in frame before stop mark, continue try until stop mark reached
-                if (((AdInFrame.end - AdInFrame.start) > (AdInFrame.endFinal - AdInFrame.startFinal)) && // new range if longer
+                if (((AdInFrame.endPosition - AdInFrame.startPosition) > (AdInFrame.endFinalPosition - AdInFrame.startFinalPosition)) && // new range if longer
                         ((isStartMark && (startOffset < AD_IN_FRAME_START_OFFSET_MAX)) ||  // adinframe after logo start must be near logo start
                          (!isStartMark && (startOffset > 1000)))) { // a valid ad in frame before stop mark has a start offset, drop invalid pair
-                    AdInFrame.startFinal      = AdInFrame.start;
-                    AdInFrame.endFinal        = AdInFrame.end;
-                    AdInFrame.frameCountFinal = AdInFrame.frameCount;
+                    AdInFrame.startFinalPosition = AdInFrame.startPosition;
+                    AdInFrame.startFinalPTS      = AdInFrame.startPTS;
+                    AdInFrame.endFinalPosition   = AdInFrame.endPosition;
+                    AdInFrame.endFinalPTS        = AdInFrame.endPTS;
+                    AdInFrame.frameCountFinal    = AdInFrame.frameCount;
                     for (int corner = 0; corner < CORNERS; corner++) AdInFrame.sumFramePortionFinal[corner] = AdInFrame.sumFramePortion[corner];
                 }
-                AdInFrame.start             = -1;  // reset state
-                AdInFrame.end               = -1;
+                // reset state
+                AdInFrame.startPosition     = -1;
+                AdInFrame.startPTS          = -1;
+                AdInFrame.endPosition       = -1;
+                AdInFrame.endPTS            = -1;
                 AdInFrame.frameCount        =  0;
                 for (int corner = 0; corner < CORNERS; corner++) AdInFrame.sumFramePortion[corner] = 0;
             }
@@ -1712,39 +1734,41 @@ int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool
     int darkQuote = 100 * darkFrames / countFrames;
     if (darkQuote >= 86) {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): scene too dark, quote %d%%, can not detect ad in frame", darkQuote);
-        return -1;
+        return;
     }
     dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): dark quote %d%% is valid for detection", darkQuote);
 
     // select best found possible ad in frame sequence, in case of ad in frame before stop mark go to end position
     if (!isStartMark) {
-        int stopOffsetBefore = 1000 * (endPos             - AdInFrame.endFinal)   / frameRate;
-        int stopOffsetLast   = 1000 * (endPos             - AdInFrame.end)        / frameRate;
-        int lengthBefore     = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / frameRate;
-        int lengthLast       = 1000 * (AdInFrame.end      - AdInFrame.start)      / frameRate;
+        int stopOffsetBefore = 1000 * (endPos                     - AdInFrame.endFinalPosition)   / frameRate;
+        int stopOffsetLast   = 1000 * (endPos                     - AdInFrame.endPosition)        / frameRate;
+        int lengthBefore     = 1000 * (AdInFrame.endFinalPosition - AdInFrame.startFinalPosition) / frameRate;
+        int lengthLast       = 1000 * (AdInFrame.endPosition      - AdInFrame.startPosition)      / frameRate;
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): select best found possible ad in frame before logo stop mark, min length %dms, max stop offset %dms", AD_IN_FRAME_LENGTH_MIN, AD_IN_FRAME_STOP_OFFSET_MAX);
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): before possible ad in frame from (%d) to (%d), length %5dms, stop offset %5dms", AdInFrame.startFinal, AdInFrame.endFinal, lengthBefore, stopOffsetBefore);
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): last   possible ad in frame from (%d) to (%d), length %5dms, stop offset %5dms", AdInFrame.start, AdInFrame.end, lengthLast, stopOffsetLast);
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): before possible ad in frame from (%d) to (%d), length %5dms, stop offset %5dms", AdInFrame.startFinalPosition, AdInFrame.endFinalPosition, lengthBefore, stopOffsetBefore);
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): last   possible ad in frame from (%d) to (%d), length %5dms, stop offset %5dms", AdInFrame.startPosition, AdInFrame.endPosition, lengthLast, stopOffsetLast);
         // example:
         // before possible ad in frame from (39133) to (39732), length 23960ms, stop offset 12480ms   -> static scene at end of part
         // last   possible ad in frame from (39802) to (40044), length  9680ms, stop offset     0ms   -> ad in frame
         if ((lengthLast > lengthBefore) ||   // last part is longer
                 (stopOffsetBefore > AD_IN_FRAME_STOP_OFFSET_MAX) ||  // before part is too far from stop mark
                 ((stopOffsetLast == 0) && (lengthLast >= AD_IN_FRAME_LENGTH_MIN))) {  // last part up to stop mark and long enough
-            AdInFrame.startFinal      = AdInFrame.start;
-            AdInFrame.endFinal        = AdInFrame.end;
-            AdInFrame.frameCountFinal = AdInFrame.frameCount;
+            AdInFrame.startFinalPosition = AdInFrame.startPosition;
+            AdInFrame.startFinalPTS      = AdInFrame.startPTS;
+            AdInFrame.endFinalPosition   = AdInFrame.endPosition;
+            AdInFrame.endFinalPTS        = AdInFrame.endPTS;
+            AdInFrame.frameCountFinal    = AdInFrame.frameCount;
             for (int corner = 0; corner < CORNERS; corner++) AdInFrame.sumFramePortionFinal[corner] = AdInFrame.sumFramePortion[corner];
         }
     }
 
     // final possible ad in frame
-    if (AdInFrame.startFinal != -1) {
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start (%d) end (%d)", AdInFrame.startFinal, AdInFrame.endFinal);
+    if (AdInFrame.startFinalPosition != -1) {
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start (%d) PTS %" PRId64", end (%d) %" PRId64, AdInFrame.startFinalPosition, AdInFrame.startFinalPTS, AdInFrame.endFinalPosition, AdInFrame.endFinalPTS);
     }
     else {
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): no advertising in frame found");
-        return -1;
+        return;
     }
 
     // check if we have a frame
@@ -1767,10 +1791,10 @@ int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool
         //
         if (allFramePortionQuote <= 447) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enough frame pixel found on best corner found, advertising in frame not valid");
-            return -1;
+            return;
         }
     }
-    else return -1;
+    else return;
 
     // check still image
     if ((StillImage.end - StillImage.start) > (StillImage.endFinal - StillImage.startFinal)) {
@@ -1780,18 +1804,18 @@ int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool
     if (StillImage.start != -1) {
         int stillImageLength = 1000 * (StillImage.endFinal -  StillImage.startFinal) / frameRate;
         dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): still image before advertising in frame from (%d) to (%d), length %dms", StillImage.startFinal, StillImage.endFinal, stillImageLength);
-        if ((StillImage.endFinal == AdInFrame.startFinal) && (stillImageLength < 3000)) { // too long detected still images are invalid, changed from 30360 to 5280 to 4320 to 3000
-            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): move advertising in frame start (%d) to still image start (%d)", AdInFrame.startFinal, StillImage.startFinal);
-            AdInFrame.startFinal = StillImage.startFinal;
+        if ((StillImage.endFinal == AdInFrame.startFinalPosition) && (stillImageLength < 3000)) { // too long detected still images are invalid, changed from 30360 to 5280 to 4320 to 3000
+            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): move advertising in frame start (%d) to still image start (%d)", AdInFrame.startFinalPosition, StillImage.startFinal);
+            AdInFrame.startFinalPosition = StillImage.startFinal;
         }
     }
     else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): no still image before advertising in frame found");
 
     // check advertising in frame
-    int startOffset = 1000 * (AdInFrame.startFinal - startPos) / frameRate;
-    int stopOffset  = 1000 * (endPos - AdInFrame.endFinal) / frameRate;
-    int length      = 1000 * (AdInFrame.endFinal - AdInFrame.startFinal) / frameRate;
-    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start (%d) end (%d)", AdInFrame.startFinal, AdInFrame.endFinal);
+    int startOffset = 1000 * (AdInFrame.startFinalPosition - startPos) / frameRate;
+    int stopOffset  = 1000 * (endPos - AdInFrame.endFinalPosition) / frameRate;
+    int length      = 1000 * (AdInFrame.endFinalPosition - AdInFrame.startFinalPosition) / frameRate;
+    dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start (%d) PTS %" PRId64 ", end (%d) PTS %" PRId64, AdInFrame.startFinalPosition, AdInFrame.startFinalPTS, AdInFrame.endFinalPosition, AdInFrame.endFinalPTS);
     dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): advertising in frame: start offset %dms (expect <=%dms for start marks), stop offset %dms (expect <=%dms for stop mark), length %dms (expect >=%dms and <=%dms)", startOffset, AD_IN_FRAME_START_OFFSET_MAX, stopOffset, AD_IN_FRAME_STOP_OFFSET_MAX, length, AD_IN_FRAME_LENGTH_MIN, AD_IN_FRAME_LENGTH_MAX);
 
     if ((length >= AD_IN_FRAME_LENGTH_MIN) && (length <= AD_IN_FRAME_LENGTH_MAX)) { // do not reduce min to prevent false positive, do not increase to detect 10s ad in frame
@@ -1799,17 +1823,19 @@ int cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, const bool
                 (!isStartMark && (stopOffset  <= AD_IN_FRAME_STOP_OFFSET_MAX))) {       // an ad in frame with logo before stop mark must be near stop mark
             // maybe we have a preview direct after ad in frame and missed stop mark
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): this is a advertising in frame with logo");
-            if (isStartMark) retFrame = AdInFrame.endFinal;
-            else retFrame = AdInFrame.startFinal;
+            if (isStartMark) {
+                adInFrame->position = AdInFrame.endFinalPosition;
+                adInFrame->pts      = AdInFrame.endFinalPTS;
+            }
+            else {
+                adInFrame->position = AdInFrame.startFinalPosition;
+                adInFrame->pts      = AdInFrame.startFinalPTS;
+            }
         }
         else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): offset not valid, this is not a advertising in frame with logo");
     }
     else dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): length not valid, this is not a advertising in frame with logo");
-
-    // write report
-    if (retFrame >= 0) dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): report -> %s mark, length %dms, start offset %dms, stop offset %dms", (isStartMark) ? "after start" : "before stop", length, startOffset, stopOffset);
-
-    return retFrame;
+    return;
 }
 
 
@@ -1849,7 +1875,6 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         int startFinal = -1;
         int endFinal   = -1;
     } stillImage;
-
 
     int retFrame              = -1;
     int sumPixelBefore        =  0;

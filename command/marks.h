@@ -284,13 +284,13 @@ public:
 
     /**
      * move mark position
-     * @param dscMark        move this mark
-     * @param srcMark        source of new position
-     * @param frameOffset    packet number offset for new mark
-     * @param newType        new type of mark
-     * @return               mark with new position and new tye
+     * @param dscMark       move this mark
+     * @param newPosition   packet number of new position
+     * @param newPTS        if >= 0 use this PTS for new position, else use srcMark
+     * @param newType       new type of mark
+     * @return              mark with new position and new tye
      */
-    cMark *Move(cMark *dscMark, cMark *srcMark, const int frameOffset, const int newType);
+    cMark *Move(cMark *dscMark, int newPosition, int64_t newPTS, const int newType);
 
     /**
      * get first mark

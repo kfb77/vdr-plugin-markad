@@ -306,20 +306,22 @@ public:
 
     /**
      * check for closing credits without logo and for closing still image
-     * @return frame number of end of closing credits or closing still image
+     * @param startPos          start position for search (stop mark)
+     * @param endPos            end position for search
+     * @param endClosingCredits new end mark position after closing credits
+     * @param noLogoCorner      if true we have no logo
      */
-    int ClosingCredit(int startPos, int endPos, const bool noLogoCorner = false);
+    void ClosingCredit(int startPos, int endPos, sMarkPos *endClosingCredits, const bool noLogoCorner = false);
 
     /**
      * check if current range is an advertising in frame with logo
      * @param startPos  start frame position
      * @param endPos    end   frame position
+     * @param adInFrame position of ad in frame
      * @param isStartMark true if called to check after start mark, false if called to check before stop mark
      * @param isEndMark   true if called to check after stop mark, false if called to check before stop mark
-     * @return first frame of advertising in frame with logo before logo stop mark or last frame of advertising in frame with logo after logo start mark <br>
-     *         -1 if no advertising in frame with logo was found
      */
-    int AdInFrameWithLogo(int startPos, int endPos, const bool isStartMark, const bool isEndMark);
+    void AdInFrameWithLogo(int startPos, int endPos,  sMarkPos *adInFrame, const bool isStartMark, const bool isEndMark);
 
     /**
      * check if current range is a introduction logo
@@ -356,9 +358,13 @@ private:
      * compare two frames
      */
     struct sCompareInfo {
-        int frameNumber1          = 0;       //!< frame number 1
+        int frameNumber1          = -1;       //!< frame number 1
         //!<
-        int frameNumber2          = 0;       //!< frame number 2
+        int64_t pts1              = -1;       //!< pts of frame number 1
+        //!<
+        int frameNumber2          = -1;       //!< frame number 2
+        //!<
+        int64_t pts2              = -1;       //!< pts of frame number 2
         //!<
         int rate[CORNERS]         = {0};     //!< similar rate of frame pair per corner
         //!<

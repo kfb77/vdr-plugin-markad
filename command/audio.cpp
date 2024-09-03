@@ -36,7 +36,7 @@ void cAudio::AddMark(int type, const int packetNumber, const int64_t framePTS, c
         esyslog("cAudio::AddMark(): too much audio marks %d at once detected", audioMarks.Count);
         return;
     }
-    audioMarks.Number[audioMarks.Count].packetNumber   = packetNumber;
+    audioMarks.Number[audioMarks.Count].position       = packetNumber;
     audioMarks.Number[audioMarks.Count].framePTS       = framePTS;
     audioMarks.Number[audioMarks.Count].type           = type;
     audioMarks.Number[audioMarks.Count].channelsBefore = channelsBefore;
@@ -50,40 +50,40 @@ void cAudio::Silence() {
 
     if (normVolume >= 0) {  // valid deteced volume
         // set start/end, with audio packets there is packet PTS the same as frame PTS
-        if ((normVolume == 0) && (audioMP2Silence.startFramePTS <  0)) {
-            audioMP2Silence.startFramePTS = decoder->GetPacketPTS();   // start of silence
+        if ((normVolume == 0) && (audioMP2Silence.startAudioPTS <  0)) {
+            audioMP2Silence.startAudioPTS = decoder->GetPacketPTS();   // start of silence
 #ifdef DEBUG_VOLUME
-            dsyslog("cAudio::Silence(): packet (%d): start silence at PTS %ld detected", decoder->GetPacketNumber(), audioMP2Silence.startFramePTS);
+            dsyslog("cAudio::Silence(): packet (%d): start silence at audio PTS %ld detected", decoder->GetPacketNumber(), audioMP2Silence.startAudioPTS);
 #endif
         }
-        if ((normVolume >  2) && (audioMP2Silence.startFramePTS >= 0) && (audioMP2Silence.stopFramePTS < 0)) {
-            audioMP2Silence.stopFramePTS = decoder->GetPacketPTS();  // end of silence
+        if ((normVolume >  2) && (audioMP2Silence.startAudioPTS >= 0) && (audioMP2Silence.stopAudioPTS < 0)) {
+            audioMP2Silence.stopAudioPTS = decoder->GetPacketPTS();  // end of silence
 #ifdef DEBUG_VOLUME
-            dsyslog("cAudio::Silence(): packet (%d): stop silence at PTS %ld detected", decoder->GetPacketNumber(), audioMP2Silence.stopFramePTS);
+            dsyslog("cAudio::Silence(): packet (%d): stop silence at audio PTS %ld detected", decoder->GetPacketNumber(), audioMP2Silence.stopAudioPTS);
 #endif
         }
-        // get frame number
-        if ((audioMP2Silence.startFramePTS >= 0) && (audioMP2Silence.startPacketNumber < 0)) audioMP2Silence.startPacketNumber = index->GetPacketNumberBeforePTS(audioMP2Silence.startFramePTS);
-        if ((audioMP2Silence.stopFramePTS  >= 0) && (audioMP2Silence.stopPacketNumber  < 0)) audioMP2Silence.stopPacketNumber = index->GetPacketNumberAfterPTS(audioMP2Silence.stopFramePTS);
+        // get nearesr video packet number and PTS
+        if ((audioMP2Silence.startAudioPTS >= 0) && (audioMP2Silence.startPacketNumber < 0)) audioMP2Silence.startPacketNumber = index->GetPacketNumberBeforePTS(audioMP2Silence.startAudioPTS, &audioMP2Silence.startVideoPTS);
+        if ((audioMP2Silence.stopAudioPTS  >= 0) && (audioMP2Silence.stopPacketNumber  < 0)) audioMP2Silence.stopPacketNumber = index->GetPacketNumberAfterPTS(audioMP2Silence.stopAudioPTS, &audioMP2Silence.stopVideoPTS);
         // return result
         if ((audioMP2Silence.startPacketNumber >= 0) && (audioMP2Silence.stopPacketNumber >= 0)) {  // silence ready, can be processed
-            // very short silence can result in reversed start/stop video packet numbers because they have no monotonous increasing PTS
-            if (audioMP2Silence.startPacketNumber > audioMP2Silence.stopPacketNumber) {
-                audioMP2Silence.startPacketNumber--;
-                audioMP2Silence.stopPacketNumber = audioMP2Silence.startPacketNumber + 1;
-            }
 
 #ifdef DEBUG_VOLUME
-            dsyslog("cAudio::Silence(): packet (%d): startPTS %ld, startPacketNumber %d, stopPTS %ld, stopPacketNumber %d", decoder->GetPacketNumber(), audioMP2Silence.startFramePTS, audioMP2Silence.startPacketNumber, audioMP2Silence.stopFramePTS, audioMP2Silence.stopPacketNumber);
+            dsyslog("cAudio::Silence(): packet (%d): start: packet (%d), audio PIS %ld, video PTS %ld", decoder->GetPacketNumber(), audioMP2Silence.startPacketNumber, audioMP2Silence.startAudioPTS, audioMP2Silence.startVideoPTS);
+            dsyslog("cAudio::Silence(): packet (%d): stop:  packet (%d), audio PIS %ld, video PTS %ld", decoder->GetPacketNumber(), audioMP2Silence.stopPacketNumber, audioMP2Silence.stopAudioPTS, audioMP2Silence.stopVideoPTS);
 #endif
-            // add marks
-            AddMark(MT_SOUNDSTOP,  audioMP2Silence.startPacketNumber, audioMP2Silence.startFramePTS, 0, 0);
-            AddMark(MT_SOUNDSTART, audioMP2Silence.stopPacketNumber,  audioMP2Silence.stopFramePTS,  0, 0);
+            if (audioMP2Silence.startPacketNumber < audioMP2Silence.stopPacketNumber) { // ignore very short silence with can result in reversed start/stop video packet numbers
+                // add marks
+                AddMark(MT_SOUNDSTOP,  audioMP2Silence.startPacketNumber, audioMP2Silence.startVideoPTS, 0, 0);
+                AddMark(MT_SOUNDSTART, audioMP2Silence.stopPacketNumber,  audioMP2Silence.stopVideoPTS,  0, 0);
+            }
             // reset all values
             audioMP2Silence.startPacketNumber = -1;
-            audioMP2Silence.startFramePTS     = -1;
+            audioMP2Silence.startAudioPTS     = -1;
+            audioMP2Silence.startVideoPTS     = -1;
             audioMP2Silence.stopPacketNumber  = -1;
-            audioMP2Silence.stopFramePTS      = -1;
+            audioMP2Silence.stopAudioPTS      = -1;
+            audioMP2Silence.stopVideoPTS      = -1;
         }
     }
     return;
@@ -94,7 +94,7 @@ void cAudio::ChannelChange() {
     // check channel change
     sAudioAC3Channels *channelChange = decoder->GetChannelChange();   // check channel change
     if (channelChange) {   // we have unprocessed channel change
-        dsyslog("cAudio::ChannelChange(): packet (%d) PTS %ld: AC3 audio stream changed channel from %d to %d", channelChange->videoPacketNumber, channelChange->videoFramePTS, channelChange->channelCountBefore, channelChange->channelCountAfter);
+        dsyslog("cAudio::ChannelChange(): packet (%d) PTS %" PRId64 ": AC3 audio stream changed channel from %d to %d", channelChange->videoPacketNumber, channelChange->videoFramePTS, channelChange->channelCountBefore, channelChange->channelCountAfter);
 
         if (channelChange->channelCountAfter == 2) AddMark(MT_CHANNELSTOP, channelChange->videoPacketNumber, channelChange->videoFramePTS, channelChange->channelCountBefore, channelChange->channelCountAfter);
         else if ((channelChange->channelCountBefore == 2) &&   // ignore channel change from 5 to 6 or from 6 to 5

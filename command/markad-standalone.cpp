@@ -166,9 +166,9 @@ void cMarkAdStandalone::CalculateCheckPositions(int startFrame) {
 
     if (startFrame < 0) {   // recodring start is too late
         isyslog("recording started too late, set start mark to start of recording");
-        sMarkAdMark mark  = {};
-        mark.packetNumber = 1;  // do not use position 0 because this will later be deleted
-        mark.type         = MT_RECORDINGSTART;
+        sMarkAdMark mark = {};
+        mark.position    = 1;  // do not use position 0 because this will later be deleted
+        mark.type        = MT_RECORDINGSTART;
         AddMark(&mark);
         startFrame = decoder->GetVideoFrameRate() * 6 * 60;  // give 6 minutes to get best mark type for this recording
     }
@@ -1630,7 +1630,7 @@ void cMarkAdStandalone::CheckStop() {
                     }
                     if (!end) {
                         end = marks.ChangeType(hBorderStart, MT_STOP);
-                        if (end) end = marks.Move(end, end, -1, MT_TYPECHANGESTOP);  // one frame before hborder start is end mark
+                        if (end) end = marks.Move(end, end->position, end->pts, MT_TYPECHANGESTOP);  // one frame before hborder start is end mark
                     }
                 }
                 else {
@@ -1658,19 +1658,17 @@ void cMarkAdStandalone::CheckStop() {
             end = markBefore;
         }
         else {
-            int lastFrame = index->GetLastPacket()->packetNumber;
-            int stopPos   = stopA;
-            if (stopPos > lastFrame) {
-                dsyslog("cMarkAdStandalone::CheckStop(): assumed stop (%d) after recording end (%d), use recording end", stopA, lastFrame);
-                stopPos = lastFrame;
+            int lastPacketNumber = index->GetLastPacket()->packetNumber;
+            int stopPos          = stopA;
+            if (stopPos > lastPacketNumber) {
+                dsyslog("cMarkAdStandalone::CheckStop(): assumed stop (%d) after recording end (%d), use recording end", stopA, lastPacketNumber);
+                stopPos = lastPacketNumber;
             }
-            stopPos           = index->GetFrameBefore(stopPos);  // adjust to i-frame if no full decoding
             sMarkAdMark mark  = {};
-            mark.packetNumber = stopPos;  // we are lost, add a end mark at assumed end, get i-frame before if no full decode
-            mark.framePTS     = -1;       // PTS unknown
-            mark.type         = MT_ASSUMEDSTOP;
+            mark.position = index->GetKeyPacketNumberBefore(stopPos, &mark.framePTS);  // adjust to i-frame if no full decoding
+            mark.type     = MT_ASSUMEDSTOP;
             AddMark(&mark);
-            end = marks.Get(stopPos);
+            end = marks.Get(mark.position);
         }
     }
 
@@ -1681,9 +1679,9 @@ void cMarkAdStandalone::CheckStop() {
         cMark *startBefore = marks.GetPrev(end->position, MT_START, 0x0F);
         if (!startBefore) {
             esyslog("cMarkAdStandalone::CheckStop(): invalid marks, no start mark before end mark");
-            sMarkAdMark mark  = {};
-            mark.packetNumber = 0;
-            mark.type         = MT_RECORDINGSTART;
+            sMarkAdMark mark = {};
+            mark.position    = 0;
+            mark.type        = MT_RECORDINGSTART;
             AddMark(&mark);
         }
         marks.DelTill(end->position, false);
@@ -1723,15 +1721,14 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (stopMark->position < decoder->GetPacketNumber()) decoder->Restart();
 
     int endPos = stopMark->position + (25 * decoder->GetVideoFrameRate());  // try till 25s after stopMarkPosition
-    int newPosition = -1;
+    sMarkPos endClosingCredits = {-1};
     if (detectLogoStopStart->Detect(stopMark->position, endPos)) {
-        newPosition = detectLogoStopStart->ClosingCredit(stopMark->position, endPos);
+        detectLogoStopStart->ClosingCredit(stopMark->position, endPos, &endClosingCredits);
     }
 
-    if (newPosition > stopMark->position) {
-        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): closing credits found, move stop mark to position (%d)", newPosition);
-        int offset = newPosition - stopMark->position;
-        marks.Move(stopMark, stopMark, offset, MT_CLOSINGCREDITSSTOP);
+    if (endClosingCredits.position > stopMark->position) {
+        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): closing credits found, move stop mark to position (%d) PTS %" PRId64, endClosingCredits.position, endClosingCredits.pts);
+        marks.Move(stopMark, endClosingCredits.position, endClosingCredits.pts, MT_CLOSINGCREDITSSTOP);
         return true;
     }
     else {
@@ -1841,7 +1838,8 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         if (detectLogoStopStart->Detect(stopPosition, startPosition)) {
             bool doInfoCheck = true;
             // check for closing credits if no other checks will be done, only part of the loop elements in recording end range
-            if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) detectLogoStopStart->ClosingCredit(stopPosition, startPosition);
+            sMarkPos endClosingCredits = {-1};
+            if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) detectLogoStopStart->ClosingCredit(stopPosition, startPosition, &endClosingCredits);
 
             // check for info logo if  we are called by CheckStart and we are in broadcast
             if ((startA > 0) && criteria->IsIntroductionLogoChannel() && (isStartMarkInBroadcast == STATUS_YES)) {
@@ -2734,10 +2732,9 @@ void cMarkAdStandalone::CheckStart() {
         cMark *nextMark = marks.GetNext(startA, MT_ALL);
         if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP)) {  // do not insert black screen start before other start mark
             marks.DelTill(startA);
-            sMarkAdMark mark  = {};
-            mark.packetNumber = index->GetFrameAfter(startA);  // set to next i-frame if no full decoding
-            mark.framePTS     = -1;  // we do not know PTS
-            mark.type         = MT_ASSUMEDSTART;
+            sMarkAdMark mark = {};
+            mark.position    = index->GetKeyPacketNumberAfter(startA, &mark.framePTS);  // set to next key packet
+            mark.type        = MT_ASSUMEDSTART;
             AddMark(&mark);
             begin = marks.GetFirst();
         }
@@ -2935,14 +2932,14 @@ void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
                     char *markOldType = marks.TypeToText(mark->oldType);
                     char *markNewType = marks.TypeToText(mark->newType);
                     if (markOldType && markNewType) {
-                        dsyslog("mark at position %6d: %-5s %-18s at %s, PTS %10ld, inBroadCast %d, old type: %s %s, new type: %s %s", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->pts, mark->inBroadCast, markOldType, ((mark->oldType & 0x0F) == MT_START)? "start" : "stop", markNewType, ((mark->newType & 0x0F) == MT_START)? "start" : "stop");
+                        dsyslog("mark at position %6d: %-5s %-18s at %s, PTS %10" PRId64 ", inBroadCast %d, old type: %s %s, new type: %s %s", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->pts, mark->inBroadCast, markOldType, ((mark->oldType & 0x0F) == MT_START)? "start" : "stop", markNewType, ((mark->newType & 0x0F) == MT_START)? "start" : "stop");
                         FREE(strlen(markOldType)+1, "text");
                         free(markOldType);
                         FREE(strlen(markNewType)+1, "text");
                         free(markNewType);
                     }
                 }
-                else dsyslog("mark at position %6d: %-5s %-18s at %s, PTS %10ld, inBroadCast %d", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->pts, mark->inBroadCast);
+                else dsyslog("mark at position %6d: %-5s %-18s at %s, PTS %10" PRId64 ", inBroadCast %d", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->pts, mark->inBroadCast);
                 FREE(strlen(markType)+1, "text");
                 free(markType);
             }
@@ -3714,8 +3711,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
                 }
                 dsyslog("cMarkAdStandalone::AddMarkVPS(): marks after cleanup:");
                 DebugMarks();     //  only for debugging
-                int moveOffset = vpsFrame - mark->position;
-                marks.Move(mark, mark, moveOffset, (type == MT_START) ? MT_VPSSTART : MT_VPSSTOP);
+                marks.Move(mark, vpsFrame, index->GetPTSAfterKeyPacketNumber(vpsFrame), (type == MT_START) ? MT_VPSSTART : MT_VPSSTOP);
             }
             else dsyslog("cMarkAdStandalone::AddMarkVPS(): VPS event too far from mark, ignoring");
         }
@@ -3729,16 +3725,16 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         esyslog("cMarkAdStandalone::AddMark(): mark type 0x%X invalid", mark->type);
         return;
     }
-    if (mark->packetNumber < 0) {
+    if (mark->position < 0) {
         char *markType = marks.TypeToText(mark->type);
-        esyslog("cMarkAdStandalone::AddMark(): mark packet number (%d) invalid, type 0x%X <%s>", mark->packetNumber, mark->type, markType);
+        esyslog("cMarkAdStandalone::AddMark(): mark packet number (%d) invalid, type 0x%X <%s>", mark->position, mark->type, markType);
         FREE(strlen(markType)+1, "text");
         free(markType);
         return;
     }
     if (mark->framePTS < 0) {
         char *markType = marks.TypeToText(mark->type);
-        dsyslog("cMarkAdStandalone::AddMark(): mark packet number (%d), type 0x%X <%s %s>: no frame framePTS (%ld)", mark->packetNumber, mark->type, markType, ((mark->type & 0x0F) == MT_START)? "start" : "stop", mark->framePTS);   // can happen on some mark type (assumed, VPS, moved)
+        esyslog("cMarkAdStandalone::AddMark(): mark packet number (%d), type 0x%X <%s %s>: no frame frame PTS %" PRId64, mark->position, mark->type, markType, ((mark->type & 0x0F) == MT_START)? "start" : "stop", mark->framePTS);
         FREE(strlen(markType)+1, "text");
         free(markType);
     }
@@ -3747,140 +3743,140 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     char *comment = nullptr;
     switch (mark->type) {
     case MT_ASSUMEDSTART:
-        if (asprintf(&comment, "start assumed (%d)*", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "start assumed (%d)*", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_ASSUMEDSTOP:
-        if (asprintf(&comment, "end   assumed (%d) ", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "end   assumed (%d) ", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_SCENESTART:
-        if (asprintf(&comment, "start scene (%d) ", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "start scene (%d) ", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_SOUNDSTART:
-        if (asprintf(&comment, "end   silence (%d) ", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "end   silence (%d) ", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_SOUNDSTOP:
-        if (asprintf(&comment, "start silence (%d) ", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "start silence (%d) ", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_SCENESTOP:
-        if (asprintf(&comment, "end   scene (%d)*", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "end   scene (%d)*", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_NOLOWERBORDERSTART:
-        if (asprintf(&comment, "end   lower border (%d)*", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "end   lower border (%d)*", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_NOLOWERBORDERSTOP:
-        if (asprintf(&comment, "start lower border (%d) ", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "start lower border (%d) ", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_NOBLACKSTART:
-        if (asprintf(&comment, "end   black screen (%d)*", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "end   black screen (%d)*", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_NOBLACKSTOP:
-        if (asprintf(&comment, "start black screen (%d) ", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "start black screen (%d) ", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_LOGOSTART:
-        if (asprintf(&comment, "start logo (%d)*", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "start logo (%d)*", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_LOGOSTOP:
-        if (asprintf(&comment, "stop  logo (%d) ", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "stop  logo (%d) ", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_HBORDERSTART:
-        if (asprintf(&comment, "start horiz. borders (%d)*", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "start horiz. borders (%d)*", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_HBORDERSTOP:
-        if (asprintf(&comment, "stop  horiz. borders (%d) ", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "stop  horiz. borders (%d) ", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_VBORDERSTART:
-        if (asprintf(&comment, "start vert. borders (%d)*", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "start vert. borders (%d)*", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_VBORDERSTOP:
-        if (asprintf(&comment, "stop  vert. borders (%d) ", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "stop  vert. borders (%d) ", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_ASPECTSTART:
         if ((mark->AspectRatioBefore.num == 0) || (mark->AspectRatioBefore.den == 0)) {
-            if (asprintf(&comment, "start recording with aspect ratio %2d:%d (%d)*", mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->packetNumber) == -1) comment = nullptr;
+            if (asprintf(&comment, "start recording with aspect ratio %2d:%d (%d)*", mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = nullptr;
             if (comment) {
                 ALLOC(strlen(comment)+1, "comment");
             }
         }
         else {
-            if (asprintf(&comment, "aspect ratio change from %2d:%d to %2d:%d (%d)*", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->packetNumber) == -1) comment = nullptr;
+            if (asprintf(&comment, "aspect ratio change from %2d:%d to %2d:%d (%d)*", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = nullptr;
             if (comment) {
                 ALLOC(strlen(comment)+1, "comment");
             }
-            if ((macontext.Config->autoLogo > 0) && (mark->packetNumber > 0) && (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_DISABLED)) {
-                isyslog("AddMark(): frame (%d): aspect ratio change from %2d:%d to %2d:%d, logo detection reenabled", mark->packetNumber, mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den);
+            if ((macontext.Config->autoLogo > 0) && (mark->position > 0) && (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_DISABLED)) {
+                isyslog("AddMark(): frame (%d): aspect ratio change from %2d:%d to %2d:%d, logo detection reenabled", mark->position, mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den);
                 criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_UNKNOWN, macontext.Config->fullDecode);
             }
         }
         break;
     case MT_ASPECTSTOP:
-        if (asprintf(&comment, "aspect ratio change from %2d:%d to %2d:%d (%d) ", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "aspect ratio change from %2d:%d to %2d:%d (%d) ", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
-        if ((macontext.Config->autoLogo > 0) && (mark->packetNumber > 0) && (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_DISABLED)) {
-            isyslog("aspect ratio change from %2d:%d to %2d:%d at frame (%d), logo detection reenabled", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->packetNumber);
+        if ((macontext.Config->autoLogo > 0) && (mark->position > 0) && (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_DISABLED)) {
+            isyslog("aspect ratio change from %2d:%d to %2d:%d at frame (%d), logo detection reenabled", mark->AspectRatioBefore.num, mark->AspectRatioBefore.den, mark->AspectRatioAfter.num, mark->AspectRatioAfter.den, mark->position);
             criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_UNKNOWN, macontext.Config->fullDecode);
         }
         break;
     case MT_CHANNELSTART:
-        if (asprintf(&comment, "audio channel change from %d to %d (%d)*", mark->channelsBefore, mark->channelsAfter, mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "audio channel change from %d to %d (%d)*", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
-        if ((marks.Count(MT_CHANNELSTART, 0xFF) == 0) && (mark->packetNumber > stopA / 2)) {
-            dsyslog("AddMark(): first channel start at frame (%d) after half of assumed recording length at frame (%d), this is start mark of next braoscast", mark->packetNumber, stopA / 2);
+        if ((marks.Count(MT_CHANNELSTART, 0xFF) == 0) && (mark->position > stopA / 2)) {
+            dsyslog("AddMark(): first channel start at frame (%d) after half of assumed recording length at frame (%d), this is start mark of next braoscast", mark->position, stopA / 2);
         }
         break;
     case MT_CHANNELSTOP:
-        if ((mark->packetNumber > frameCheckStart) && (mark->packetNumber < stopA * 2 / 3) && (marks.Count(MT_CHANNELSTART, 0xFF) == 0)) {
+        if ((mark->position > frameCheckStart) && (mark->position < stopA * 2 / 3) && (marks.Count(MT_CHANNELSTART, 0xFF) == 0)) {
             dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after frameCheckStart, disable video decoding detection now");
             // disable all video detection
             video->ClearBorder();
@@ -3888,27 +3884,27 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
             if (criteria->GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) {
                 criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);
-                cMark *hborderStop = marks.GetAround(1 * decoder->GetVideoFrameRate(), mark->packetNumber, MT_HBORDERSTOP);
+                cMark *hborderStop = marks.GetAround(1 * decoder->GetVideoFrameRate(), mark->position, MT_HBORDERSTOP);
                 if (hborderStop) {  // use hborder stop, we have no scene change or black screen to optimize channel stop mark, will result false optimization
-                    dsyslog("cMarkAdStandalone::AddMark(): keep hborder stop (%d), ignore channel stop (%d)", hborderStop->position, mark->packetNumber);
+                    dsyslog("cMarkAdStandalone::AddMark(): keep hborder stop (%d), ignore channel stop (%d)", hborderStop->position, mark->position);
                     return;
                 }
             }
             if (doneCheckStart) marks.DelWeakFromTo(marks.GetFirst()->position, INT_MAX, MT_CHANNELCHANGE); // only if we have selected a start mark
         }
-        if (asprintf(&comment, "audio channel change from %d to %d (%d) ", mark->channelsBefore, mark->channelsAfter, mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "audio channel change from %d to %d (%d) ", mark->channelsBefore, mark->channelsAfter, mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_RECORDINGSTART:
-        if (asprintf(&comment, "start of recording (%d)*", mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "start of recording (%d)*", mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
         break;
     case MT_RECORDINGSTOP:
-        if (asprintf(&comment, "stop of recording (%d) ",mark->packetNumber) == -1) comment = nullptr;
+        if (asprintf(&comment, "stop of recording (%d) ",mark->position) == -1) comment = nullptr;
         if (comment) {
             ALLOC(strlen(comment)+1, "comment");
         }
@@ -3921,14 +3917,14 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     // add weak marks only to separate marks object
     switch (mark->type & 0xF0) {
     case MT_SCENECHANGE:
-        sceneMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->packetNumber, mark->framePTS, nullptr, inBroadCast);
+        sceneMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, mark->framePTS, nullptr, inBroadCast);
         if (comment) {
 #ifdef DEBUG_WEAK_MARKS
-            char *indexToHMSF = marks.IndexToHMSF(mark->packetNumber, false);
+            char *indexToHMSF = marks.IndexToHMSF(mark->position, false);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
                 if (indexToHMSF) {
-                    dsyslog("cMarkAdStandalone::AddMark(): %s, PTS %ld at %s", comment, mark->framePTS, indexToHMSF);
+                    dsyslog("cMarkAdStandalone::AddMark(): %s PTS %" PRId64 " at %s", comment, mark->framePTS, indexToHMSF);
                     FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                     free(indexToHMSF);
                 }
@@ -3939,12 +3935,12 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         }
         break;
     case MT_SOUNDCHANGE:
-        silenceMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->packetNumber, mark->framePTS, nullptr, inBroadCast);
+        silenceMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, mark->framePTS, nullptr, inBroadCast);
         if (comment) {
-            char *indexToHMSF = marks.IndexToHMSF(mark->packetNumber, false);
+            char *indexToHMSF = marks.IndexToHMSF(mark->position, false);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
-                dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
+                dsyslog("cMarkAdStandalone::AddMark(): %s PTS %" PRId64 " at %s", comment, mark->framePTS, indexToHMSF);
                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                 free(indexToHMSF);
             }
@@ -3954,12 +3950,12 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         break;
     case MT_LOWERBORDERCHANGE:
     case MT_BLACKCHANGE:
-        blackMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->packetNumber, mark->framePTS, nullptr, inBroadCast);
+        blackMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, mark->framePTS, nullptr, inBroadCast);
         if (comment) {
-            char *indexToHMSF = marks.IndexToHMSF(mark->packetNumber, false);
+            char *indexToHMSF = marks.IndexToHMSF(mark->position, false);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
-                dsyslog("cMarkAdStandalone::AddMark(): %s, PTS %ld at %s", comment, mark->framePTS, indexToHMSF);
+                dsyslog("cMarkAdStandalone::AddMark(): %s PTS %" PRId64 " at %s", comment, mark->framePTS, indexToHMSF);
                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                 free(indexToHMSF);
             }
@@ -3969,7 +3965,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         break;
     default:
         // set inBroadCast status
-        if (!((mark->type <= MT_ASPECTSTART) && (marks.GetPrev(mark->packetNumber, MT_CHANNELSTOP) && marks.GetPrev(mark->packetNumber, MT_CHANNELSTART)))) { // if there are MT_CHANNELSTOP and MT_CHANNELSTART marks, wait for MT_CHANNELSTART
+        if (!((mark->type <= MT_ASPECTSTART) && (marks.GetPrev(mark->position, MT_CHANNELSTOP) && marks.GetPrev(mark->position, MT_CHANNELSTART)))) { // if there are MT_CHANNELSTOP and MT_CHANNELSTART marks, wait for MT_CHANNELSTART
             if ((mark->type & 0x0F) == MT_START) inBroadCast = true;
             else                                 inBroadCast = false;
         }
@@ -3978,14 +3974,14 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         if (mark->type == MT_RECORDINGSTART) {
             if (asprintf(&indexToHMSF, "00:00:00.00") == -1) esyslog("cMarkAdStandalone::AddMark(): asprintf failed");  // we have no index to get time for packet number 0
         }
-        else indexToHMSF = marks.IndexToHMSF(mark->packetNumber, false);
+        else indexToHMSF = marks.IndexToHMSF(mark->position, false);
         if (indexToHMSF) {
             ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
-            if (comment) isyslog("%s at %s", comment, indexToHMSF);
+            if (comment) isyslog("%s PTS %" PRId64 " at %s", comment, mark->framePTS, indexToHMSF);
             FREE(strlen(indexToHMSF)+1, "indexToHMSF");
             free(indexToHMSF);
         }
-        marks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->packetNumber, mark->framePTS, comment, inBroadCast);
+        marks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, mark->framePTS, comment, inBroadCast);
         if (comment) {
             FREE(strlen(comment)+1, "comment");
             free(comment);
@@ -4174,7 +4170,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
         AVPacket *avpkt = decoder->GetPacket();
         int64_t framePTS = decoder->GetFramePTS();
         if (framePTS >= (mark->pts - (avpkt->duration * keyPacketDistance * DEBUG_MARK_FRAMES))) {
-            dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark (%5d) type 0x%X, PTS %ld: read packet (%5d), got frame PTS %ld", mark->position, mark->type, mark->pts, packetNumber, framePTS);
+            dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark (%5d) type 0x%X, PTS %" PRId64 ": read packet (%5d), got frame PTS %" PRId64, mark->position, mark->type, mark->pts, packetNumber, framePTS);
             char suffix1[10] = "";
             char suffix2[10] = "";
             if ((mark->type & 0x0F) == MT_START) strcpy(suffix1, "START");
@@ -4206,7 +4202,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
                 }
             }
         }
-        else decoder->DropFrameFromGPU();   // clenup GPU
+        else decoder->DropFrame();   // clenup frame buffer
     }
 }
 #endif
@@ -4233,7 +4229,10 @@ void cMarkAdStandalone::MarkadCut() {
     DebugMarks();     //  only for debugging
 
     // init encoder
-    cEncoder *encoder = new cEncoder(decoder, index, macontext.Config->recDir, macontext.Config->fullEncode, macontext.Config->bestEncode, macontext.Config->ac3ReEncode);
+    int cutMode = CUT_MODE_KEY;
+    if (macontext.Config->smartEncode)     cutMode = CUT_MODE_SMART;
+    else if (macontext.Config->fullEncode) cutMode = CUT_MODE_FULL;
+    cEncoder *encoder = new cEncoder(decoder, index, macontext.Config->recDir, cutMode, macontext.Config->bestEncode, macontext.Config->ac3ReEncode);
     ALLOC(sizeof(*encoder), "encoder");
 
     int passMin = 0;
@@ -4374,7 +4373,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
 
             // check for advertising in frame with logo after logo start mark position
             if (criteria->IsAdInFrameWithLogoChannel()) {
-                int adInFrameEndPosition = -1;
+                sMarkPos adInFrameEnd = {-1};
                 LogSeparator(false);
                 int searchEndPosition = markLogo->position + (60 * decoder->GetVideoFrameRate()); // advertising in frame are usually 30s
                 // sometimes advertising in frame has text in "e.g. Werbung"
@@ -4391,20 +4390,17 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                     free(indexToHMSFSearchEnd);
                 }
                 if (detectLogoStopStart->Detect(markLogo->position, searchEndPosition)) {
-                    adInFrameEndPosition = detectLogoStopStart->AdInFrameWithLogo(markLogo->position, searchEndPosition, true, false);
+                    detectLogoStopStart->AdInFrameWithLogo(markLogo->position, searchEndPosition, &adInFrameEnd, true, false);
                 }
-                if (adInFrameEndPosition >= 0) {
-                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", markLogo->position, adInFrameEndPosition);
-                    if (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEndPosition)) {
+                if (adInFrameEnd.position >= 0) {
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) PTS %" PRId64 " found", markLogo->position, adInFrameEnd.position, adInFrameEnd.pts);
+                    if (evaluateLogoStopStartPair->IncludesInfoLogo(markLogo->position, adInFrameEnd.position)) {
                         dsyslog("cMarkAdStandalone::LogoMarkOptimization(): deleted info logo part in this range, this could not be a advertising in frame");
-                        adInFrameEndPosition = -1;
+                        adInFrameEnd.position = -1;
                     }
                 }
-                if (adInFrameEndPosition != -1) {  // if we found advertising in frame, use this
-                    if (!macontext.Config->fullDecode) adInFrameEndPosition = index->GetKeyPacketNumberAfter(adInFrameEndPosition + 1);  // we got last frame of ad, go to next iFrame for start mark
-                    else adInFrameEndPosition++; // use next frame after ad in frame as start mark
-                    int offset = adInFrameEndPosition - markLogo->position;
-                    markLogo = marks.Move(markLogo, markLogo, offset, MT_NOADINFRAMESTART);
+                if (adInFrameEnd.position != -1) {  // if we found advertising in frame, use this
+                    markLogo = marks.Move(markLogo, adInFrameEnd.position, adInFrameEnd.pts, MT_NOADINFRAMESTART);
                     if (!markLogo) {
                         esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
                         break;
@@ -4423,8 +4419,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                             if (innerLength > 1000) move = false;  // only move if we found no long blackscreen between introduction logo and logo start
                         }
                         if (move) {
-                            int offset = introductionStartPosition - markLogo->position;
-                            markLogo = marks.Move(markLogo, markLogo, offset, MT_INTRODUCTIONSTART);
+                            markLogo = marks.Move(markLogo, markLogo->position, markLogo->pts, MT_INTRODUCTIONSTART);
                         }
                         if (!markLogo) {
                             esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
@@ -4460,20 +4455,18 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             if ((evaluateLogoStopStartPair->GetIsAdInFrame(markLogo->position) >= STATUS_UNKNOWN) && (detectLogoStopStart->Detect(searchStartPosition, markLogo->position))) {
                 bool isEndMark = false;
                 if (markLogo->position == marks.GetLast()->position) isEndMark = true;
-                int newStopPosition = detectLogoStopStart->AdInFrameWithLogo(searchStartPosition, markLogo->position, false, isEndMark);
-                if (newStopPosition >= 0) {
-                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) and (%d) found", newStopPosition, markLogo->position);
-                    if (evaluateLogoStopStartPair->IncludesInfoLogo(newStopPosition, markLogo->position)) {
+                sMarkPos newStop = {-1};
+                detectLogoStopStart->AdInFrameWithLogo(searchStartPosition, markLogo->position, &newStop, false, isEndMark);
+                if (newStop.position >= 0) {
+                    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): ad in frame between (%d) PTS %" PRId64 " and (%d) found", newStop.position, newStop.pts, markLogo->position);
+                    if (evaluateLogoStopStartPair->IncludesInfoLogo(newStop.position, markLogo->position)) {
                         dsyslog("cMarkAdStandalone::LogoMarkOptimization(): deleted info logo part in this range, this could not be a advertising in frame");
-                        newStopPosition = -1;
+                        newStop.position = -1;
                     }
                 }
-                if (newStopPosition != -1) {
-                    if (!macontext.Config->fullDecode) newStopPosition = index->GetKeyPacketNumberBefore(newStopPosition - 1);  // we got first frame of ad, go one iFrame back for stop mark
-                    else newStopPosition--; // get frame before ad in frame as stop mark
-                    evaluateLogoStopStartPair->AddAdInFrame(newStopPosition, markLogo->position);  // store info that we found here adinframe
-                    int offset = newStopPosition - markLogo->position;
-                    markLogo = marks.Move(markLogo, markLogo, offset, MT_NOADINFRAMESTOP);
+                if (newStop.position != -1) {
+                    evaluateLogoStopStartPair->AddAdInFrame(newStop.position, markLogo->position);  // store info that we found here adinframe
+                    markLogo = marks.Move(markLogo, newStop.position, newStop.pts, MT_NOADINFRAMESTOP);
                     if (!markLogo) {
                         esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
                         break;
@@ -4514,38 +4507,38 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             bool silenceBefore = false;
             bool silenceAfter  = false;
             // stop of black screen is start mark
-            cMark *stopBefore  = nullptr;
-            cMark *stopAfter   = nullptr;
-            cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTART); // new part starts after the black screen
-            cMark *startAfter  = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTART); // new part starts after the black screen
-            if (startBefore) {
-                stopBefore = blackMarks.GetPrev(startBefore->position, MT_NOBLACKSTOP);
-                if (stopBefore) {
-                    diffBefore   = 1000 * (mark->position        - startBefore->position) / decoder->GetVideoFrameRate();
-                    lengthBefore = 1000 * (startBefore->position - stopBefore->position)  / decoder->GetVideoFrameRate();
+            cMark *startBlackBefore  = nullptr;
+            cMark *startBlackAfter         = nullptr;
+            cMark *stopBlackBefore   = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTART); // new part starts after the black screen
+            cMark *stopBlackAfter    = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTART); // new part starts after the black screen
+            if (stopBlackBefore) {
+                startBlackBefore = blackMarks.GetPrev(stopBlackBefore->position, MT_NOBLACKSTOP);
+                if (startBlackBefore) {
+                    diffBefore   = 1000 * (mark->position            - stopBlackBefore->position)  / decoder->GetVideoFrameRate();
+                    lengthBefore = 1000 * (stopBlackBefore->position - startBlackBefore->position) / decoder->GetVideoFrameRate();
                     // check if there is silence around black screen
-                    cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), stopBefore->position, MT_SOUNDCHANGE, 0xF0);         // around black screen start
-                    if (!silence) silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), startBefore->position, MT_SOUNDCHANGE, 0xF0); // around black screen stop
+                    cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), startBlackBefore->position, MT_SOUNDCHANGE, 0xF0);         // around black screen start
+                    if (!silence) silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), stopBlackBefore->position, MT_SOUNDCHANGE, 0xF0); // around black screen stop
                     if (silence) silenceBefore = true;
-                    dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms before -> length %5dms, silence around %d", mark->position, stopBefore->position, startBefore->position, diffBefore, lengthBefore, silenceBefore);
+                    dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms before -> length %5dms, silence around %d", mark->position, startBlackBefore->position, stopBlackBefore->position, diffBefore, lengthBefore, silenceBefore);
                 }
-                else startBefore = nullptr; // no pair, this is invalid
+                else stopBlackBefore = nullptr; // no pair, this is invalid
             }
-            if (startAfter) {
-                stopAfter = blackMarks.GetPrev(startAfter->position, MT_NOBLACKSTOP);
-                if (stopAfter) {
-                    diffAfter   = 1000 * (startAfter->position - mark->position)      / decoder->GetVideoFrameRate();
-                    lengthAfter = 1000 * (startAfter->position - stopAfter->position) / decoder->GetVideoFrameRate();
+            if (stopBlackAfter) {
+                startBlackAfter = blackMarks.GetPrev(stopBlackAfter->position, MT_NOBLACKSTOP);
+                if (startBlackAfter) {
+                    diffAfter   = 1000 * (stopBlackAfter->position - mark->position)      / decoder->GetVideoFrameRate();
+                    lengthAfter = 1000 * (stopBlackAfter->position - startBlackAfter->position) / decoder->GetVideoFrameRate();
                     // check if there is silence around black screen
-                    cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), stopAfter->position, MT_SOUNDCHANGE, 0xF0);         // around black screen start
-                    if (!silence) silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), startAfter->position, MT_SOUNDCHANGE, 0xF0); // around black screen stop
+                    cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), startBlackAfter->position, MT_SOUNDCHANGE, 0xF0);         // around black screen start
+                    if (!silence) silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), stopBlackAfter->position, MT_SOUNDCHANGE, 0xF0); // around black screen stop
                     if (silence) silenceAfter = true;
-                    dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms after  -> length %5dms, silence around %d", mark->position, stopAfter->position, startAfter->position, diffAfter, lengthAfter, silenceAfter);
+                    dsyslog("cMarkAdStandalone::BlackScreenOptimization(): start mark (%6d): found black screen from (%6d) to (%6d), %7dms after  -> length %5dms, silence around %d", mark->position, startBlackAfter->position, stopBlackAfter->position, diffAfter, lengthAfter, silenceAfter);
                 }
-                else startAfter = nullptr; // no pair, this is invalid
+                else stopBlackAfter = nullptr; // no pair, this is invalid
             }
             // try black screen before start mark
-            if (startBefore) {
+            if (stopBlackBefore) {
                 int maxBefore = -1;
                 switch (mark->type) {
                 case MT_ASSUMEDSTART:
@@ -4601,18 +4594,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxBefore = -1;
                 }
                 if (diffBefore <= maxBefore) {  // move even to same position to prevent scene change do a move
-                    int newPos =  startBefore->position;
-                    if (mark->position == marks.First()->position) {
-                        newPos -= (START_STOP_BLACK + 1);  // start broadcast with some black picture, one before because we get first frame after black screen
-                        if (newPos < stopBefore->position) newPos = stopBefore->position;
-                        else {
-                            int midBlack = (startBefore->position + stopBefore->position) / 2;  // for long black screen, take mid of a the black screen
-                            if (newPos < midBlack) newPos = midBlack;
-                        }
-                    }
-                    if (!macontext.Config->fullDecode) newPos = index->GetKeyPacketNumberAfter(newPos);
-                    int offset = newPos - startBefore->position;
-                    mark = marks.Move(mark, startBefore, offset, MT_NOBLACKSTART);
+                    if (mark->position == marks.First()->position) mark = marks.Move(mark, startBlackBefore->position, startBlackBefore->pts, MT_NOBLACKSTART); // start broadcast with some black picture
+                    else                                           mark = marks.Move(mark, stopBlackBefore->position,  stopBlackBefore->pts,  MT_NOBLACKSTART);
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -4621,7 +4604,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 }
             }
             // try black screen after start mark
-            if (!moved && startAfter) { // move even to same position to prevent scene change do a move
+            if (!moved && stopBlackAfter) { // move even to same position to prevent scene change do a move
                 int maxAfter = -1;
                 switch (mark->type) {
                 case MT_ASSUMEDSTART:
@@ -4666,20 +4649,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxAfter = -1;
                 }
                 if (diffAfter <= maxAfter) {
-                    int newPos =  startAfter->position;
-                    if (mark->position == marks.First()->position) {
-                        newPos -= (START_STOP_BLACK + 1);  // start broadcast with some black picture, one before because we get first frame after black screen
-                        if (newPos < stopAfter->position) newPos = stopAfter->position;
-                        else {
-                            if (lengthAfter < 2520) {  // very long blackscreen is from closing credit before, changed from 4200 to 2520
-                                int midBlack = (stopAfter->position + startAfter->position) / 2;  // for long black screen, take mid of a the black screen
-                                if (newPos > midBlack) newPos = midBlack;
-                            }
-                        }
-                    }
-                    if (!macontext.Config->fullDecode) newPos = index->GetKeyPacketNumberBefore(newPos);
-                    int offset = newPos - startAfter->position;
-                    mark = marks.Move(mark, startAfter, offset, MT_NOBLACKSTART);
+                    if (mark->position == marks.First()->position) mark = marks.Move(mark, startBlackAfter->position, startBlackAfter->pts, MT_NOBLACKSTART);  // start broadcast with some black picture
+                    else                                           mark = marks.Move(mark, stopBlackAfter->position,  stopBlackAfter->pts,  MT_NOBLACKSTART);
                     if (mark) save = true;
                     else break;
                 }
@@ -4693,9 +4664,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             int   diffAfter     = INT_MAX;
             bool  silenceBefore = false;
             bool  silenceAfter  = false;
-            cMark *startAfter   = nullptr;
-            cMark *stopAfter    = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTOP);
-
+            cMark *stopBlackAfter   = nullptr;
+            cMark *startBlackAfter  = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTOP);
             cMark *blackStartBefore = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTOP);
             cMark *blackStopBefore  = nullptr;
             if (blackStartBefore) {
@@ -4710,21 +4680,21 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 }
                 else blackStartBefore = nullptr; // no pair, this is invalid
             }
-            if (stopAfter) {
-                diffAfter = 1000 * (stopAfter->position - mark->position) / decoder->GetVideoFrameRate();
-                startAfter = blackMarks.GetNext(stopAfter->position, MT_NOBLACKSTART);
-                if (startAfter) {
-                    lengthAfter = 1000 * (startAfter->position - stopAfter->position) / decoder->GetVideoFrameRate();
+            if (startBlackAfter) {
+                diffAfter = 1000 * (startBlackAfter->position - mark->position) / decoder->GetVideoFrameRate();
+                stopBlackAfter = blackMarks.GetNext(startBlackAfter->position, MT_NOBLACKSTART);
+                if (stopBlackAfter) {
+                    lengthAfter = 1000 * (stopBlackAfter->position - startBlackAfter->position) / decoder->GetVideoFrameRate();
                     // check if there is silence around black screen
-                    cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), stopAfter->position, MT_SOUNDCHANGE, 0xF0);
+                    cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), startBlackAfter->position, MT_SOUNDCHANGE, 0xF0);
                     if (silence) silenceAfter = true;
-                    dsyslog("cMarkAdStandalone::BlackScreenOptimization(): stop  mark (%6d): found black screen from (%6d) to (%6d), %7dms after  -> length %5dms, silence around %d", mark->position, stopAfter->position, startAfter->position, diffAfter, lengthAfter, silenceAfter);
+                    dsyslog("cMarkAdStandalone::BlackScreenOptimization(): stop  mark (%6d): found black screen from (%6d) to (%6d), %7dms after  -> length %5dms, silence around %d", mark->position, startBlackAfter->position, stopBlackAfter->position, diffAfter, lengthAfter, silenceAfter);
                 }
-                else stopAfter = nullptr; // no pair, this is invalid
+                else startBlackAfter = nullptr; // no pair, this is invalid
             }
 
             // try black screen after stop marks
-            if (stopAfter) {  // move even to same position to prevent scene change for move again
+            if (startBlackAfter) {  // move even to same position to prevent scene change for move again
                 int maxAfter = -1;
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
@@ -4799,20 +4769,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxAfter = -1;
                 }
                 if (diffAfter <= maxAfter) {  // move even to same position to prevent scene change for move again
-                    int newPos =  stopAfter->position;
-                    if (mark->position == marks.GetLast()->position) {
-                        newPos += START_STOP_BLACK;  // end broadcast with some black picture
-                        if (newPos > (startAfter->position - 1)) newPos = startAfter->position - 1;
-                        else {
-                            if (lengthAfter < 4200) { // too long black screen is opening credits from next broadcast
-                                int midBlack = (stopAfter->position + startAfter->position) / 2;  // for long black screen, take mid of a the black screen
-                                if (newPos < midBlack) newPos = midBlack;
-                            }
-                        }
-                    }
-                    newPos     = index->GetFrameBefore(newPos); // black stop is first frame after black screen
-                    int offset = newPos - stopAfter->position;
-                    mark = marks.Move(mark, stopAfter, offset, MT_NOBLACKSTOP);
+                    if (mark->position == marks.GetLast()->position) mark = marks.Move(mark, stopBlackAfter->position,  stopBlackAfter->pts,  MT_NOBLACKSTOP);  // allow some black pictures at end of broadcast
+                    else                                             mark = marks.Move(mark, startBlackAfter->position, startBlackAfter->pts, MT_NOBLACKSTOP);
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -4866,25 +4824,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxBefore = -1;
                 }
                 if (diffBefore <= maxBefore) {
-                    int newPos =  blackStartBefore->position;
-                    if (mark->position == marks.GetLast()->position) {
-                        // keep full closing black screen around last stop mark
-                        // ignore if too long, in this case it contains opening credits from next broadcast
-                        if ((lengthBefore >= diffBefore) && (lengthBefore < 5480)) newPos = blackStopBefore->position;  // changed from 9080 to 5480
-                        else {
-                            newPos =  blackStartBefore->position + START_STOP_BLACK;  // set end of broadcast with some black picture, not all, this can be opening credits of next broadcast
-                            if (newPos > (blackStopBefore->position - 1)) newPos = (blackStopBefore->position - 1);
-                            else {
-                                if (lengthBefore < 5040) {  // next broadcast starts with a long dark scene
-                                    int midBlack = (blackStopBefore->position + blackStartBefore->position) / 2;  // for long black screen, take mid of a the black screen
-                                    if (newPos < midBlack) newPos = midBlack;
-                                }
-                            }
-                        }
-                    }
-                    newPos          = index->GetFrameBefore(newPos); // black stop is first frame after black screen, trim to key packet
-                    int frameOffset = newPos - blackStartBefore->position;
-                    mark = marks.Move(mark, blackStartBefore, frameOffset, MT_NOBLACKSTOP);
+                    if (mark->position == marks.GetLast()->position) mark = marks.Move(mark, blackStopBefore->position,  blackStopBefore->pts,  MT_NOBLACKSTOP);
+                    else                                             mark = marks.Move(mark, blackStartBefore->position, blackStartBefore->pts, MT_NOBLACKSTOP);
                     if (mark) save = true;
                     else break;
                 }
@@ -4981,7 +4922,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                     maxBefore = -1;
                 }
                 if (diffBefore <= maxBefore) {
-                    mark = marks.Move(mark, stopBefore, 0, MT_NOLOWERBORDERSTART);  // move to end of lower border (closing credits)
+                    mark = marks.Move(mark, stopBefore->position, stopBefore->pts, MT_NOLOWERBORDERSTART);  // move to end of lower border (closing credits)
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -5007,7 +4948,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                     maxAfter = -1;
                 }
                 if (diffAfter <= maxAfter) {
-                    mark = marks.Move(mark, stopAfter, 0, MT_NOLOWERBORDERSTART);  // use end of lower closing credits
+                    mark = marks.Move(mark, stopAfter->position, stopAfter->pts, MT_NOLOWERBORDERSTART);  // use end of lower closing credits
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -5090,7 +5031,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                     maxAfter = -1;
                 }
                 if (diffAfter <= maxAfter) {  // move even to same position to prevent scene change for move again
-                    mark = marks.Move(mark, stopAfter, 0, MT_NOLOWERBORDERSTOP);
+                    mark = marks.Move(mark, stopAfter->position, stopAfter->pts, MT_NOLOWERBORDERSTOP);
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -5121,7 +5062,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                     maxBefore = -1;
                 }
                 if (diffBefore <= maxBefore) {
-                    mark = marks.Move(mark, stopBefore, 0, MT_NOLOWERBORDERSTOP);
+                    mark = marks.Move(mark, stopBefore->position, stopBefore->pts, MT_NOLOWERBORDERSTOP);
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -5165,7 +5106,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     const cMark *black = blackMarks.GetAround(decoder->GetVideoFrameRate(), soundStopBefore->position, MT_BLACKCHANGE, 0xF0);
                     bool blackBefore = false;
                     if (black) blackBefore = true;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %ld to (%6d) %ld, %8dms before, length %4dms, black %d", mark->position, soundStopBefore->position, soundStopBefore->pts, soundStartBefore->position, soundStartBefore->pts, diffBefore, lengthBefore, blackBefore);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %" PRId64 " to (%6d) %" PRId64 ", %8dms before, length %4dms, black %d", mark->position, soundStopBefore->position, soundStopBefore->pts, soundStartBefore->position, soundStartBefore->pts, diffBefore, lengthBefore, blackBefore);
                 }
             }
             if (soundStartAfter) {
@@ -5175,7 +5116,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / decoder->GetVideoFrameRate();
                     const cMark *black = blackMarks.GetAround(decoder->GetVideoFrameRate(), soundStopAfter->position, MT_BLACKCHANGE, 0xF0);
                     if (black) blackAfter = true;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %ld to (%6d) %ld, %8dms after,  length %4dms, black %d", mark->position, soundStopAfter->position, soundStopAfter->pts, soundStartAfter->position, soundStartAfter->pts, diffAfter, lengthAfter, blackAfter);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %" PRId64 "  to (%6d) %" PRId64 " , %8dms after,  length %4dms, black %d", mark->position, soundStopAfter->position, soundStopAfter->pts, soundStartAfter->position, soundStartAfter->pts, diffAfter, lengthAfter, blackAfter);
                 }
             }
             // try silence before start position
@@ -5215,7 +5156,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxBefore = 0;
                 }
                 if (diffBefore <= maxBefore) {
-                    mark = marks.Move(mark, soundStartBefore, 0, MT_SOUNDSTART);
+                    mark = marks.Move(mark, soundStartBefore->position, soundStartBefore->pts, MT_SOUNDSTART);
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -5253,7 +5194,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxAfter = 0;
                 }
                 if ((diffAfter <= maxAfter) && (soundStartAfter->position != mark->position)) {
-                    mark = marks.Move(mark, soundStartAfter, 0, MT_SOUNDSTART);
+                    mark = marks.Move(mark, soundStartAfter->position, soundStartAfter->pts, MT_SOUNDSTART);
                     if (mark) save = true;
                     else break;
                 }
@@ -5324,7 +5265,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxAfter = 0;
                 }
                 if (diffAfter <= maxAfter) {
-                    mark = marks.Move(mark, soundStopAfter, 0, MT_SOUNDSTOP);
+                    mark = marks.Move(mark, soundStopAfter->position, soundStopAfter->pts, MT_SOUNDSTOP);
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -5366,7 +5307,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxBefore = 0;
                 }
                 if ((diffBefore <= maxBefore) && (soundStopBefore->position != mark->position)) {
-                    mark = marks.Move(mark, soundStopBefore, 0, MT_SOUNDSTOP);
+                    mark = marks.Move(mark, soundStopBefore->position, soundStopBefore->pts, MT_SOUNDSTOP);
                     if (mark) save = true;
                     else break;
                 }
@@ -5462,7 +5403,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxBefore = 0;
                 }
                 if (diffBefore <= maxBefore) {
-                    mark = marks.Move(mark, sceneStartBefore, 0, MT_SCENESTART);
+                    mark = marks.Move(mark, sceneStartBefore->position, sceneStartBefore->pts, MT_SCENESTART);
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -5515,7 +5456,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 0;
                 }
                 if ((diffAfter <= maxAfter) && (sceneStartAfter->position != mark->position)) {
-                    mark = marks.Move(mark, sceneStartAfter, 0, MT_SCENESTART);
+                    mark = marks.Move(mark, sceneStartAfter->position, sceneStartAfter->pts, MT_SCENESTART);
                     if (mark) save = true;
                     else break;
                 }
@@ -5604,7 +5545,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 0;
                 }
                 if (diffAfter <= maxAfter) {  // logo is fading out before end of broadcast scene, move forward
-                    mark = marks.Move(mark, sceneStopAfter, 0, MT_SCENESTOP);
+                    mark = marks.Move(mark, sceneStopAfter->position, sceneStopAfter->pts, MT_SCENESTOP);
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -5653,7 +5594,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxBefore = 0;
                 }
                 if (diffBefore <= maxBefore) {
-                    mark = marks.Move(mark, sceneStopBefore, 0, MT_SCENESTOP);
+                    mark = marks.Move(mark, sceneStopBefore->position, sceneStopBefore->pts, MT_SCENESTOP);
                     if (mark) save = true;
                     else break;
                 }
@@ -6831,6 +6772,8 @@ int usage(int svdrpport) {
            "                             2 = use logo from logo cache directory, if missing extract logo from recording (default)\n"
            "                --fulldecode\n"
            "                  decode all video frame types and set mark position to all frame types\n"
+           "                --smartencode\n"
+           "                  re-encode only short before and short after cut position\n"
            "                --fullencode=<streams>\n"
            "                  full re-encode video generated by --cut\n"
            "                  use it only on powerful CPUs, it will double overall run time\n"
@@ -6975,10 +6918,11 @@ int main(int argc, char *argv[]) {
             {"logfile",      1, 0, 10},
             {"autologo",     1, 0, 11},
             {"fulldecode",   0, 0, 12},
-            {"fullencode",   1, 0, 13},
-            {"pts",          0, 0, 14},     // undocumented, only for development use
-            {"hwaccel",      1, 0, 15},
-            {"perftest",     0, 0, 16},     // undocumented, only for development use
+            {"smartencode",  0, 0, 13},
+            {"fullencode",   1, 0, 14},
+            {"pts",          0, 0, 15},     // undocumented, only for development use
+            {"hwaccel",      1, 0, 16},
+            {"perftest",     0, 0, 17},     // undocumented, only for development use
 
             {0, 0, 0, 0}
         };
@@ -7155,33 +7099,39 @@ int main(int argc, char *argv[]) {
         case 12: // --fulldecode
             config.fullDecode = true;
             break;
-        case 13: // --fullencode
-            config.fullEncode = true;
-            str = optarg;
-            ntok = 0;
-            while (str) {
-                tok = strtok(str, ",");
-                if (!tok) break;
-                switch (ntok) {
-                case 0:
-                    if (strcmp(tok, "all") == 0) config.bestEncode = false;
-                    else if (strcmp(tok, "best") == 0) config.bestEncode = true;
-                    else {
-                        fprintf(stderr, "markad: invalid --fullencode value: %s\n", tok);
-                        return EXIT_FAILURE;
+        case 13: // --smartencode
+            config.smartEncode = true;
+            break;
+        case 14: // --fullencode
+            if (config.smartEncode) fprintf(stderr, "markad: ----smartencode is set, ignore invalid --fullencode\n");
+            else {
+                config.fullEncode = true;
+                str = optarg;
+                ntok = 0;
+                while (str) {
+                    tok = strtok(str, ",");
+                    if (!tok) break;
+                    switch (ntok) {
+                    case 0:
+                        if (strcmp(tok, "all") == 0) config.bestEncode = false;
+                        else if (strcmp(tok, "best") == 0) config.bestEncode = true;
+                        else {
+                            fprintf(stderr, "markad: invalid --fullencode value: %s\n", tok);
+                            return EXIT_FAILURE;
+                        }
+                        break;
+                    default:
+                        break;
                     }
-                    break;
-                default:
-                    break;
+                    str = nullptr;
+                    ntok++;
                 }
-                str = nullptr;
-                ntok++;
             }
             break;
-        case 14: // --pts
+        case 15: // --pts
             config.pts = true;
             break;
-        case 15: // --hwaccel
+        case 16: // --hwaccel
             str = optarg;
             tok = strtok(str, ",");
             if (tok) {
@@ -7201,7 +7151,7 @@ int main(int argc, char *argv[]) {
                 strncpy(config.hwaccel, optarg, sizeof(config.hwaccel) - 1);
             }
             break;
-        case 16: // --perftest
+        case 17: // --perftest
             config.perftest = true;
             break;
         default:
@@ -7417,6 +7367,9 @@ int main(int argc, char *argv[]) {
         dsyslog("parameter --autologo is set to %i",config.autoLogo);
         if (config.fullDecode) {
             dsyslog("parameter --fulldecode is set");
+        }
+        if (config.smartEncode) {
+            dsyslog("parameter --smartencode is set");
         }
         if (config.fullEncode) {
             dsyslog("parameter --fullencode is set");

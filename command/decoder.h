@@ -405,10 +405,20 @@ public:
      */
     enum AVPixelFormat GetVideoPixelFormat() const;
 
-    /** drop currect decoded frame from GPU buffer
-     *  use by logo extraction to skip frames
+    /** drop currect decoded frame from GPU buffer and free AVFrame buffers
      */
-    void DropFrameFromGPU();
+    void DropFrame();
+
+    /** flush decoder queue of steam index
+     *  use by encoder during cut
+     */
+    void FlushDecoder(const int streamIndex);
+
+    /** restart decoder codec context of stream index
+     *  use by encoder after flush decoder
+     * @return true if successful, false otherwise
+     */
+    bool RestartCodec(const int streamIndex);
 
 private:
     /**
@@ -559,6 +569,8 @@ private:
     int decodeErrorFrame               = -1;                      //!< frame number of last decoding error
     //!<
     bool timeStartCalled               = false;                   //!< state of Time(true) was called
+    //!<
+    int64_t startSlicePTS              = -1;                      //!< PTS of slice start
     //!<
     std::chrono::high_resolution_clock::time_point startDecode;   //!< time stamp of SendPacketToDecoder()
     //!<

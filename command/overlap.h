@@ -34,12 +34,11 @@ public:
      * if beforeAd == true preload frames before stop mark in histogram buffer array, otherwise preload frames after start mark <br>
      * if we got frameCount, start compare
      * @param[in]     picture      video picture
-     * @param[in]     frameNumber  current frame number
      * @param[in]     frameCount   number of frames to process
      * @param[in]     beforeAd     true if called with a frame before advertising, false otherwise
      * @param[in]     h264         true if HD video, false otherwise
      */
-    void Process(sVideoPicture *picture, const int frameNumber, const int frameCount, const bool beforeAd, const bool h264);
+    void Process(sVideoPicture *picture, const int frameCount, const bool beforeAd, const bool h264);
 
     /**
      * detect overlaps before and after advertising
@@ -77,6 +76,8 @@ private:
      */
     typedef struct sHistBuffer {
         int frameNumber = -1;      //!< frame number
+        //!<
+        int64_t pts     = -1;      //!< pts of picture
         //!<
         bool valid      = false;   //!< true if buffer is valid
         //!<

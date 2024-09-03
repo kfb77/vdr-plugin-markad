@@ -33,7 +33,9 @@
 struct sLogoInfo {
     int frameNumber = -1;      //!< frame number of the logo
     //!<
-    int hits = 0;              //!< number of similar other logos
+    int64_t pts     = -1;      //!< pts of frame number of the logo
+    //!<
+    int hits        = 0;       //!< number of similar other logos
     //!<
     bool resized    = false;   //!< true if Resize() was done
     //!<

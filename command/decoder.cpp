@@ -372,6 +372,50 @@ void cDecoder::GetVideoCodec(AVCodecID codecID, sCodecInfo *codecInfo) const {
 }
 
 
+bool cDecoder::RestartCodec(const int streamIndex) {
+    dsyslog("cDecoder::RestartCodec(): restart decoder codec context of stream %d", streamIndex);
+    if ((streamIndex < 0) || (streamIndex > static_cast<int>(avctx->nb_streams))) {
+        esyslog("cDecoder::RestartCodec(): invalid stream index");
+        return false;
+    }
+    DropFrame();
+    // save all infos we need for open codec context
+    const AVCodec *codec = codecCtxArray[streamIndex]->codec;
+    // free codec context
+    FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
+    avcodec_free_context(&codecCtxArray[streamIndex]);
+
+    // create new codec context
+    codecCtxArray[streamIndex] = avcodec_alloc_context3(codec);
+    if (!codecCtxArray[streamIndex]) {
+        esyslog("cDecoder::RestartCodec(): avcodec_alloc_context3() failed");
+        return false;
+    }
+    ALLOC(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
+
+    // set hwaccel device
+    if (useHWaccel && hw_device_ctx) {
+        codecCtxArray[streamIndex]->hw_device_ctx = av_buffer_ref(hw_device_ctx);  // link hwaccel device
+        if (!codecCtxArray[streamIndex]->hw_device_ctx) {
+            esyslog("cDecoder::RestartCodec(): link hwaccel device failed");
+            return false;
+        }
+        codecCtxArray[streamIndex]->get_format = get_hw_format;
+    }
+
+    // open codec
+    if (avcodec_parameters_to_context(codecCtxArray[streamIndex], avctx->streams[streamIndex]->codecpar) < 0) {
+        esyslog("cDecoder::RestartCodec(): avcodec_parameters_to_context failed");
+        return false;
+    }
+    codecCtxArray[streamIndex]->thread_count = threads;
+    if (avcodec_open2(codecCtxArray[streamIndex], codec, nullptr) < 0) {
+        esyslog("cDecoder::RestartCodec(): avcodec_open2 failed");
+        return false;
+    }
+    return true;
+}
+
 
 bool cDecoder::InitDecoder(const char *filename) {
     if (!filename) return false;
@@ -629,19 +673,19 @@ bool cDecoder::ReadPacket() {
     if (av_read_frame(avctx, &avpkt) == 0 ) {
         // check packet DTS and PTS
         if (avpkt.pts == AV_NOPTS_VALUE) {
-            dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d, duration %ld: PTS not set", packetNumber, avpkt.stream_index, avpkt.duration);
+            dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d, duration %" PRId64 ": PTS not set", packetNumber, avpkt.stream_index, avpkt.duration);
             return true;   // false only on EOF
         }
         if (avpkt.dts == AV_NOPTS_VALUE) {
-            dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d, duration %ld: DTS not set", packetNumber, avpkt.stream_index, avpkt.duration);
+            dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d, duration %" PRId64 ": DTS not set", packetNumber, avpkt.stream_index, avpkt.duration);
             return true;   // false only on EOF
         }
 
         // analyse video packet
         if (IsVideoPacket()) {
             packetNumber++;   // increase packet counter even on invalid video packets
-#ifdef DEBUG_FRAME_PTS
-            dsyslog("cDecoder::ReadPacket():  fileNumber %d, framenumber %5d, DTS %ld, PTS %ld, duration %ld, flags %d, dtsBefore %ld, time_base.num %d, time_base.den %d",  fileNumber, packetNumber, avpkt.dts, avpkt.pts, avpkt.duration, avpkt.flags, dtsBefore, avctx->streams[avpkt.stream_index]->time_base.num, avctx->streams[avpkt.stream_index]->time_base.den);
+#ifdef DEBUG_PACKET_PTS
+            dsyslog("cDecoder::ReadPacket():  file %d, packet (%5d): PTS %" PRId64 ", DTS %" PRId64 ", duration %" PRId64 ", flags %d, dtsBefore %" PRId64 ", time_base.num %d, time_base.den %d",  fileNumber, packetNumber, avpkt.pts, avpkt.dts, avpkt.duration, avpkt.flags, dtsBefore, avctx->streams[avpkt.stream_index]->time_base.num, avctx->streams[avpkt.stream_index]->time_base.den);
 #endif
 
             // check DTS continuity
@@ -667,8 +711,19 @@ bool cDecoder::ReadPacket() {
             if (index) {
                 // store each frame number and pts in a PTS ring buffer
                 index->AddPTS(packetNumber, avpkt.pts);
-
-                // store PTS and sum duration of all i-frames
+                // check if last key packet is H.264 IDR
+                if (GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264) {
+                    sIndexElement *lastPacket = index->GetLastPacket();
+                    if (lastPacket && lastPacket->isPTSinSlice) {
+                        if (avpkt.pts < lastPacket->pts) {
+#ifdef DEBUG_INDEX
+                            dsyslog("cDecoder::ReadPacket(): packet (%5d): is key packet but not all PTS in slice", lastPacket->packetNumber);
+#endif
+                            lastPacket->isPTSinSlice = false;
+                        }
+                    }
+                }
+                // store file number and PTS key frames
                 if (IsVideoKeyPacket()) index->Add(fileNumber, packetNumber, avpkt.pts);
             }
 
@@ -821,7 +876,7 @@ sAudioAC3Channels *cDecoder::GetChannelChange() {
                     else {  // start mark
                         audioAC3Channels[streamIndex].videoPacketNumber = index->GetKeyPacketNumberAfterPTS(audioAC3Channels[streamIndex].videoFramePTS);
                     }
-                    audioAC3Channels[streamIndex].videoFramePTS = index->GetPTSFromKeyPacket(audioAC3Channels[streamIndex].videoPacketNumber); // set PTS from video packet
+                    audioAC3Channels[streamIndex].videoFramePTS = index->GetPTSAfterKeyPacketNumber(audioAC3Channels[streamIndex].videoPacketNumber); // set PTS from video packet
                 }
             }
             if (audioAC3Channels[streamIndex].videoPacketNumber < 0) {   // PTS not yet in index
@@ -909,6 +964,7 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
             break;
         case AVERROR_EOF:
             dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d): end of file (AVERROR_EOF)", packetNumber);
+            return false;
             break;
         default:
             esyslog("cDecoder::DecodeNextFrame(): packet     (%5d): unexpected state of decoder send queue rc = %d: %s", packetNumber, decoderSendState, av_err2str(decoderSendState));
@@ -942,7 +998,7 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
 }
 
 
-void cDecoder::DropFrameFromGPU() {
+void cDecoder::DropFrame() {
     // use by logo extraction for skip frame
     if (avFrame.hw_frames_ctx) {
         AVFrame *avFrameHW = av_frame_alloc();
@@ -950,8 +1006,9 @@ void cDecoder::DropFrameFromGPU() {
         av_hwframe_transfer_data(avFrameHW, &avFrame, 0);
         FREE(sizeof(*avFrameHW), "avFrameHW");
         av_frame_free(&avFrameHW);
-        frameValid = false;
     }
+    av_frame_unref(&avFrame);
+    frameValid = false;
 }
 
 
@@ -1052,6 +1109,7 @@ sVideoPicture *cDecoder::GetVideoPicture() {
     }
     if (valid) {
         videoPicture.packetNumber = packetNumber;
+        videoPicture.pts          = GetFramePTS();
         videoPicture.width        = GetVideoWidth();
         videoPicture.height       = GetVideoHeight();
         Time(false);
@@ -1071,8 +1129,8 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
     dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d)", packetNumber, seekPacketNumber);
     if (!avctx) {  // seek without init decoder before, do it now
         dsyslog("cDecoder::SeekToPacket(): seek without decoder initialized, do it now");
-        if (ReadNextFile()) {
-            esyslog("cDecoder::SeekToPacket(): failed to nit decoder");
+        if (!ReadNextFile()) {
+            esyslog("cDecoder::SeekToPacket(): failed to init decoder");
             return false;
         }
     }
@@ -1124,6 +1182,11 @@ void cDecoder::Time(bool start) {
 }
 
 
+void cDecoder::FlushDecoder(const int streamIndex) {
+    avcodec_send_packet(codecCtxArray[avpkt.stream_index], nullptr);
+}
+
+
 int cDecoder::SendPacketToDecoder(const bool flush) {
     if (!avctx) return AVERROR_EXIT;
     if (!IsVideoPacket() && !IsAudioPacket()) {
@@ -1133,8 +1196,10 @@ int cDecoder::SendPacketToDecoder(const bool flush) {
     Time(true);
 
 #ifdef DEBUG_DECODER
-    LogSeparator();
-    dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avpkt.flags %d, avcodec_send_packet", packetNumber, avpkt.stream_index, avpkt.flags);
+    if (avpkt.stream_index == DEBUG_DECODER) {
+        LogSeparator();
+        dsyslog("cDecoder::SendPacketToDecoder():     packet (%5d), stream %d: avpkt.flags %d, avcodec_send_packet", packetNumber, avpkt.stream_index, avpkt.flags);
+    }
 #endif
 
     int rc = 0;
@@ -1239,7 +1304,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
         switch (rc) {
         case AVERROR(EAGAIN):   // frame not ready, expected with interlaced video
 #ifdef DEBUG_DECODER
-            dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%5d): avcodec_receive_frame error EAGAIN", packetNumber);
+            if (avpkt.stream_index == DEBUG_DECODER) dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%5d): avcodec_receive_frame error EAGAIN", packetNumber);
 #endif
             break;
         case AVERROR(EINVAL):
@@ -1281,9 +1346,23 @@ int cDecoder::ReceiveFrameFromDecoder() {
     // decoding successful, frame is valid
     frameValid = true;
 #ifdef DEBUG_DECODER
-    dsyslog("cDecoder::cDecoder::ReceiveFrameFromDecoder(): packet (%5d), stream %d: flags %d, pict_type %d, PTS %ld, avcodec_receive_frame() successful", packetNumber, avpkt.stream_index, avFrame.flags, avFrame.pict_type, avFrame.pts);
-    LogSeparator();
+    if (avpkt.stream_index == DEBUG_DECODER) {
+        dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%5d), stream %d: avFrame.pict_type %d, PTS %ld, avcodec_receive_frame() successful", packetNumber, avpkt.stream_index, avFrame.pict_type, avFrame.pts);
+        LogSeparator();
+    }
 #endif
+    if (fullDecode && IsVideoFrame() && index && (GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
+        if (avFrame.pict_type == AV_PICTURE_TYPE_I) {
+            if (startSlicePTS >= 0) {
+                index->AddPSlice(startSlicePTS);
+#ifdef DEBUG_DECODER
+                dsyslog("Decoder::ReceiveFrameFromDecoder(): p-slice from (%d) %ld to (%d) %ld", index->GetPacketNumberFromPTS(startSlicePTS), startSlicePTS, index->GetPacketNumberFromPTS(avFrame.pts), avFrame.pts);
+#endif
+            }
+            startSlicePTS = avFrame.pts;   // next slice start
+        }
+        else if (avFrame.pict_type != AV_PICTURE_TYPE_P) startSlicePTS = -1;   // no p-slice
+    }
     Time(false);
     return 0;
 }

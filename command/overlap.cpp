@@ -94,10 +94,10 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
     if (!(*mark2))  return false;
 
     sOverlapPos overlapPos;
-    overlapPos.similarBeforeStart = -1;
-    overlapPos.similarBeforeEnd   = -1;
-    overlapPos.similarAfterStart  = -1;
-    overlapPos.similarAfterEnd    = -1;
+    overlapPos.similarBeforeStartPacketNumber = -1;
+    overlapPos.similarBeforeEndPacketNumber   = -1;
+    overlapPos.similarAfterStartPacketNumber  = -1;
+    overlapPos.similarAfterEndPacketNumber    = -1;
 
     int frameRate = decoder->GetVideoFrameRate();
 
@@ -171,7 +171,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
 #endif
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) continue;
-        overlapAroundAd->Process(picture, decoder->GetPacketNumber(), frameCount, true, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
+        overlapAroundAd->Process(picture, frameCount, true, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
     }
 
     // seek to iFrame before start mark
@@ -216,55 +216,55 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
 
         sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) continue;
-        overlapAroundAd->Process(picture, decoder->GetPacketNumber(), frameCount, false, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
+        overlapAroundAd->Process(picture, frameCount, false, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
     }
 
     dsyslog("cOverlapAroundAd::ProcessMarksOverlap(): start compare frames");
     overlapAroundAd->Detect(&overlapPos);
 #ifdef DEBUG_OVERLAP
-    dsyslog("cOverlapAroundAd::ProcessMarksOverlap(): overlap from (%d) before stop mark and (%d) after start mark", overlapPos.similarBeforeEnd, overlapPos.similarAfterEnd);
+    dsyslog("cOverlapAroundAd::ProcessMarksOverlap(): overlap from (%d) before stop mark and (%d) after start mark", overlapPos.similarBeforeEndPacketNumber, overlapPos.similarAfterEndPacketNumber);
 #endif
-    if (overlapPos.similarAfterEnd >= 0) {
+    if (overlapPos.similarAfterEndPacketNumber >= 0) {
         // found overlap
-        int lengthBefore = 1000 * (overlapPos.similarBeforeEnd - overlapPos.similarBeforeStart + 1) / frameRate; // include first and last
-        int lengthAfter  = 1000 * (overlapPos.similarAfterEnd  - overlapPos.similarAfterStart + 1)  / frameRate;
+        int lengthBefore = 1000 * (overlapPos.similarBeforeEndPacketNumber - overlapPos.similarBeforeStartPacketNumber + 1) / frameRate; // include first and last
+        int lengthAfter  = 1000 * (overlapPos.similarAfterEndPacketNumber  - overlapPos.similarAfterStartPacketNumber  + 1) / frameRate;
 
-        char *indexToHMSFbeforeStart = marks->IndexToHMSF(overlapPos.similarBeforeStart, false);
+        char *indexToHMSFbeforeStart = marks->IndexToHMSF(overlapPos.similarBeforeStartPacketNumber, false);
         if (indexToHMSFbeforeStart) {
             ALLOC(strlen(indexToHMSFbeforeStart)+1, "indexToHMSFbeforeStart");
         }
 
-        char *indexToHMSFbeforeEnd   = marks->IndexToHMSF(overlapPos.similarBeforeEnd, false);
+        char *indexToHMSFbeforeEnd   = marks->IndexToHMSF(overlapPos.similarBeforeEndPacketNumber, false);
         if (indexToHMSFbeforeEnd) {
             ALLOC(strlen(indexToHMSFbeforeEnd)+1, "indexToHMSFbeforeEnd");
         }
 
-        char *indexToHMSFafterStart  = marks->IndexToHMSF(overlapPos.similarAfterStart, false);
+        char *indexToHMSFafterStart  = marks->IndexToHMSF(overlapPos.similarAfterStartPacketNumber, false);
         if (indexToHMSFafterStart) {
             ALLOC(strlen(indexToHMSFafterStart)+1, "indexToHMSFafterStart");
         }
 
-        char *indexToHMSFafterEnd    = marks->IndexToHMSF(overlapPos.similarAfterEnd, false);
+        char *indexToHMSFafterEnd    = marks->IndexToHMSF(overlapPos.similarAfterEndPacketNumber, false);
         if (indexToHMSFafterEnd) {
             ALLOC(strlen(indexToHMSFafterEnd)+1, "indexToHMSFafterEnd");
         }
 
-        dsyslog("cOverlap::ProcessMarksOverlap(): similar from (%5d) at %s to (%5d) at %s, length %5dms", overlapPos.similarBeforeStart, indexToHMSFbeforeStart, overlapPos.similarBeforeEnd, indexToHMSFbeforeEnd, lengthBefore);
-        dsyslog("cOverlap::ProcessMarksOverlap():              (%5d) at %s to (%5d) at %s, length %5dms",     overlapPos.similarAfterStart,  indexToHMSFafterStart,  overlapPos.similarAfterEnd,  indexToHMSFafterEnd, lengthAfter);
+        dsyslog("cOverlap::ProcessMarksOverlap(): similar from (%5d) PTS %" PRId64 " at %s to (%5d) PTS %" PRId64 " at %s, length %5dms", overlapPos.similarBeforeStartPacketNumber, overlapPos.similarBeforeStartPTS, indexToHMSFbeforeStart, overlapPos.similarBeforeEndPacketNumber, overlapPos.similarBeforeEndPTS, indexToHMSFbeforeEnd, lengthBefore);
+        dsyslog("cOverlap::ProcessMarksOverlap():              (%5d) at %s to (%5d) at %s, length %5dms",     overlapPos.similarAfterStartPacketNumber,  indexToHMSFafterStart,  overlapPos.similarAfterEndPacketNumber,  indexToHMSFafterEnd, lengthAfter);
         dsyslog("cOverlap::ProcessMarksOverlap():              maximum deviation in overlap %6d", overlapPos.similarMax);
         if (overlapPos.similarEnd > 0) dsyslog("cOverlap::ProcessMarksOverlap():              next deviation after overlap %6d", overlapPos.similarEnd); // can be 0 if overlap ends at the mark
 
         const char *indexToHMSFmark1  = marks->GetTime(*mark1);
         const char *indexToHMSFmark2  = marks->GetTime(*mark2);
 
-        int gapStop          = ((*mark1)->position - overlapPos.similarBeforeEnd)   / frameRate;
-        int lengthBeforeStop = ((*mark1)->position - overlapPos.similarBeforeStart) / frameRate;
-        int gapStart         = (overlapPos.similarAfterStart - (*mark2)->position)  / frameRate;
-        int lengthAfterStart = (overlapPos.similarAfterEnd - (*mark2)->position)    / frameRate;
+        int gapStop          = ((*mark1)->position - overlapPos.similarBeforeEndPacketNumber)   / frameRate;
+        int lengthBeforeStop = ((*mark1)->position - overlapPos.similarBeforeStartPacketNumber) / frameRate;
+        int gapStart         = (overlapPos.similarAfterStartPacketNumber - (*mark2)->position)  / frameRate;
+        int lengthAfterStart = (overlapPos.similarAfterEndPacketNumber - (*mark2)->position)    / frameRate;
 
         if (indexToHMSFbeforeStart && indexToHMSFbeforeEnd && indexToHMSFafterStart && indexToHMSFafterEnd && indexToHMSFmark1 && indexToHMSFmark2) {
-            dsyslog("cOverlap::ProcessMarksOverlap(): overlap from (%6d) at %s to (%6d) at %s, before stop mark gap %3ds length %3ds, are identical with",overlapPos.similarBeforeEnd, indexToHMSFbeforeEnd, (*mark1)->position, indexToHMSFmark1, gapStop, lengthBeforeStop);
-            dsyslog("cOverlap::ProcessMarksOverlap():              (%6d) at %s to (%6d) at %s, after start mark gap %3ds length %3ds", (*mark2)->position, indexToHMSFmark2, overlapPos.similarAfterEnd, indexToHMSFafterEnd, gapStart, lengthAfterStart);
+            dsyslog("cOverlap::ProcessMarksOverlap(): overlap from (%6d) at %s to (%6d) at %s, before stop mark gap %3ds length %3ds, are identical with",overlapPos.similarBeforeEndPacketNumber, indexToHMSFbeforeEnd, (*mark1)->position, indexToHMSFmark1, gapStop, lengthBeforeStop);
+            dsyslog("cOverlap::ProcessMarksOverlap():              (%6d) at %s to (%6d) at %s, after start mark gap %3ds length %3ds", (*mark2)->position, indexToHMSFmark2, overlapPos.similarAfterEndPacketNumber, indexToHMSFafterEnd, gapStart, lengthAfterStart);
         }
         if (indexToHMSFbeforeStart) {
             FREE(strlen(indexToHMSFbeforeStart)+1, "indexToHMSFbeforeStart");
@@ -295,14 +295,12 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
             // but if it is too far away it is a false positiv
             // changed gapStop from 36 to 27
             dsyslog("cOverlap::ProcessMarksOverlap(): overlap gap to marks are valid, before stop mark %ds, after start mark %ds, length %dms", gapStop, gapStart, lengthBefore);
-            int offset = overlapPos.similarBeforeEnd - (*mark1)->position;
-            *mark1 = marks->Move((*mark1), *mark1, offset, MT_OVERLAPSTOP);
+            *mark1 = marks->Move((*mark1), overlapPos.similarBeforeEndPacketNumber, overlapPos.similarBeforeEndPTS, MT_OVERLAPSTOP);
             if (!(*mark1)) {
                 esyslog("cOverlap::ProcessMarksOverlap(): move stop mark failed");
                 return false;
             }
-            offset = overlapPos.similarAfterEnd - (*mark2)->position;
-            *mark2 = marks->Move((*mark2), (*mark2), offset, MT_OVERLAPSTART);
+            *mark2 = marks->Move((*mark2), overlapPos.similarAfterEndPacketNumber, overlapPos.similarAfterEndPTS, MT_OVERLAPSTART);
             if (!(*mark2)) {
                 esyslog("cOverlap::ProcessMarksOverlap(): move start mark failed");
                 return false;
@@ -342,7 +340,7 @@ cOverlapAroundAd::~cOverlapAroundAd() {
     }
 }
 
-void cOverlapAroundAd::Process(sVideoPicture *picture, const int frameNumber, const int frameCount, const bool beforeAd, const bool h264) {
+void cOverlapAroundAd::Process(sVideoPicture *picture, const int frameCount, const bool beforeAd, const bool h264) {
 #ifdef DEBUG_OVERLAP
     dsyslog("cOverlapAroundAd::Process(): frameNumber %d, frameCount %d, beforeAd %d, isH264 %d", frameNumber, frameCount, beforeAd, h264);
 #endif
@@ -371,7 +369,8 @@ void cOverlapAroundAd::Process(sVideoPicture *picture, const int frameNumber, co
         }
         GetHistogram(picture, histbuf[OV_BEFORE][histcnt[OV_BEFORE]].histogram);
         histbuf[OV_BEFORE][histcnt[OV_BEFORE]].valid = true;
-        histbuf[OV_BEFORE][histcnt[OV_BEFORE]].frameNumber = frameNumber;
+        histbuf[OV_BEFORE][histcnt[OV_BEFORE]].frameNumber = picture->packetNumber;
+        histbuf[OV_BEFORE][histcnt[OV_BEFORE]].pts         = picture->pts;
         histcnt[OV_BEFORE]++;
     }
     else {
@@ -392,10 +391,11 @@ void cOverlapAroundAd::Process(sVideoPicture *picture, const int frameNumber, co
         }
         GetHistogram(picture, histbuf[OV_AFTER][histcnt[OV_AFTER]].histogram);
         histbuf[OV_AFTER][histcnt[OV_AFTER]].valid = true;
-        histbuf[OV_AFTER][histcnt[OV_AFTER]].frameNumber = frameNumber;
+        histbuf[OV_AFTER][histcnt[OV_AFTER]].frameNumber = picture->packetNumber;
+        histbuf[OV_AFTER][histcnt[OV_AFTER]].pts         = picture->pts;
         histcnt[OV_AFTER]++;
     }
-    lastFrameNumber = frameNumber;
+    lastFrameNumber = picture->packetNumber;
     return;
 }
 
@@ -465,12 +465,16 @@ void cOverlapAroundAd::Detect(sOverlapPos *overlapPos) {
             // found long enough overlap, store position
 
             if ((simLength >= similarMinLength) &&
-                    ((histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber - histbuf[OV_BEFORE][firstSimilarBeforeStopMark].frameNumber) >= (overlapPos->similarBeforeEnd - overlapPos->similarBeforeStart))) { // new overlap is longer than current overlap
-                overlapPos->similarBeforeStart = histbuf[OV_BEFORE][firstSimilarBeforeStopMark].frameNumber;
-                overlapPos->similarBeforeEnd   = histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber;
-                overlapPos->similarAfterStart  = histbuf[OV_AFTER][firstSimilarAfterStartMark].frameNumber;
-                overlapPos->similarAfterEnd    = histbuf[OV_AFTER][tmpindexAfterStartMark].frameNumber;
-                overlapPos->similarMax         = simMax;
+                    ((histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber - histbuf[OV_BEFORE][firstSimilarBeforeStopMark].frameNumber) >= (overlapPos->similarBeforeEndPacketNumber - overlapPos->similarBeforeStartPacketNumber))) { // new overlap is longer than current overlap
+                overlapPos->similarBeforeStartPacketNumber = histbuf[OV_BEFORE][firstSimilarBeforeStopMark].frameNumber;
+                overlapPos->similarBeforeStartPTS          = histbuf[OV_BEFORE][firstSimilarBeforeStopMark].pts;
+                overlapPos->similarBeforeEndPacketNumber   = histbuf[OV_BEFORE][tmpindexBeforeStopMark].frameNumber;
+                overlapPos->similarBeforeEndPTS            = histbuf[OV_BEFORE][tmpindexBeforeStopMark].pts;
+                overlapPos->similarAfterStartPacketNumber  = histbuf[OV_AFTER][firstSimilarAfterStartMark].frameNumber;
+                overlapPos->similarAfterStartPTS           = histbuf[OV_AFTER][firstSimilarAfterStartMark].pts;
+                overlapPos->similarAfterEndPacketNumber    = histbuf[OV_AFTER][tmpindexAfterStartMark].frameNumber;
+                overlapPos->similarAfterEndPTS             = histbuf[OV_AFTER][tmpindexAfterStartMark].pts;
+                overlapPos->similarMax                     = simMax;
                 if (simil < 0) overlapPos->similarEnd = -simil;
             }
 

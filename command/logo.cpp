@@ -59,7 +59,7 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
         hBorder = new cHorizBorderDetect(decoder, nullptr, criteria);
         ALLOC(sizeof(*hBorder), "hBorder");
 
-        vborder = new cVertBorderDetect(decoder, criteria);
+        vborder = new cVertBorderDetect(decoder, nullptr, criteria);  // no index
         ALLOC(sizeof(*vborder), "vborder");
     }
 }
@@ -2169,7 +2169,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         }
         for (int i = 1; i <= skipPackets; i++) {
             decoder->DecodeNextFrame(false);
-            decoder->DropFrameFromGPU();  // drop frame from GPU buffer if hwaccel is used
+            decoder->DropFrame();  // frame not used, drop frame buffer
         }
     }
 

@@ -85,8 +85,8 @@
 // debug framenumber pts index build
 // #define DEBUG_INDEX
 
-// debug frame PTS
-// #define DEBUG_FRAME_PTS
+// debug input packet PTS
+// #define DEBUG_PACKET_PTS
 
 // debug PTS ring buffer build
 // #define DEBUG_RING_PTS_ADD
@@ -98,11 +98,12 @@
 // #define DEBUG_CUT 5
 
 // debug PTS and DTS of video cut
-// #define DEBUG_PTS_DTS_CUT <stream number>
+// #define DEBUG_PTS_DTS_CUT <stream number>  (-1 for all streams)
 // #define DEBUG_PTS_DTS_CUT 0
 
 // debug decoder send/receive
-// #define DEBUG_DECODER
+// #define DEBUG_DECODER <stream index>
+// #define DEBUG_DECODER 0
 
 // debug DecodeNextFrame()
 // #define DEBUG_DECODE_NEXT_FRAME

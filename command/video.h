@@ -424,9 +424,10 @@ public:
     /**
      * constructor of class to detect vertical border
      * @param decoderParam     pointer to decoder
+     * @param indexParam       pointer to index
      * @param criteriaParam    detection criteria
      */
-    explicit cVertBorderDetect(cDecoder *decoderParam, cCriteria *criteriaParam);
+    explicit cVertBorderDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam);
 
     /**
      * get first frame number with border
@@ -450,6 +451,8 @@ public:
 
 private:
     cDecoder *decoder            = nullptr;                //!< pointer to decoder
+    //!<
+    cIndex *index                = nullptr;                //!< pointer to index
     //!<
     cCriteria *criteria          = nullptr;                //!< pointer to class with decoding states and criteria
     //!<
@@ -503,6 +506,8 @@ public:
         vBorderDetect           = nullptr;
         logoDetect              = nullptr;
         aspectRatioBeforeFrame  = 0;
+        packetNumberBefore      = origin.packetNumberBefore;
+        framePTSBefore          = origin.framePTSBefore;
     };
 
     /**
@@ -521,6 +526,8 @@ public:
         logoDetect              = nullptr;
         aspectRatioBeforeFrame  = 0;
         videoMarks              = {};
+        packetNumberBefore      = origin->packetNumberBefore;
+        framePTSBefore          = origin->framePTSBefore;
         return *this;
     }
 
@@ -595,6 +602,10 @@ private:
     cVertBorderDetect *vBorderDetect      = nullptr;  //!< pointer to class cVertBorderDetect
     //!<
     cLogoDetect *logoDetect               = nullptr;  //!< pointer to class cLogoDetect
+    //!<
+    int packetNumberBefore                = -1;       //!< number of packet before
+    //!<
+    int64_t framePTSBefore                = -1;       //!< PTS of packet before
     //!<
     int aspectRatioBeforeFrame            = 0;        //!< last frame number before aspect ratio change, needed for stop mark
     //!<

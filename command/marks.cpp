@@ -679,14 +679,21 @@ cMark *cMarks::ChangeType(cMark *mark, const int newType) {
 
 
 // move mark to new posiition
+// use position and PTS from srcMark if newPTS is < 0 (not set)
 // return pointer to new mark
 //
-cMark *cMarks::Move(cMark *dscMark, cMark *srcMark, const int frameOffset, const int newType) {
+cMark *cMarks::Move(cMark *dscMark, int newPosition, int64_t newPTS, const int newType) {
     if (!dscMark)                return nullptr;
-    if (!srcMark)                return nullptr;
     if (newType <= MT_UNDEFINED) return nullptr;
+    if (newPosition < 0) {
+        esyslog("cMarks::Move(): new position %d is invalid", newPosition);
+        return nullptr;
+    }
+    if (newPTS < 0) {
+        esyslog("cMarks::Move(): new PTS %" PRId64 " is invalid", newPTS);
+        return nullptr;
+    }
 
-    int newPosition = srcMark->position + frameOffset;
     // check if old and new type is valid
     if ((dscMark->type & 0x0F) != (newType & 0x0F)) {
         esyslog("cMarks::Move(): old mark (%d) type 0x%X and new mark (%d) type 0x%X is invalid", dscMark->position, dscMark->type, newPosition, newType);
@@ -730,10 +737,8 @@ cMark *cMarks::Move(cMark *dscMark, cMark *srcMark, const int frameOffset, const
             if (((dscMark->type & 0xF0) == MT_MOVED) && (dscMark->newType != MT_UNDEFINED)) oldType = dscMark->newType;
             else oldType = dscMark->type;
             int type = ((dscMark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
-            int64_t newPTS = -1;
-            if (frameOffset == 0) newPTS = srcMark->pts;  // if there is no frame offset, we use new PTS
-            Del(dscMark);
 
+            Del(dscMark);
             newMark = Add(type, oldType, newType, newPosition, newPTS, comment);
 
             FREE(strlen(typeText)+1, "text");
@@ -882,7 +887,7 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
             if (mark->pts >= 0) {
                 if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfterPTS(mark->pts);
                 else                                 iFrame = index->GetKeyPacketNumberBeforePTS(mark->pts);
-                dsyslog("cMarks::Save(): %s mark (%5d), PTS %10ld: key packet (%5d)", ((mark->type & 0x0F) == MT_START) ? "start" : "stop ", mark->position, mark->pts, iFrame);
+                dsyslog("cMarks::Save(): %s mark (%5d), PTS %10" PRId64 ": key packet (%5d)", ((mark->type & 0x0F) == MT_START) ? "start" : "stop ", mark->position, mark->pts, iFrame);
             }
             if (iFrame < 0) {   // fallback if PTS lookup failed
                 if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfter(mark->position);  // if mark position is i-frame, we want to use it

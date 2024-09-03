@@ -147,7 +147,9 @@ typedef struct sVideoPicture {
     //!<
     int planeLineSize[PLANES] = {0};        //!< size int bytes of each picture plane line
     //!<
-    int packetNumber           = -1;        //!< packet number of picture, -1 for invalid
+    int packetNumber          = -1;         //!< packet number of picture, -1 for invalid
+    //!<
+    int64_t pts               = -1;         //!< pts of picture
     //!<
     int width                 = 0;          //!< video width
     //!<
@@ -262,20 +264,39 @@ typedef struct sAreaT {
 
 
 /**
+ * mark position
+ */
+typedef struct sMarkPos {
+    int position = -1;  //!< packet number decoded of mark position
+    //!<
+    int64_t pts  = -1;  //!< pts of decoded frame
+    //!<
+} sMarkPos;
+
+
+/**
  * frame overlap start and stop positions
  */
 typedef struct sOverlapPos {
-    int similarBeforeStart = -1; //!< start of similar part before stop mark
+    int similarBeforeStartPacketNumber = -1; //!< start of similar part before stop mark
     //!<
-    int similarBeforeEnd   = -1; //!< stop of similar part before stop mark, this will be the new stop position
+    int64_t similarBeforeStartPTS      = -1; //!< PTS of start of similar part before stop mark
     //!<
-    int similarAfterStart  = -1; //!< start of similar part after start mark
+    int similarBeforeEndPacketNumber   = -1; //!< stop of similar part before stop mark, this will be the new stop position
     //!<
-    int similarAfterEnd    = -1; //!< stop of similar part after start mark, this will be the new start position
+    int64_t similarBeforeEndPTS        = -1; //!< PTS of stop of similar part before stop mark, this will be the new stop position
     //!<
-    int similarMax         =  0; //!< maximum similar value from the overlap (lowest match)
+    int similarAfterStartPacketNumber  = -1; //!< start of similar part after start mark
     //!<
-    int similarEnd         =  0; //!< similar value from the end of the overlap
+    int64_t similarAfterStartPTS       = -1; //!< PTS of start of similar part after start mark
+    //!<
+    int similarAfterEndPacketNumber    = -1; //!< stop of similar part after start mark, this will be the new start position
+    //!<
+    int64_t similarAfterEndPTS         = -1; //!< PST of stop of similar part after start mark, this will be the new start position
+    //!<
+    int similarMax                     =  0; //!< maximum similar value from the overlap (lowest match)
+    //!<
+    int similarEnd                     =  0; //!< similar value from the end of the overlap
     //!<
 } sOverlapPos;
 
@@ -286,7 +307,7 @@ typedef struct sOverlapPos {
 typedef struct sMarkAdMark {
     int type                       = MT_UNDEFINED;   //!< type of the new mark, see global.h
     //!<
-    int packetNumber               = -1;             //!< internal packet read/decode position
+    int position                   = -1;             //!< internal packet read/decode position
     //!<
     int64_t framePTS               = -1;             //!< decoded frame PTS
     //!<

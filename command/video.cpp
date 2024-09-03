@@ -1523,8 +1523,9 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
 }
 
 
-cVertBorderDetect::cVertBorderDetect(cDecoder *decoderParam, cCriteria *criteriaParam) {
+cVertBorderDetect::cVertBorderDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam) {
     decoder      = decoderParam;
+    index        = indexParam;
     criteria     = criteriaParam;
     frameRate    = decoder->GetVideoFrameRate();
     logoInBorder = criteria->LogoInBorder();
@@ -1648,7 +1649,8 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
                 switch (borderstatus) {
                 case VBORDER_UNINITIALIZED:
                     *vBorderPacketNumber = 0;
-                    *vBorderFramePTS     = -1;
+                    if (index) *vBorderFramePTS = index->GetStartPTS();
+                    else *vBorderFramePTS  = -1;
                     break;
                 case VBORDER_RESTART:
                     *vBorderPacketNumber = -1;  // do not report back a border change after detection restart, only set internal state
@@ -1701,7 +1703,7 @@ cVideo::cVideo(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaPa
     hBorderDetect = new cHorizBorderDetect(decoder, index, criteria);
     ALLOC(sizeof(*hBorderDetect), "hBorderDetect");
 
-    vBorderDetect = new cVertBorderDetect(decoder, criteria);
+    vBorderDetect = new cVertBorderDetect(decoder, index, criteria);
     ALLOC(sizeof(*vBorderDetect), "vBorderDetect");
 
     logoDetect = new cLogoDetect(decoder, index, criteria, autoLogo, logoCacheDir);
@@ -1778,9 +1780,9 @@ bool cVideo::AddMark(int type, int packetNumber, int64_t framePTS, const sAspect
         videoMarks.Number[videoMarks.Count].AspectRatioAfter.num = after->num;
         videoMarks.Number[videoMarks.Count].AspectRatioAfter.den = after->den;
     }
-    videoMarks.Number[videoMarks.Count].packetNumber = packetNumber;
-    videoMarks.Number[videoMarks.Count].framePTS     = framePTS;
-    videoMarks.Number[videoMarks.Count].type         = type;
+    videoMarks.Number[videoMarks.Count].position = packetNumber;
+    videoMarks.Number[videoMarks.Count].framePTS = framePTS;
+    videoMarks.Number[videoMarks.Count].type     = type;
     videoMarks.Count++;
     return true;
 }
@@ -1813,7 +1815,7 @@ sMarkAdMarks *cVideo::Process() {
         int blackret = blackScreenDetect->Process();
         switch (blackret) {
         case BLACKSCREEN_INVISIBLE:
-            AddMark(MT_NOBLACKSTART, packetNumber, framePTS);         // first frame without blackscreen is start mark position
+            AddMark(MT_NOBLACKSTART, packetNumberBefore, framePTSBefore);         // first frame without blackscreen is start mark position
             break;
         case BLACKSCREEN_VISIBLE:
             AddMark(MT_NOBLACKSTOP, packetNumber, framePTS);
@@ -1900,6 +1902,9 @@ sMarkAdMarks *cVideo::Process() {
             if (lret == LOGO_INVISIBLE) AddMark(MT_LOGOSTOP,  logoPacketNumber, logoFramePTS);
         }
     }
+
+    packetNumberBefore = packetNumber;
+    framePTSBefore     = framePTS;
 
     if (videoMarks.Count > 0) {
         return &videoMarks;
