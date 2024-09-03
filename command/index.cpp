@@ -142,12 +142,12 @@ int cIndex::GetFrameAfter(int frameNumber) {
 }
 
 
-int cIndex::GetLastFrame() {
+sIndexElement *cIndex::GetLastPacket() {
     if (indexVector.empty()) {
-        esyslog("cIndex::GetLast(): frame index not initialized");
-        return -1;
+        esyslog("cIndex::GetLast(): packet index not initialized");
+        return nullptr;
     }
-    return indexVector.back().packetNumber;
+    return &indexVector.back();
 }
 
 

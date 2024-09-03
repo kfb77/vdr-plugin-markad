@@ -1658,7 +1658,7 @@ void cMarkAdStandalone::CheckStop() {
             end = markBefore;
         }
         else {
-            int lastFrame = index->GetLastFrame();
+            int lastFrame = index->GetLastPacket()->packetNumber;
             int stopPos   = stopA;
             if (stopPos > lastFrame) {
                 dsyslog("cMarkAdStandalone::CheckStop(): assumed stop (%d) after recording end (%d), use recording end", stopA, lastFrame);

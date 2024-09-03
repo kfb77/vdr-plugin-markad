@@ -20,6 +20,17 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 }
 
+/**
+ * element of the video index
+*/
+typedef struct sIndexElement {
+    int fileNumber         = -1;             //!< number of TS file
+    //!<
+    int packetNumber       = -1;             //!< video packet number
+    //!<
+    int64_t pts            = -1;             //!< pts of i-frame
+    //!<
+} sIndexElement;
 
 /**
  * recording index class
@@ -57,10 +68,10 @@ public:
     int GetKeyPacketNumberAfterPTS(const int64_t pts);
 
     /**
-     * get last frame number from index
-     * @return last frame number of index
+     * get last packet from key packet index
+     * @return last packet of key packet index
      */
-    int GetLastFrame();
+    sIndexElement *GetLastPacket();
 
     /**
      * get frame number after frame
@@ -162,17 +173,6 @@ private:
     AVRational time_base  = {0};                 //!<  time base of video stream
     //!<
 
-    /**
-     * element of the video index
-     */
-    struct sIndexElement {
-        int fileNumber         = -1;             //!< number of TS file
-        //!<
-        int packetNumber       = -1;             //!< video packet number
-        //!<
-        int64_t pts            = -1;             //!< pts of i-frame
-        //!<
-    };
     std::vector<sIndexElement> indexVector;      //!< recording index
 
     //!<
