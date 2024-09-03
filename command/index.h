@@ -168,7 +168,7 @@ private:
     struct sIndexElement {
         int fileNumber         = -1;             //!< number of TS file
         //!<
-        int frameNumber        = -1;             //!< video i-frame number
+        int packetNumber       = -1;             //!< video packet number
         //!<
         int64_t pts            = -1;             //!< pts of i-frame
         //!<

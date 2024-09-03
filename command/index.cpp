@@ -47,11 +47,11 @@ int64_t cIndex::GetStartPTS() const {
 
 // add a new entry to the list of frame timestamps
 void cIndex::Add(const int fileNumber, const int packetNumber, const int64_t pts) {
-    if (indexVector.empty() || (packetNumber > indexVector.back().frameNumber)) {
+    if (indexVector.empty() || (packetNumber > indexVector.back().packetNumber)) {
         // add new frame timestamp to vector
         sIndexElement newIndex;
         newIndex.fileNumber         = fileNumber;
-        newIndex.frameNumber        = packetNumber;
+        newIndex.packetNumber       = packetNumber;
         newIndex.pts                = pts;
 
         if (indexVector.size() == indexVector.capacity()) {
@@ -78,7 +78,7 @@ int cIndex::GetKeyPacketNumberBeforePTS(const int64_t pts) {
     }
     int iFrameBefore  = -1;
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->pts <= pts) iFrameBefore = frameIterator->frameNumber;
+        if (frameIterator->pts <= pts) iFrameBefore = frameIterator->packetNumber;
         else break;
     }
     if (iFrameBefore < 0) dsyslog("cIndex::GetKeyPacketNumberBeforePTS(): PTS %" PRId64 ": not in index, index content: first PTS %" PRId64 " , last PTS %" PRId64, pts, indexVector.front().pts, indexVector.back().pts);
@@ -110,8 +110,8 @@ int cIndex::GetKeyPacketNumberAfterPTS(const int64_t pts) {
         dsyslog("cIndex::GetKeyPacketNumberAfterPTS(): PTS %" PRId64 ": not in index, index content: first PTS %" PRId64 ", last PTS %" PRId64, pts, indexVector.front().pts, indexVector.back().pts);
         return -1;
     }
-    dsyslog("cIndex::GetKeyPacketNumberAfterPTS(): PTS %" PRId64 ": frame (%d) found", pts, found->frameNumber);
-    return found->frameNumber;
+    dsyslog("cIndex::GetKeyPacketNumberAfterPTS(): PTS %" PRId64 ": frame (%d) found", pts, found->packetNumber);
+    return found->packetNumber;
 }
 
 
@@ -147,7 +147,7 @@ int cIndex::GetLastFrame() {
         esyslog("cIndex::GetLast(): frame index not initialized");
         return -1;
     }
-    return indexVector.back().frameNumber;
+    return indexVector.back().packetNumber;
 }
 
 
@@ -163,14 +163,14 @@ int cIndex::GetKeyPacketNumberBefore(int frameNumber) {
     int before_iFrame = -1;
     int iFrameBefore  = -1;
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->frameNumber > frameNumber) {
+        if (frameIterator->packetNumber > frameNumber) {
             iFrameBefore = before_iFrame;
             break;
         }
-        else before_iFrame = frameIterator->frameNumber;
+        else before_iFrame = frameIterator->packetNumber;
     }
     if (iFrameBefore < 0) {
-        dsyslog("cIndex::GetKeyPacketNumberBefore(): frame (%d): failed, index content: first frame (%d), last frame (%d)", frameNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
+        dsyslog("cIndex::GetKeyPacketNumberBefore(): packet (%d): failed, index content: packet frame (%d), last packet (%d)", frameNumber, indexVector.front().packetNumber, indexVector.back().packetNumber);
         return -1;
     }
     return iFrameBefore; // frame not (yet) in index
@@ -187,15 +187,15 @@ int cIndex::GetKeyPacketNumberAfter(int packetNumber) {
         return -1;
     }
     // request from current packet after last key packet, this can happen if markad runs during recording
-    if ((packetNumber > indexVector.back().frameNumber) && (packetNumber < indexVector.back().frameNumber - 100)) {  // max alowed key packet distance
-        dsyslog("cIndex::GetKeyPacketNumberAfter(): packet (%d) > last packet in index, return last index element (%d)", packetNumber, indexVector.back().frameNumber);
-        return indexVector.back().frameNumber;
+    if ((packetNumber > indexVector.back().packetNumber) && (packetNumber < indexVector.back().packetNumber - 100)) {  // max alowed key packet distance
+        dsyslog("cIndex::GetKeyPacketNumberAfter(): packet (%d) > last packet in index, return last index element (%d)", packetNumber, indexVector.back().packetNumber);
+        return indexVector.back().packetNumber;
     }
 
-    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [packetNumber](const sIndexElement &value) ->bool { if (value.frameNumber >= packetNumber) return true; else return false; });
-    if (found != indexVector.end()) return found->frameNumber;
+    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [packetNumber](const sIndexElement &value) ->bool { if (value.packetNumber >= packetNumber) return true; else return false; });
+    if (found != indexVector.end()) return found->packetNumber;
 
-    esyslog("cIndex::GetKeyPacketNumberAfter(): packet (%d): failed, index content: first frame (%d), last frame (%d)", packetNumber, indexVector.front().frameNumber, indexVector.back().frameNumber);
+    esyslog("cIndex::GetKeyPacketNumberAfter(): packet (%d): failed, index content: first packet (%d), last packet (%d)", packetNumber, indexVector.front().packetNumber, indexVector.back().packetNumber);
     return -1;
 }
 
@@ -203,12 +203,12 @@ int cIndex::GetKeyPacketNumberAfter(int packetNumber) {
 // return PTS from key packet if called with an key number, otherwise from packet after
 int64_t cIndex::GetPTSFromKeyPacket(const int frameNumber) {
     // if frame number not yet in index, return PTS from last frame
-    if (frameNumber >= indexVector.back().frameNumber) return indexVector.back().pts;
+    if (frameNumber >= indexVector.back().packetNumber) return indexVector.back().pts;
 
-    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](sIndexElement const &value) ->bool { if (value.frameNumber >= frameNumber) return true; else return false; });
+    std::vector<sIndexElement>::iterator found = std::find_if(indexVector.begin(), indexVector.end(), [frameNumber](sIndexElement const &value) ->bool { if (value.packetNumber >= frameNumber) return true; else return false; });
     if (found == indexVector.end()) {
         esyslog("cIndex::GetPTSFromKeyPacket(): frame (%d) not in index", frameNumber);
-        dsyslog("cIndex::GetPTSFromKeyPacket(): index content: first frame (%d) , last frame (%d)", indexVector.front().frameNumber, indexVector.back().frameNumber);
+        dsyslog("cIndex::GetPTSFromKeyPacket(): index content: first packet (%d) , last packet (%d)", indexVector.front().packetNumber, indexVector.back().packetNumber);
         return -1;
     }
     return found->pts;
@@ -258,8 +258,8 @@ int cIndex::GetFrameFromOffset(int offset_ms) {
         return -1;
     }
 
-    dsyslog("cIndex::GetFrameFromOffset(): frame (%d) found", found->frameNumber);
-    return found->frameNumber;
+    dsyslog("cIndex::GetFrameFromOffset(): packet (%d) found", found->packetNumber);
+    return found->packetNumber;
 
     /*
         for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
@@ -279,12 +279,12 @@ int cIndex::GetIFrameRangeCount(int beginFrame, int endFrame) {
     int counter=0;
 
     for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
-        if (frameIterator->frameNumber >= beginFrame) {
+        if (frameIterator->packetNumber >= beginFrame) {
             counter++;
-            if (frameIterator->frameNumber >= endFrame) return counter;
+            if (frameIterator->packetNumber >= endFrame) return counter;
         }
     }
-    dsyslog("cIndex::GetIFrameRangeCount(): failed beginFrame (%d) endFrame (%d) last frame in index list (%d)", beginFrame, endFrame, indexVector.back().frameNumber);
+    dsyslog("cIndex::GetIFrameRangeCount(): failed beginFrame (%d) endFrame (%d) last frame in index list (%d)", beginFrame, endFrame, indexVector.back().packetNumber);
     return -1;
 }
 
