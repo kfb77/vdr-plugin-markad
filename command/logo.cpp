@@ -604,9 +604,13 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax =  70;
         }
 
-        // VOXup                   16:9  720W  576H:->  110W  66H TOP_LEFT
+//   2 VOXup                   16:9  720W  576H:->  108W  66H TOP_LEFT
+//  49 VOXup                   16:9  720W  576H:->  110W  66H TOP_LEFT
         if (CompareChannelName(channelName, "VOXup", IGNORE_NOTHING)) {
-            logo.heightMax =  66;
+            logo.widthMin  =  98;
+            logo.widthMax  = 120;
+            logo.heightMin =  56;
+            logo.heightMax =  76;
         }
 
         // WELT                    16:9  720W  576H:->  226W  62H BOTTOM_LEFT
