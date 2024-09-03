@@ -1,8 +1,14 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-09-07: Version 4.1.7
+- fix crash if running during recording (thx to shofmann@www.vdr-portal.de for reporting)
+- once again fix packet number for recording with packets without PTS/DTS (thx to pmrb@www.vdr-portal.de for reporting)
+- some minor bug fixes and optimizations, see git
+
 2024-09-03: Version 4.1.6
-- fix VDR timestamp offset (thx to pmrb@www.vdr-portal.de for reporting)
+- fix VDR timestamp offset (thx to pmrb@www.vdr-portal.de for reporting
+                            thx to kls@www.vdr-portal.de and FireFly@www.vdr-portal.de for support)
 - some minor bug fixes and optimizations, see git
 
 2024-08-31: Version 4.1.5
