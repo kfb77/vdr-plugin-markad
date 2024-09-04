@@ -348,15 +348,16 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMin =  63;
             logo.heightMax =  73;
         }
-
-        //   1 Comedy_Central          16:9  720W  576H:->  126W  74H TOP_LEFT
-        //   5 Comedy_Central          16:9  720W  576H:->  126W  76H TOP_LEFT
-        //  63 Comedy_Central          16:9  720W  576H:->  126W  78H TOP_LEFT
-        //  19 Comedy_Central          16:9  720W  576H:->  126W  80H TOP_LEFT
-        //   1 Comedy_Central          16:9  720W  576H:->  148W  80H TOP_LEFT
-        //   1 Comedy_Central          16:9  720W  576H:->  214W  80H TOP_LEFT
+//   4 Comedy_Central          16:9  720W  576H:->  126W  74H TOP_LEFT
+//   2 Comedy_Central          16:9  720W  576H:->  126W  76H TOP_LEFT
+//  60 Comedy_Central          16:9  720W  576H:->  126W  78H TOP_LEFT
+//  17 Comedy_Central          16:9  720W  576H:->  126W  80H TOP_LEFT
+//   1 Comedy_Central          16:9  720W  576H:->  142W  80H TOP_LEFT
+//   1 Comedy_Central          16:9  720W  576H:->  212W  78H TOP_LEFT
+//   1 Comedy_Central          16:9  720W  576H:->  214W  80H TOP_LEFT
+//   1 Comedy_Central          16:9  720W  576H:->  118W  86H TOP_RIGHT   -> logo from ad
         if (CompareChannelName(channelName, "Comedy_Central", IGNORE_NOTHING)) {
-            logo.widthMin  = 116;
+            logo.widthMin  = 119;
             logo.widthMax  = 224;
             logo.heightMin =  64;
             logo.heightMax =  90;
@@ -701,11 +702,15 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax =  70;
         }
 
-        // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  86H TOP_LEFT
-        // NDR_FS_HH_HD            16:9 1280W  720H:->  184W  88H TOP_LEFT
-        // NDR_FS_NDS_HD           16:9 1280W  720H:->  184W  88H TOP_LEFT
+//   1 NDR_FS_HH_HD            16:9 1280W  720H:->  184W  86H TOP_LEFT
+//   3 NDR_FS_HH_HD            16:9 1280W  720H:->  184W  88H TOP_LEFT
+//   1 NDR_FS_NDS_HD           16:9 1280W  720H:->  144W  88H TOP_LEFT   -> new logo without HD
+//   1 NDR_FS_NDS_HD           16:9 1280W  720H:->  184W  88H TOP_LEFT
         if (CompareChannelName(channelName, "NDR_FS_HD", IGNORE_CITY)) {
-            logo.heightMax =  88;
+            logo.widthMin  = 134;
+            logo.widthMax  = 194;
+            logo.heightMin =  76;
+            logo.heightMax =  98;
         }
 
         // ONE_HD                  16:9 1280W  720H:->  232W  80H TOP_RIGHT
