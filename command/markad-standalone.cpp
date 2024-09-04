@@ -2405,9 +2405,8 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start found at (%d)", vStart->position);
     cMark *vStopAfter = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is invalid
     if (vStopAfter) {
-        int markDiff = (vStopAfter->position - vStart->position) / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop found at (%d), %ds after vertical border start", vStopAfter->position, markDiff);
-
+        int vBorderStartvBorderStop = (vStopAfter->position - vStart->position) / decoder->GetVideoFrameRate();
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop found at (%d), %ds after vertical border start", vStopAfter->position, vBorderStartvBorderStop);
         // prevent to get start of last part of previous broadcast as start mark
         cMark *vNextStart = marks.GetNext(vStopAfter->position, MT_VBORDERSTART);
         cMark *vPrevStart = marks.GetPrev(vStart->position,     MT_VBORDERSTART);
@@ -2415,44 +2414,17 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
             // we have only start/stop vborder sequence in start part, this can be from broadcast before or false vborder detection from dark scene in vborder
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no next vertical border start found after start (%d) and stop (%d)", vStart->position, vStopAfter->position);
             // check if it is false vborder detection from dark scene in vborder
-            int startAvBorderStart     = (vStart->position     - startA)              / decoder->GetVideoFrameRate();
-            int vBorderStartvBorderStop = (vStopAfter->position - vStart->position)     / decoder->GetVideoFrameRate();
-            int vBorderStopframeCheckStart     = (frameCheckStart             - vStopAfter->position) / decoder->GetVideoFrameRate();
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): startA (%5d) -> %ds -> MT_VBORDERSTART (%d) -> %ds -> MT_VBORDERSTART (%d) -> %ds -> frameCheckStart (%d)", startA, startAvBorderStart,  vStart->position, vBorderStartvBorderStop, vStopAfter->position, vBorderStopframeCheckStart, frameCheckStart);
+            int startAvBorderStart         = (vStart->position - startA)               / decoder->GetVideoFrameRate();
+            int vBorderStopframeCheckStart = (frameCheckStart  - vStopAfter->position) / decoder->GetVideoFrameRate();
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): startA (%5d) -> %3ds -> MT_VBORDERSTART (%5d) -> %3ds -> MT_VBORDERSTART (%5d) -> %3ds -> frameCheckStart (%5d)", startA, startAvBorderStart,  vStart->position, vBorderStartvBorderStop, vStopAfter->position, vBorderStopframeCheckStart, frameCheckStart);
+            // example of valid vborder marks
+            // startA ( 7475) -> -31s -> MT_VBORDERSTART (6685) -> 149s -> MT_VBORDERSTART (10432) -> 331s -> frameCheckStart (18725)
             // example of invalid vborder from dark scene
-            // startA ( 4075) -> 9s -> MT_VBORDERSTART (4310) -> 115s -> MT_VBORDERSTART (7188) -> 355s -> frameCheckStart (16075)
+            // startA ( 4075) ->   9s -> MT_VBORDERSTART (4310) -> 115s -> MT_VBORDERSTART ( 7188) -> 355s -> frameCheckStart (16075)
             if ((startAvBorderStart <= 9) && (vBorderStartvBorderStop <= 115) && (vBorderStopframeCheckStart >= 355)) {
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start (%d) and stop (%d) from dark scene, delete marks", vStart->position, vStopAfter->position);
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start (%d) and stop (%d) from closing credits or dark scene, delete marks", vStart->position, vStopAfter->position);
                 marks.Del(vStart->position);
                 marks.Del(vStopAfter->position);
-                return nullptr;
-            }
-
-            // check if it is from broadcast before
-            // example
-            // start vertical border    at 0:05:03.23 -> stop  vertical border    at 0:09:04.91 (241s) valid first part, no next vborder start because of long ad after
-            // start vertical border    at 0:01:04.80 -> stop  vertical border    at 0:06:25.92 (321s) is from broadcast before
-            if ((vStart->position < IGNORE_AT_START) || ((vStart->position < startA) && (markDiff <= 321))) {  // vbordet start/stop from previous broadcast
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop at (%d) %ds after vertical border start (%d) in start part found, this is from previous broadcast, delete all marks before", vStopAfter->position, markDiff, vStart->position);
-                // check if we have long dark opening credits witch results in late vborder stop from previous broadcast, only possible if we have valid logos
-                // prevent to delete valid logo start mark, delete false vborder marks instead
-                if (criteria->LogoInBorder()) {
-                    cMark *logoStartBefore = marks.GetPrev(vStopAfter->position, MT_LOGOSTART);
-                    cMark *logoStopAfter   = marks.GetNext(vStopAfter->position, MT_LOGOSTOP);
-                    if (logoStartBefore && logoStopAfter) {
-                        int difflogoStartBefore = (vStopAfter->position    - logoStartBefore->position) / decoder->GetVideoFrameRate();
-                        int difflogoStopAfter   = (logoStopAfter->position - vStopAfter->position)      / decoder->GetVideoFrameRate();
-                        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_LOGOSTART (%d) -> %ds -> MT_VBORDERSTOP (%d) -> %ds -> MT_LOGOSTOP (%d)", logoStartBefore->position, difflogoStartBefore, vStopAfter->position, difflogoStopAfter, logoStopAfter->position);
-                        // example of long opening credits after vborder broadcast
-                        // MT_LOGOSTART (7643) -> 67s -> MT_VBORDERSTOP (9321) -> 1450s -> MT_LOGOSTOP (45586)
-                        if ((difflogoStartBefore <= 67) && (difflogoStopAfter >= 1450)) {
-                            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): valid logo start mark (%d) found, delete vborder marks", logoStartBefore->position);
-                            marks.Del(vStart->position);
-                            marks.Del(vStopAfter->position);
-                            return nullptr;
-                        }
-                    }
-                }
                 // broadcast start can not be before vborder stop from previous broadcast, keep vborder stop as possible start mark
                 // keep all stop marks, maybe we need logo stop to detect valid logo start mark
                 marks.DelFromTo(0, vStopAfter->position - 1, MT_START, 0x0F);
