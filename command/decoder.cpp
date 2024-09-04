@@ -1282,7 +1282,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
     // decoding successful, frame is valid
     frameValid = true;
 #ifdef DEBUG_DECODER
-    dsyslog("cDecoder::cDecoder::ReceiveFrameFromDecoder(): packet (%5d), stream %d: avFrame.pict_type %d, PTS %ld, avcodec_receive_frame() successful", packetNumber, avpkt.stream_index, avFrame.pict_type, avFrame.pts);
+    dsyslog("cDecoder::cDecoder::ReceiveFrameFromDecoder(): packet (%5d), stream %d: flags %d, pict_type %d, PTS %ld, avcodec_receive_frame() successful", packetNumber, avpkt.stream_index, avFrame.flags, avFrame.pict_type, avFrame.pts);
     LogSeparator();
 #endif
     Time(false);
