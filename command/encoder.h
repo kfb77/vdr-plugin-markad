@@ -102,8 +102,8 @@ public:
     bool OpenFile();
 
     /** cut out video from start frame number to stop frame number
-    * @param startPos start frame position
-    * @param stopPos  stop frame position
+    * @param startMark start mark
+    * @param stopMark  stop mark
     * @return true if successful, false otherwise
     */
     bool CutOut(cMark *startMark, cMark *stopMark);

@@ -73,18 +73,18 @@ enum {
 };
 
 
+/**
+ * class for basic video tools
+ */
 class cVideoTools {
 public:
-    /**
-     * class for basic video tools
-     */
     cVideoTools() {};
     ~cVideoTools() {};
 
     /**
      * get brightness of picture
      * @param picture video picture
-     * @param quote of pixel to ignore left and right
+     * @param ignoreV quote of pixel to ignore left and right
      * @return avg pixel value
      */
     int GetPictureBrightness(sVideoPicture *picture, const int ignoreV);
@@ -114,7 +114,7 @@ public:
      * @param decoderParam          decoder
      * @param indexParam            index
      * @param criteriaParam         detection critaria
-     * @param autoLogoParm          mode of logo source
+     * @param autoLogoParam         mode of logo source
      * @param logoCacheDirParam     logo cache directory
      */
     explicit cLogoDetect(cDecoder *decoderParam, cIndex *indexParam, cCriteria *criteriaParam, const int autoLogoParam, const char *logoCacheDirParam);
@@ -406,11 +406,11 @@ private:
     //!<
     int prevPacketNumber         = -1;                    //!< packet number of previous packet
     //!<
-    int64_t prevFramePTS         = -1;;                   //!< frame PTS of previous packet
+    int64_t prevFramePTS         = -1;                    //!< frame PTS of previous packet
     //!<
     int hBorderStartPacketNumber = -1;                    //!< packet number of detected horizontal border
     //!<
-    int64_t hBorderStartFramePTS = -1;;                   //!< frame PTS of detected horizontal border
+    int64_t hBorderStartFramePTS = -1;                    //!< frame PTS of detected horizontal border
     //!<
 };
 

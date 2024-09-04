@@ -442,13 +442,12 @@ private:
 
     /** read ARM hardware info and set codec requirements
      * @param codecInfo codec info structure
-     * @return true if hardware info read successful, false otherwise
      */
     static void ReadHWPlatform(sCodecInfo *codecInfo);
 
     /** get codec object from codec ID
-     * @param codecID   codec id
-     * @return pointer to codec, nullptr if not found
+     * @param codecID    codec id
+     * @param codecInfo  codec info structure
      */
     void GetVideoCodec(AVCodecID codecID, sCodecInfo *codecInfo) const;
 

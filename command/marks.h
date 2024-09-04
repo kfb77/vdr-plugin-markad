@@ -26,7 +26,7 @@ public:
      * @param oldTypeParam      original mark type before move
      * @param newTypeParam      new mark type after move
      * @param positionParam     mark position
-     * @param pts               mark pts
+     * @param ptsParam          mark pts
      * @param commentParam      mark comment
      * @param inBroadCastParam  true if mark is in broadcast, false if mark is in advertising
      */
@@ -286,9 +286,8 @@ public:
      * move mark position
      * @param dscMark        move this mark
      * @param srcMark        source of new position
+     * @param frameOffset    packet number offset for new mark
      * @param newType        new type of mark
-     * @param frameOffet     packet number offset for new mark
-     * @param ptsOffset      packet PTS offset for new mark position
      * @return               mark with new position and new tye
      */
     cMark *Move(cMark *dscMark, cMark *srcMark, const int frameOffset, const int newType);

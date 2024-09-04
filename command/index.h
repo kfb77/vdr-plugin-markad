@@ -110,7 +110,7 @@ public:
 
     /**
      * get frame number to offset of recording start
-     * @param packetNumber packet number
+     * @param offset_ms packet number
      * @return frame number to offset of recording start
      */
     int GetFrameFromOffset(int offset_ms);
