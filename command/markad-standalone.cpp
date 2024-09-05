@@ -5044,6 +5044,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
             long int diffBefore      = INT_MAX;
             cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOLOWERBORDERSTOP);
             cMark *stopBefore  = nullptr;
+            bool silenceBefore = false;
             while (startBefore) {
                 stopBefore = blackMarks.GetNext(startBefore->position, MT_NOLOWERBORDERSTART);
                 if (!stopBefore) break;
@@ -5059,7 +5060,10 @@ void cMarkAdStandalone::LowerBorderOptimization() {
             }
             if (startBefore && stopBefore) {   // we found valid lower border start/stop
                 cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), stopBefore->position, MT_SOUNDCHANGE, 0xF0);  // around lower border stop
-                if (silence) dsyslog("cMarkAdStandalone::LowerBorderOptimization(): silence found (%d) around lower border from (%d) to (%d)", silence->position, startBefore->position, stopBefore->position);
+                if (silence) {
+                    dsyslog("cMarkAdStandalone::LowerBorderOptimization(): silence found (%d) around lower border from (%d) to (%d)", silence->position, startBefore->position, stopBefore->position);
+                    silenceBefore = true;
+                }
             }
 
             // get lower border after stop mark
@@ -5119,13 +5123,14 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 int maxBefore = -1;
                 switch (mark->type) {
                 case MT_ASSUMEDSTOP:
-                    maxBefore = 218520;
+                    if (silenceBefore) maxBefore = 218520;
+                    else               maxBefore =  98599;
                     break;
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (criteria->GoodVPS()) maxBefore =   6579;
-                        else                     maxBefore = 104079;
+                        if (criteria->GoodVPS()) maxBefore =  6579;
+                        else                     maxBefore = 98599;
                         break;
                     default:
                         maxBefore = -1;
