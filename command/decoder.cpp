@@ -627,8 +627,6 @@ bool cDecoder::ReadPacket() {
     frameValid = false;
     av_packet_unref(&avpkt);
     if (av_read_frame(avctx, &avpkt) == 0 ) {
-        if (IsVideoPacket()) packetNumber++;   // increase packet counter even on invalid video packets
-
         // check packet DTS and PTS
         if (avpkt.pts == AV_NOPTS_VALUE) {
             dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d, duration %ld: PTS not set", packetNumber, avpkt.stream_index, avpkt.duration);
@@ -641,6 +639,7 @@ bool cDecoder::ReadPacket() {
 
         // analyse video packet
         if (IsVideoPacket()) {
+            packetNumber++;   // increase packet counter even on invalid video packets
 #ifdef DEBUG_FRAME_PTS
             dsyslog("cDecoder::ReadPacket():  fileNumber %d, framenumber %5d, DTS %ld, PTS %ld, duration %ld, flags %d, dtsBefore %ld, time_base.num %d, time_base.den %d",  fileNumber, packetNumber, avpkt.dts, avpkt.pts, avpkt.duration, avpkt.flags, dtsBefore, avctx->streams[avpkt.stream_index]->time_base.num, avctx->streams[avpkt.stream_index]->time_base.den);
 #endif
