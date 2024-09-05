@@ -175,7 +175,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startFrame) {
 
     startA = startFrame;
     stopA  = startA + decoder->GetVideoFrameRate() * length;
-    frameCheckStart = startA + decoder->GetVideoFrameRate() * (1.5 * MAX_ASSUMED) ; //  fit for later broadcast start
+    frameCheckStart = startA + decoder->GetVideoFrameRate() * (1.6 * MAX_ASSUMED) ; //  adjust for later broadcast start, changed from 1.5 to 1.6
     frameCheckStop  = startFrame + decoder->GetVideoFrameRate() * (length + (1.5 * MAX_ASSUMED));
 
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording:    %4ds  %3d:%02dmin", length, length / 60, length % 60);
