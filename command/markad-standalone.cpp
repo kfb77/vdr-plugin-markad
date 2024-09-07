@@ -2416,12 +2416,14 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
             // check if it is false vborder detection from dark scene in vborder
             int startAvBorderStart         = (vStart->position - startA)               / decoder->GetVideoFrameRate();
             int vBorderStopframeCheckStart = (frameCheckStart  - vStopAfter->position) / decoder->GetVideoFrameRate();
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): startA (%5d) -> %3ds -> MT_VBORDERSTART (%5d) -> %3ds -> MT_VBORDERSTART (%5d) -> %3ds -> frameCheckStart (%5d)", startA, startAvBorderStart,  vStart->position, vBorderStartvBorderStop, vStopAfter->position, vBorderStopframeCheckStart, frameCheckStart);
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): startA (%5d) -> %4ds -> MT_VBORDERSTART (%5d) -> %3ds -> MT_VBORDERSTOP (%5d) -> %3ds -> frameCheckStart (%5d)", startA, startAvBorderStart,  vStart->position, vBorderStartvBorderStop, vStopAfter->position, vBorderStopframeCheckStart, frameCheckStart);
             // example of valid vborder marks
-            // startA ( 7475) -> -31s -> MT_VBORDERSTART (6685) -> 149s -> MT_VBORDERSTART (10432) -> 331s -> frameCheckStart (18725)
-            // example of invalid vborder from dark scene
-            // startA ( 4075) ->   9s -> MT_VBORDERSTART (4310) -> 115s -> MT_VBORDERSTART ( 7188) -> 355s -> frameCheckStart (16075)
-            if ((startAvBorderStart <= 9) && (vBorderStartvBorderStop <= 115) && (vBorderStopframeCheckStart >= 355)) {
+            // startA ( 7475) ->  -31s -> MT_VBORDERSTART ( 6685) -> 149s -> MT_VBORDERSTOP (10432) -> 331s -> frameCheckStart (18725)
+            // example of invalid vborder from dark scene or from broadcast before
+            // startA ( 4075) ->    9s -> MT_VBORDERSTART ( 4310) -> 115s -> MT_VBORDERSTOP ( 7188) -> 355s -> frameCheckStart (16075)
+            // startA (16350) -> -288s -> MT_VBORDERSTART ( 1933) -> 281s -> MT_VBORDERSTOP (16019) -> 456s -> frameCheckStart (38850) -> vborder from previous recording
+            // startA ( 7450) -> -298s -> MT_VBORDERSTART (    0) -> 329s -> MT_VBORDERSTOP ( 8238) -> 448s -> frameCheckStart (19450)
+            if ((startAvBorderStart <= 9) && (vBorderStartvBorderStop <= 329) && (vBorderStopframeCheckStart > 331)) {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start (%d) and stop (%d) from closing credits or dark scene, delete marks", vStart->position, vStopAfter->position);
                 marks.Del(vStart->position);
                 marks.Del(vStopAfter->position);
