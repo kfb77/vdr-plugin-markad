@@ -182,7 +182,7 @@ bool cExtractLogo::SaveLogo(const sLogoInfo *actLogoInfo, sLogoSize *logoSizeFin
         // if we have transparent logo do not save colored plane, they are from background
         if (plane == 0) {
             if (black < 200) {
-                esyslog("cExtractLogo::Save(): not enough pixel (%d) in plane 0, logo invalid", black);
+                dsyslog("cExtractLogo::Save(): not enough pixel (%d) in plane 0, logo invalid, continue search", black);  // invalid logo after resize, continue search
                 return false;
             }
         }
