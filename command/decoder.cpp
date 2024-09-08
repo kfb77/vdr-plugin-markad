@@ -1446,7 +1446,10 @@ bool cDecoder::IsInterlacedFrame() const {
 
 
 sAspectRatio *cDecoder::GetFrameAspectRatio() {
-    if (!frameValid) return &beforeDAR;
+    if (!frameValid) {
+        dsyslog("cDecoder::GetFrameAspectRatio(): packet (%d): frame not valid, use aspect ratio from frame before", packetNumber);
+        return &beforeDAR;
+    }
     DAR.num = avFrame.sample_aspect_ratio.num;
     DAR.den = avFrame.sample_aspect_ratio.den;
     if ((DAR.num == 0) || (DAR.den == 0)) {

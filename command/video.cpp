@@ -1805,12 +1805,12 @@ sMarkAdMarks *cVideo::Process() {
         sAspectRatio *aspectRatioFrame = decoder->GetFrameAspectRatio();
         if (aspectRatioFrame) {
             if (aspectRatioFrameBefore != *aspectRatioFrame) {     // change of aspect ratio
-                // we assume 4:3 broadcast
+                // 4:3 broadcast
                 if ((aspectRatioBroadcast.num == 4) && (aspectRatioBroadcast.den == 3)) {
                     if ((aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) AddMark(MT_ASPECTSTART, packetNumber, framePTS, &aspectRatioFrameBefore, aspectRatioFrame);
-                    else                                                              AddMark(MT_ASPECTSTOP, index->GetFrameBefore(packetNumber), framePTS, &aspectRatioFrameBefore, aspectRatioFrame);
+                    else                                                              AddMark(MT_ASPECTSTOP,  packetNumber, framePTS, &aspectRatioFrameBefore, aspectRatioFrame);
                 }
-                // we assume 16:9 broadcast
+                // 16:9 broadcast
                 if ((aspectRatioBroadcast.num == 16) && (aspectRatioBroadcast.den == 9)) {
                     if ((aspectRatioFrame->num == 16) && (aspectRatioFrame->den == 9)) {
                         if ((aspectRatioFrameBefore.num) > 0 && (aspectRatioFrameBefore.den > 0)) {  // no 16:9 aspect ratio start at recording start of 16:9 broadcast
@@ -1820,7 +1820,7 @@ sMarkAdMarks *cVideo::Process() {
                         }
                     }
                     else {
-                        AddMark(MT_ASPECTSTOP, index->GetFrameBefore(packetNumber), framePTS, &aspectRatioFrameBefore, aspectRatioFrame); // stop is one frame before aspect ratio change
+                        AddMark(MT_ASPECTSTOP, packetNumber, framePTS, &aspectRatioFrameBefore, aspectRatioFrame); // stop is one frame before aspect ratio change
                         // 16:9 -> 4:3, this is end of broadcast (16:9) and start of next broadcast (4:3)
                         // if we have activ hborder add hborder stop mark, because hborder state will be cleared after aspect ratio change
                         if (hBorderDetect->State() == HBORDER_VISIBLE) {

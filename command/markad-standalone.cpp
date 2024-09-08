@@ -1918,27 +1918,11 @@ void cMarkAdStandalone::SwapAspectRatio() {
         macontext.Info.AspectRatio.num = 4;
         macontext.Info.AspectRatio.den = 3;
     }
-
+    // we will be one packet before/after start/stop, correct later with scene change
     cMark *aMark = marks.GetFirst();
     while (aMark) {
-        if (aMark->type == MT_ASPECTSTART) {
-            aMark->type = MT_ASPECTSTOP;
-            if (macontext.Config->fullDecode) {
-                if (decoder->IsInterlacedFrame()) aMark->position = aMark->position - 2;
-                else                              aMark->position = aMark->position - 1;
-            }
-            else aMark->position = index->GetKeyPacketNumberBefore(aMark->position - 1);
-        }
-        else {
-            if (aMark->type == MT_ASPECTSTOP) {
-                aMark->type = MT_ASPECTSTART;
-                if (macontext.Config->fullDecode) {
-                    if (decoder->IsInterlacedFrame()) aMark->position = aMark->position + 3;  // one full picture forward and the îget the next half picture for full decode
-                    else                              aMark->position = aMark->position + 1;
-                }
-                else aMark->position = index->GetKeyPacketNumberAfter(aMark->position + 1);
-            }
-        }
+        if      (aMark->type == MT_ASPECTSTART) aMark->type = MT_ASPECTSTOP;
+        else if (aMark->type == MT_ASPECTSTOP)  aMark->type = MT_ASPECTSTART;
         aMark = aMark->Next();
     }
     video->SetAspectRatioBroadcast(macontext.Info.AspectRatio);
