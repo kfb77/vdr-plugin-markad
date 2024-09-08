@@ -3931,7 +3931,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
                 if (indexToHMSF) {
-                    dsyslog("cMarkAdStandalone::AddMark(): %s at %s", comment, indexToHMSF);
+                    dsyslog("cMarkAdStandalone::AddMark(): %s, PTS %ld at %s", comment, mark->framePTS, indexToHMSF);
                     FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                     free(indexToHMSF);
                 }
@@ -3962,7 +3962,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
             char *indexToHMSF = marks.IndexToHMSF(mark->packetNumber, false);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
-                dsyslog("cMarkAdStandalone::AddMark(): %s PTS %ld at %s", comment, mark->framePTS, indexToHMSF);
+                dsyslog("cMarkAdStandalone::AddMark(): %s, PTS %ld at %s", comment, mark->framePTS, indexToHMSF);
                 FREE(strlen(indexToHMSF)+1, "indexToHMSF");
                 free(indexToHMSF);
             }

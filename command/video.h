@@ -272,7 +272,7 @@ private:
 /**
  * class to detect scene change
  */
-class cSceneChangeDetect {
+class cSceneChangeDetect : private cTools {
 public:
     /**
      * class to detect scene change

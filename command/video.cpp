@@ -1098,7 +1098,8 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
     }
     int diffQuote = 1000 * difference / (picture->height * picture->width * 2);
 #ifdef DEBUG_SCENE_CHANGE
-    dsyslog("cSceneChangeDetect::Process(): previous frame (%7d) and current frame (%7d): status %2d, blendCount %2d, blendFrame %7d, difference %7ld, diffQute %4d", prevPacketNumber, packetNumber, sceneStatus, blendCount, blendPacketNumber, difference, diffQuote);
+    LogSeparator();
+    dsyslog("cSceneChangeDetect::Process(): packet (%7d) / (%7d): status %2d, changePacketNumber (%5d), blendCount %2d, blendPacketNumber %7d, difference %7ld, diffQute %4d", prevPacketNumber, packetNumber, sceneStatus, *changePacketNumber, blendCount, blendPacketNumber, difference, diffQuote);
 #endif
     FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
     free(prevHistogram);
@@ -1108,69 +1109,116 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
 #define DIFF_SCENE_BLEND_START  80   // changed from  60 to  80, prevent to get too early scene end within blend
 #define DIFF_SCENE_BLEND_STOP   70   // changed from  55 to  70, prevent to get too early scene end within blend
 #define SCENE_BLEND_FRAMES       5
-// end of scene during active scene blend
-    if ((diffQuote >= DIFF_SCENE_NEW) && (sceneStatus == SCENE_BLEND)) {
-        *changePacketNumber = prevPacketNumber;
-        *changeFramePTS     = prevFramePTS;
-        sceneStatus         = SCENE_STOP;
-#ifdef DEBUG_SCENE_CHANGE
-        dsyslog("cSceneChangeDetect::Process(): frame (%7d) end of scene during active blend", prevPacketNumber);
-#endif
-    }
-// end of scene
-    else if (diffQuote >= DIFF_SCENE_CHANGE) {
-        if (blendFramePTS < 0) {
-            blendPacketNumber = prevPacketNumber;
-            blendFramePTS     = prevFramePTS;
-        }
-        blendCount++;
-        if ((blendCount <= SCENE_BLEND_FRAMES) && (sceneStatus != SCENE_STOP)) {
-            if (blendCount < SCENE_BLEND_FRAMES) blendCount = SCENE_BLEND_FRAMES;  // use blendCount as active scene change
-            *changePacketNumber = blendPacketNumber;
-            *changeFramePTS     = blendFramePTS;
+
+    switch (sceneStatus) {
+    case SCENE_ERROR:
+    case SCENE_UNINITIALIZED:
+        blendPacketNumber = -1;
+        blendFramePTS     = -1;
+        sceneStatus       = SCENE_NOCHANGE;    // reset state
+        break;
+
+    case SCENE_START:
+        if (diffQuote >= DIFF_SCENE_CHANGE) {   // new scene end one packet after scene start
+            blendCount = 1;  // also store it as first scene blend start position
+            blendPacketNumber   = prevPacketNumber;
+            blendFramePTS       = prevFramePTS;
+            *changePacketNumber = prevPacketNumber; // frame before is end of scene
+            *changeFramePTS     = prevFramePTS;
             sceneStatus         = SCENE_STOP;
 #ifdef DEBUG_SCENE_CHANGE
-            dsyslog("cSceneChangeDetect::Process(): frame (%7d) end of scene", prevPacketNumber);
+            dsyslog("cSceneChangeDetect::Process(): packet (%7d) end of scene", prevPacketNumber);
 #endif
         }
-        else sceneStatus = SCENE_BLEND;
-    }
-// activ scene blend
-    else if (diffQuote >= DIFF_SCENE_BLEND_START) {
-        if (blendFramePTS < 0) {
-            blendPacketNumber = prevPacketNumber;
-            blendFramePTS     = prevFramePTS;
+        else {
+            if (diffQuote <= DIFF_SCENE_BLEND_STOP) {
+                blendCount        =  0;
+                blendPacketNumber = -1;
+                blendFramePTS     = -1;
+            }
+            sceneStatus = SCENE_NOCHANGE;
         }
-        blendCount++;
-        if ((blendCount == SCENE_BLEND_FRAMES)) {
-            *changePacketNumber = blendPacketNumber;
-            *changeFramePTS     = blendFramePTS;
-            sceneStatus         = SCENE_STOP;
-#ifdef DEBUG_SCENE_CHANGE
-            dsyslog("cSceneChangeDetect::Process(): frame (%7d) scene blend start at frame (%d)", prevPacketNumber, blendPacketNumber);
-#endif
-        }
-        else sceneStatus = SCENE_BLEND;
-    }
-// unclear result, keep state
-    else if ((diffQuote < DIFF_SCENE_BLEND_START) && (diffQuote > DIFF_SCENE_BLEND_STOP)) {
-#ifdef DEBUG_SCENE_CHANGE
-        if (sceneStatus == SCENE_BLEND) dsyslog("cSceneChangeDetect::Process(): frame (%7d) scene blend continue at frame (%d)", prevPacketNumber, blendPacketNumber);
-#endif
-    }
-// start of next scene
-    else {
-        if ((sceneStatus == SCENE_STOP) || ((sceneStatus == SCENE_BLEND) && (blendCount >= SCENE_BLEND_FRAMES))) {
+        break;
+
+    case SCENE_STOP:
+        if (diffQuote < DIFF_SCENE_CHANGE) {   // start of next scene
             *changePacketNumber = prevPacketNumber;
             *changeFramePTS     = prevFramePTS;
             sceneStatus         = SCENE_START;
 #ifdef DEBUG_SCENE_CHANGE
-            dsyslog("cSceneChangeDetect::Process(): frame (%7d) start of scene", prevPacketNumber);
+            dsyslog("cSceneChangeDetect::Process(): packet (%7d) start of scene", prevPacketNumber);
 #endif
         }
-        else sceneStatus = SCENE_NOCHANGE;
-        blendFramePTS = -1;
-        blendCount    =  0;
+        break;
+
+    case SCENE_NOCHANGE:
+        // new end of scene during activ blend
+        if (diffQuote >= DIFF_SCENE_CHANGE) {
+            blendCount = 1;  // also store it as first scene blend start position
+            blendPacketNumber   = prevPacketNumber;
+            blendFramePTS       = prevFramePTS;
+            *changePacketNumber = prevPacketNumber; // frame before is end of scene
+            *changeFramePTS     = prevFramePTS;
+            sceneStatus         = SCENE_STOP;
+#ifdef DEBUG_SCENE_CHANGE
+            dsyslog("cSceneChangeDetect::Process(): packet (%7d) end of scene", prevPacketNumber);
+#endif
+        }
+        // new scene blend start
+        else if (diffQuote >= DIFF_SCENE_BLEND_START) {
+            blendCount        = 1;  // also store it as first scene blend start position
+            blendPacketNumber = prevPacketNumber;
+            blendFramePTS     = prevFramePTS;
+            sceneStatus       = SCENE_BLEND;
+#ifdef DEBUG_SCENE_CHANGE
+            dsyslog("cSceneChangeDetect::Process(): packet (%7d) start of scene blend", prevPacketNumber);
+#endif
+        }
+        break;
+
+    case SCENE_BLEND:     // scene blend is activ
+        if (diffQuote >= DIFF_SCENE_NEW) {    // next scene stop during scene blend
+            // reset activ blend status
+            blendPacketNumber = -1;
+            blendFramePTS     = -1;
+            blendCount        =  0;
+            // report scene stop
+            *changePacketNumber = prevPacketNumber;
+            *changeFramePTS     = prevFramePTS;
+            sceneStatus         = SCENE_STOP;
+#ifdef DEBUG_SCENE_CHANGE
+            dsyslog("cSceneChangeDetect::Process(): packet (%7d) end of scene during active blend", prevPacketNumber);
+#endif
+        }
+        else {
+            if (diffQuote <= DIFF_SCENE_BLEND_STOP) {  // end of scene blend
+                if (blendCount >= SCENE_BLEND_FRAMES) {   // scene blend was long enough activ, use it as scene stop
+                    *changePacketNumber = blendPacketNumber;
+                    *changeFramePTS     = blendFramePTS;
+                    sceneStatus         = SCENE_STOP;
+#ifdef DEBUG_SCENE_CHANGE
+                    dsyslog("cSceneChangeDetect::Process(): packet (%7d) end of scene blend", prevPacketNumber);
+#endif
+                }
+                else {  // too short scene blend, reset state
+                    blendPacketNumber = -1;
+                    *changeFramePTS   = -1;
+                    blendCount        =  0;
+                    sceneStatus       = SCENE_NOCHANGE;
+                }
+            }
+            else {
+                blendCount++;
+#ifdef DEBUG_SCENE_CHANGE
+                dsyslog("cSceneChangeDetect::Process(): packet (%7d) scene blend continue from packet (%d)", prevPacketNumber, blendPacketNumber);
+#endif
+            }
+        }
+        break;
+
+    default:
+        esyslog("cSceneChangeDetect::Process(): invalid scene change state (%d)", sceneStatus);
+        break;
     }
 
     prevHistogram    = currentHistogram;
@@ -1182,6 +1230,8 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
         if (sceneStatus == SCENE_START) dsyslog("cSceneChangeDetect::Process(): new mark: MT_SCENESTART at frame (%7d)", *changePacketNumber);
         if (sceneStatus == SCENE_STOP)  dsyslog("cSceneChangeDetect::Process(): new mark: MT_SCENESTOP  at frame (%7d)", *changePacketNumber);
     }
+    dsyslog("cSceneChangeDetect::Process(): packet (%7d) / (%7d): status %2d, changePacketNumber (%5d), blendCount %2d, blendPacketNumber %7d", prevPacketNumber, packetNumber, sceneStatus, *changePacketNumber, blendCount, blendPacketNumber);
+    LogSeparator();
 #endif
 
     if (*changePacketNumber >= 0) return sceneStatus;
