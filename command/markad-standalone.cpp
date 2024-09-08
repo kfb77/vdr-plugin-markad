@@ -4630,7 +4630,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 int maxAfter = -1;
                 switch (mark->type) {
                 case MT_ASSUMEDSTART:
-                    maxAfter = 73240;
+                    maxAfter = 64519;
                     break;
                 case MT_LOGOSTART:
                     maxAfter = 2240;
