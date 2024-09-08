@@ -5419,11 +5419,11 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 int maxBefore = 0;
                 switch (mark->type) {
                 case MT_ASSUMEDSTART:
-                    maxBefore = 600;
+                    maxBefore = 7920;
                     break;
                 case MT_LOGOSTART:
                     // rule 1: logo start very short before broadcast start
-                    if (!(criteria->LogoFadeInOut() & FADE_IN) && (diffBefore >= 1120) && (diffAfter <= 120)) diffBefore = INT_MAX;
+                    if (!(criteria->LogoFadeInOut() & FADE_IN) && (diffBefore >= 320) && (diffAfter <= 120)) diffBefore = INT_MAX;
 
                     // rule 2: scene start very short after logo start in old recording without fade in of fade in channel
                     else if ((criteria->LogoFadeInOut() & FADE_IN) && (diffBefore >= 1700) && (diffAfter <= 20)) diffBefore = INT_MAX;
@@ -5626,6 +5626,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     break;
                 case MT_HBORDERSTOP:
                     if (mark->position == marks.GetLast()->position) maxBefore = 440;
+                    break;
+                case MT_ASPECTSTOP:
+                    maxBefore = 200;
                     break;
                 case MT_CHANNELSTOP:
                     maxBefore = 640;  // changed from 600 to 640
