@@ -731,7 +731,7 @@ cMark *cMarks::Move(cMark *dscMark, cMark *srcMark, const int frameOffset, const
             else oldType = dscMark->type;
             int type = ((dscMark->type & 0x0F) == MT_START) ? MT_MOVEDSTART : MT_MOVEDSTOP;
             int64_t newPTS = -1;
-            if ((srcMark->pts >= 0) && (frameOffset == 0)) newPTS = srcMark->pts;  // if there is  a frame offset, we do not know new PTS
+            if (frameOffset == 0) newPTS = srcMark->pts;  // if there is no frame offset, we use new PTS
             Del(dscMark);
 
             newMark = Add(type, oldType, newType, newPosition, newPTS, comment);
