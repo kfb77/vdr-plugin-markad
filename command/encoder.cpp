@@ -1142,7 +1142,11 @@ bool cEncoder::CutOut(cMark *startMark, cMark *stopMark) {
             }
         }
         // get PTS/DTS from end position
-        avFrame = decoder->GetFrame(AV_PIX_FMT_NONE);  // this must be first video packet after cut because we only increase frame counter on video frames
+        while (!(avFrame = decoder->GetFrame(AV_PIX_FMT_NONE))) {  // maybe last frame is corrupt
+            dsyslog("cEncoder::CutOut(): packet (%d), stream %d: decode of frame after end position failed, try next", decoder->GetPacketNumber(), decoder->GetPacket()->stream_index);
+            if (!decoder->ReadNextPacket()) return false;
+            if (decoder->IsVideoPacket()) decoder->DecodePacket();
+        }
         cutInfo.stopPosPTS = avFrame->pts;
         cutInfo.stopPosDTS = avFrame->pkt_dts;
         dsyslog("cEncoder::CutOut(): end cut from i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 " to i-frame (%6d) PTS %10" PRId64 " DTS %10" PRId64 ", offset %10" PRId64, startPos, cutInfo.startPosPTS, cutInfo.startPosDTS, stopPos, cutInfo.stopPosPTS, cutInfo.stopPosDTS, cutInfo.offset);
