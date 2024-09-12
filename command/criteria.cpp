@@ -56,6 +56,7 @@ int cCriteria::LogoFadeInOut() {
     if (CompareChannelName(channelName, "Pro7_MAXX",      IGNORE_HD))               return FADE_IN;
     if (CompareChannelName(channelName, "ProSieben_MAXX", IGNORE_HD))               return FADE_IN;
     if (CompareChannelName(channelName, "RTLNITRO",       IGNORE_HD))               return FADE_IN;
+    if (CompareChannelName(channelName, "RTLZWEI",        IGNORE_HD))               return FADE_IN;
     if (CompareChannelName(channelName, "ServusTV",       IGNORE_HD))               return FADE_OUT;
     if (CompareChannelName(channelName, "sixx",           IGNORE_HD))               return FADE_IN;
     if (CompareChannelName(channelName, "SUPER_RTL",      IGNORE_HD))               return FADE_OUT;
