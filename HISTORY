@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-09-14: Version 4.1.8
+- replace deprecated AVCodec::sample_fmts (libavcodec 61.13.100)"
+- some minor bug fixes and optimizations, see git
+
 2024-09-07: Version 4.1.7
 - fix crash if running during recording (thx to shofmann@www.vdr-portal.de for reporting)
 - once again fix packet number for recording with packets without PTS/DTS (thx to pmrb@www.vdr-portal.de for reporting)
