@@ -5268,12 +5268,13 @@ void cMarkAdStandalone::SilenceOptimization() {
         if ((mark->type & 0x0F) == MT_STOP) {
             // log available marks
             bool moved = false;
-            long int diffBefore   = INT_MAX;
-            int diffAfter         = INT_MAX;
+            long int diffBefore     = INT_MAX;
+            int diffAfter           = INT_MAX;
             cMark *soundStopBefore  = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
             cMark *soundStartBefore = nullptr;
             cMark *soundStopAfter   = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
             cMark *soundStartAfter  = nullptr;
+            int lengthAfter         = 0;
             if (soundStopBefore) {
                 diffBefore = 1000 * (mark->position - soundStopBefore->position) / decoder->GetVideoFrameRate();
                 soundStartBefore = silenceMarks.GetNext(soundStopBefore->position, MT_SOUNDSTART);
@@ -5289,7 +5290,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     bool blackAfter       = false;
                     const cMark *black = blackMarks.GetAround(decoder->GetVideoFrameRate(), soundStopAfter->position, MT_BLACKCHANGE, 0xF0);
                     if (black) blackAfter = true;
-                    int lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / decoder->GetVideoFrameRate();
+                    lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / decoder->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%6d) to (%6d) %8dms after,  length %4dms, black %d", mark->position, soundStopAfter->position, soundStartAfter->position, diffAfter, lengthAfter, blackAfter);
                 }
             }
@@ -5316,8 +5317,9 @@ void cMarkAdStandalone::SilenceOptimization() {
                         // rule 1: prefer silence before
                         if (diffBefore <= 57280) diffAfter = INT_MAX;
 
-                        if (criteria->GoodVPS()) maxAfter = 31479;
-                        else                     maxAfter = 98479;
+                        if (criteria->GoodVPS())      maxAfter = 31479;
+                        else if (lengthAfter >= 3000) maxAfter = 81920;
+                        else                          maxAfter = 74799;
                         break;
                     default:
                         maxAfter = 0;
