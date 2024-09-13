@@ -1111,8 +1111,8 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
 
 #define DIFF_SCENE_NEW         400   // new scene during blend, force new scene stop/start, changed from 500 to 400
 #define DIFF_SCENE_CHANGE      165   // do not increase, will loss real scene changes
-#define DIFF_SCENE_BLEND_START  80   // changed from  60 to  80, prevent to get too early scene end within blend
-#define DIFF_SCENE_BLEND_STOP   70   // changed from  55 to  70, prevent to get too early scene end within blend
+#define DIFF_SCENE_BLEND_START  70
+#define DIFF_SCENE_BLEND_STOP   60
 #define SCENE_BLEND_FRAMES       5
 
     switch (sceneStatus) {
