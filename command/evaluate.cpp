@@ -1412,8 +1412,7 @@ int cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, const bool noL
     dsyslog("cDetectLogoStopStart::ClosingCredit(): detect from (%d) to (%d)", startPos, endPos);
     int frameRate = decoder->GetVideoFrameRate();
 
-#define CLOSING_CREDITS_LENGTH_MIN 6120  // changed from 9000 to 6120
-    // because of silence detection before closing credits detection
+#define CLOSING_CREDITS_LENGTH_MIN 6161  // changed from 6120 to 6161, prevent to detect preview picture as closing credits
     int minLength = (1000 * (endPos - startPos) / frameRate) - 2000;  // 2s buffer for change from closing credit to logo start
     if (minLength <= 3760) { // too short will result in false positive, changed from 1840 to 3760
         dsyslog("cDetectLogoStopStart::ClosingCredit(): length %dms too short for detection", minLength);
