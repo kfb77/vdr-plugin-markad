@@ -2411,9 +2411,6 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start (%d) and stop (%d) from closing credits or dark scene, delete marks", vStart->position, vStopAfter->position);
                 marks.Del(vStart->position);
                 marks.Del(vStopAfter->position);
-                // broadcast start can not be before vborder stop from previous broadcast, keep vborder stop as possible start mark
-                // keep all stop marks, maybe we need logo stop to detect valid logo start mark
-                marks.DelFromTo(0, vStopAfter->position - 1, MT_START, 0x0F);
                 criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
                 return nullptr;
             }
