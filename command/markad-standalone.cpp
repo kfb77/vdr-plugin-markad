@@ -4155,14 +4155,25 @@ void cMarkAdStandalone::DebugMarkFrames() {
         }
     }
 
-    // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we don't care about performance
+    // read and decode mark video frames
     mark = marks.GetFirst();
+    int keyPacketBefore1 = index->GetKeyPacketNumberBeforePTS(mark->pts - 1);
+    int keyPacketBefore2 = index->GetKeyPacketNumberBefore(keyPacketBefore1 - 1);
+    int keyPacketDistance = 1;
+    if (!macontext.Config->fullDecode) {
+        keyPacketDistance = keyPacketBefore1 - keyPacketBefore2;
+        for (int i = 1; i <= keyPacketDistance; i++) keyPacketBefore2 = index->GetKeyPacketNumberBefore(keyPacketBefore2 - 1);  // go back enough packets
+    }
+    if (!decoder->SeekToPacket(keyPacketBefore2)) {
+        esyslog("cMarkAdStandalone::DebugMarkFrames(): seek to packet (%d) failed", keyPacketBefore2);
+        return;
+    }
     while (decoder->DecodeNextFrame(false)) {  // no audio
         if (abortNow) return;
         int packetNumber = decoder->GetPacketNumber();
         AVPacket *avpkt = decoder->GetPacket();
         int64_t framePTS = decoder->GetFramePTS();
-        if (framePTS >= (mark->pts - (avpkt->duration * DEBUG_MARK_FRAMES))) {
+        if (framePTS >= (mark->pts - (avpkt->duration * keyPacketDistance * DEBUG_MARK_FRAMES))) {
             dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark (%5d) type 0x%X, PTS %ld: read packet (%5d), got frame PTS %ld", mark->position, mark->type, mark->pts, packetNumber, framePTS);
             char suffix1[10] = "";
             char suffix2[10] = "";
@@ -4183,9 +4194,16 @@ void cMarkAdStandalone::DebugMarkFrames() {
                 }
             }
             else dsyslog("cMarkAdStandalone::DebugMarkFrames(): packet (%d): picture not valid", packetNumber);
-            if (framePTS >= (mark->pts + (avpkt->duration * DEBUG_MARK_FRAMES))) {
+            if (framePTS >= (mark->pts + (avpkt->duration * keyPacketDistance * DEBUG_MARK_FRAMES))) {
                 mark = mark->Next();
                 if (!mark) break;
+                keyPacketBefore1 = index->GetKeyPacketNumberBeforePTS(mark->pts - 1);
+                keyPacketBefore2 = index->GetKeyPacketNumberBefore(keyPacketBefore1 - 1);
+                if (!macontext.Config->fullDecode) for (int i = 1; i <= keyPacketDistance; i++) keyPacketBefore2 = index->GetKeyPacketNumberBefore(keyPacketBefore2 - 1);
+                if (!decoder->SeekToPacket(keyPacketBefore2)) {
+                    esyslog("cMarkAdStandalone::DebugMarkFrames(): seek to packet (%d) failed", keyPacketBefore2);
+                    return;
+                }
             }
         }
         else decoder->DropFrameFromGPU();   // clenup GPU
