@@ -62,7 +62,8 @@ bool cOverlap::DetectOverlap(cMarks *marksParam) {
 
             // detect overlap before stop and after start
             if (!ProcessMarksOverlap(overlapAroundAd, &p1, &p2)) {
-                dsyslog("cOverlap::DetectOverlap(): no overlap found before stop mark (%d) and after start (%d)", p1->position, p2->position);
+                if (p1 && p2) dsyslog("cOverlap::DetectOverlap(): no overlap found before stop mark (%d) and after start (%d)", p1->position, p2->position);
+                else esyslog("cOverlap::DetectOverlap(): marks invalid after ProcessMarksOverlap()");
             }
             else save = true;
 
