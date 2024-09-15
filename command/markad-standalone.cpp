@@ -4146,51 +4146,32 @@ void cMarkAdStandalone::DebugMarkFrames() {
     cMark *mark = marks.GetFirst();
     if (!mark) return;
 
-    // if no fullDecode, check if all marks are on i-frame position
+    // if no fullDecode, check if all marks are on key packet position
     if (!macontext.Config->fullDecode) {
         while (mark) {
             if (abortNow) return;
-            if (mark->position != index->GetKeyPacketNumberBefore(mark->position)) {
-                esyslog("cMarkAdStandalone::DebugMarkFrames(): mark at (%d) type 0x%X is not an iFrame position", mark->position, mark->type);
-                dsyslog("cMarkAdStandalone::DebugMarkFrames(): frame (%d): i-frame before (%d)", mark->position, index->GetKeyPacketNumberBefore(mark->position));
-            }
+            if (mark->position != index->GetKeyPacketNumberBefore(mark->position)) esyslog("cMarkAdStandalone::DebugMarkFrames(): mark at (%d) type 0x%X is not a key packet position", mark->position, mark->type);
             mark=mark->Next();
         }
     }
 
-    mark = marks.GetFirst();
-    int oldPacketNumber = -1;
-
     // read and decode all video frames, we want to be sure we have a valid decoder state, this is a debug function, we don't care about performance
+    mark = marks.GetFirst();
     while (decoder->DecodeNextFrame(false)) {  // no audio
         if (abortNow) return;
         int packetNumber = decoder->GetPacketNumber();
-        // check mark PTS psotion
-        if (packetNumber == mark->position) {
-            int64_t pts = -1;
-            if (((mark->type & 0xF0) == MT_CHANNELCHANGE) ||
-                    (((mark->type & 0xF0) == MT_MOVED) && ((mark->newType & 0xF0) == MT_SOUNDCHANGE))) { // audio based marks have no decoding queue offset
-                dsyslog("cMarkAdStandalone::DebugMarkFrames(): audio based frame, no video PTS check possible");
-            }
-            else {
-                pts = decoder->GetFramePTS();
-                if ((pts != mark->pts) && (mark->pts >= 0)) {  // move mark with offset have no PTS
-                    esyslog("cMarkAdStandalone::DebugMarkFrames(): mark (%d), PTS %ld: not equal to current frame PTS %ld", mark->position, mark->pts, pts);
-                }
-            }
-        }
-        int packetDistance = 1;
-        if (!macontext.Config->fullDecode) packetDistance = packetNumber - oldPacketNumber;  // get distance between to frame numbers
-        if (packetNumber >= (mark->position - (packetDistance * DEBUG_MARK_FRAMES))) {
-            dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark packet (%5d) type 0x%X, write packet (%5d)", mark->position, mark->type, packetNumber);
+        AVPacket *avpkt = decoder->GetPacket();
+        int64_t framePTS = decoder->GetFramePTS();
+        if (framePTS >= (mark->pts - (avpkt->duration * DEBUG_MARK_FRAMES))) {
+            dsyslog("cMarkAdStandalone::DebugMarkFrames(): mark (%5d) type 0x%X, PTS %ld: read packet (%5d), got frame PTS %ld", mark->position, mark->type, mark->pts, packetNumber, framePTS);
             char suffix1[10] = "";
             char suffix2[10] = "";
             if ((mark->type & 0x0F) == MT_START) strcpy(suffix1, "START");
             if ((mark->type & 0x0F) == MT_STOP)  strcpy(suffix1, "STOP");
 
-            if (packetNumber < mark->position)   strcpy(suffix2, "BEFORE");
-            if ((macontext.Config->fullDecode)  && (packetNumber > mark->position))     strcpy(suffix2, "AFTER");
-            if ((!macontext.Config->fullDecode) && (packetNumber > mark->position + 1)) strcpy(suffix2, "AFTER");  // for interlaced stream we will get the picture after the iFrame
+            if (framePTS < mark->pts) strcpy(suffix2, "BEFORE");
+            if ((macontext.Config->fullDecode)  && (framePTS > mark->pts)) strcpy(suffix2, "AFTER");
+            if ((!macontext.Config->fullDecode) && (framePTS > mark->pts + 1)) strcpy(suffix2, "AFTER");  // for interlaced stream we will get the picture after the iFrame
             sVideoPicture *picture = decoder->GetVideoPicture();
             if (picture) {
                 char *fileName = nullptr;
@@ -4202,13 +4183,12 @@ void cMarkAdStandalone::DebugMarkFrames() {
                 }
             }
             else dsyslog("cMarkAdStandalone::DebugMarkFrames(): packet (%d): picture not valid", packetNumber);
-            if (packetNumber >= (mark->position + (packetDistance * DEBUG_MARK_FRAMES))) {
+            if (framePTS >= (mark->pts + (avpkt->duration * DEBUG_MARK_FRAMES))) {
                 mark = mark->Next();
                 if (!mark) break;
             }
         }
         else decoder->DropFrameFromGPU();   // clenup GPU
-        oldPacketNumber = packetNumber;
     }
 }
 #endif
