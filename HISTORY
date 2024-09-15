@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-09-19: Version 4.1.9
+- fix heap-use-after-free
+- some minor bug fixes and optimizations, see git
+
 2024-09-14: Version 4.1.8
 - replace deprecated AVCodec::sample_fmts (libavcodec 61.13.100)"
 - some minor bug fixes and optimizations, see git
