@@ -5438,7 +5438,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     switch (mark->newType) {
                     case MT_SOUNDSTART:
                         // rule 1: prefer scene change short after silence
-                        if ((diffBefore > 80) && (diffBefore <= 1680) && (diffAfter <= 920)) diffBefore = INT_MAX;
+                        if (diffAfter <= 120) diffBefore = INT_MAX;
 
                         // rule 2: scene blend around silence, both are invalid
                         else if ((diffBefore >= 4120) && (diffAfter >= 1160)) {
@@ -5500,6 +5500,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     case MT_NOLOWERBORDERSTART:
                         maxAfter = 5000;
                         break;
+                    case MT_NOADINFRAMESTART:
+                        maxAfter = 40;
+                        break;
                     case MT_VPSSTART:
                         maxAfter = 13440;
                         break;
@@ -5547,7 +5550,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_LOGOSTOP:
                     // rule 1: if no fade out logo, usually we have delayed logo stop from detection fault (bright picture or patten in background)
                     // very near scene change can be valid from very short fade out logo
-                    if (!(criteria->LogoFadeInOut() & FADE_OUT) && (diffAfter > 200)) diffAfter = INT_MAX;
+                    if (!(criteria->LogoFadeInOut() & FADE_OUT) && ((diffBefore <= 200) || (diffAfter > 200))) diffAfter = INT_MAX;
 
                     maxAfter = 5639;
                     break;
@@ -5593,9 +5596,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 1080;
                         break;
                     case MT_NOADINFRAMESTOP:
-                        // select best mark (before / after), default: after
-                        if ((diffBefore <= 440) && (diffAfter >= 360)) diffAfter = INT_MAX;
-                        maxAfter = 760;
+                        maxAfter = 0;
                         break;
                     default:
                         maxAfter = 0;
@@ -5644,7 +5645,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxBefore = 8440;   // chaned from 1320 to 1440 to 8440
                         break;
                     case MT_NOADINFRAMESTOP:  // correct the missed start of ad in frame before stop mark
-                        maxBefore = 999;
+                        maxBefore = 440;
                         break;
                     default:
                         maxBefore = 0;
