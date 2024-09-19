@@ -1313,9 +1313,9 @@ int cBlackScreenDetect::Process() {
     }
 
 #ifdef DEBUG_BLACKSCREEN
-    int debugValAll   = valAll   / (picture.width * maContext->Video.Info.height);
-    int debugValLower = valLower / (picture.width * PIXEL_COUNT_LOWER);
-    dsyslog("cBlackScreenDetect::Process(): frame (%d): blackScreenStatus %d, blackness %3d (expect <%d for start, >%d for end), lowerBorderStatus %d, lower %3d", frameNumber, blackScreenStatus, debugValAll, BLACKNESS, BLACKNESS, lowerBorderStatus, debugValLower);
+    int debugValAll   = valAll   / (picture->width * decoder->GetVideoHeight());
+    int debugValLower = valLower / (picture->width * PIXEL_COUNT_LOWER);
+    dsyslog("cBlackScreenDetect::Process(): packet (%d): blackScreenStatus %d, blackness %3d (expect <%d for start, >%d for end), lowerBorderStatus %d, lower %3d", decoder->GetPacketNumber(), blackScreenStatus, debugValAll, BLACKNESS, BLACKNESS, lowerBorderStatus, debugValLower);
 #endif
 
     // full blackscreen now visible
