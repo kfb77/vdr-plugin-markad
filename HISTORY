@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-09-25: Version 4.2.0
+- new feature: frame exact smart cut video without full encode (--smartencode)
+- fix crash on 32bit systems (thx to vdr_rossi@www.vdr-portal.de for reporting)
+- some minor bug fixes and optimizations, see git
+
 2024-09-19: Version 4.1.9
 - fix heap-use-after-free
 - some minor bug fixes and optimizations, see git
