@@ -1545,7 +1545,7 @@ bool cExtractLogo::CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, c
         logoStartLine   =  18;
         logoEndLine     =  75;
         logoStartColumn = 143;
-        logoEndColumn   = 185;
+        logoEndColumn   = 192;
     }
     // SAT_1_HD                16:9 1920W 1080H:->  204W 132H TOP_RIGHT
     else if (CompareChannelName(channelName, "SAT_1_HD", IGNORE_NOTHING)) {
@@ -1563,7 +1563,7 @@ bool cExtractLogo::CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, c
 // we use only logo with pixel in the expected logo range
     for (int line = 0; line < logoHeight; line++) {
         for (int column = 0; column < logoWidth; column++) {
-            if ((line >= logoStartLine) && (line < logoEndLine) && (column >= logoStartColumn) && (column < logoEndColumn)) continue;
+            if ((line >= logoStartLine) && (line < logoEndLine) && (column >= logoStartColumn) && (column <= logoEndColumn)) continue;
             if (logo1->sobel[0][line * logoWidth + column] == 0) {
 #ifdef DEBUG_LOGO_CORNER
                 dsyslog("cExtractLogo::CompareLogoPairRotating(): packet logo1 (%5d) pixel out of valid range: line %3d (%d->%d), column %3i (%d->%d)", logo1->frameNumber, line, logoStartLine, logoEndLine, column, logoStartColumn, logoEndColumn);
