@@ -1033,11 +1033,40 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
 #define MAX_FALSE_PIXEL 2
             int minWhiteLines = 2;
             if (decoder->GetVideoWidth() > 720) minWhiteLines = 4;
+            // search for logo top line (first black pixel in line)
+            int logoTopLine = -1;
+            for (int line = 0; line < logoSizeFinal->height; line++) {
+                for (int column = 0; column < logoSizeFinal->width; column++) {
+                    if (bestLogoInfo->sobel[0][line * (logoSizeFinal->width) + column] == 0) {  // black pixel
+                        logoTopLine = line;
+                        break;
+                    }
+                }
+                if (logoTopLine >= 0) break;
+            }
+            if (logoTopLine <= 10) {
+                dsyslog("cExtractLogo::Resize(): no more white part above logo, logo is invalid");
+                return false;
+            }
+            // search for logo buttom line (first line without black pixel)
+            int logoButtomLine = -1;
+            for (int line = logoTopLine; line < logoSizeFinal->height; line++) {
+                logoButtomLine = line - 1;
+                for (int column = 0; column < logoSizeFinal->width; column++) {
+                    if (bestLogoInfo->sobel[0][line * (logoSizeFinal->width) + column] == 0) { // black pixel
+                        logoButtomLine = -1;
+                        break;
+                    }
+                }
+                if (logoButtomLine >= 0) break;
+            }
+            if (logoButtomLine < 0) logoButtomLine = logoSizeFinal->width - 1;  // logo end at buttom
+            dsyslog("cExtractLogo::Resize(): logo top line %d, buttom line %d", logoTopLine, logoButtomLine);
 
             // search for white lines from buttom to top of logo (more than half can not be text)
             int topWhiteLine     = -1;
             int bottomWhiteLine  = -1;
-            for (int line = logoSizeFinal->height - 1; line > 0.1 * logoSizeFinal->height; line--) {  // check bottom half of the picture
+            for (int line = logoSizeFinal->height - 1; line > logoButtomLine; line--) {  // check bottom half of the picture
                 int countBlackPixel = 0;
                 for (int column = 0; column < logoSizeFinal->width; column++) {
                     if (bestLogoInfo->sobel[0][line * (logoSizeFinal->width) + column] == 0) {
