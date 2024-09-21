@@ -1966,7 +1966,7 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
                 if (logoStart) {
                     int diffLogoStart = (logoStart->position - startA) / decoder->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): found logo start mark (%d) %ds after assumed start", logoStart->position, diffLogoStart);
-                    if ((diffLogoStart >= -1) && (diffLogoStart <= 56)) {  // changed from 17 to 56
+                    if ((diffLogoStart >= -4) && (diffLogoStart <= 56)) {  // changed from -1 to -4, changed from 17 to 56
                         dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): use logo start mark (%d) as start mark", logoStart->position);
                         criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
                         return logoStart;
