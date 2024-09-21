@@ -5517,8 +5517,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 2520;
                         break;
                     case MT_SOUNDSTOP:
-                        // rule1: use scene change near by end of silence
-                        if (diffBefore < diffAfter) diffAfter = INT_MAX;
+                        // rule1: use scene change short before silence (silence is at start of ad / closing credits)
+                        if (diffBefore <= 80) diffAfter = INT_MAX;
 
                         maxAfter = 360;
                         break;
