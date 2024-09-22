@@ -1096,8 +1096,8 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
         return SCENE_UNINITIALIZED;
     }
 
-    // calculate distance between pevios und current frame
-    long int difference = 0;  // prevent integer overflow
+    // calculate distance between previous und current frame
+    int64_t difference = 0;  // prevent integer overflow
     for (int i = 0; i < 256; i++) {
         difference += abs(prevHistogram[i] - currentHistogram[i]);  // calculte difference, smaller is more similar
     }
