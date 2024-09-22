@@ -335,21 +335,34 @@ class CompareMarks:
 
            self.pos1 = line1.find(" (");
            self.pos2 = line1.find(")");
+
+           # check VDR key packet number
            if self.pos1 < 0 or self.pos2 < 0:
                self.rc = False
                break
            self.frameNumer1 = line1[self.pos1 + 2:self.pos2]
-
            self.pos1 = line2.find(" (");
            self.pos2 = line2.find(")");
            if self.pos1 < 0 or self.pos2 < 0:
                self.rc = False
                break
            self.frameNumer2 = line2[self.pos1 + 2:self.pos2]
-
            if abs(int(self.frameNumer1) - int(self.frameNumer2)) > 50:
                self.rc = False
                break
+
+           # check markad internal pasition
+           self.pos1 = line1.find(") <");
+           self.pos2 = line1.find(">");
+           if self.pos1 > 0 and self.pos2 > 0:
+               self.frameNumer1 = line1[self.pos1 + 1 + 2:self.pos2]
+               self.pos1 = line2.find(") <");
+               self.pos2 = line2.find(">");
+               if self.pos1 > 0 and self.pos2 > 0:
+                   self.frameNumer2 = line2[self.pos1 + 1 + 2:self.pos2]
+                   if abs(int(self.frameNumer1) - int(self.frameNumer2)) > 1:
+                       self.rc = False
+                       break
 
         file1.close()
         file2.close()
