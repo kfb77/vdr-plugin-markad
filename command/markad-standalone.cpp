@@ -3465,8 +3465,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         cMark *lastStopMark = marks.GetLast();
         if (!lastStopMark) break;
         if ((lastStopMark->type & 0x0F) != MT_STOP) break;
-        if ((lastStopMark->type & 0xF0) >= MT_CHANNELCHANGE) break;  // trust channel marks and better
-        if ((lastStopMark->type & 0xF0) == MT_MOVED) break;          // trust channel moved marks
+        if (((lastStopMark->type & 0xF0) >= MT_CHANNELCHANGE) && ((lastStopMark->type & 0xF0) != MT_MOVED)) break;  // trust channel marks and better
         cMark *lastStartMark = marks.GetPrev(lastStopMark->position);
         if (!lastStartMark) break;
         if ((lastStartMark->type & 0x0F) != MT_START) break;
@@ -3512,7 +3511,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             }
             break;
         case MT_LOGOSTOP:
-            // example of invalid log stop mark sequence (short last ad is between two broadcasts)
+            // example of invalid logo stop mark sequence (short last ad is between two broadcasts)
             // MT_START ( 73336) ->  960s -> MT_STOP ( 97358)         ->  18s -> MT_START ( 97817) ->  83s -> MT_STOP ( 99916)
             // MT_START ( 97756) ->    0s -> MT_STOP ( 97761)         ->   0s -> MT_START ( 97766) ->  86s -> MT_STOP ( 99916)        -> more than one false logo stop
             // MT_START ( 97460) ->    0s -> MT_STOP ( 97465)         ->   0s -> MT_START ( 97469) ->  86s -> MT_STOP ( 99619)        -> more than one false logo stop
@@ -3529,6 +3528,17 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     // MT_START (  8469) -> 2395s -> MT_STOP ( 68361) |-401s| -> 222s -> MT_START ( 73925) ->  82s -> MT_STOP ( 75995) |-95s|
                     (lastBroadcast <= 82)) {
                 dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, assume too big recording length", prevStopMark->position);
+                marks.Del(lastStopMark->position);
+                marks.Del(lastStartMark->position);
+                moreMarks = true;
+            }
+            break;
+        case MT_MOVEDSTOP:
+            // example of invalid logo stop mark sequence (too short last broadcase)
+            // MT_START ( 19164) -> 1565s -> MT_STOP ( 97440) |-247s| ->  57s -> MT_START (100294) ->  26s -> MT_STOP (101638) |-163s|  (VPS stop)
+            // MT_START ( 18475) -> 1568s -> MT_STOP ( 96899) |-244s| ->  47s -> MT_START ( 99287) ->  47s -> MT_STOP (101638) |-149s|  (VPS stop)
+            if (lastBroadcast <= 47) {
+                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, too short last broadcast part", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
                 moreMarks = true;
