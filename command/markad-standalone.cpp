@@ -4722,8 +4722,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     // rule 1: black screen short before hborder stop is end of closing credits
                     if ((diffBefore <= 360) && (diffAfter >= 7000)) diffAfter = INT_MAX;
 
-                    if (silenceAfter && (lengthAfter >= 200)) maxAfter = 10760;  // closing credits overlay hborder
-                    else                                      maxAfter =     0;
+                    maxAfter = 0;
                     break;
                 case MT_VBORDERSTOP:
                     maxAfter = 480;  // include black closing credits
