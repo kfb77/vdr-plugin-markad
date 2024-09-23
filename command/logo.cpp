@@ -540,6 +540,16 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax  = 166;
         }
 
+//   4 SAT_1_Gold              16:9  720W  576H:->  128W  74H TOP_RIGHT
+//   6 SAT_1_Gold              16:9  720W  576H:->  130W  74H TOP_RIGHT
+//   1 SAT_1_Gold              16:9  720W  576H:->  130W  76H TOP_RIGHT
+        if (CompareChannelName(channelName, "SAT_1_Gold", IGNORE_NOTHING)) {
+            logo.widthMin  = 118;
+            logo.widthMax  = 140;
+            logo.heightMin =  64;
+            logo.heightMax =  86;
+        }
+
         // sixx                    16:9  720W  576H:->  106W  54H TOP_RIGHT
         // SIXX                    16:9  720W  576H:->  106W  54H TOP_RIGHT
         // SIXX                    16:9  720W  576H:->  118W  56H TOP_RIGHT
