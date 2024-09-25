@@ -139,6 +139,8 @@ public:
         criteria           = origin.criteria;
         index              = origin.index;
         decoder            = origin.decoder;
+        packetNumberBefore = origin.packetNumberBefore;
+        framePTSBefore     = origin.framePTSBefore;
     }
 
     /**
@@ -159,6 +161,8 @@ public:
         criteria           = origin->criteria;
         index              = origin->index;
         decoder            = origin->decoder;
+        packetNumberBefore = origin->packetNumberBefore;
+        framePTSBefore     = origin->framePTSBefore;
         return *this;
     }
 
@@ -264,6 +268,10 @@ private:
     int logo_yend                     = -1;       //!< y end coordinate of the visible part of the logo
     //!<
     int logoCorner                    = -1;       //!< cached logo corner
+    //!<
+    int packetNumberBefore            = -1;       //!< packet number before
+    //!<
+    int64_t framePTSBefore            = -1;       //!< frame PTS before
     //!<
     const char *aCorner[CORNERS] = { "TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT" }; //!< array to transform enum corner to text
     //!<

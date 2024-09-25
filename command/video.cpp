@@ -681,14 +681,20 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cLogoDetect::Detect(): packet (%d): picture not valid", packetNumber);
+        packetNumberBefore = packetNumber;
+        framePTSBefore     = framePTS;
         return LOGO_ERROR;
     }
     if(!picture->plane[0]) {
         esyslog("cLogoDetect::Detect(): packet (%d): picture plane 0 not valid", packetNumber);
+        packetNumberBefore = packetNumber;
+        framePTSBefore     = framePTS;
         return LOGO_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
         esyslog("cLogoDetect::Detect(): packet (%d): picture planeLineSize[0] valid", packetNumber);
+        packetNumberBefore = packetNumber;
+        framePTSBefore     = framePTS;
         return LOGO_ERROR;
     }
 
@@ -752,7 +758,11 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         }
     }
 
-    if (processed == 0) return LOGO_ERROR;  // we have no plane processed
+    if (processed == 0) {
+        packetNumberBefore = packetNumber;
+        framePTSBefore     = framePTS;
+        return LOGO_ERROR;  // we have no plane processed
+    }
 
     // set logo visible and invisible limits
     int logo_vmark = LOGO_VMARK * mPixel;
@@ -794,6 +804,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cLogoDetect::Detect(): frame (%6d) too bright %d for logo start", packetNumber, area.intensity);
 #endif
+            packetNumberBefore = packetNumber;
+            framePTSBefore     = framePTS;
             return LOGO_NOCHANGE;
         }
 
@@ -802,6 +814,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cLogoDetect::Detect(): frame (%6d) with transparent logo too bright %d for detection", packetNumber, area.intensity);
 #endif
+            packetNumberBefore = packetNumber;
+            framePTSBefore     = framePTS;
             return LOGO_NOCHANGE;
         }
 
@@ -818,7 +832,11 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
             dsyslog("cLogoDetect::Detect():           frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", packetNumber, rPixel, quoteInverse, rPixelWithout);
 #endif
 
-            if ((rPixel >= logo_vmark) && (rPixelWithout <= logo_imark) && (quoteInverse >= 63)) return LOGO_NOCHANGE;  // too much background pattern to decide
+            if ((rPixel >= logo_vmark) && (rPixelWithout <= logo_imark) && (quoteInverse >= 63)) {
+                packetNumberBefore = packetNumber;
+                framePTSBefore     = framePTS;
+                return LOGO_NOCHANGE;  // too much background pattern to decide
+            }
             rPixel         = rPixelWithout; // now use this result for detection
             area.rPixel[0] = rPixelWithout; // if case of ReduceBrightness(): "very high contrast with not very high brightness in logo area, trust detection"
         }
@@ -864,6 +882,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
             if (rPixelWithout >= area.mPixel[0] * LOGO_VMARK) {
                 dsyslog("cLogoDetect::Detect(): frame (%6d): rPixel plane 0 %d: transparent logo detected, fallback to plane 0 only", packetNumber, rPixelWithout);
                 ReducePlanes();
+                packetNumberBefore = packetNumber;
+                framePTSBefore     = framePTS;
                 return LOGO_NOCHANGE;
             }
         }
@@ -890,6 +910,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cLogoDetect::Detect(): frame (%6d): no valid result", packetNumber);
 #endif
+        packetNumberBefore = packetNumber;
+        framePTSBefore     = framePTS;
         return LOGO_NOCHANGE;
     }
 
@@ -904,6 +926,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         }
         *logoPacketNumber = area.statePacketNumber;
         *logoFramePTS     = area.stateFramePTS;
+        packetNumberBefore = packetNumber;
+        framePTSBefore     = framePTS;
         return area.status;
     }
     if (area.status == LOGO_RESTART) {
@@ -914,6 +938,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         *logoFramePTS     = -1;
         area.statePacketNumber = packetNumber;
         area.stateFramePTS     = framePTS;
+        packetNumberBefore = packetNumber;
+        framePTSBefore     = framePTS;
         return area.status;
     }
 
@@ -952,8 +978,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
             }
             else {
                 if (!area.counter) {
-                    area.statePacketNumber = packetNumber;
-                    area.stateFramePTS     = framePTS;
+                    area.statePacketNumber = packetNumberBefore;  // last picture with logo
+                    area.stateFramePTS     = framePTSBefore;
                 }
                 area.counter++;
                 if (area.intensity < 200) {   // do not overweight result on bright pictures
@@ -992,6 +1018,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
 #endif
 
+    packetNumberBefore = packetNumber;
+    framePTSBefore     = framePTS;
     return ret;
 }
 
