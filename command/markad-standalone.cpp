@@ -5125,7 +5125,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / decoder->GetVideoFrameRate();
                     const cMark *black = blackMarks.GetAround(decoder->GetVideoFrameRate(), soundStopAfter->position, MT_BLACKCHANGE, 0xF0);
                     if (black) blackAfter = true;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %" PRId64 "  to (%6d) %" PRId64 " , %8dms after,  length %4dms, black %d", mark->position, soundStopAfter->position, soundStopAfter->pts, soundStartAfter->position, soundStartAfter->pts, diffAfter, lengthAfter, blackAfter);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %" PRId64 " to (%6d) %" PRId64 ", %8dms after,  length %4dms, black %d", mark->position, soundStopAfter->position, soundStopAfter->pts, soundStartAfter->position, soundStartAfter->pts, diffAfter, lengthAfter, blackAfter);
                 }
             }
             // try silence before start position
@@ -5250,7 +5250,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     // rule 1: second silence is after preview
                     if ((diffBefore <= 11680) && (diffAfter >= 1040) && (diffAfter <= 6640)) diffAfter = INT_MAX;
 
-                    if (criteria->LogoFadeInOut() & FADE_OUT) maxAfter = 4800;
+                    if (criteria->LogoFadeInOut() & FADE_OUT) maxAfter = 4719;
                     else                                      maxAfter = 1079;
                     break;
                 case MT_VBORDERSTOP:
