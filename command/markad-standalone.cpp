@@ -5500,7 +5500,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     // very near scene change can be valid from very short fade out logo
                     if (!(criteria->LogoFadeInOut() & FADE_OUT) && ((diffBefore <= 200) || (diffAfter > 200))) diffAfter = INT_MAX;
 
-                    maxAfter = 5639;
+                    maxAfter = 4800;
                     break;
                 case MT_HBORDERSTOP:
                     if ((diffBefore <= 440) && (diffAfter >= 1720)) diffAfter = INT_MAX;
