@@ -5859,7 +5859,7 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
     endmntent(mounts);
 
     if (useatime) dsyslog("cMarkAdStandalone::GetRecordingStart(): mount option noatime is set, use atime from directory %s to get creation time", directory);
-    else dsyslog("cMarkAdStandalone::GetRecordingStart(): mount option noatime is not set");
+    else esyslog("cMarkAdStandalone::GetRecordingStart(): mount option noatime is not set");
 
     if ((useatime) && (stat(directory, &statbuf) != -1)) {
         if (fabs(difftime(start,statbuf.st_atime)) < 60 * 60 * 12) {  // do not believe recordings > 12h
@@ -5868,19 +5868,6 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
         }
         dsyslog("cMarkAdStandalone::GetRecordingStart(): got no valid directory creation time, maybe recording was copied %s", strtok(ctime(&statbuf.st_atime), "\n"));
         dsyslog("cMarkAdStandalone::GetRecordingStart(): broadcast start time from vdr info file                          %s", strtok(ctime(&start), "\n"));
-    }
-
-    // (try to get from mtime)
-    // (and hope vdr info file has not changed after the start of the recording)
-    // since vdr 2.6 with the recording error count in the info file, this is not longer valid
-    // use it only if mtime fits a common pre timer value
-    if (fstat(fd,&statbuf) != -1) {
-        dsyslog("cMarkAdStandalone::GetRecordingStart(): recording start from VDR info file modification time             %s", strtok(ctime(&statbuf.st_mtime), "\n"));
-        if (fabs(difftime(start, statbuf.st_mtime)) < 600) {  // max valid pre time 10 min
-            dsyslog("cMarkAdStandalone::GetRecordingStart(): use recording start from VDR info file modification time         %s", strtok(ctime(&statbuf.st_mtime), "\n"));
-            return (time_t) statbuf.st_mtime;
-        }
-        else dsyslog("cMarkAdStandalone::GetRecordingStart(): vdr info file modification time %ds after recording start", int(difftime(statbuf.st_mtime, start)));
     }
 
     // fallback to the directory name (time part)
