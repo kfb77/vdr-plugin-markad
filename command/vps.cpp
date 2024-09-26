@@ -34,8 +34,11 @@ cVPS::cVPS(const char *directory) {
     while (getline(&line, &length,mf) != -1) {
         sscanf(line, "%15s %20s %d", reinterpret_cast<char *>(&typeVPS), reinterpret_cast<char *>(&timeVPS), &offsetVPS);
         if (strcmp(typeVPS, "START:") == 0) {
-            vpsStart = offsetVPS;
-            dsyslog("cVPS::cVPS(): VPS START       event at offset %5ds", vpsStart);
+            if (offsetVPS <= 5) esyslog("cVPS::cVPS(): VPS START       event at offset %5ds is invalid, maybe recording restart", offsetVPS);
+            else {
+                vpsStart = offsetVPS;
+                dsyslog("cVPS::cVPS(): VPS START       event at offset %5ds", vpsStart);
+            }
         };
         if (strcmp(typeVPS, "STOP:") == 0) {
             vpsStop = offsetVPS;
