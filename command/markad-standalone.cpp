@@ -1179,9 +1179,9 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
         // black screen around end mark
         cMark *startAfter = marks.GetNext(mark->position, MT_LOGOSTART);
         if (startAfter) {
-            cMark *blackStart = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTOP); // black screen can start at the same position as logo stop
+            cMark *blackStart = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTOP);     // black screen can start at the same position as logo stop
             if (blackStart) {
-                cMark *blackStop = blackMarks.GetNext(mark->position, MT_NOBLACKSTART);
+                cMark *blackStop = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTART); // black screen can start at the same position as logo stop
                 if (blackStop) {
                     int diffBlackStartLogoStop = 1000 * (mark->position       - blackStart->position) / decoder->GetVideoFrameRate();
                     int diffLogoStopBlackStop  = 1000 * (blackStop->position  - mark->position)       / decoder->GetVideoFrameRate();
@@ -1194,13 +1194,14 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 // MT_NOBLACKSTOP ( 42629) ->  760ms -> MT_LOGOSTOP ( 42648) ->   40ms -> MT_NOBLACKSTART ( 42649) ->   840ms -> MT_LOGOSTART ( 42670) -> SIXX
 // MT_NOBLACKSTOP ( 44025) ->  840ms -> MT_LOGOSTOP ( 44046) ->  360ms -> MT_NOBLACKSTART ( 44055) ->   520ms -> MT_LOGOSTART ( 44068) -> SIXX
 // MT_NOBLACKSTOP (260383) ->  400ms -> MT_LOGOSTOP (260403) ->   80ms -> MT_NOBLACKSTART (260407) -> 24320ms -> MT_LOGOSTART (261623) -> zdf neo HD
-                    if ((diffBlackStartLogoStop >= 360) && (diffBlackStartLogoStop <= 1400) &&
-                            (diffLogoStopBlackStop  >=  40) && (diffLogoStopBlackStop  <=   360) &&
+// MT_NOBLACKSTOP ( 42686) ->  880ms -> MT_LOGOSTOP ( 42708) ->    0ms -> MT_NOBLACKSTART ( 42708) ->   880ms -> MT_LOGOSTART ( 42730) -> SIXX
+                    if (    (diffBlackStartLogoStop >= 360) && (diffBlackStartLogoStop <=  1400) &&
+                            (diffLogoStopBlackStop  >=   0) && (diffLogoStopBlackStop  <=   360) &&
                             (diffBlackStopLogoStart >= 520) && (diffBlackStopLogoStart <= 24320)) {
-                        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is valid", mark->position);
+                        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence around end mark is valid", mark->position);
                         return true;
                     }
-                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence is invalid", mark->position);
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence around end mark is invalid", mark->position);
                 }
             }
         }
