@@ -5835,7 +5835,27 @@ bool cMarkAdStandalone::SetFileUID(char *file) {
 
 
 time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
-    // get recording start from atime of directory (if the volume is mounted with noatime)
+    // get recording start from directory name (time part)
+    const char *timestr = strrchr(directory, '/');
+    if (timestr) {
+        timestr++;
+        if (isdigit(*timestr)) {
+            time_t now = time(nullptr);
+            struct tm tm_r;
+            struct tm t = *localtime_r(&now, &tm_r); // init timezone
+            if (sscanf(timestr, "%4d-%02d-%02d.%02d%*c%02d", &t.tm_year, &t.tm_mon, &t.tm_mday, &t.tm_hour, & t.tm_min)==5) {
+                t.tm_year -= 1900;
+                t.tm_mon--;
+                t.tm_sec = 0;
+                t.tm_isdst = -1;
+                time_t dirNameTime = mktime(&t);
+                dsyslog("cMarkAdStandalone::GetRecordingStart(): recording start from directory name: %s", strtok(ctime(&dirNameTime), "\n"));
+                return dirNameTime;
+            }
+        }
+    }
+
+    // fallback get recording start from atime of directory (if the volume is mounted with noatime)
     struct mntent *ent;
     struct stat   statbuf;
     FILE *mounts = setmntent(_PATH_MOUNTED, "r");
@@ -5870,24 +5890,6 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
         dsyslog("cMarkAdStandalone::GetRecordingStart(): broadcast start time from vdr info file                          %s", strtok(ctime(&start), "\n"));
     }
 
-    // fallback to the directory name (time part)
-    const char *timestr = strrchr(directory, '/');
-    if (timestr) {
-        timestr++;
-        if (isdigit(*timestr)) {
-            time_t now = time(nullptr);
-            struct tm tm_r;
-            struct tm t = *localtime_r(&now, &tm_r); // init timezone
-            if (sscanf(timestr, "%4d-%02d-%02d.%02d%*c%02d", &t.tm_year, &t.tm_mon, &t.tm_mday, &t.tm_hour, & t.tm_min)==5) {
-                t.tm_year -= 1900;
-                t.tm_mon--;
-                t.tm_sec = 0;
-                t.tm_isdst = -1;
-                dsyslog("cMarkAdStandalone::GetRecordingStart(): getting recording start from directory");
-                return mktime(&t);
-            }
-        }
-    }
     return (time_t) 0;
 }
 
