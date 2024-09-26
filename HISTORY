@@ -1,6 +1,13 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-09-29: Version 4.2.1
+- reformat man page (thx to shofmann@www.vdr-portal.de)
+- ignore VPS start event after recording interruption (thx to pmrb@www.vdr-portal.de for reporting)
+- special logo treatment for some french channel (thx to pmrb@www.vdr-portal.de for reporting)
+- get recording start time from directory name (thx to MarkusE@www.vdr-portal.de for the tip)
+- some minor bug fixes and optimizations, see git
+
 2024-09-25: Version 4.2.0
 - new feature: frame exact smart cut video without full encode (--smartencode)
 - fix crash on 32bit systems (thx to vdr_rossi@www.vdr-portal.de for reporting)
