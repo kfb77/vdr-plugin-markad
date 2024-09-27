@@ -53,6 +53,7 @@ int cCriteria::LogoFadeInOut() {
     if (CompareChannelName(channelName, "N24_DOKU",       IGNORE_HD))               return FADE_IN;
     if (CompareChannelName(channelName, "Nickelodeon",    IGNORE_HD))               return FADE_IN | FADE_OUT;
     if (CompareChannelName(channelName, "NICK_MTV+",      IGNORE_HD))               return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "NRJ12",          IGNORE_NOTHING))          return FADE_IN;
     if (CompareChannelName(channelName, "Pro7_MAXX",      IGNORE_HD))               return FADE_IN;
     if (CompareChannelName(channelName, "ProSieben_MAXX", IGNORE_HD))               return FADE_IN;
     if (CompareChannelName(channelName, "RTLNITRO",       IGNORE_HD))               return FADE_IN;
