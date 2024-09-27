@@ -113,15 +113,16 @@ bool cCriteria::LogoInNewsTicker() {
 
 bool cCriteria::InfoInBorder() {   // info logo or closing banner in one of the border
     if (!channelName) return false;
-    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "NITRO",          IGNORE_HD)) return true;  // closing credits banner in lower border
-    if (CompareChannelName(channelName, "RTLZWEI",        IGNORE_HD)) return true;
-//  if (CompareChannelName(channelName, "SUPER_RTL",      IGNORE_HD)) return true;  // channel has black framed ad
-    if (CompareChannelName(channelName, "SAT_1_Gold",     IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD)) return true;
-    if (CompareChannelName(channelName, "TF1",            IGNORE_HD)) return true;  // closing banner in border
-    if (CompareChannelName(channelName, "VOX",            IGNORE_HD)) return true;  // closing credits banner in lower border
-
+    if (CompareChannelName(channelName, "Disney_Channel",   IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "NITRO",            IGNORE_HD))      return true;  // closing credits banner in lower border
+    if (CompareChannelName(channelName, "RTLZWEI",          IGNORE_HD))      return true;
+//  if (CompareChannelName(channelName, "SUPER_RTL",        IGNORE_HD)) return true;  // channel has black framed ad
+    if (CompareChannelName(channelName, "SAT_1_Gold",       IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "TELE_5",           IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "TF1",              IGNORE_NOTHING)) return true;  // closing banner in border
+    if (CompareChannelName(channelName, "TF1_Séries_Films", IGNORE_NOTHING)) return true;  // closing banner in border
+    if (CompareChannelName(channelName, "TV5MONDE_EUROPE",  IGNORE_HD))      return true;  // blue/white banner in border
+    if (CompareChannelName(channelName, "VOX",              IGNORE_HD))      return true;  // closing credits banner in lower border
     return false;
 }
 
