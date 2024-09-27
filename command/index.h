@@ -107,7 +107,7 @@ public:
     /**
      * get key packet after packetNumber
      * @param packetNumber packet number
-     * @param beforePTS    PTS of key packet number after
+     * @param afterPTS     PTS of key packet number after
      * @return             number of key packet frame after packetNumber
      */
     int GetKeyPacketNumberAfter(int packetNumber, int64_t *afterPTS = nullptr);
