@@ -404,9 +404,9 @@ private:
     //!<
     cCriteria *criteria          = nullptr;               //!< pointer to class with decoding states and criteria
     //!<
-    bool logoInBorder            = false;                 //!< true if channel has logo in border
+    int brightnessSure           = INT_MAX;               //!< lower limit for hborder
     //!<
-    bool infoInBorder            = false;                 //!< true if channel has info banner in border
+    int brightnessMaybe          = INT_MAX;               //!< upper limit for hborder
     //!<
     int frameRate                = 0;                     //!< frame rate
     //!<

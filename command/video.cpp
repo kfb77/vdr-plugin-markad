@@ -1388,8 +1388,13 @@ cHorizBorderDetect::cHorizBorderDetect(cDecoder *decoderParam, cIndex *indexPara
     index        = indexParam;
     criteria     = criteriaParam;
     frameRate    = decoder->GetVideoFrameRate();
-    logoInBorder = criteria->LogoInBorder();
-    infoInBorder = criteria->InfoInBorder();
+    // set limits
+#define BRIGHTNESS_H_SURE    22
+#define BRIGHTNESS_H_MAYBE  148  // some channel have infos in border, so we will detect a higher value, changed from 137 to 148
+    brightnessSure  = BRIGHTNESS_H_SURE;
+    if (criteria->LogoInBorder()) brightnessSure = BRIGHTNESS_H_SURE + 1;  // for pixel from logo
+    brightnessMaybe = BRIGHTNESS_H_SURE;
+    if (criteria->InfoInBorder()) brightnessMaybe = BRIGHTNESS_H_MAYBE;    // for pixel from info in border
     Clear();
 }
 
@@ -1422,13 +1427,11 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
     if (!hBorderPacketNumber) return HBORDER_ERROR;
     if (!hBorderFramePTS)     return HBORDER_ERROR;
 #define CHECKHEIGHT           5  // changed from 8 to 5
-#define BRIGHTNESS_H_SURE    22
-#define BRIGHTNESS_H_MAYBE  148  // some channel have logo or infos in border, so we will detect a higher value, changed from 137 to 148
 #define NO_HBORDER          200  // internal limit for early loop exit, must be more than BRIGHTNESS_H_MAYBE
 
-    int packetNumber = decoder->GetPacketNumber();
     int64_t framePTS = decoder->GetFramePTS();
     if (framePTS < 0) return HBORDER_ERROR;     // frame not valid
+    int packetNumber = decoder->GetPacketNumber();
 
     sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
@@ -1440,15 +1443,9 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
         return HBORDER_ERROR;
     }
     if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cHorizBorderDetect::Process::Process(): packet (%d): picture planeLineSize[0] valid", decoder->GetPacketNumber());
+        dsyslog("cHorizBorderDetect::Process::Process(): packet (%d): picture planeLineSize[0] invalid", decoder->GetPacketNumber());
         return HBORDER_ERROR;
     }
-
-    // set limits
-    int brightnessSure  = BRIGHTNESS_H_SURE;
-    if (logoInBorder) brightnessSure = BRIGHTNESS_H_SURE + 1;  // for pixel from logo
-    int brightnessMaybe = BRIGHTNESS_H_SURE;
-    if (infoInBorder) brightnessMaybe = BRIGHTNESS_H_MAYBE;    // for pixel from info in border
 
     *hBorderPacketNumber = -1;   // packet number of first hborder, otherwise -1
     *hBorderFramePTS     = -1;   // frame  number of first hborder, otherwise -1
