@@ -578,8 +578,9 @@ bool cEncoder::CheckStats(const int max_b_frames) const {
 
 char *cEncoder::GetEncoderName(const int streamIndexIn) {
     // map decoder name to encoder name
+    // codec         vaapi           cuda
     // mpeg2video -> mpeg2_vaapi
-    // h264       -> h264_vaapi
+    // h264       -> h264_vaapi      h264_nvenc
     // HVEC
     char *encoderName = nullptr;
     char *hwaccelName = decoder->GetHWaccelName();
@@ -596,8 +597,21 @@ char *cEncoder::GetEncoderName(const int streamIndexIn) {
         return encoderName;
     }
     if (strcmp(codecCtxArrayIn[streamIndexIn]->codec->name, "h264") == 0 ) {
-        if (asprintf(&encoderName,"h264_%s", hwaccelName) == -1) {
-            dsyslog("cEncoder::GetEncoderName(): failed to allocate string, out of memory");
+        switch (decoder->GetHWDeviceType()) {
+        case AV_HWDEVICE_TYPE_VAAPI:
+            if (asprintf(&encoderName,"h264_%s", hwaccelName) == -1) {
+                dsyslog("cEncoder::GetEncoderName(): failed to allocate string, out of memory");
+                return nullptr;
+            }
+            break;
+        case AV_HWDEVICE_TYPE_CUDA:
+            if (asprintf(&encoderName,"h264_nvenc") == -1) {
+                dsyslog("cEncoder::GetEncoderName(): failed to allocate string, out of memory");
+                return nullptr;
+            }
+            break;
+        default:
+            esyslog("cEncoder::GetEncoderName(): unknown hardware device type, fallback to software encoding");
             return nullptr;
         }
         ALLOC(strlen(encoderName) + 1, "encoderName");
@@ -720,6 +734,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: keyint_min %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->keyint_min);
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: bit_rate %" PRId64, streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate);
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: rc_max_rate %" PRId64, streamIndexIn, codecCtxArrayIn[streamIndexIn]->rc_max_rate);
+            dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: max_b_frames %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->max_b_frames);
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: bit_rate_tolerance %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->bit_rate_tolerance);
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: global_quality %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->global_quality);
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: sample_rate %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->sample_rate);
@@ -828,7 +843,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
             codecCtxArrayOut[streamIndexOut]->level        = codecCtxArrayIn[streamIndexIn]->level;
             codecCtxArrayOut[streamIndexOut]->gop_size     = 32;
             codecCtxArrayOut[streamIndexOut]->keyint_min   = 1;
-            codecCtxArrayOut[streamIndexOut]->max_b_frames = 7;
+            codecCtxArrayOut[streamIndexOut]->max_b_frames = 4;  // changed from 7 to 4, Nvenc does not support more
             // set pass stats file
             char *passlogfile;
             if (asprintf(&passlogfile,"%s/encoder", recDir) == -1) {
