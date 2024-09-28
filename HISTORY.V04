@@ -1,7 +1,0 @@
-- new decoder with hardware acceleration support
-- remove parameter "saveinfo"
-- remove parameter "pass1only"
-- remove parameter "pass2only"
-- remove parameter "astopoffs"
-- remove parameter "posttimer"
-- add parameter "--hwaccel=<methode>"
