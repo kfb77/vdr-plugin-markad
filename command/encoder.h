@@ -215,11 +215,11 @@ private:
     bool DrainVideoReEncode(const int64_t stopPTS);
 
     /**
-     * calculate and set encoder queue PTS/DTS offset
+     * calculate and set encoder queue PTS/DTS offset for smart re-encode
      * @param avpkt current output packet
      * @param startPart true if re-encode around start mark, false otherwise
      */
-    void SetReEncodeOffset(AVPacket *avpkt, const bool startPart);
+    void SetSmartReEncodeOffset(AVPacket *avpkt, const bool startPart);
 
     /**
      * change audio encoder channel count
@@ -345,6 +345,8 @@ private:
         //!<
         int64_t offsetDTSReEncode   =  0;                    //!< additional DTS offset for re-encoded packets
         //!<
+        int64_t offsetDTSReceive    =  0;                    //!< additional DTS offset for re-encoded packets with PTS < DTS (found with h264_nvenc)
+        //!<
         int64_t videoPacketDuration =  0;                    //!< duration of video packet
         //!<
         int state                   = CUT_STATE_FIRSTPACKET; //!< state of smart cut
@@ -364,13 +366,13 @@ private:
     //!<
 
 #ifdef DEBUG_PTS_DTS_CUT
-    int64_t inputPacketPTSbefore[MAXSTREAMS]     = {-1};
-    int64_t inputFramePTSbefore[MAXSTREAMS]      = {-1};
     int64_t inputKeyPacketPTSbefore[MAXSTREAMS]  = {-1};
     int64_t outputKeyPacketPTSbefore[MAXSTREAMS] = {-1};
-    int64_t lastInDTS[MAXSTREAMS]                = {-1};      //!< dts of last input packet
-    int64_t lastFrameInDTS[MAXSTREAMS]           = {-1};      //!< dts of last input frame send to encoder
-    int64_t lastPacketOutDTS[MAXSTREAMS]         = {-1};      //!< dts of last output packet from encoder
+    int64_t lastPacketInPTS[MAXSTREAMS]          = {-1};      //!< PTS of last input packet
+    int64_t lastPacketInDTS[MAXSTREAMS]          = {-1};      //!< DTS of last input packet
+    int64_t lastPacketOutDTS[MAXSTREAMS]         = {-1};      //!< DTS of last output packet from encoder
+    int64_t lastFrameInPTS[MAXSTREAMS]           = {-1};      //!< PTS of last input frame from decoder, send to encoder
+    int64_t lastFrameInDTS[MAXSTREAMS]           = {-1};      //!< DTS of last input frame from decoder, send to encoder
     //!<
 #endif
 };
