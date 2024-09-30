@@ -740,6 +740,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: sample_rate %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->sample_rate);
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: gop_size %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->gop_size);
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: level %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->level);
+            dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: color_range %d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->color_range);
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: aspect ratio %d:%d", streamIndexIn, codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.num, codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.den);
             dsyslog("cEncoder::InitEncoderCodec(): video input format context : bit_rate %" PRId64, avctxIn->bit_rate);
         }
@@ -835,15 +836,20 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
                     codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_PASS2;
                 }
             }
-            av_opt_set_int(codecCtxArrayOut[streamIndexOut]->priv_data, "b_strategy", 0, 0); // keep fixed B frames in GOP, additional needed after force-crf
-            av_opt_set(codecCtxArrayOut[streamIndexOut]->priv_data, "x264opts", "force-cfr", 0);  // constand frame rate
-            codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_CLOSED_GOP;
+//            av_opt_set_int(codecCtxArrayOut[streamIndexOut]->priv_data, "b_strategy", 0, 0); // keep fixed B frames in GOP, additional needed after force-crf
+//            av_opt_set(codecCtxArrayOut[streamIndexOut]->priv_data, "x264opts", "force-cfr", 0);  // constand frame rate
+//            codecCtxArrayOut[streamIndexOut]->flags |= AV_CODEC_FLAG_CLOSED_GOP;
 
-            codecCtxArrayOut[streamIndexOut]->bit_rate     = bit_rate;  // adapt target bit rate
-            codecCtxArrayOut[streamIndexOut]->level        = codecCtxArrayIn[streamIndexIn]->level;
-            codecCtxArrayOut[streamIndexOut]->gop_size     = 32;
-            codecCtxArrayOut[streamIndexOut]->keyint_min   = 1;
-            codecCtxArrayOut[streamIndexOut]->max_b_frames = 4;  // changed from 7 to 4, Nvenc does not support more
+            codecCtxArrayOut[streamIndexOut]->bit_rate        = bit_rate;  // adapt target bit rate
+            codecCtxArrayOut[streamIndexOut]->level           = codecCtxArrayIn[streamIndexIn]->level;
+            codecCtxArrayOut[streamIndexOut]->gop_size        = codecCtxArrayIn[streamIndexIn]->gop_size;
+            codecCtxArrayOut[streamIndexOut]->keyint_min      = codecCtxArrayIn[streamIndexIn]->keyint_min;
+            codecCtxArrayOut[streamIndexOut]->max_b_frames    = codecCtxArrayIn[streamIndexIn]->max_b_frames;
+            codecCtxArrayOut[streamIndexOut]->color_range     = codecCtxArrayIn[streamIndexIn]->color_range;
+            codecCtxArrayOut[streamIndexOut]->colorspace      = codecCtxArrayIn[streamIndexIn]->colorspace;
+            codecCtxArrayOut[streamIndexOut]->color_trc       = codecCtxArrayIn[streamIndexIn]->color_trc;
+            codecCtxArrayOut[streamIndexOut]->color_primaries = codecCtxArrayIn[streamIndexIn]->color_primaries;
+
             // set pass stats file
             char *passlogfile;
             if (asprintf(&passlogfile,"%s/encoder", recDir) == -1) {
@@ -903,6 +909,7 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
 
             dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: gop_size %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->gop_size);
             dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: level %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->level);
+            dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: color_range %d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->color_range);
             dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: aspect ratio %d:%d", streamIndexOut, codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.num, codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.den);
         }
     }
@@ -1260,7 +1267,9 @@ void cEncoder::SetSmartReEncodeOffset(AVPacket *avpkt, const bool startPart) {
         dsyslog("cEncoder:SetReEncodeOffset(): re-encode offset PTS %5" PRId64 ": duration %" PRId64 ", PTS %" PRId64 ", offset %" PRId64 ", maxPTSofGOP %" PRId64, cutInfo.offsetPTSReEncode, avpkt->duration, avpkt->pts, cutInfo.offset, streamInfo.maxPTSofGOP);
     default: // rest of re-encoded packets, adjust DTS offset to one packet duration after last output packet DTS
         cutInfo.offsetDTSReEncode = avpkt->dts - cutInfo.offset - streamInfo.lastOutDTS[videoOutputStreamIndex] - avpkt->duration;
+#ifdef DEBUG_PTS_DTS_CUT
         dsyslog("cEncoder:SetReEncodeOffset(): re-encode offset DTS %5" PRId64 ": duration %" PRId64 ", DTS %" PRId64 ", offset %" PRId64 ", last DTS    %" PRId64, cutInfo.offsetDTSReEncode, avpkt->duration, avpkt->dts, cutInfo.offset, streamInfo.lastOutDTS[videoOutputStreamIndex]);
+#endif
         break;
     }
     if (avpkt->pts != AV_NOPTS_VALUE) avpkt->pts -= cutInfo.offsetPTSReEncode;
@@ -1529,7 +1538,11 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
                             return false;
                         }
                     }
-                    else dsyslog("cEncoder::CutSmart(): frame from decoder: PTS %" PRId64 ": drop frame before start PTS %" PRId64, decoder->GetFramePTS(), startMark->pts);
+                    else {
+#ifdef DEBUG_PTS_DTS_CUT
+                        dsyslog("cEncoder::CutSmart(): frame from decoder: PTS %" PRId64 ": drop frame before start PTS %" PRId64, decoder->GetFramePTS(), startMark->pts);
+#endif
+                    }
                 }
             }
             else { // copy non video packet
@@ -1612,7 +1625,9 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
             }
             streamInfo.lastInPTS[avpkt->stream_index] = avpkt->pts;
             if (decoder->IsVideoPacket()) {  // re-encode video packet
+#ifdef DEBUG_PTS_DTS_CUT
                 dsyslog("cEncoder::CutSmart(): stop in (%d), flags %d, duration %" PRId64 ", PTS %" PRId64 ", DTS %" PRId64 ": re-encode video packet in end part", decoder->GetPacketNumber(), avpkt->flags, avpkt->duration, avpkt->pts, avpkt->dts);
+#endif
                 if (avpkt->pts == stopMark->pts) {
                     cutInfo.stopPTS = avpkt->pts;
                     cutInfo.stopDTS = avpkt->dts;
@@ -1620,7 +1635,9 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
                 }
                 cutInfo.videoPacketDuration = avpkt->duration;
                 if (decoder->DecodePacket()) {
+#ifdef DEBUG_PTS_DTS_CUT
                     dsyslog("cEncoder::CutSmart(): video frame PTS %" PRId64, decoder->GetFramePTS());
+#endif
                     if (decoder->GetFramePTS() <= stopMark->pts) {
                         if (!EncodeVideoFrame()) {
                             esyslog("cEncoder::CutSmart(): decoder packet (%d): EncodeVideoFrame() failed", decoder->GetPacketNumber());
@@ -1628,7 +1645,9 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
                         }
                     }
                     else {
+#ifdef DEBUG_PTS_DTS_CUT
                         dsyslog("cEncoder::CutSmart(): packet (%d): drop video input frame with PTS %" PRId64 " after stop mark PTS %" PRId64, decoder->GetPacketNumber(), decoder->GetFramePTS(), stopMark->pts);
+#endif
                         decoder->DropFrame();     // we do not use this frame, cleanup buffer
                     }
                 }
