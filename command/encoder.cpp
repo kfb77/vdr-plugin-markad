@@ -1254,26 +1254,32 @@ bool cEncoder::ResetDecoderEncodeCodec() {
 // set additional PTS/DTS offset from encoder to fit before/after packets copied
 void cEncoder::SetSmartReEncodeOffset(AVPacket *avpkt, const bool startPart) {
     switch (cutInfo.state) {
-    case CUT_STATE_FIRSTPACKET: // first packet back from encoder from first start mark, set DTS PTS diff from start mark of input stream
+    case CUT_STATE_FIRSTPACKET: // first packet back from encoder from first start mark, set PTS and PTS to start mark of input stream
         if (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264) {
+            dsyslog("cEncoder::SetSmartReEncodeOffset(): start packet in  before re-encode PTS %" PRId64 ", DTS %" PRId64, cutInfo.startPTS, cutInfo.startDTS);
+            dsyslog("cEncoder::SetSmartReEncodeOffset(): start packet out after  re-encode PTS %" PRId64 ", DTS %" PRId64, avpkt->pts, avpkt->dts);
+            cutInfo.offsetPTSReEncode = cutInfo.startPTS - avpkt->pts; // start with same PTS as input stream
             cutInfo.offsetDTSReEncode = cutInfo.startDTS - avpkt->dts; // start with same DTS as input stream
-            cutInfo.offsetPTSReEncode = cutInfo.offsetDTSReEncode;
-            dsyslog("cEncoder::SetReEncodeOffset(): packet of first start mark: set offset %" PRId64, cutInfo.offsetDTSReEncode);
+            dsyslog("cEncoder::SetSmartReEncodeOffset(): set re-encoded recording start offset PTS %" PRId64 ", DTS %" PRId64, cutInfo.offsetPTSReEncode, cutInfo.offsetDTSReEncode);
         }
         cutInfo.state = CUT_STATE_NULL;
         break;
-    case CUT_STATE_START:   // adjust first key packet PTS to packet duration after max last GOP
-        cutInfo.offsetPTSReEncode = avpkt->pts - cutInfo.offset - streamInfo.maxPTSofGOP - avpkt->duration;
-        dsyslog("cEncoder:SetReEncodeOffset(): re-encode offset PTS %5" PRId64 ": duration %" PRId64 ", PTS %" PRId64 ", offset %" PRId64 ", maxPTSofGOP %" PRId64, cutInfo.offsetPTSReEncode, avpkt->duration, avpkt->pts, cutInfo.offset, streamInfo.maxPTSofGOP);
-    default: // rest of re-encoded packets, adjust DTS offset to one packet duration after last output packet DTS
-        cutInfo.offsetDTSReEncode = avpkt->dts - cutInfo.offset - streamInfo.lastOutDTS[videoOutputStreamIndex] - avpkt->duration;
-#ifdef DEBUG_PTS_DTS_CUT
-        dsyslog("cEncoder:SetReEncodeOffset(): re-encode offset DTS %5" PRId64 ": duration %" PRId64 ", DTS %" PRId64 ", offset %" PRId64 ", last DTS    %" PRId64, cutInfo.offsetDTSReEncode, avpkt->duration, avpkt->dts, cutInfo.offset, streamInfo.lastOutDTS[videoOutputStreamIndex]);
-#endif
+    // adjust first output key packet PTS from re-encode part to packet duration after max last GOP and DTS to packet duration after last packet
+    case CUT_STATE_START:
+    case CUT_STATE_STOP:
+        cutInfo.offsetPTSReEncode = cutInfo.offset + streamInfo.maxPTSofGOP + avpkt->duration - avpkt->pts;
+        cutInfo.offsetDTSReEncode = cutInfo.offset + streamInfo.lastOutDTS[videoOutputStreamIndex] + avpkt->duration - avpkt->dts;
+        dsyslog("cEncoder::SetSmartReEncodeOffset(): set re-encoded offset PTS %" PRId64 ", DTS %" PRId64, cutInfo.offsetPTSReEncode, cutInfo.offsetDTSReEncode);
+        cutInfo.state = CUT_STATE_NULL;
+        break;
+    default:
         break;
     }
-    if (avpkt->pts != AV_NOPTS_VALUE) avpkt->pts -= cutInfo.offsetPTSReEncode;
-    if (avpkt->dts != AV_NOPTS_VALUE) avpkt->dts -= cutInfo.offsetDTSReEncode;
+#ifdef DEBUG_CUT_OFFSET
+    dsyslog("cEncoder:SetSmartReEncodeOffset(): current re-encode offset PTS %" PRId64 ", DTS %" PRId64, cutInfo.offsetPTSReEncode, cutInfo.offsetDTSReEncode);
+#endif
+    if (avpkt->pts != AV_NOPTS_VALUE) avpkt->pts += cutInfo.offsetPTSReEncode;
+    if (avpkt->dts != AV_NOPTS_VALUE) avpkt->dts += cutInfo.offsetDTSReEncode;
 }
 
 
@@ -1538,11 +1544,9 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
                             return false;
                         }
                     }
-                    else {
 #ifdef DEBUG_PTS_DTS_CUT
-                        dsyslog("cEncoder::CutSmart(): frame from decoder: PTS %" PRId64 ": drop frame before start PTS %" PRId64, decoder->GetFramePTS(), startMark->pts);
+                    else dsyslog("cEncoder::CutSmart(): frame from decoder: PTS %" PRId64 ": drop frame before start PTS %" PRId64, decoder->GetFramePTS(), startMark->pts);
 #endif
-                    }
                 }
             }
             else { // copy non video packet
@@ -1552,7 +1556,9 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
                         return false;
                     }
                 }
+#ifdef DEBUG_PTS_DTS_CUT
                 else dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: flags %d, PTS %" PRId64 ": drop packet %6" PRId64 " before start PTS %" PRId64, decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, startMark->pts - avpkt->pts, startMark->pts);
+#endif
             }
             if (!decoder->ReadNextPacket()) return false;
             avpkt = decoder->GetPacket();
@@ -1617,6 +1623,7 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
     if (avpkt->pts < stopMark->pts) {
         LogSeparator();
         dsyslog("cEncoder::CutSmart(): re-encode in stop part from key packet before stop mark (%d) to key packet after stop mark (%d)", decoder->GetPacketNumber(), keyPacketNumberAfterStop - 1);
+        cutInfo.state = CUT_STATE_STOP;
         while (decoder->GetPacketNumber() < keyPacketNumberAfterStop) {
             if (abortNow) return false;
             if (rollover) {
@@ -1659,7 +1666,9 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
                         return false;
                     }
                 }
+#ifdef DEBUG_PTS_DTS_CUT
                 else dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: flags %d, PTS %" PRId64 ": drop packet before start PTS %" PRId64, decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, startMark->pts);
+#endif
             }
             if (!decoder->ReadNextPacket()) return false;
             avpkt = decoder->GetPacket();
@@ -1945,8 +1954,8 @@ bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
         esyslog("cEncoder::WritePacket():  out (%d): invalid packet", decoder->GetPacketNumber());  // packet invalid, try next
         return true;
     }
-#ifdef DEBUG_PTS_DTS_CUT
-    if ((avpkt->stream_index == DEBUG_PTS_DTS_CUT) || (DEBUG_PTS_DTS_CUT == -1)) {
+#ifdef DEBUG_CUT_WRITE
+    if ((avpkt->stream_index == DEBUG_CUT_WRITE) || (DEBUG_CUT_WRITE == -1)) {
         dsyslog("cEncoder::WritePacket():  out (%5d), stream %d: flags %d, PTS %10ld, DTS %10ld", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts);
     }
 #endif
@@ -1966,9 +1975,9 @@ bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
         if (avpkt->pts != AV_NOPTS_VALUE) avpkt->pts -= cutInfo.offset;
         if (avpkt->dts != AV_NOPTS_VALUE) avpkt->dts -= cutInfo.offset;
     }
-#ifdef DEBUG_PTS_DTS_CUT
-    if ((avpkt->stream_index == DEBUG_PTS_DTS_CUT) || (DEBUG_PTS_DTS_CUT == -1)) {
-        dsyslog("cEncoder::WritePacket():  out (%5d), stream %d: flags %d, PTS %10ld, DTS %10ld, diff: PTS key %8ld, DTS %5ld, offset %5ld", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts, (outputKeyPacketPTSbefore[avpkt->stream_index] >= 0) ? avpkt->pts - outputKeyPacketPTSbefore[avpkt->stream_index] : -1, avpkt->dts - streamInfo.lastOutDTS[avpkt->stream_index], cutInfo.offset);
+#ifdef DEBUG_CUT_WRITE
+    if ((avpkt->stream_index == DEBUG_CUT_WRITE) || (DEBUG_CUT_WRITE == -1)) {
+        dsyslog("cEncoder::WritePacket():  out (%5d), stream %d: flags %d, PTS %10ld, DTS %10ld, diff: PTS key %8ld, DTS %5ld, diff PTS/DTS % " PRId64 ", offset %5ld", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts, (outputKeyPacketPTSbefore[avpkt->stream_index] >= 0) ? avpkt->pts - outputKeyPacketPTSbefore[avpkt->stream_index] : -1, (streamInfo.lastOutDTS[avpkt->stream_index] >= 0) ? avpkt->dts - streamInfo.lastOutDTS[avpkt->stream_index] : -1, avpkt->pts - avpkt->dts, cutInfo.offset);
         if (avpkt->flags & AV_PKT_FLAG_KEY) outputKeyPacketPTSbefore[avpkt->stream_index] = avpkt->pts;
         LogSeparator();
     }

@@ -365,9 +365,11 @@ private:
     } stats_in;                  //!< variable for statistic data for 2 pass encoding
     //!<
 
+#ifdef DEBUG_CUT_WRITE
+    int64_t outputKeyPacketPTSbefore[MAXSTREAMS] = {-1};
+#endif
 #ifdef DEBUG_PTS_DTS_CUT
     int64_t inputKeyPacketPTSbefore[MAXSTREAMS]  = {-1};
-    int64_t outputKeyPacketPTSbefore[MAXSTREAMS] = {-1};
     int64_t lastPacketInPTS[MAXSTREAMS]          = {-1};      //!< PTS of last input packet
     int64_t lastPacketInDTS[MAXSTREAMS]          = {-1};      //!< DTS of last input packet
     int64_t lastPacketOutDTS[MAXSTREAMS]         = {-1};      //!< DTS of last output packet from encoder
