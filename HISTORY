@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-10-05: Version 4.2.2
+- hwaccel: use h264_nvenc encoder after decoding with cuda (thx to wmautner@www.vdr-portal.de for reporting)
+- encoder: fix missing color space
+  this fixed post processing of cut result with FFmpeg transcoding to H.265 (thx to wmautner@www.vdr-portal.de for reporting and a lot of testing)
+- some minor bug fixes and optimizations, see git
+
 2024-09-29: Version 4.2.1
 - reformat man page (thx to shofmann@www.vdr-portal.de)
 - ignore VPS start event after recording interruption (thx to pmrb@www.vdr-portal.de for reporting)
