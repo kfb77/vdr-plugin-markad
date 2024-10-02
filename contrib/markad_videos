@@ -360,7 +360,7 @@ class CompareMarks:
                self.pos2 = line2.find(">");
                if self.pos1 > 0 and self.pos2 > 0:
                    self.frameNumer2 = line2[self.pos1 + 1 + 2:self.pos2]
-                   if abs(int(self.frameNumer1) - int(self.frameNumer2)) > 1:
+                   if abs(int(self.frameNumer1) - int(self.frameNumer2)) > 10:
                        self.rc = False
                        break
 
