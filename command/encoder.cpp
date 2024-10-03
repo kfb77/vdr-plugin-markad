@@ -1611,9 +1611,10 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
             }
         }
         else {
-            if (avpkt->pts != AV_NOPTS_VALUE) dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: flags %d, PTS %" PRId64", DTS %" PRId64 ": drop packet %6" PRId64 " before start PTS %" PRId64, decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts, startMark->pts - avpkt->pts, startMark->pts);
-            else dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: flags %d, PTS %" PRId64", DTS %" PRId64 ": PTS = AV_NOPTS_VALUE, drop packet", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts);
-
+            if (avpkt->pts == AV_NOPTS_VALUE) dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: flags %d, PTS %" PRId64", DTS %" PRId64 ": PTS = AV_NOPTS_VALUE, drop packet", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts);
+#ifdef DEBUG_PTS_DTS_CUT
+            else dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: flags %d, PTS %" PRId64", DTS %" PRId64 ": drop packet %6" PRId64 " before start PTS %" PRId64, decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts, startMark->pts - avpkt->pts, startMark->pts);
+#endif
         }
         if (!decoder->ReadNextPacket()) return false;
         avpkt = decoder->GetPacket();
