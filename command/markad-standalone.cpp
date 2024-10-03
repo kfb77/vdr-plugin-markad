@@ -4149,6 +4149,9 @@ void cMarkAdStandalone::DebugMarkFrames() {
     if (!decoder) return;
 
     LogSeparator(true);
+    dsyslog("cMarkAdStandalone::DebugMarkFrames(): final marks:");
+    marks.Debug();
+
     decoder->Restart();   // restart decoder with first frame
     cMark *mark = marks.GetFirst();
     if (!mark) return;

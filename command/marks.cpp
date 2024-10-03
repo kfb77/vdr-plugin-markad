@@ -113,14 +113,14 @@ void cMarks::Debug() {           // write all marks to log file
                     char *markOldType = TypeToText(mark->oldType);
                     char *markNewType = TypeToText(mark->newType);
                     if (markOldType && markNewType) {
-                        dsyslog("mark at position %6d: %-5s %-18s at %s, inBroadCast %d, old type: %s %s, new type: %s %s", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->inBroadCast, markOldType, ((mark->oldType & 0x0F) == MT_START)? "start" : "stop", markNewType, ((mark->newType & 0x0F) == MT_START)? "start" : "stop");
+                        dsyslog("mark at position %6d: %-5s %-18s at %s, PTS %" PRId64 ", inBroadCast %d, old type: %s %s, new type: %s %s", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->pts, mark->inBroadCast, markOldType, ((mark->oldType & 0x0F) == MT_START)? "start" : "stop", markNewType, ((mark->newType & 0x0F) == MT_START)? "start" : "stop");
                         FREE(strlen(markOldType)+1, "text");
                         free(markOldType);
                         FREE(strlen(markNewType)+1, "text");
                         free(markNewType);
                     }
                 }
-                else dsyslog("mark at position %6d: %-5s %-18s at %s, inBroadCast %d", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->inBroadCast);
+                else dsyslog("mark at position %6d: %-5s %-18s at %s, PTS %" PRId64 ", inBroadCast %d", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->pts, mark->inBroadCast);
                 FREE(strlen(markType)+1, "text");
                 free(markType);
             }
