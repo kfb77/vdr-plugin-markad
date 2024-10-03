@@ -806,6 +806,13 @@ int64_t cDecoder::GetPacketPTS() const {
 }
 
 
+#ifdef DEBUG_MARK_FRAMES
+int64_t cDecoder::GetPacketDuration() const {
+    return avpkt.duration;
+}
+#endif
+
+
 int cDecoder::GetVolume() {
     if (!fullDecode) return -1;                           // no audio frames decoded
     if (avpkt.stream_index != firstMP2Index) return -1;   // only check first MP2 stream

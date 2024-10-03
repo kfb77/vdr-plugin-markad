@@ -360,6 +360,11 @@ public:
      */
     int64_t GetPacketPTS() const;
 
+    /** get current packet duration
+     * @return duration
+     */
+    int64_t GetPacketDuration() const;
+
     /** get current vulume of MP2 stream
      * @return MP2 volume
      */
