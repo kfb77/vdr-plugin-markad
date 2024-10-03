@@ -540,13 +540,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax  = 166;
         }
 
-//   4 SAT_1_Gold              16:9  720W  576H:->  128W  74H TOP_RIGHT
+//   1 SAT_1_Gold              16:9  720W  576H:->  114W  62H TOP_RIGHT    03.10.2024 new logo
+//   5 SAT_1_Gold              16:9  720W  576H:->  128W  74H TOP_RIGHT
 //   6 SAT_1_Gold              16:9  720W  576H:->  130W  74H TOP_RIGHT
 //   1 SAT_1_Gold              16:9  720W  576H:->  130W  76H TOP_RIGHT
         if (CompareChannelName(channelName, "SAT_1_Gold", IGNORE_NOTHING)) {
-            logo.widthMin  = 118;
+            logo.widthMin  = 104;
             logo.widthMax  = 140;
-            logo.heightMin =  64;
+            logo.heightMin =  52;
             logo.heightMax =  86;
         }
 
@@ -781,7 +782,7 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMin  = 136;
             logo.widthMax  = 198;
             logo.heightMin =  84;
-            logo.heightMax = 106;
+            logo.heightMax = 105;   // prevent to accept "heute Xpress" as logo
         }
 
         //   1 ZDFinfo_HD              16:9 1280W  720H:->  160W  86H TOP_LEFT
