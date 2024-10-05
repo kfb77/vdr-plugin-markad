@@ -2072,25 +2072,8 @@ AVPacket *cEncoder::ReceivePacketFromEncoder(const int streamIndexOut) {
 
     // receive packet from decoder
     int rcReceive = avcodec_receive_packet(avCodecCtx, avpktOut);
-    if (rcReceive < 0) {
-        switch (rcReceive) {
-        case AVERROR(EAGAIN):
-#ifdef DEBUG_ENCODER
-            dsyslog("cEncoder::ReceivePacketFromEncoder(): decoder packet (%d): avcodec_receive_packet() error EAGAIN", decoder->GetPacketNumber());
-#endif
-            break;
-        case AVERROR(EINVAL):
-            dsyslog("cEncoder::ReceivePacketFromEncoder(): decoder packet (%d): avcodec_receive_packet() error EINVAL", decoder->GetPacketNumber());
-            break;
-        case AVERROR_EOF:
-            dsyslog("cEncoder::ReceivePacketFromEncoder(): decoder packet (%d): avcodec_receive_packet() end of file (AVERROR_EOF)", decoder->GetPacketNumber());
-            break;
-        default:
-            esyslog("cEncoder::ReceivePacketFromEncoder(): decoder packet (%d): avcodec_receive_packet() failed with rc = %d: %s", decoder->GetPacketNumber(), rcReceive, av_err2str(rcReceive));
-            break;
-        }
-    }
-    if (rcReceive == 0) {
+    switch (rcReceive) {
+    case 0:  // got packet
 #ifdef DEBUG_ENCODER
         if (avpktOut->stream_index == 0) {
             dsyslog("cEncoder::ReceivePacketFromEncoder(): decoder packet (%d), PTS %ld, DTS %ld: diff DTS %ld, avcodec_receive_packet() successful", decoder->GetPacketNumber(), avpktOut->pts, avpktOut->dts, avpktOut->dts - lastPacketOutDTS[avpktOut->stream_index]);
@@ -2106,12 +2089,25 @@ AVPacket *cEncoder::ReceivePacketFromEncoder(const int streamIndexOut) {
             return nullptr;
         }
         return avpktOut;
+        break;
+    case AVERROR(EAGAIN):
+#ifdef DEBUG_ENCODER
+        dsyslog("cEncoder::ReceivePacketFromEncoder(): decoder packet (%d): avcodec_receive_packet() error EAGAIN", decoder->GetPacketNumber());
+#endif
+        break;
+    case AVERROR(EINVAL):
+        dsyslog("cEncoder::ReceivePacketFromEncoder(): decoder packet (%d): avcodec_receive_packet() error EINVAL", decoder->GetPacketNumber());
+        break;
+    case AVERROR_EOF:
+        dsyslog("cEncoder::ReceivePacketFromEncoder(): decoder packet (%d): avcodec_receive_packet() end of file (AVERROR_EOF)", decoder->GetPacketNumber());
+        break;
+    default:
+        esyslog("cEncoder::ReceivePacketFromEncoder(): decoder packet (%d): avcodec_receive_packet() failed with rc = %d: %s", decoder->GetPacketNumber(), rcReceive, av_err2str(rcReceive));
+        break;
     }
-    else {
-        FREE(sizeof(*avpktOut), "avpktOut");
-        av_packet_free(&avpktOut);
-        return nullptr;
-    }
+    FREE(sizeof(*avpktOut), "avpktOut");
+    av_packet_free(&avpktOut);
+    return nullptr;
 }
 
 
