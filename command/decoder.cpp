@@ -1133,7 +1133,7 @@ sVideoPicture *cDecoder::GetVideoPicture() {
 // seek read position to video packet <seekPacketNumber>
 // seek frame is read but not decoded
 bool cDecoder::SeekToPacket(int seekPacketNumber) {
-    dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d)", packetNumber, seekPacketNumber);
+    dsyslog("cDecoder::SeekToPacket(): packet (%6d): seek to packet (%d)", packetNumber, seekPacketNumber);
     if (!avctx) {  // seek without init decoder before, do it now
         dsyslog("cDecoder::SeekToPacket(): seek without decoder initialized, do it now");
         if (!ReadNextFile()) {
@@ -1143,7 +1143,7 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
     }
     // seek backward is invalid
     if (packetNumber > seekPacketNumber) {
-        esyslog("cDecoder::SeekToPacket(): packet (%d): can not seek backwards to (%d)", packetNumber, seekPacketNumber);
+        esyslog("cDecoder::SeekToPacket(): packet (%6d): can not seek backwards to (%d)", packetNumber, seekPacketNumber);
         return false;
     }
 
@@ -1166,7 +1166,7 @@ bool cDecoder::SeekToPacket(int seekPacketNumber) {
         if (packetNumber >= seekPacketNumber) break;
     }
     decoderRestart = true;
-    dsyslog("cDecoder::SeekToPacket(): packet (%d): seek to packet (%d) successful", packetNumber, seekPacketNumber);
+    dsyslog("cDecoder::SeekToPacket(): packet (%6d): seek to packet (%d) successful", packetNumber, seekPacketNumber);
     return true;
 }
 
