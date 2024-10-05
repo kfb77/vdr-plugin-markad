@@ -123,6 +123,15 @@ cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodePa
 
 cDecoder::~cDecoder() {
     Reset();
+    if (hw_device_ctx) {
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+        dsyslog("cDecoder::~cDecoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+#endif
+        if (av_buffer_get_ref_count(hw_device_ctx) > 1) esyslog("cDecoder::~cDecoder(): to much buffer references %d", av_buffer_get_ref_count(hw_device_ctx));
+        FREE(sizeof(*hw_device_ctx), "hw_device_ctx");
+        av_buffer_unref(&hw_device_ctx);  // have to unref both to reduce ref-counter
+    }
+
     if (recordingDir) {
         FREE(strlen(recordingDir), "recordingDir");
         free(recordingDir);
@@ -198,6 +207,13 @@ char *cDecoder::GetHWaccelName() {
     if (useHWaccel && hwaccel) return hwaccel;
     return nullptr;
 }
+
+
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+AVBufferRef *cDecoder::GetHardwareDeviceContext() {
+    return hw_device_ctx;
+}
+#endif
 
 
 bool cDecoder::GetForceHWaccel() const {
@@ -278,20 +294,24 @@ enum AVHWDeviceType cDecoder::GetHWDeviceType() const {
 
 
 void cDecoder::FreeCodecContext() {
-    if (hw_device_ctx) {
-        dsyslog("cDecoder::FreeCodecContext(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
-        av_buffer_unref(&hw_device_ctx);  // have to unref both to reduce ref-counter
-    }
     if (avctx && codecCtxArray) {
         for (unsigned int streamIndex = 0; streamIndex < avctx->nb_streams; streamIndex++) {
             if (codecCtxArray[streamIndex]) {
+                avcodec_flush_buffers(codecCtxArray[streamIndex]);
                 if(codecCtxArray[streamIndex]->hw_device_ctx) {
-                    dsyslog("cDecoder::FreeCodecContext(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(codecCtxArray[streamIndex]->hw_device_ctx));
-                    FREE(sizeof(*hw_device_ctx), "hw_device_ctx");
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                    dsyslog("cDecoder::FreeCodecContext(): before unref: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+#endif
                     av_buffer_unref(&codecCtxArray[streamIndex]->hw_device_ctx);
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                    dsyslog("cDecoder::FreeCodecContext(): after  unfref: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+#endif
                 }
                 FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
                 avcodec_free_context(&codecCtxArray[streamIndex]);
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                if (hw_device_ctx) dsyslog("cDecoder::FreeCodecContext(): after avcodec_free_context(): stream %d, av_buffer_get_ref_count(hw_device_ctx) %d", streamIndex, av_buffer_get_ref_count(hw_device_ctx));
+#endif
             }
         }
         FREE(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
@@ -382,6 +402,15 @@ bool cDecoder::RestartCodec(const int streamIndex) {
     // save all infos we need for open codec context
     const AVCodec *codec = codecCtxArray[streamIndex]->codec;
     // free codec context
+    if (codecCtxArray[streamIndex]->hw_device_ctx) {
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+        dsyslog("cDecoder::RestartCodec(): before unref: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+#endif
+        av_buffer_unref(&codecCtxArray[streamIndex]->hw_device_ctx);
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+        dsyslog("cDecoder::RestartCodec(): after  unref: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+#endif
+    }
     FREE(sizeof(*codecCtxArray[streamIndex]), "codecCtxArray[streamIndex]");
     avcodec_free_context(&codecCtxArray[streamIndex]);
 
@@ -395,11 +424,17 @@ bool cDecoder::RestartCodec(const int streamIndex) {
 
     // set hwaccel device
     if (useHWaccel && hw_device_ctx) {
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+        dsyslog("cDecoder::RestartCodec(): before ref: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+#endif
         codecCtxArray[streamIndex]->hw_device_ctx = av_buffer_ref(hw_device_ctx);  // link hwaccel device
         if (!codecCtxArray[streamIndex]->hw_device_ctx) {
             esyslog("cDecoder::RestartCodec(): link hwaccel device failed");
             return false;
         }
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+        dsyslog("cDecoder::RestartCodec(): after  ref: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+#endif
         codecCtxArray[streamIndex]->get_format = get_hw_format;
     }
 
@@ -512,15 +547,30 @@ bool cDecoder::InitDecoder(const char *filename) {
         // link hardware acceleration to codec context
         if (useHWaccel && (hw_pix_fmt != AV_PIX_FMT_NONE) && IsVideoStream(streamIndex)) {
             dsyslog("cDecoder::InitDecoder(): create hardware device context for %s", av_hwdevice_get_type_name(hwDeviceType));
-            int ret = av_hwdevice_ctx_create(&hw_device_ctx, hwDeviceType, NULL, NULL, 0);
-            if (ret >= 0) {
-                ALLOC(sizeof(*hw_device_ctx), "hw_device_ctx");
-                dsyslog("cDecoder::InitDecoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
-                dsyslog("cDecoder::InitDecoder(): linked hardware acceleration device %s successful for stream %d", av_hwdevice_get_type_name(hwDeviceType), streamIndex);
+            if (!hw_device_ctx) {
+                int ret = av_hwdevice_ctx_create(&hw_device_ctx, hwDeviceType, NULL, NULL, 0);
+                if (ret >= 0) {
+                    ALLOC(sizeof(*hw_device_ctx), "hw_device_ctx");
+                    dsyslog("cDecoder::InitDecoder(): hardware device context created successful for stream %d", streamIndex);
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                    dsyslog("cDecoder::InitDecoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+#endif
+                }
+                else {
+                    dsyslog("cDecoder::InitDecoder(): failed to create hardware device context %s. Error code: %s", av_hwdevice_get_type_name(hwDeviceType), av_err2str(ret));
+                    useHWaccel = false;
+                }
+            }
+            if (hw_device_ctx) {
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                dsyslog("cDecoder::InitDecoder(): before ref: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+#endif
                 codecCtxArray[streamIndex]->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-                dsyslog("cDecoder::InitDecoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(codecCtxArray[streamIndex]->hw_device_ctx));
                 if (codecCtxArray[streamIndex]->hw_device_ctx) {
-                    dsyslog("cDecoder::InitDecoder(): hardware device reference created successful for stream %d", streamIndex);
+                    dsyslog("cDecoder::InitDecoder(): linked hardware acceleration device %s successful for stream %d", av_hwdevice_get_type_name(hwDeviceType), streamIndex);
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                    dsyslog("cDecoder::InitDecoder(): after  ref: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
+#endif
                     codecCtxArray[streamIndex]->get_format = get_hw_format;
                     // fix problem with mpeg2:
                     // AVlog(): Failed to allocate a vaapi/nv12 frame from a fixed pool of hardware frames.
@@ -538,10 +588,7 @@ bool cDecoder::InitDecoder(const char *filename) {
                     useHWaccel = false;
                 }
             }
-            else {
-                dsyslog("cDecoder::InitDecoder(): failed to link hardware acceleration device %s. Error code: %s", av_hwdevice_get_type_name(hwDeviceType), av_err2str(ret));
-                useHWaccel = false;
-            }
+            else useHWaccel = false;
         }
 
         if (avcodec_parameters_to_context(codecCtxArray[streamIndex],avctx->streams[streamIndex]->codecpar) < 0) {

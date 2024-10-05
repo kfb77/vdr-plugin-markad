@@ -149,6 +149,9 @@
 // debug channel name compare
 // #define DEBUG_CHANNEL_NAME
 
+// debug hw_device_ctx reference count
+// #define DEBUG_HW_DEVICE_CTX_REF
+
 extern int SysLogLevel;
 extern void syslog_with_tid(int priority, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 

@@ -425,6 +425,11 @@ public:
      */
     bool RestartCodec(const int streamIndex);
 
+    /** get hardware device context
+     * @return hardware device context
+     */
+    AVBufferRef *GetHardwareDeviceContext();
+
 private:
     /**
      * codec info structure

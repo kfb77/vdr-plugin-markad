@@ -214,6 +214,7 @@ cEncoder::~cEncoder() {
     avformat_free_context(avctxOut);
 
     if (decoderLocal) {
+        dsyslog("cEncoder::~cEncoder(): delete local decoder");
         FREE(sizeof(*decoderLocal), "decoderLocal");
         delete decoderLocal;
     }
@@ -222,7 +223,9 @@ cEncoder::~cEncoder() {
         FREE(sizeof(*indexLocal), "indexLocal");
         delete indexLocal;
     }
-
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+    if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::~cEncoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
 }
 
 
@@ -645,6 +648,9 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
     }
     dsyslog("cEncoder::InitEncoderCodec(): stream index in %d, out %d, add stream %d, force pixel format %d, verbose %d", streamIndexIn, streamIndexOut, addOutStream, forcePixFmt, verbose);
 
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+    if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::InitEncoderCodec(): stream %d, start av_buffer_get_ref_count(hw_device_ctx) %d", streamIndexOut, av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
     // select coded based on decoder used hwaccel
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+(1<<8)+100) // ffmpeg 4.5
     const AVCodec *codec = nullptr;
@@ -748,22 +754,41 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
         // use hwaccel for video stream if decoder use it too
         if (useHWaccel) {
             dsyslog("cEncoder::InitEncoderCodec(): video output stream %d: use hwaccel: %s", streamIndexOut, av_hwdevice_get_type_name(hwDeviceType));
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+            dsyslog("cEncoder::InitEncoderCodec(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
             // store stoftware fixel format in case of we need it for fallback to software decoder
             software_pix_fmt = codecCtxArrayIn[streamIndexIn]->pix_fmt;
-            // codecCtxArrayOut[streamIndexOut]->hw_device_ctx = av_buffer_ref(decoder->GetHardwareDeviceContext());
             // we need to ref hw_frames_ctx of decoder to initialize encoder's codec
             // only after we get a decoded frame, can we obtain its hw_frames_ctx
-            if (!codecCtxArrayIn[streamIndexIn]->hw_frames_ctx) decoder->DecodeNextFrame(false);
+            if (!codecCtxArrayIn[streamIndexIn]->hw_frames_ctx) {
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                dsyslog("cEncoder::InitEncoderCodec(): before DecodeNextFrame(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
+                decoder->DecodeNextFrame(false);
+                decoder->DropFrame();
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                dsyslog("cEncoder::InitEncoderCodec(): after DropFrame(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
+            }
             dsyslog("cEncoder::InitEncoderCodec(): video input codec stream %d: pix_fmt %s", streamIndexIn, av_get_pix_fmt_name(codecCtxArrayIn[streamIndexIn]->pix_fmt));
             if (!codecCtxArrayIn[streamIndexIn]->hw_frames_ctx) {
                 esyslog("cEncoder::InitEncoderCodec(): hwaccel encoder without hwaccel decoder is not valid");
                 return false;
             }
+            dsyslog("cEncoder::InitEncoderCodec(): link hw_frames_ctx to encoder codec");
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+            dsyslog("cEncoder::InitEncoderCodec(): before ref hw_frames_ctx: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
             codecCtxArrayOut[streamIndexOut]->hw_frames_ctx = av_buffer_ref(codecCtxArrayIn[streamIndexIn]->hw_frames_ctx);  // link hardware frame context to encoder
             if (!codecCtxArrayOut[streamIndexOut]->hw_frames_ctx) {
                 esyslog("cEncoder::InitEncoderCodec(): av_buffer_ref() failed");
                 return false;
             }
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+            dsyslog("cEncoder::InitEncoderCodec(): av_buffer_get_ref_count(codecCtxArrayOut[streamIndexOut]->hw_frames_ctx) %d", av_buffer_get_ref_count(codecCtxArrayOut[streamIndexOut]->hw_frames_ctx));
+            dsyslog("cEncoder::InitEncoderCodec(): after  ref hw_frames_ctx: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
         }
         fileNumber = decoder->GetFileNumber();
         // for re-init video decoder keep same pixel format as before
@@ -1067,6 +1092,9 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
             return false;
         }
     }
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+    if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::InitEncoderCodec(): stream %d, end av_buffer_get_ref_count(hw_device_ctx) %d", streamIndexOut, av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
     return true;
 }
 
@@ -1167,6 +1195,7 @@ int cEncoder::GetPSliceKeyPacketNumberAfterPTS(int64_t pts, int64_t *pSlicePTS, 
         ALLOC(sizeof(*indexLocal), "indexLocal");
     }
     if (!decoderLocal) {
+        // full decode, no force interlaced
         decoderLocal = new cDecoder(decoder->GetRecordingDir(), decoder->GetThreads(), true, decoder->GetHWaccelName(), decoder->GetForceHWaccel(), false, indexLocal);
         ALLOC(sizeof(*decoderLocal), "decoderLocal");
     }
@@ -1234,19 +1263,27 @@ bool cEncoder::DrainVideoReEncode(const int64_t stopPTS) {
 
 bool cEncoder::ResetDecoderEncodeCodec() {
     dsyslog("cEncoder::ResetDecoderEncodeCodec(): reset decoder and encoder codec context");
-    // restart output codec context
     AVPixelFormat forcePixFmt = codecCtxArrayOut[videoOutputStreamIndex]->pix_fmt;   // keep same pixel format
+    if (codecCtxArrayOut[videoOutputStreamIndex]->hw_frames_ctx) {
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+        dsyslog("cEncoder::ResetDecoderEncodeCodec: av_buffer_get_ref_count(codecCtxArrayOut[videoOutputStreamIndex]->hw_frames_ctx) %d", av_buffer_get_ref_count(codecCtxArrayOut[videoOutputStreamIndex]->hw_frames_ctx));
+#endif
+        av_buffer_unref(&codecCtxArrayOut[videoOutputStreamIndex]->hw_frames_ctx);
+    }
     FREE(sizeof(*codecCtxArrayOut[videoOutputStreamIndex]), "codecCtxArrayOut[streamIndex]");
     avcodec_free_context(&codecCtxArrayOut[videoOutputStreamIndex]);
-    if (!InitEncoderCodec(videoInputStreamIndex, videoOutputStreamIndex, false, forcePixFmt, false)) {  // keep same video pixel format
-        esyslog("cEncoder::ResetDecoderEncodeCodec(): failed to re-init codec after flash buffer");
-        return false;
-    }
+
     // restart input codec context, required after flush queue
     if (!decoder->RestartCodec(videoOutputStreamIndex)) {
         esyslog("cEncoder::ResetDecoderEncodeCodec(): restart decoder context failed");
         return false;
     }
+    // restart output codec context
+    if (!InitEncoderCodec(videoInputStreamIndex, videoOutputStreamIndex, false, forcePixFmt, false)) {  // keep same video pixel format
+        esyslog("cEncoder::ResetDecoderEncodeCodec(): failed to re-init codec after flash buffer");
+        return false;
+    }
+
     return true;
 }
 
@@ -1298,6 +1335,9 @@ bool cEncoder::CutFullReEncode(cMark *startMark, cMark *stopMark) {
     }
 
     // seek to key packet before start position
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+    if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::CutFullReEncode(): before seek: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
     if (!decoder->SeekToPacket(keyPacketNumberBeforeStart)) {
         esyslog("cEncoder::CutFullReEncode(): seek to key packet before start mark (%d) failed", keyPacketNumberBeforeStart);
         return false;
@@ -1305,6 +1345,9 @@ bool cEncoder::CutFullReEncode(cMark *startMark, cMark *stopMark) {
     if (decoder->IsVideoPacket()) decoder->DecodePacket(); // decode packet read from seek
 
     // check if we have a valid frame to set for start position
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+    if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::CutFullReEncode(): before start position: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
     AVFrame *avFrame = decoder->GetFrame(AV_PIX_FMT_NONE);  // this should be a video packet, because we seek to video packets
     while (!avFrame || !decoder->IsVideoFrame() || (avFrame->pts == AV_NOPTS_VALUE) || (avFrame->pkt_dts == AV_NOPTS_VALUE) || (avFrame->pts < startMark->pts)) {
         if (abortNow) return false;
@@ -1322,6 +1365,9 @@ bool cEncoder::CutFullReEncode(cMark *startMark, cMark *stopMark) {
         avFrame = decoder->GetFrame(AV_PIX_FMT_NONE);
     }
     // get PTS/DTS from start position
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+    if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::CutFullReEncode(): at start position: av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
     cutInfo.startPacketNumber = decoder->GetPacketNumber();
     cutInfo.startPTS          = avFrame->pts;
     cutInfo.startDTS          = avFrame->pkt_dts;
@@ -2024,6 +2070,7 @@ bool cEncoder::SendFrameToEncoder(const int streamIndexOut, AVFrame *avFrame) {
     // correct PTS uncut to PTS after cut only with full decoding
     // with smart cut we correct PST/DTS in WritePacket()
     if (avFrame && (pass > 0) && (avFrame->pts != AV_NOPTS_VALUE)) avFrame->pts -= cutInfo.offset;     // can be nullptr to flush buffer
+
     int rcSend = avcodec_send_frame(codecCtxArrayOut[streamIndexOut], avFrame);
     if (rcSend < 0) {
         switch (rcSend) {
@@ -2114,13 +2161,19 @@ AVPacket *cEncoder::ReceivePacketFromEncoder(const int streamIndexOut) {
 bool cEncoder::CloseFile() {
     int ret = 0;
 
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+    if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::CloseFile(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
     // empty all encoder queue
     if (cutMode == CUT_MODE_FULL) {
         for (unsigned int streamIndex = 0; streamIndex < avctxOut->nb_streams; streamIndex++) {
             dsyslog("cEncoder::CloseFile(): stream %d: flush encoder queue", streamIndex);
             if (codecCtxArrayOut[streamIndex]) {
                 if (codecCtxArrayOut[streamIndex]->codec_type == AVMEDIA_TYPE_SUBTITLE) continue; // draining encoder queue of subtitle stream is not valid, no encoding used
-                // flash buffer
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::CloseFile(): stream %d before flush: av_buffer_get_ref_count(hw_device_ctx) %d", streamIndex, av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
+                // flush buffer
                 SendFrameToEncoder(streamIndex, nullptr);
                 // receive packet from decoder
                 AVPacket *avpktOut = ReceivePacketFromEncoder(streamIndex);
@@ -2139,7 +2192,9 @@ bool cEncoder::CloseFile() {
                 dsyslog("cEncoder::CloseFile(): output codec context of stream %d not valid", streamIndex);
                 continue;
             }
-
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+            if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::CloseFile(): stream %d after flush: av_buffer_get_ref_count(hw_device_ctx) %d", streamIndex, av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
         }
     }
     ret = av_write_trailer(avctxOut);
@@ -2156,10 +2211,31 @@ bool cEncoder::CloseFile() {
     // free output codec context
     for (unsigned int streamIndex = 0; streamIndex < avctxIn->nb_streams; streamIndex++) {  // we have alocaed codec context for all possible input streams
         if (codecCtxArrayOut[streamIndex]) {
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+            if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::CloseFile(): stream %d before flush: av_buffer_get_ref_count(hw_device_ctx) %d", streamIndex, av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
             avcodec_flush_buffers(codecCtxArrayOut[streamIndex]);
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+            if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::CloseFile(): stream %d after flush: av_buffer_get_ref_count(hw_device_ctx) %d", streamIndex, av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
+            if (codecCtxArrayOut[streamIndex]->hw_frames_ctx) {
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                dsyslog("cEncoder::CloseFile(): stream %d before unref: av_buffer_get_ref_count(hw_device_ctx) %d", streamIndex, av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
+                av_buffer_unref(&codecCtxArrayOut[streamIndex]->hw_frames_ctx);
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+                dsyslog("cEncoder::CloseFile(): stream %d after  unref: av_buffer_get_ref_count(hw_device_ctx) %d", streamIndex, av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
+            }
             dsyslog("cEncoder::CloseFile(): call avcodec_free_context for stream %d", streamIndex);
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+            if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::CloseFile(): stream %d before avcodec_free_context: av_buffer_get_ref_count(hw_device_ctx) %d", streamIndex, av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
             FREE(sizeof(*codecCtxArrayOut[streamIndex]), "codecCtxArrayOut[streamIndex]");
             avcodec_free_context(&codecCtxArrayOut[streamIndex]);
+#ifdef DEBUG_HW_DEVICE_CTX_REF
+            if (decoder->GetHardwareDeviceContext()) dsyslog("cEncoder::CloseFile(): stream %d after avcodec_free_context: av_buffer_get_ref_count(hw_device_ctx) %d", streamIndex, av_buffer_get_ref_count(decoder->GetHardwareDeviceContext()));
+#endif
         }
     }
 
