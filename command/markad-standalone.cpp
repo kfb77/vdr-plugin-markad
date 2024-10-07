@@ -2825,24 +2825,17 @@ bool cMarkAdStandalone::CheckStartMark() {
                         dsyslog("cMarkAdStandalone::CheckStartMark(): MT_LOGOSTART (%5d) |%4ds| -> %3ds -> MT_LOGOSTOP (%5d) -> %4ds ->  MT_LOGOSTART (%5d) |%4ds| -> %4ds -> MT_LOGOSTOP (%6d)",  startMark->position, logoStartAssumed1, lengthBroadcast1,  logoStop1->position, lengthAd, logoStart2->position, logoStartAssumed2, lengthBroadcast2, stop2->position);
 // check for short broadcast before start mark (preview) and long broadcast after (first part of broadcast)
 // example of invalid logo start mark
-// MT_LOGOSTART ( 2944) ->  25s -> MT_LOGOSTOP ( 3584) ->   50s ->  MT_LOGOSTART ( 4848) -> 1213s -> MT_LOGOSTOP ( 35173) -> sixx, start of preview before broadcast
-// MT_LOGOSTART (23712) ->   3s -> MT_LOGOSTOP (23871) ->   57s ->  MT_LOGOSTART (26732) ->  796s -> MT_LOGOSTOP ( 66572) -> ZDF, logo detetion fault
-// MT_LOGOSTART ( 4675) ->  11s -> MT_LOGOSTOP ( 4962) ->  150s ->  MT_LOGOSTART ( 8715) -> 1312s -> MT_LOGOSTOP ( 41526) -> Nickelodeon, ad with false detected logo
-// MT_LOGOSTART (  952) ->   3s -> MT_LOGOSTOP ( 1037) ->  196s ->  MT_LOGOSTART ( 5961) -> 1276s -> MT_LOGOSTOP ( 37865) -> Nickelodeon, ad with false detected logo
-// MT_LOGOSTART ( 7383) ->   8s -> MT_LOGOSTOP ( 7590) ->  197s ->  MT_LOGOSTART (12518) -> 1247s -> MT_LOGOSTOP ( 43707) -> NICK MTV+, ad with false detected logo
-// MT_LOGOSTART ( 3661) ->   1s -> MT_LOGOSTOP ( 3694) ->  199s ->  MT_LOGOSTART ( 8684) -> 1299s -> MT_LOGOSTOP ( 41161) -> Disney Channel, false logo detection from background pattern
-// MT_LOGOSTART ( 2396) ->   2s -> MT_LOGOSTOP ( 2463) ->  287s ->  MT_LOGOSTART ( 9641) -> 1312s -> MT_LOGOSTOP ( 42442) -> Disney Channel, ad with false detected logo
-// MT_LOGOSTART ( 2377) ->   2s -> MT_LOGOSTOP ( 2441) ->  290s ->  MT_LOGOSTART ( 9697) -> 1207s -> MT_LOGOSTOP ( 39877) -> Disney Channel, ad with false detected logo
-// MT_LOGOSTART ( 4621) ->   1s -> MT_LOGOSTOP ( 4660) ->  325s ->  MT_LOGOSTART (12786) -> 1173s -> MT_LOGOSTOP ( 42121) -> Disney Channel, ad with false detected logo
-// MT_LOGOSTART ( 3448) ->   3s -> MT_LOGOSTOP ( 3533) ->  370s ->  MT_LOGOSTART (12786) -> 1126s -> MT_LOGOSTOP ( 40948) -> Disney Channel, ad with false detected logo
-// MT_LOGOSTART ( 7249) ->   7s -> MT_LOGOSTOP ( 7435) ->  460s ->  MT_LOGOSTART (18940) ->  718s -> MT_LOGOSTOP ( 36895) -> RTL Television, delayed broadcast start
-// MT_LOGOSTART ( 3828) ->  28s -> MT_LOGOSTOP ( 4549) ->   37s ->  MT_LOGOSTART ( 5487) -> 1237s -> MT_LOGOSTOP ( 36427) -> SIXX, start of preview before broadcast
-// MT_LOGOSTART ( 3785) ->  28s -> MT_LOGOSTOP ( 4507) ->   31s ->  MT_LOGOSTART ( 5285) -> 1202s -> MT_LOGOSTOP ( 35355) -> SIXX, start of preview before broadcast
-// MT_LOGOSTART ( 2979) ->  33s -> MT_LOGOSTOP ( 3824) ->   54s ->  MT_LOGOSTART ( 5183) ->  955s -> MT_LOGOSTOP ( 29081) -> SIXX, start of preview before broadcast
-// MT_LOGOSTART ( 2870) ->  56s -> MT_LOGOSTOP ( 4276) ->   50s ->  MT_LOGOSTART ( 5532) -> 1218s -> MT_LOGOSTOP ( 35991) -> SIXX, start of preview before broadcast
-// MT_LOGOSTART ( 3867) ->  34s -> MT_LOGOSTOP ( 4718) ->   29s ->  MT_LOGOSTART ( 5458) -> 1229s -> MT_LOGOSTOP ( 36205) -> SIXX, start of preview before broadcast
-// MT_LOGOSTART ( 1015) ->  63s -> MT_LOGOSTOP ( 2611) ->   87s ->  MT_LOGOSTART ( 4804) -> 1236s -> MT_LOGOSTOP ( 35723) -> SIXX, start of preview before broadcast
-                        if ((lengthBroadcast1 <= 63) && (lengthBroadcast2 >= 718)) {
+// MT_LOGOSTART ( 4675)         ->  11s -> MT_LOGOSTOP ( 4962) ->  150s ->  MT_LOGOSTART ( 8715)         -> 1312s -> MT_LOGOSTOP ( 41526) -> Nickelodeon, ad with false detected logo
+// MT_LOGOSTART ( 2944)         ->  25s -> MT_LOGOSTOP ( 3584) ->   50s ->  MT_LOGOSTART ( 4848)         -> 1213s -> MT_LOGOSTOP ( 35173) -> sixx, start of preview before broadcast
+// MT_LOGOSTART ( 3828)         ->  28s -> MT_LOGOSTOP ( 4549) ->   37s ->  MT_LOGOSTART ( 5487)         -> 1237s -> MT_LOGOSTOP ( 36427) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 3785)         ->  28s -> MT_LOGOSTOP ( 4507) ->   31s ->  MT_LOGOSTART ( 5285)         -> 1202s -> MT_LOGOSTOP ( 35355) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 2979)         ->  33s -> MT_LOGOSTOP ( 3824) ->   54s ->  MT_LOGOSTART ( 5183)         ->  955s -> MT_LOGOSTOP ( 29081) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 2870)         ->  56s -> MT_LOGOSTOP ( 4276) ->   50s ->  MT_LOGOSTART ( 5532)         -> 1218s -> MT_LOGOSTOP ( 35991) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 3867)         ->  34s -> MT_LOGOSTOP ( 4718) ->   29s ->  MT_LOGOSTART ( 5458)         -> 1229s -> MT_LOGOSTOP ( 36205) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 1015)         ->  63s -> MT_LOGOSTOP ( 2611) ->   87s ->  MT_LOGOSTART ( 4804)         -> 1236s -> MT_LOGOSTOP ( 35723) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 5977) |   0s| ->  74s -> MT_LOGOSTOP ( 9722) ->  272s ->  MT_LOGOSTART (23369) |-347s| -> 1573s -> MT_LOGOSTOP (102038) -> ZDF HD, Wetter before broadcast
+
+                        if ((lengthBroadcast1 <= 74) && (lengthBroadcast2 >= 718)) {
                             dsyslog("cMarkAdStandalone::CheckStartMark(): too short broadcast after start mark, delete start (%d) and stop (%d) mark", startMark->position, logoStop1->position);
                             marks.Del(startMark->position);
                             marks.Del(logoStop1->position);
