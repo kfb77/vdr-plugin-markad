@@ -838,12 +838,18 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
             codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.num = codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.den;
             codecCtxArrayOut[streamIndexOut]->sample_aspect_ratio.den = codecCtxArrayIn[streamIndexIn]->sample_aspect_ratio.num;
         }
-        codecCtxArrayOut[streamIndexOut]->time_base.num       = avctxIn->streams[streamIndexIn]->avg_frame_rate.den;  // time_base = 1 / framerate
-        codecCtxArrayOut[streamIndexOut]->time_base.den       = avctxIn->streams[streamIndexIn]->avg_frame_rate.num;
-        codecCtxArrayOut[streamIndexOut]->framerate           = avctxIn->streams[streamIndexIn]->avg_frame_rate;
+        codecCtxArrayOut[streamIndexOut]->time_base.num   = avctxIn->streams[streamIndexIn]->avg_frame_rate.den;  // time_base = 1 / framerate
+        codecCtxArrayOut[streamIndexOut]->time_base.den   = avctxIn->streams[streamIndexIn]->avg_frame_rate.num;
+        codecCtxArrayOut[streamIndexOut]->framerate       = avctxIn->streams[streamIndexIn]->avg_frame_rate;
 
-        codecCtxArrayOut[streamIndexOut]->height              = codecCtxArrayIn[streamIndexIn]->height;
-        codecCtxArrayOut[streamIndexOut]->width               = codecCtxArrayIn[streamIndexIn]->width;
+        codecCtxArrayOut[streamIndexOut]->height          = codecCtxArrayIn[streamIndexIn]->height;
+        codecCtxArrayOut[streamIndexOut]->width           = codecCtxArrayIn[streamIndexIn]->width;
+
+        codecCtxArrayOut[streamIndexOut]->color_range     = codecCtxArrayIn[streamIndexIn]->color_range;
+        codecCtxArrayOut[streamIndexOut]->colorspace      = codecCtxArrayIn[streamIndexIn]->colorspace;
+        codecCtxArrayOut[streamIndexOut]->color_trc       = codecCtxArrayIn[streamIndexIn]->color_trc;
+        codecCtxArrayOut[streamIndexOut]->color_primaries = codecCtxArrayIn[streamIndexIn]->color_primaries;
+
 
         // calculate target mpeg2 video stream bit rate from recording
         int bit_rate = avctxIn->bit_rate; // overall recording bitrate
@@ -870,11 +876,6 @@ bool cEncoder::InitEncoderCodec(const unsigned int streamIndexIn, const unsigned
             codecCtxArrayOut[streamIndexOut]->gop_size        = codecCtxArrayIn[streamIndexIn]->gop_size;
             codecCtxArrayOut[streamIndexOut]->keyint_min      = codecCtxArrayIn[streamIndexIn]->keyint_min;
             codecCtxArrayOut[streamIndexOut]->max_b_frames    = codecCtxArrayIn[streamIndexIn]->max_b_frames;
-            codecCtxArrayOut[streamIndexOut]->color_range     = codecCtxArrayIn[streamIndexIn]->color_range;
-            codecCtxArrayOut[streamIndexOut]->colorspace      = codecCtxArrayIn[streamIndexIn]->colorspace;
-            codecCtxArrayOut[streamIndexOut]->color_trc       = codecCtxArrayIn[streamIndexIn]->color_trc;
-            codecCtxArrayOut[streamIndexOut]->color_primaries = codecCtxArrayIn[streamIndexIn]->color_primaries;
-
             // set pass stats file
             char *passlogfile;
             if (asprintf(&passlogfile,"%s/encoder", recDir) == -1) {
