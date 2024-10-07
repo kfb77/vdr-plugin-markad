@@ -127,7 +127,10 @@ cDecoder::~cDecoder() {
 #ifdef DEBUG_HW_DEVICE_CTX_REF
         dsyslog("cDecoder::~cDecoder(): av_buffer_get_ref_count(hw_device_ctx) %d", av_buffer_get_ref_count(hw_device_ctx));
 #endif
-        if (av_buffer_get_ref_count(hw_device_ctx) > 1) esyslog("cDecoder::~cDecoder(): to much buffer references %d", av_buffer_get_ref_count(hw_device_ctx));
+        if (av_buffer_get_ref_count(hw_device_ctx) > 1) {
+            isyslog("cDecoder::~cDecoder(): to much buffer references %d", av_buffer_get_ref_count(hw_device_ctx));
+            isyslog("cDecoder::~cDecoder(): FFmpeg memory leak introduced with commit 9db68ed042a9043362d57c79945f6a8d936f9dba (FFmpeg >= 7.1)");
+        }
         FREE(sizeof(*hw_device_ctx), "hw_device_ctx");
         av_buffer_unref(&hw_device_ctx);  // have to unref both to reduce ref-counter
     }
