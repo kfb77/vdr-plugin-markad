@@ -910,6 +910,7 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
     // check stop mark
     if (mark->type == MT_LOGOSTOP) {
         // sequence MT_LOGOSTART -> MT_LOGOSTOP -> MT_SOUNDSTOP -> MT_SOUNDSTART -> MT_LOGOSTART
+        // silence between logo stop and logo start of next broadcast
         cMark *logoStartBefore = marks.GetPrev(mark->position, MT_LOGOSTART);
         if (logoStartBefore) {
             cMark *silenceStart = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTOP); // silence can start at the same position as logo stop
@@ -931,13 +932,14 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
 // MT_LOGOSTART ( 56372) ->   26000s -> MT_LOGOSTOP ( 57022) ->   80ms -> MT_SOUNDSTOP ( 57024) -> 1160ms -> MT_SOUNDSTART ( 57053) ->  2440ms -> MT_LOGOSTART ( 57114) -> Comedy Central
 // MT_LOGOSTART ( 79759) ->  224920s -> MT_LOGOSTOP ( 85382) ->  200ms -> MT_SOUNDSTOP ( 85387) ->   40ms -> MT_SOUNDSTART ( 85388) -> 27560ms -> MT_LOGOSTART ( 86077) -> VOX
 // MT_LOGOSTART ( 79759) ->  224880s -> MT_LOGOSTOP ( 85381) ->  240ms -> MT_SOUNDSTOP ( 85387) ->   40ms -> MT_SOUNDSTART ( 85388) ->   240ms -> MT_LOGOSTART ( 85394) -> VOX
+// MT_LOGOSTART ( 96625) ->   11840s -> MT_LOGOSTOP ( 96921) -> 1640ms -> MT_SOUNDSTOP ( 96962) ->   80ms -> MT_SOUNDSTART ( 96964) ->  1320ms -> MT_LOGOSTART ( 96997) -> TLC
 //
 // invalid sequence
 // MT_LOGOSTART ( 87985) ->    1400s -> MT_LOGOSTOP ( 88020) -> 4840ms -> MT_SOUNDSTOP ( 88141) ->  160ms -> MT_SOUNDSTART ( 88145) ->  8400ms -> MT_LOGOSTART ( 88355) -> DMAX
-                        if ((logoStartLogoStop >= 10400) &&            // possible end of info logo before
-                                (logoStopSilenceStart <= 840) &&       // silence start short after end mark
-                                (silenceStartSilenceStop >= 40) && (silenceStartSilenceStop <= 1160) &&
-                                (silenceStopLogoStart >= 240) && (silenceStopLogoStart <= 27560)) {
+                        if ((logoStartLogoStop >= 10400) &&            // possible end of info logo before (or logo interuption at end of broadcast on TLC)
+                                (logoStopSilenceStart    <= 1640) &&   // silence start short after end mark
+                                (silenceStartSilenceStop >=   40) && (silenceStartSilenceStop <=  1160) &&
+                                (silenceStopLogoStart    >=  240) && (silenceStopLogoStart    <= 27560)) {
                             dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): silence sequence is valid", mark->position);
                             return true;
                         }
