@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-10-13: Version 4.2.3
+- fix encoder color parameters for all codecs (thx to wmautner@www.vdr-portal.de for reporting)
+- some minor bug fixes and optimizations, see git
+
 2024-10-05: Version 4.2.2
 - hwaccel: use h264_nvenc encoder after decoding with cuda (thx to wmautner@www.vdr-portal.de for reporting)
 - encoder: fix missing color space
