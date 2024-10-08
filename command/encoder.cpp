@@ -1227,7 +1227,7 @@ bool cEncoder::DrainVideoReEncode(const int64_t stopPTS) {
     while (decoder->ReceiveFrameFromDecoder() == 0) {
         if (abortNow) return false;
         if (decoder->GetFramePTS() <= stopPTS) {
-            dsyslog("cEncoder::DrainVideoReEncode(): frame from decoder, send to encoder: PTS %" PRId64, decoder->GetFramePTS());
+            dsyslog("cEncoder::DrainVideoReEncode(): frame decoder -> encoder: PTS %" PRId64 ", DTS %" PRId64, decoder->GetFramePTS(), decoder->GetFrameDTS());
             if (!EncodeVideoFrame()) {
                 esyslog("cEncoder::DrainVideoReEncode(): decoder packet (%d): EncodeVideoFrame() failed during re-encoding", decoder->GetPacketNumber());
                 return false;
@@ -1265,6 +1265,7 @@ bool cEncoder::DrainVideoReEncode(const int64_t stopPTS) {
 bool cEncoder::ResetDecoderEncodeCodec() {
     dsyslog("cEncoder::ResetDecoderEncodeCodec(): reset decoder and encoder codec context");
     AVPixelFormat forcePixFmt = codecCtxArrayOut[videoOutputStreamIndex]->pix_fmt;   // keep same pixel format
+    avcodec_flush_buffers(codecCtxArrayOut[videoOutputStreamIndex]);
     if (codecCtxArrayOut[videoOutputStreamIndex]->hw_frames_ctx) {
 #ifdef DEBUG_HW_DEVICE_CTX_REF
         dsyslog("cEncoder::ResetDecoderEncodeCodec: av_buffer_get_ref_count(codecCtxArrayOut[videoOutputStreamIndex]->hw_frames_ctx) %d", av_buffer_get_ref_count(codecCtxArrayOut[videoOutputStreamIndex]->hw_frames_ctx));
@@ -1307,6 +1308,8 @@ void cEncoder::SetSmartReEncodeOffset(AVPacket *avpkt, const bool startPart) {
     case CUT_STATE_STOP:
         cutInfo.offsetPTSReEncode = cutInfo.offset + streamInfo.maxPTSofGOP + avpkt->duration - avpkt->pts;
         cutInfo.offsetDTSReEncode = cutInfo.offset + streamInfo.lastOutDTS[videoOutputStreamIndex] + avpkt->duration - avpkt->dts;
+        dsyslog("cEncoder::SetSmartReEncodeOffset(): packet PTS %" PRId64 ", DTS %" PRId64, avpkt->pts, avpkt->dts);
+        dsyslog("cEncoder::SetSmartReEncodeOffset(): streamInfo.maxPTSofGOP %" PRId64 ", lastOutDTS %" PRId64, streamInfo.maxPTSofGOP, streamInfo.lastOutDTS[videoOutputStreamIndex]);
         dsyslog("cEncoder::SetSmartReEncodeOffset(): set re-encoded offset PTS %" PRId64 ", DTS %" PRId64, cutInfo.offsetPTSReEncode, cutInfo.offsetDTSReEncode);
         cutInfo.state = CUT_STATE_NULL;
         break;
@@ -1633,7 +1636,7 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
         if (abortNow) return false;
 #ifdef DEBUG_PTS_DTS_CUT
         if ((avpkt->stream_index == DEBUG_PTS_DTS_CUT) || (DEBUG_PTS_DTS_CUT == -1)) {
-            dsyslog("cEncoder::CutSmart(): copy in (%5d), stream %d: flags %d, PTS %10ld, DTS %10ld, diff: PTS key %8ld, DTS %5ld", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts, (inputKeyPacketPTSbefore[avpkt->stream_index] >= 0) ? avpkt->pts - inputKeyPacketPTSbefore[avpkt->stream_index] : -1, avpkt->dts - lastPacketInDTS[avpkt->stream_index]);
+//            dsyslog("cEncoder::CutSmart(): copy in (%5d), stream %d: flags %d, PTS %10ld, DTS %10ld, diff: PTS key %8ld, DTS %5ld", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts, (inputKeyPacketPTSbefore[avpkt->stream_index] >= 0) ? avpkt->pts - inputKeyPacketPTSbefore[avpkt->stream_index] : -1, (lastPacketInDTS[avpkt->stream_index] >= 0) ? avpkt->dts - lastPacketInDTS[avpkt->stream_index] : -1);
             if (avpkt->flags & AV_PKT_FLAG_KEY) inputKeyPacketPTSbefore[avpkt->stream_index] = avpkt->pts;
             lastPacketInDTS[avpkt->stream_index] = avpkt->dts;
 
@@ -1681,7 +1684,7 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
             streamInfo.lastInPTS[avpkt->stream_index] = avpkt->pts;
             if (decoder->IsVideoPacket()) {  // re-encode video packet
 #ifdef DEBUG_PTS_DTS_CUT
-                dsyslog("cEncoder::CutSmart(): stop in (%d), flags %d, duration %" PRId64 ", PTS %" PRId64 ", DTS %" PRId64 ": re-encode video packet in end part", decoder->GetPacketNumber(), avpkt->flags, avpkt->duration, avpkt->pts, avpkt->dts);
+                dsyslog("cEncoder::CutSmart(): packet in (%d) -> decoder: flags %d, duration %" PRId64 ", PTS %" PRId64 ", DTS %" PRId64, decoder->GetPacketNumber(), avpkt->flags, avpkt->duration, avpkt->pts, avpkt->dts);
 #endif
                 if (avpkt->pts == stopMark->pts) {
                     cutInfo.stopPTS = avpkt->pts;
@@ -1691,9 +1694,9 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
                 cutInfo.videoPacketDuration = avpkt->duration;
                 if (decoder->DecodePacket()) {
 #ifdef DEBUG_PTS_DTS_CUT
-                    dsyslog("cEncoder::CutSmart(): video frame PTS %" PRId64, decoder->GetFramePTS());
+                    dsyslog("cEncoder::CutSmart(): frame decoder -> encoder: PTS %" PRId64 ", DTS %" PRId64, decoder->GetFramePTS(), decoder->GetFrameDTS());
 #endif
-                    if (decoder->GetFramePTS() <= stopMark->pts) {
+                    if ((decoder->GetFramePTS() <= stopMark->pts) && (decoder->GetFramePTS() >= ptsKeyPacketBeforeStop)) {  // sometimes we got frame from start part back from decoder
                         if (!EncodeVideoFrame()) {
                             esyslog("cEncoder::CutSmart(): decoder packet (%d): EncodeVideoFrame() failed", decoder->GetPacketNumber());
                             return false;
@@ -1844,10 +1847,21 @@ bool cEncoder::EncodeVideoFrame() {
     AVFrame *avFrame = decoder->GetFrame(codecCtxArrayOut[streamIndexOut]->pix_fmt);  // get video frame with converted data planes
     if (!avFrame) {
         dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%d): got no valid frame", decoder->GetPacketNumber());
-        return true;  // can happen, try with next packet
+        return true;  // can happen, try with next frame
+    }
+    // check PTS and DTS
+    if (avFrame->pts == AV_NOPTS_VALUE) {
+        dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%d): PTS not valid, drop packet", decoder->GetPacketNumber());
+        decoder->DropFrame();
+        return true;  // can happen, try with next frame
+    }
+    if (avFrame->pkt_dts == AV_NOPTS_VALUE) {
+        dsyslog("cEncoder::EncodeVideoFrame(): decoder packet (%d): DTS not valid, drop packet", decoder->GetPacketNumber());
+        decoder->DropFrame();
+        return true;  // can happen, try with next frame
     }
 #ifdef DEBUG_PTS_DTS_CUT
-    dsyslog("cEncoder::EncodeVideoFrame(): frame decoder -> encoder: PTS %10" PRId64 ", DTS %10ld, diff PTS %" PRId64 ", DTS %" PRId64, avFrame->pts, avFrame->pkt_dts, avFrame->pts - lastFrameInPTS[streamIndexOut], avFrame->pkt_dts - lastFrameInDTS[streamIndexOut]);
+    dsyslog("cEncoder::EncodeVideoFrame():   frame decoder -> encoder: PTS %10" PRId64 ", DTS %10ld, diff PTS %" PRId64 ", DTS %" PRId64, avFrame->pts, avFrame->pkt_dts, (lastFrameInPTS[streamIndexOut] >= 0) ? avFrame->pts - lastFrameInPTS[streamIndexOut] : -1, (lastFrameInDTS[streamIndexOut] >= 0) ? avFrame->pkt_dts - lastFrameInDTS[streamIndexOut] : -1);
     lastFrameInPTS[streamIndexOut] = avFrame->pts;
     lastFrameInDTS[streamIndexOut] = avFrame->pkt_dts;
 #endif

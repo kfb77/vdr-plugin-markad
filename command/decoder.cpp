@@ -401,6 +401,7 @@ bool cDecoder::RestartCodec(const int streamIndex) {
         esyslog("cDecoder::RestartCodec(): invalid stream index");
         return false;
     }
+    avcodec_flush_buffers(codecCtxArray[streamIndex]);
     DropFrame();
     // save all infos we need for open codec context
     const AVCodec *codec = codecCtxArray[streamIndex]->codec;
@@ -848,6 +849,12 @@ AVFrame *cDecoder::GetFrame(enum AVPixelFormat pixelFormat) {
 int64_t cDecoder::GetFramePTS() const {
     if (!frameValid) return -1;
     return avFrame.pts;
+}
+
+
+int64_t cDecoder::GetFrameDTS() const {
+    if (!frameValid) return -1;
+    return avFrame.pkt_dts;
 }
 
 

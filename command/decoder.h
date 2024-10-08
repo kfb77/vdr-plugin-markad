@@ -355,6 +355,11 @@ public:
      */
     int64_t GetFramePTS() const;
 
+    /** get current frame DTS
+     * @return DTS
+     */
+    int64_t GetFrameDTS() const;
+
     /** get current packet PTS
      * @return PTS
      */
