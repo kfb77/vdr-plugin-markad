@@ -1544,6 +1544,11 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
             return false;
         }
         ptsKeyPacketAfterStop  = index->GetPTSFromKeyPacketNumber(keyPacketNumberAfterStop);
+        // for performance reason, we do no want to re-encode more than the half between start/stop mark
+        if (ptsKeyPacketAfterStart >= ((keyPacketNumberBeforeStop - stopMark->pts) / 2)) {
+            dsyslog("cEncoder::CutSmart(): key packet number with PTS in slice after start too far away, fallback to key packet");
+            keyPacketNumberAfterStart = index->GetKeyPacketNumberAfterPTS(startMark->pts + 1, &ptsKeyPacketAfterStart, false);
+        }
         break;
     case MARKAD_PIDTYPE_VIDEO_H265:
         return CutKeyPacket(startMark, stopMark);
