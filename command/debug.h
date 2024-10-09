@@ -102,11 +102,11 @@
 
 // debug cut write
 // #define DEBUG_CUT_WRITE <stream number>  (-1 for all streams)
-// #define DEBUG_CUT_WRITE 0
+// #define DEBUG_CUT_WRITE -1
 
 // debug PTS and DTS of video cut
 // #define DEBUG_PTS_DTS_CUT <stream number>  (-1 for all streams)
-// #define DEBUG_PTS_DTS_CUT 0
+// #define DEBUG_PTS_DTS_CUT -1
 
 // debug decoder send/receive
 // #define DEBUG_DECODER <stream index>

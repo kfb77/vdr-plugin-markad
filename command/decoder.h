@@ -381,6 +381,11 @@ public:
      */
     bool IsSubtitleStream(const unsigned int streamIndex) const;
 
+    /** check if packet is subtitle
+     * @return true if packet is subtitle, false otherwise
+     */
+    bool IsSubtitlePacket() const;
+
     /** get current read video packet number
      * @return current packet number
      */

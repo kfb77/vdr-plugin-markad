@@ -1551,13 +1551,11 @@ bool cDecoder::IsSubtitleStream(const unsigned int streamIndex) const {
 }
 
 
-/*  unused
-bool cDecoder::IsSubtitlePacket() {
+bool cDecoder::IsSubtitlePacket() const {
     if (!avctx) return false;
     if (avctx->streams[avpkt.stream_index]->codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE) return true;
     return false;
 }
-*/
 
 
 /* unused

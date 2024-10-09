@@ -1647,29 +1647,35 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
 
         }
 #endif
-        // check PTS/DTS rollover
-        if (!rollover && (avpkt->pts != AV_NOPTS_VALUE) && (avctxOut->streams[avpkt->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) && (streamInfo.lastInPTS[avpkt->stream_index] > 0x200000000) && (avpkt->pts < 0x100000000)) {
-            rollover = true;
-            dsyslog("cEncoder::CutSmart(): input stream PTS/DTS rollover from PTS %" PRId64 " to %" PRId64, streamInfo.lastInPTS[avpkt->stream_index], avpkt->pts);
-        }
-        if (rollover) {
-            if (avpkt->pts != AV_NOPTS_VALUE) avpkt->pts += 0x200000000;
-            if (avpkt->dts != AV_NOPTS_VALUE) avpkt->dts += 0x200000000;
-        }
-        streamInfo.lastInPTS[avpkt->stream_index] = avpkt->pts;
+        // check valid stream index
+        if (avpkt->stream_index < static_cast<int>(avctxOut->nb_streams)) {
+            // check PTS/DTS rollover
+            if (!rollover && (avpkt->pts != AV_NOPTS_VALUE) && (avctxOut->streams[avpkt->stream_index]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) && (streamInfo.lastInPTS[avpkt->stream_index] > 0x200000000) && (avpkt->pts < 0x100000000)) {
+                rollover = true;
+                dsyslog("cEncoder::CutSmart(): input stream PTS/DTS rollover from PTS %" PRId64 " to %" PRId64, streamInfo.lastInPTS[avpkt->stream_index], avpkt->pts);
+            }
+            if (rollover) {
+                if (avpkt->pts != AV_NOPTS_VALUE) avpkt->pts += 0x200000000;
+                if (avpkt->dts != AV_NOPTS_VALUE) avpkt->dts += 0x200000000;
+            }
+            streamInfo.lastInPTS[avpkt->stream_index] = avpkt->pts;
 
-        // write current packet
-        if (avpkt->pts >= startMark->pts) {
-            if (!WritePacket(avpkt, false)) {  // no re-encode was done
-                esyslog("cEncoder::CutSmart(): WritePacket() failed");
-                return false;
+            // write current packet
+            if (avpkt->pts >= startMark->pts) {
+                if (!WritePacket(avpkt, false)) {  // no re-encode was done
+                    esyslog("cEncoder::CutSmart(): WritePacket() failed");
+                    return false;
+                }
+            }
+            else {
+                if (avpkt->pts == AV_NOPTS_VALUE) dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: flags %d, PTS %" PRId64", DTS %" PRId64 ": PTS = AV_NOPTS_VALUE, drop packet", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts);
+#ifdef DEBUG_PTS_DTS_CUT
+                else dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: flags %d, PTS %" PRId64", DTS %" PRId64 ": drop packet %6" PRId64 " before start PTS %" PRId64, decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts, startMark->pts - avpkt->pts, startMark->pts);
+#endif
             }
         }
         else {
-            if (avpkt->pts == AV_NOPTS_VALUE) dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: flags %d, PTS %" PRId64", DTS %" PRId64 ": PTS = AV_NOPTS_VALUE, drop packet", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts);
-#ifdef DEBUG_PTS_DTS_CUT
-            else dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: flags %d, PTS %" PRId64", DTS %" PRId64 ": drop packet %6" PRId64 " before start PTS %" PRId64, decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->pts, avpkt->dts, startMark->pts - avpkt->pts, startMark->pts);
-#endif
+            if (!decoder->IsSubtitlePacket()) dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d: unexpected stream index, drop packet", decoder->GetPacketNumber(), avpkt->stream_index);  // expected for subtitle stream
         }
         if (!decoder->ReadNextPacket()) return false;
         avpkt = decoder->GetPacket();
