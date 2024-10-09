@@ -2362,6 +2362,24 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
 cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): search for vborder start mark");
     cMark *vStart = marks.GetAround(240 * decoder->GetVideoFrameRate() + startA, startA, MT_VBORDERSTART);
+    // check if we have marks from an unreliable small vborder
+    if (vStart && criteria->LogoInBorder()) {
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): check if vborder marks are valid");
+        // we habe logo in border, all vborder marks should have a same type logo mark around
+        cMark *vMark = vStart;
+        while (vMark) {
+            cMark *logoMark = marks.GetAround(30 * decoder->GetVideoFrameRate(), vMark->position, vMark->type - MT_VBORDERCHANGE + MT_LOGOCHANGE);
+            if (logoMark) dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder mark (%d): found logo mark (%d)", vMark->position, logoMark->position);
+            else {
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder mark (%d): no logo mark around found, vborder marks are invalid", vMark->position);
+                criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_DISABLED, macontext.Config->fullDecode);
+                marks.DelType(MT_VBORDERCHANGE, 0xF0);
+                return nullptr;
+            }
+            vMark = marks.GetNext(vMark->position, MT_VBORDERCHANGE, 0xF0);
+        }
+
+    }
     if (!vStart) {
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no vertical border at start found, ignore vertical border detection");
         criteria->SetDetectionState(MT_VBORDERCHANGE, false);
