@@ -5740,9 +5740,11 @@ bool cMarkAdStandalone::ProcessFrame() {
     }
 
     // detect audio channel based marks
-    if ((!macontext.Config->fullDecode || decoder->IsAudioPacket()) &&   // if we decode only i-frames, we will have no audio frames
+    if ((!macontext.Config->fullDecode ||                     // if we decode only i-frames, we will have no audio frames
+            decoder->IsAudioPacket() ||
+            !criteria->GetDetectionState(MT_SOUNDCHANGE)) &&  // without silence detection, we do not decode audio and will get no audio frames
             criteria->GetDetectionState(MT_AUDIO)) {
-        sMarkAdMarks *amarks = audio->Detect();
+        sMarkAdMarks *amarks = audio->Detect();               // detect channel change and silence
         if (amarks) {
             for (int i = 0; i < amarks->Count; i++) AddMark(&amarks->Number[i]);
         }
@@ -5816,7 +5818,7 @@ void cMarkAdStandalone::Recording() {
 
     CheckIndexGrowing();   // check if we have a running recording and have to wait to get new frames
 
-    while (decoder->DecodeNextFrame(criteria->GetDetectionState(MT_AUDIO))) {  // only decode audio if we need it
+    while (decoder->DecodeNextFrame(criteria->GetDetectionState(MT_SOUNDCHANGE))) {  // only decode audio if we detect silence, channel change detection needs no decoding
         if (abortNow) return;
 
         if (!ProcessFrame()) {   // no error, false if stopA reached
