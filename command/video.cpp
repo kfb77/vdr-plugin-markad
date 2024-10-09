@@ -1650,7 +1650,7 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
     else valRight = INT_MAX;  // left side has no border, so we have not to check right side
 
 #ifdef DEBUG_VBORDER
-    dsyslog("cVertBorderDetect::Process(): packet (%6d): status: %d, left: %3d, right: %3d, limit: %d|%d, bright: %3d, start: (%5d), valid %d, duration: %3d", decoder->GetPacketNumber(), borderstatus, valLeft, valRight, brightnessSure, brightnessMaybe, GetPictureBrightness(picture, 20), vBorderStart, valid, static_cast<int> ((decoder->GetPacketNumber() - vBorderStart) / frameRate));
+    dsyslog("cVertBorderDetect::Process(): packet (%6d): status: %d, left: %3d, right: %3d, limit: %d|%d, bright: %3d, start: (%5d), valid %d, duration: %3d", decoder->GetPacketNumber(), borderstatus, valLeft, valRight, brightnessSure, brightnessMaybe, GetPictureBrightness(picture, 20), vBorderStartPacketNumber, valid, static_cast<int> ((decoder->GetPacketNumber() - vBorderStartPacketNumber) / frameRate));
 #endif
 
     if (((valLeft <= brightnessMaybe) && (valRight <= brightnessSure)) || ((valLeft <= brightnessSure) && (valRight <= brightnessMaybe))) {
