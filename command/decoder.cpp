@@ -940,7 +940,7 @@ sAudioAC3Channels *cDecoder::GetChannelChange() {
                     else {  // start mark
                         audioAC3Channels[streamIndex].videoPacketNumber = index->GetKeyPacketNumberAfterPTS(audioAC3Channels[streamIndex].videoFramePTS);
                     }
-                    audioAC3Channels[streamIndex].videoFramePTS = index->GetPTSAfterKeyPacketNumber(audioAC3Channels[streamIndex].videoPacketNumber); // set PTS from video packet
+                    if (audioAC3Channels[streamIndex].videoPacketNumber >= 0) audioAC3Channels[streamIndex].videoFramePTS = index->GetPTSAfterKeyPacketNumber(audioAC3Channels[streamIndex].videoPacketNumber); // set PTS from video packet
                 }
             }
             if (audioAC3Channels[streamIndex].videoPacketNumber < 0) {   // PTS not yet in index
