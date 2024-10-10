@@ -217,9 +217,8 @@ private:
     /**
      * calculate and set encoder queue PTS/DTS offset for smart re-encode
      * @param avpkt current output packet
-     * @param startPart true if re-encode around start mark, false otherwise
      */
-    void SetSmartReEncodeOffset(AVPacket *avpkt, const bool startPart);
+    void SetSmartReEncodeOffset(AVPacket *avpkt);
 
     /**
      * change audio encoder channel count

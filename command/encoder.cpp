@@ -1249,7 +1249,7 @@ bool cEncoder::DrainVideoReEncode(const int64_t stopPTS) {
         avpktOut->duration = cutInfo.videoPacketDuration;   // not set by encoder
 
         // set additional PTS/DTS offset from oncoder to fit before/after packets copied
-        if (pass == 0) SetSmartReEncodeOffset(avpktOut, (stopPTS == INT64_MAX));
+        if (pass == 0) SetSmartReEncodeOffset(avpktOut);
         // write packet
         if (!WritePacket(avpktOut, true)) {  // packet was re-encoded
             esyslog("cEncoder::DrainVideoReEncode(): WritePacket() failed");
@@ -1291,7 +1291,10 @@ bool cEncoder::ResetDecoderEncodeCodec() {
 
 
 // set additional PTS/DTS offset from encoder to fit before/after packets copied
-void cEncoder::SetSmartReEncodeOffset(AVPacket *avpkt, const bool startPart) {
+void cEncoder::SetSmartReEncodeOffset(AVPacket *avpkt) {
+#ifdef DEBUG_CUT_OFFSET
+    dsyslog("cEncoder:SetSmartReEncodeOffset(): state %d", cutInfo.state);
+#endif
     switch (cutInfo.state) {
     case CUT_STATE_FIRSTPACKET: // first packet back from encoder from first start mark, set PTS and PTS to start mark of input stream
         if (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264) {
@@ -1931,7 +1934,7 @@ bool cEncoder::EncodeVideoFrame() {
         }
 #endif
         // adjust PTS/DTS offset for smart re-encode
-        if (pass == 0) SetSmartReEncodeOffset(avpktOut, (avpktOut->pts == cutInfo.startPTS));
+        if (pass == 0) SetSmartReEncodeOffset(avpktOut);
         // write packet
         if (!WritePacket(avpktOut, true)) {  // packet was re-encoded
             esyslog("cEncoder::EncodeFrame(): WritePacket() failed");
