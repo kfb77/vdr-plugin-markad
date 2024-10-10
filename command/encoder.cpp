@@ -193,6 +193,7 @@ cEncoder::cEncoder(cDecoder *decoderParam, cIndex *indexParam, const char *recDi
     bestStream  = bestStreamParam;
     ac3ReEncode = ac3ReEncodeParam;
     dsyslog("cEncoder::cEncoder(): init encoder with %d threads, cut mode: %d, ac3ReEncode %d", decoder->GetThreadCount(), cutMode, ac3ReEncode);
+    for (unsigned int streamIndex = 0; streamIndex < MAXSTREAMS; streamIndex ++) streamMap[streamIndex] = -1;  // init to -1 in declaration does not work with some compiler
 }
 
 
@@ -1696,10 +1697,10 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
                 avpkt->dts += 0x200000000;
             }
             streamInfo.lastInPTS[avpkt->stream_index] = avpkt->pts;
-            if (decoder->IsVideoPacket()) {  // re-encode video packet
 #ifdef DEBUG_PTS_DTS_CUT
-                dsyslog("cEncoder::CutSmart(): packet in (%d) -> decoder: flags %d, duration %" PRId64 ", PTS %" PRId64 ", DTS %" PRId64, decoder->GetPacketNumber(), avpkt->flags, avpkt->duration, avpkt->pts, avpkt->dts);
+            dsyslog("cEncoder::CutSmart(): packet in (%d) -> decoder: stream %d, flags %d, duration %" PRId64 ", PTS %" PRId64 ", DTS %" PRId64, decoder->GetPacketNumber(), avpkt->stream_index, avpkt->flags, avpkt->duration, avpkt->pts, avpkt->dts);
 #endif
+            if (decoder->IsVideoPacket()) {  // re-encode video packet
                 if (avpkt->pts == stopMark->pts) {
                     cutInfo.stopPTS = avpkt->pts;
                     cutInfo.stopDTS = avpkt->dts;
