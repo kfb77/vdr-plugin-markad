@@ -1907,7 +1907,7 @@ sMarkAdMarks *cVideo::Process() {
                         // if we have activ hborder add hborder stop mark, because hborder state will be cleared after aspect ratio change
                         if (hBorderDetect->State() == HBORDER_VISIBLE) {
                             dsyslog("cVideo::Process(): hborder activ during aspect ratio change from 16:9 to 4:3, add hborder stop mark");
-                            AddMark(MT_HBORDERSTOP, index->GetFrameBefore(index->GetFrameBefore(packetNumber)), -1);
+                            AddMark(MT_HBORDERSTOP, index->GetFrameBefore(index->GetFrameBefore(packetNumber)), framePTS); // we use same PTS as acpect ratio change
                         }
                     }
                 }
