@@ -472,6 +472,15 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 126;
         }
 
+//   1 NITRO                   16:9  720W  576H:->  112W 106H TOP_LEFT
+//   1 NITRO                    4:3  720W  576H:->  130W  62H TOP_LEFT
+        if (CompareChannelName(channelName, "NITRO", IGNORE_NOTHING)) {
+            logo.widthMin  = 102;
+            logo.widthMax  = 140;
+            logo.heightMin =  52;
+            logo.heightMax = 116;
+        }
+
         if ((CompareChannelName(channelName, "n-tv", IGNORE_COUNTRY)) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
                 (CompareChannelName(channelName, "ntv", IGNORE_COUNTRY))) {             //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
             logo.widthMax  = INT_MAX;  // news ticker
