@@ -1466,13 +1466,11 @@ bool cDecoder::IsVideoFrame() const {
 }
 
 
-/*
 bool cDecoder::IsVideoIFrame() const {
     if (!avctx) return false;
     if (avFrame.pict_type == AV_PICTURE_TYPE_I) return true;
     return false;
 }
-*/
 
 
 bool cDecoder::IsAudioStream(const unsigned int streamIndex) const {

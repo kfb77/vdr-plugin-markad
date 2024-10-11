@@ -313,7 +313,7 @@ public:
      * check if current frame is a video i-frame
      * @return true if current frame is a video i-frame, false otherwise
      */
-//    bool IsVideoIFrame() const;
+    bool IsVideoIFrame() const;
 
     /**
      * check if stream is AC3

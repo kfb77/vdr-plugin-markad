@@ -5717,12 +5717,16 @@ bool cMarkAdStandalone::ProcessFrame() {
 
         // detect video based marks
         if (criteria->GetDetectionState(MT_VIDEO)) {
-            sMarkAdMarks *vmarks = video->Process();
-            if (vmarks) {
-                for (int i = 0; i < vmarks->Count; i++) {
-                    AddMark(&vmarks->Number[i]);
+            // for performance reason only analyse i-frames if markad was called without full decoding and forced to full decoding because of codec
+            if (!macontext.Config->forcedFullDecode || decoder->IsVideoIFrame()) {
+                sMarkAdMarks *vmarks = video->Process();
+                if (vmarks) {
+                    for (int i = 0; i < vmarks->Count; i++) {
+                        AddMark(&vmarks->Number[i]);
+                    }
                 }
             }
+            else decoder->DropFrame();
         }
 
         // check start
@@ -6497,15 +6501,16 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     // inform decoder who use hwaccel, the video is interlaaced. In this case this is not possible to detect from decoder because hwaccel deinterlaces frames
     if ((macontext.Config->hwaccel[0] != 0) && decoderTest->IsInterlacedFrame() && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
         dsyslog("cMarkAdStandalone::cMarkAdStandalone(): inform decoder with hwaccel about H.264 interlaced video and force full decode");
-        macontext.Config->forceInterlaced = true;
-        macontext.Config->fullDecode      = true;
+        macontext.Config->forceInterlaced  = true;
+        macontext.Config->fullDecode       = true;
+        macontext.Config->forcedFullDecode = true;
     }
     FREE(sizeof(*decoderTest), "decoderTest");
     delete decoderTest;
 
     // write an early start mark for running recordings
     if (macontext.Info.isRunningRecording) {
-        dsyslog("cMarkAdStandalone::Recording(): recording is running, save dummy start mark at pre timer position %ds (%d)", macontext.Info.tStart, macontext.Info.tStart * frameRate);
+        dsyslog("cMarkAdStandalone::cMarkAdStandalone(): recording is running, save dummy start mark at pre timer position %ds (%d)", macontext.Info.tStart, macontext.Info.tStart * frameRate);
         // use new marks object because we do not want to have this mark in final file
         cMarks *marksTMP = new cMarks();
         ALLOC(sizeof(*marksTMP), "marksTMP");
