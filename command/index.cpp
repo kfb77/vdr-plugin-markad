@@ -169,7 +169,7 @@ int cIndex::GetFrameBefore(int frameNumber) {
 int cIndex::GetFrameAfter(int frameNumber) {
     if (fullDecode) return (frameNumber + 1);
     else {
-        int iFrameAfter = GetKeyPacketNumberAfter(frameNumber);
+        int iFrameAfter = GetKeyPacketNumberAfter(frameNumber + 1);  // prevent to get same frame if frameName is key packet
         if (iFrameAfter < 0) {
             esyslog("cIndex::GetFrameAfter(): frame (%d): GetKeyPacketAfter() failed", frameNumber);
             return - 1;
