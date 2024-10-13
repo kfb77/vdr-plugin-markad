@@ -1840,10 +1840,10 @@ sMarkAdMarks *cVideo::Process() {
         int blackret = blackScreenDetect->Process();
         switch (blackret) {
         case BLACKSCREEN_INVISIBLE:
-            AddMark(MT_NOBLACKSTART, packetNumberBefore, framePTSBefore);         // first frame without blackscreen is start mark position
+            AddMark(MT_NOBLACKSTART, packetNumberBefore, framePTSBefore);    // use PTS of last frame with black screen as MT_NOBLACKSTART mark (black sceren stop)
             break;
         case BLACKSCREEN_VISIBLE:
-            AddMark(MT_NOBLACKSTOP, packetNumber, framePTS);
+            AddMark(MT_NOBLACKSTOP, packetNumber, framePTS);                 // use PTS of first frame with black screen as MT_NOBLACKSTOP mark (black screen start)
             break;
         case BLACKLOWER_INVISIBLE:
             AddMark(MT_NOLOWERBORDERSTART, packetNumber, framePTS);   // first frame without lower border is start mark position
