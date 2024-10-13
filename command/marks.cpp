@@ -432,36 +432,36 @@ cMark *cMarks::GetNext(const int position, const int type, const int mask) {
 
 cMark *cMarks::Add(const int type, const int oldType, const int newType, int position, const int64_t framePTS, const char *comment, const bool inBroadCast) {
     cMark *dupMark = Get(position);
+    // move black screen stop mark for only one frame long black screens
+    if (dupMark && (type == MT_NOBLACKSTART) && (dupMark->type == MT_NOBLACKSTOP)) {
+        position = index->GetPacketNumberAfter(position);
+        dsyslog("cMarks::Add(): very short black screen, move MT_NOBLACKSTART to (%d)", position);
+        dupMark = Get(position);  // now check duplicate with new position
+    }
     if (dupMark) {
         if ((type & 0xF0) != MT_SCENECHANGE) dsyslog("cMarks::Add(): duplicate mark on position (%d) type 0x%X and type 0x%X", position, type, dupMark->type); // duplicate scene changes happens frequently
 #ifdef DEBUG_SCENECHANGE
         dsyslog("cMarks::Add(): duplicate mark on position (%d) type 0x%X and type 0x%X", position, type, dupMark->type); // duplicate scene changes happens frequently
 #endif
         // very short black screen can only be one frame, correct move mark position to prevent to drop marks
-        if ((type == MT_NOBLACKSTART) && (dupMark->type == MT_NOBLACKSTOP)) {
-            position = index->GetPacketNumberAfter(position);
-            dsyslog("cMarks::Add(): very short black screen, move MT_NOBLACKSTART to (%d)", position);
+        if (type == dupMark->type) return dupMark;      // same type at same position, ignore add()
+        if ((type & 0xF0) == (dupMark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
+            Del(dupMark->position);
+            return nullptr;
         }
-        else {
-            if (type == dupMark->type) return dupMark;      // same type at same position, ignore add()
-            if ((type & 0xF0) == (dupMark->type & 0xF0)) {  // start and stop mark of same type at same position, delete both
-                Del(dupMark->position);
-                return nullptr;
+        if (type > dupMark->type) {  // keep the stronger mark
+            if (dupMark->comment && comment) {
+                FREE(strlen(dupMark->comment)+1, "comment");
+                free(dupMark->comment);
+                dupMark->comment = strdup(comment);
+                ALLOC(strlen(dupMark->comment)+1, "comment");
             }
-            if (type > dupMark->type) {  // keep the stronger mark
-                if (dupMark->comment && comment) {
-                    FREE(strlen(dupMark->comment)+1, "comment");
-                    free(dupMark->comment);
-                    dupMark->comment = strdup(comment);
-                    ALLOC(strlen(dupMark->comment)+1, "comment");
-                }
-                dupMark->type        = type;
-                dupMark->oldType     = oldType;
-                dupMark->newType     = newType;
-                dupMark->inBroadCast = inBroadCast;
-            }
-            return dupMark;
+            dupMark->type        = type;
+            dupMark->oldType     = oldType;
+            dupMark->newType     = newType;
+            dupMark->inBroadCast = inBroadCast;
         }
+        return dupMark;
     }
 
     cMark *newMark = new cMark(type, oldType, newType, position, framePTS, comment, inBroadCast);
@@ -521,7 +521,7 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, int pos
             }
             mark = mark->Next();
         }
-        if (!mark)return nullptr;
+        if (!mark) return nullptr;
         count++;
         return newMark;
     }
