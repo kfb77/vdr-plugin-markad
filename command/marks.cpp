@@ -439,7 +439,7 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, int pos
 #endif
         // very short black screen can only be one frame, correct move mark position to prevent to drop marks
         if ((type == MT_NOBLACKSTART) && (dupMark->type == MT_NOBLACKSTOP)) {
-            position = index->GetFrameAfter(position);
+            position = index->GetPacketNumberAfter(position);
             dsyslog("cMarks::Add(): very short black screen, move MT_NOBLACKSTART to (%d)", position);
         }
         else {

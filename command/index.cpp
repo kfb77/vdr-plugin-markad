@@ -166,15 +166,15 @@ int cIndex::GetFrameBefore(int frameNumber) {
 }
 
 
-int cIndex::GetFrameAfter(int frameNumber) {
-    if (fullDecode) return (frameNumber + 1);
+int cIndex::GetPacketNumberAfter(int packetNumber) {
+    if (fullDecode) return (packetNumber + 1);
     else {
-        int iFrameAfter = GetKeyPacketNumberAfter(frameNumber + 1);  // prevent to get same frame if frameName is key packet
-        if (iFrameAfter < 0) {
-            esyslog("cIndex::GetFrameAfter(): frame (%d): GetKeyPacketAfter() failed", frameNumber);
+        int keyPacketNumberAfter = GetKeyPacketNumberAfter(packetNumber + 1);  // prevent to get same packet if packetNumber is key packet
+        if (keyPacketNumberAfter < 0) {
+            esyslog("cIndex::GetPacketNumberAfter(): packet (%d): GetKeyPacketAfter() failed", packetNumber);
             return - 1;
         }
-        return iFrameAfter;
+        return keyPacketNumberAfter;
     }
 }
 

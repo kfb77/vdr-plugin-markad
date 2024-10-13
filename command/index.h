@@ -83,11 +83,11 @@ public:
     sIndexElement *GetLastPacket();
 
     /**
-     * get frame number after frame
-     * @param frameNumber number of frame
-     * @return if fullDecode frame number direct after frameNumber, else i-frame number after
+     * get packet number after packet
+     * @param packetNumber number of packet
+     * @return if fullDecode packet number direct after packetNumber, else number of next key packet
      */
-    int GetFrameAfter(int frameNumber);
+    int GetPacketNumberAfter(int packetNumber);
 
     /**
      * get frame number before frame number
