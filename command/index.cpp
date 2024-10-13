@@ -166,7 +166,6 @@ int cIndex::GetFrameBefore(int frameNumber) {
 }
 
 
-/* unused
 int cIndex::GetFrameAfter(int frameNumber) {
     if (fullDecode) return (frameNumber + 1);
     else {
@@ -178,7 +177,6 @@ int cIndex::GetFrameAfter(int frameNumber) {
         return iFrameAfter;
     }
 }
-*/
 
 
 sIndexElement *cIndex::GetIndexElementFromPTS(const int64_t pts) {

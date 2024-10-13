@@ -6557,6 +6557,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     index = new cIndex(macontext.Config->fullDecode);
     ALLOC(sizeof(*index), "index");
     marks.SetIndex(index);
+    sceneMarks.SetIndex(index);
+    silenceMarks.SetIndex(index);
+    blackMarks.SetIndex(index);
 
     // create decoder object
     decoder = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Config->forceInterlaced, index);

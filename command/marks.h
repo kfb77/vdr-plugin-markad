@@ -195,7 +195,7 @@ public:
      * @param inBroadCast true if mark is in broacast, false if mark is in advertising
      * @return ointer to new mark
      */
-    cMark *Add(const int type, const int oldType, const int newType, const int position, const int64_t framePTS, const char *comment = nullptr, const bool inBroadCast = false);
+    cMark *Add(const int type, const int oldType, const int newType, int position, const int64_t framePTS, const char *comment = nullptr, const bool inBroadCast = false);
 
     /**
      * convert packet number to time string
