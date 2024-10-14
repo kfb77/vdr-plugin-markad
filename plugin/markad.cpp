@@ -104,9 +104,9 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
         { "logocachedir", required_argument, nullptr, 'l'},
         { "loglevel",     required_argument, nullptr, '1'},
         { "astopoffs",    required_argument, nullptr, '2'},
-        { "cut",          no_argument,       nullptr, '4'},
-        { "ac3reencode",  no_argument,       nullptr, '5'},
-        { "autologo",     required_argument, nullptr, '6'},
+        { "cut",          no_argument,       nullptr, '3'},
+        { "ac3reencode",  no_argument,       nullptr, '4'},
+        { "autologo",     required_argument, nullptr, '5'},
         { nullptr, 0, nullptr, 0 }
     };
 
