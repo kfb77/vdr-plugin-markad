@@ -56,21 +56,9 @@ ifeq ($(CXXVERSION),13)                 # prevent "warning: "_FORTIFY_SOURCE" re
         endif
 endif
 
-
 ### The version number of VDR's plugin API:
 APIVERSION = $(call PKGCFG,apiversion)
 $(info VDR plugin API version is ${APIVERSION})
-APINUM = $(shell echo $(APIVERSION) | awk -F . '{printf "%d%02d%02d", $$1, $$2, $$3}')
-
-# current minimum VDR API version 2.2.0
-ifeq ($(shell expr ${APINUM} \< 20200), 1)
-        $(error VDR plugin API version not supported, please update VDR)
-        exit
-endif
-ifeq ($(shell expr ${APINUM} \< 20301), 1)
-        $(warning VDR plugin API version is deprecated, please update VDR)
-endif
-
 
 ### The name of the distribution archive:
 ARCHIVE = $(PLUGIN)-$(VERSION)
