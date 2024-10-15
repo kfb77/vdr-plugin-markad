@@ -325,9 +325,11 @@ public:
 
     /**
      * check if current range is a introduction logo
-     * @return last frame of the introduction logo after logo start mark
+     * @param startPos          search start position
+     * @param endPos            end position of search
+     * @param introductionStart start position of introducion logo if found
      */
-    int IntroductionLogo(int startPos, int endPos);
+    void IntroductionLogo(int startPos, int endPos, sMarkPos *introductionStart);
 
 private:
     /**

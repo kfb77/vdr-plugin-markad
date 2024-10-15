@@ -1844,29 +1844,35 @@ void cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, sMarkPos 
 // - a separator frame
 // - a range of similar frames in the logo corner, but no still image
 // - no separator frame after similar logo corner frames
-int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
-    if (!decoder) return -1;
-    if (compareResult.empty()) return -1;
+void cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos, sMarkPos *introductionStart) {
+    if (!introductionStart) return;
+    introductionStart->position = -1;
+    introductionStart->pts      = -1;
+
+    if (!decoder) return;
+    if (compareResult.empty()) return;
     if ((logoCorner < 0) || (logoCorner >= CORNERS)) {
         esyslog(" cDetectLogoStopStart::IntroductionLogo():  invalid logo corner %d", logoCorner);
-        return -1;
+        return;
     }
 
 // for performance reason only for known and tested channels for now
     if (!criteria->IsIntroductionLogoChannel()) {
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): skip this channel");
-        return -1;
+        return;
     }
     int frameRate = decoder->GetVideoFrameRate();
 
     struct introductionLogo {
-        int start             = -1;
-        int end               = -1;
-        int framePortion      =  0;
-        int frames            =  0;
-        int startFinal        = -1;
-        int endFinal          = -1;
-        int framePortionFinal =  0;
+        int startPosition      = -1;
+        int64_t startPTS       = -1;
+        int endPosition        = -1;
+        int framePortion       =  0;
+        int frames             =  0;
+        int startFinalPosition = -1;
+        int64_t startFinalPTS  = -1;
+        int endFinalPosition   = -1;
+        int framePortionFinal  =  0;
     } introductionLogo;
 
     struct sStillImage {
@@ -1876,7 +1882,6 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         int endFinal   = -1;
     } stillImage;
 
-    int retFrame              = -1;
     int sumPixelBefore        =  0;
     int sumFramePortionBefore =  0;
     int separatorFrameBefore  = -1;
@@ -1939,24 +1944,26 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
                 // new separator image before introduction logo, restart detection
                 ((countNoMatch == 2) && (sumPixel <   63)) ||
                 ((countNoMatch >= 3) && (sumPixel <   64)) ||  // changed from 74 to 64
-                ((countNoPixel == 3) && (sumPixel == 997) && (introductionLogo.start == -1))) {  // special case blackscreen with logo, end of previous broadcast
+                ((countNoPixel == 3) && (sumPixel == 997) && (introductionLogo.startPosition == -1))) {  // special case blackscreen with logo, end of previous broadcast
             // but not if we have a detected separator, prevent false detection of black screen in boradcast
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
             dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator before introduction found at frame (%5d), sumPixel %d, sumPixelBefore %d, sumFramePortion %d, sumFramePortionBefore %d", (*cornerResultIt).frameNumber1, sumPixel, sumPixelBefore, sumFramePortion, sumFramePortionBefore);
 #endif
             separatorFrameBefore = (*cornerResultIt).frameNumber1;
-            introductionLogo.start             = -1;
-            introductionLogo.end               = -1;
-            introductionLogo.framePortion      =  0;
-            introductionLogo.frames            =  0;
-            introductionLogo.startFinal        = -1;
-            introductionLogo.endFinal          = -1;
-            introductionLogo.framePortionFinal =  0;
-            separatorFrameAfter                = -1;
-            stillImage.start                   = -1;
-            stillImage.startFinal              = -1;
-            stillImage.end                     = -1;
-            stillImage.endFinal                = -1;
+            introductionLogo.startPosition      = -1;
+            introductionLogo.startPTS           = -1;
+            introductionLogo.endPosition        = -1;
+            introductionLogo.framePortion       =  0;
+            introductionLogo.frames             =  0;
+            introductionLogo.startFinalPosition = -1;
+            introductionLogo.startFinalPTS      = -1;
+            introductionLogo.endFinalPosition   = -1;
+            introductionLogo.framePortionFinal  =  0;
+            separatorFrameAfter                 = -1;
+            stillImage.start                    = -1;
+            stillImage.startFinal               = -1;
+            stillImage.end                      = -1;
+            stillImage.endFinal                 = -1;
             continue;
         }
 
@@ -1992,7 +1999,7 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         }
 
         // detect still image
-        if ((separatorFrameBefore >= 0) && (introductionLogo.start >= 0) && (countStillImage >= 4)) { // still image or closing credists after introduction logo
+        if ((separatorFrameBefore >= 0) && (introductionLogo.startPosition >= 0) && (countStillImage >= 4)) { // still image or closing credists after introduction logo
             // countStillImage: changed from 3 to 4
             if (stillImage.start == -1) {
                 stillImage.start = (*cornerResultIt).frameNumber1;
@@ -2017,15 +2024,19 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         // detect introduction logo
         if (separatorFrameBefore >= 0) { // introduction logo start is after separator frame
             if ((*cornerResultIt).rate[logoCorner] >= 82) { // changed from 99 to 82 (change from one intro logo to another intro logo, kabel eins)
-                if (introductionLogo.start == -1) introductionLogo.start = (*cornerResultIt).frameNumber1;
-                introductionLogo.end = (*cornerResultIt).frameNumber2;
+                if (introductionLogo.startPosition == -1) {
+                    introductionLogo.startPosition = (*cornerResultIt).frameNumber1;
+                    introductionLogo.startPTS      = (*cornerResultIt).pts1;
+                }
+                introductionLogo.endPosition = (*cornerResultIt).frameNumber2;
                 introductionLogo.framePortion += sumFramePortion;
                 introductionLogo.frames++;
             }
             else {
-                if ((introductionLogo.end - introductionLogo.start) >= (introductionLogo.endFinal - introductionLogo.startFinal)) {
-                    introductionLogo.startFinal = introductionLogo.start;
-                    introductionLogo.endFinal   = introductionLogo.end;
+                if ((introductionLogo.endPosition - introductionLogo.startPosition) >= (introductionLogo.endFinalPosition - introductionLogo.startFinalPosition)) {
+                    introductionLogo.startFinalPosition = introductionLogo.startPosition;
+                    introductionLogo.startFinalPTS      = introductionLogo.startPTS;
+                    introductionLogo.endFinalPosition   = introductionLogo.endPosition;
                     if (introductionLogo.frames > 0) introductionLogo.framePortionFinal = introductionLogo.framePortion / introductionLogo.frames / 4;
                 }
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
@@ -2033,10 +2044,11 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
                 dsyslog("cDetectLogoStopStart::IntroductionLogo(): current      range: from (%d) to (%d), sum frame portion %4d, frames %3d", introductionLogo.start, introductionLogo.end, introductionLogo.framePortion, introductionLogo.frames);
                 dsyslog("cDetectLogoStopStart::IntroductionLogo(): current best range: from (%d) to (%d), avg frame portion %4d", introductionLogo.startFinal, introductionLogo.endFinal, introductionLogo.framePortionFinal);
 #endif
-                introductionLogo.start        = -1;
-                introductionLogo.end          = -1;
-                introductionLogo.framePortion =  0;
-                introductionLogo.frames       =  0;
+                introductionLogo.startPosition = -1;
+                introductionLogo.startPTS      = -1;
+                introductionLogo.endPosition   = -1;
+                introductionLogo.framePortion  =  0;
+                introductionLogo.frames        =  0;
             }
         }
         sumPixelBefore        = sumPixel;
@@ -2044,24 +2056,25 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
     }
 
     // select final introduction logo range
-    int lengthLast    = 1000 * (introductionLogo.end - introductionLogo.start) / frameRate;
-    int lastdiffStart = 1000 * (endPos               - introductionLogo.end)   / frameRate;
+    int lengthLast    = 1000 * (introductionLogo.endPosition - introductionLogo.startPosition) / frameRate;
+    int lastdiffStart = 1000 * (endPos                       - introductionLogo.endPosition)   / frameRate;
     dsyslog("cDetectLogoStopStart::IntroductionLogo(): INTRODUCTION_MIN_LENGTH %dms", INTRODUCTION_MIN_LENGTH);
-    dsyslog("cDetectLogoStopStart::IntroductionLogo(): last         range: from (%d) to (%d), sum frame portion %4d, frames %3d, length %dms, diff start mark %dms", introductionLogo.start, introductionLogo.end, introductionLogo.framePortion, introductionLogo.frames, lengthLast, lastdiffStart);
-    dsyslog("cDetectLogoStopStart::IntroductionLogo(): current best range: from (%d) to (%d), avg frame portion %4d", introductionLogo.startFinal, introductionLogo.endFinal, introductionLogo.framePortionFinal);
+    dsyslog("cDetectLogoStopStart::IntroductionLogo(): last         range: from (%d) to (%d), sum frame portion %4d, frames %3d, length %dms, diff start mark %dms", introductionLogo.startPosition, introductionLogo.endPosition, introductionLogo.framePortion, introductionLogo.frames, lengthLast, lastdiffStart);
+    dsyslog("cDetectLogoStopStart::IntroductionLogo(): current best range: from (%d) to (%d), avg frame portion %4d", introductionLogo.startFinalPosition, introductionLogo.endFinalPosition, introductionLogo.framePortionFinal);
 
-    if (((introductionLogo.end - introductionLogo.start) >= (introductionLogo.endFinal - introductionLogo.startFinal)) ||   // use longer
+    if (((introductionLogo.endPosition - introductionLogo.startPosition) >= (introductionLogo.endFinalPosition - introductionLogo.startFinalPosition)) ||   // use longer
             ((lengthLast >= INTRODUCTION_MIN_LENGTH) && (lastdiffStart == 0))) {  // use last if long enough, maybe longer range before was ad in frame without logo
-        introductionLogo.startFinal = introductionLogo.start;
-        introductionLogo.endFinal   = introductionLogo.end;
+        introductionLogo.startFinalPosition = introductionLogo.startPosition;
+        introductionLogo.startFinalPTS      = introductionLogo.startPTS;
+        introductionLogo.endFinalPosition   = introductionLogo.endPosition;
         if (introductionLogo.frames > 0) introductionLogo.framePortionFinal = introductionLogo.framePortion / introductionLogo.frames / 4;
     }
-    dsyslog("cDetectLogoStopStart::IntroductionLogo(): final introduction logo range: start (%d), end (%d), avg frame portion %d", introductionLogo.startFinal, introductionLogo.endFinal, introductionLogo.framePortionFinal);
+    dsyslog("cDetectLogoStopStart::IntroductionLogo(): final introduction logo range: start (%d), end (%d), avg frame portion %d", introductionLogo.startFinalPosition, introductionLogo.endFinalPosition, introductionLogo.framePortionFinal);
 
     // check frame portion quote to prevent to false detect ad in frame without logo as introdition logo
     if (introductionLogo.framePortionFinal >= 336) {  // changed from 356 to 336
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): frame portion quote to high, ad in frame without logo before detected");
-        return -1;
+        return;
     }
 
     // check separator frame before introduction logo
@@ -2071,13 +2084,13 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
     }
     else {
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): no separator frame found");
-        return -1;
+        return;
     }
 
     // check separator frame after introduction logo
-    if ((separatorFrameAfter >= 0) && (introductionLogo.endFinal >= 0) && (separatorFrameAfter >= introductionLogo.endFinal)) {
+    if ((separatorFrameAfter >= 0) && (introductionLogo.endFinalPosition >= 0) && (separatorFrameAfter >= introductionLogo.endFinalPosition)) {
         dsyslog("cDetectLogoStopStart::IntroductionLogo(): separator frame after introduction logo found (%d)", separatorFrameAfter);
-        return -1;
+        return;
     }
 
 #define INTRODUCTION_STILL_MAX_DIFF_END 1440   // max distance of still image to start mark (endPos), changed from 1919 to 1440
@@ -2086,7 +2099,7 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         stillImage.startFinal = stillImage.start;
         stillImage.endFinal   = stillImage.end;
     }
-    int lengthIntroductionLogo = 1000 * (introductionLogo.endFinal - introductionLogo.startFinal) / frameRate;
+    int lengthIntroductionLogo = 1000 * (introductionLogo.endFinalPosition - introductionLogo.startFinalPosition) / frameRate;
     if ((stillImage.startFinal >= 0) && (stillImage.endFinal > 0)) {
         int lengthStillImage = 1000 * (stillImage.endFinal - stillImage.startFinal) / frameRate;
         int diffStartMark    = 1000 * (endPos              - stillImage.endFinal)   / frameRate;
@@ -2097,21 +2110,22 @@ int cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos) {
         if ((lengthStillImage >= maxQuote) ||
                 ((diffStartMark <= INTRODUCTION_STILL_MAX_DIFF_END) && (lengthStillImage >= 4960))) {
             dsyslog("cDetectLogoStopStart::IntroductionLogo(): still image short before logo start detected, this in no introdution part");
-            return -1;
+            return;
         }
     }
 
 // check introduction logo
     // check length and distances
-    int diffEnd       = 1000 * (endPos                      - introductionLogo.endFinal) / frameRate;
-    int diffSeparator = 1000 * (introductionLogo.startFinal - separatorFrameBefore)      / frameRate;
-    dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), length %dms (expect >=%dms <=%dms)", introductionLogo.startFinal, introductionLogo.endFinal, lengthIntroductionLogo, INTRODUCTION_MIN_LENGTH, INTRODUCTION_MAX_LENGTH);
-    dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), diff to logo start mark (%d) %dms (expect <=%dms)", introductionLogo.startFinal, introductionLogo.endFinal, endPos, diffEnd, INTRODUCTION_MAX_DIFF_END);
-    dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), diff to separator frame (%d) %dms (expect <=%dms)", introductionLogo.startFinal, introductionLogo.endFinal, separatorFrameBefore, diffSeparator, INTRODUCTION_MAX_DIFF_SEPARATOR);
+    int diffEnd       = 1000 * (endPos                              - introductionLogo.endFinalPosition) / frameRate;
+    int diffSeparator = 1000 * (introductionLogo.startFinalPosition - separatorFrameBefore)              / frameRate;
+    dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), length %dms (expect >=%dms <=%dms)", introductionLogo.startFinalPosition, introductionLogo.endFinalPosition, lengthIntroductionLogo, INTRODUCTION_MIN_LENGTH, INTRODUCTION_MAX_LENGTH);
+    dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), diff to logo start mark (%d) %dms (expect <=%dms)", introductionLogo.startFinalPosition, introductionLogo.endFinalPosition, endPos, diffEnd, INTRODUCTION_MAX_DIFF_END);
+    dsyslog("cDetectLogoStopStart::IntroductionLogo(): introduction logo: start (%d), end (%d), diff to separator frame (%d) %dms (expect <=%dms)", introductionLogo.startFinalPosition, introductionLogo.endFinalPosition, separatorFrameBefore, diffSeparator, INTRODUCTION_MAX_DIFF_SEPARATOR);
     if ((lengthIntroductionLogo >= INTRODUCTION_MIN_LENGTH) && (lengthIntroductionLogo <= INTRODUCTION_MAX_LENGTH) && (diffEnd <= INTRODUCTION_MAX_DIFF_END) && (diffSeparator <= INTRODUCTION_MAX_DIFF_SEPARATOR)) {
-        dsyslog("cDetectLogoStopStart::IntroductionLogo(): found introduction logo start at (%d)", introductionLogo.startFinal);
-        retFrame = introductionLogo.startFinal;
+        dsyslog("cDetectLogoStopStart::IntroductionLogo(): found introduction logo start at (%d)", introductionLogo.startFinalPosition);
+        introductionStart->position = introductionLogo.startFinalPosition;
+        introductionStart->pts      = introductionLogo.startFinalPTS;
     }
     else dsyslog("cDetectLogoStopStart::IntroductionLogo(): no introduction logo found");
-    return retFrame;
+    return;
 }

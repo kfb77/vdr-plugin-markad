@@ -4405,7 +4405,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
         if (markLogo->type == MT_LOGOSTART) {
 
             const char *indexToHMSFStartMark = marks.GetTime(markLogo);
-            int introductionStartPosition = -1;
+            sMarkPos introductionStart = {-1};
 
             // check for introduction logo before logo mark position
             if (criteria->IsIntroductionLogoChannel()) {
@@ -4429,8 +4429,9 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                     free(indexToHMSFSearchStart);
                 }
                 if (detectLogoStopStart->Detect(searchStartPosition, markLogo->position)) {
-                    introductionStartPosition = detectLogoStopStart->IntroductionLogo(searchStartPosition, markLogo->position);
+                    detectLogoStopStart->IntroductionLogo(searchStartPosition, markLogo->position, &introductionStart);
                 }
+                if (introductionStart.position >= 0) dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found introduction logo start at (%d)", introductionStart.position);
             }
 
             // check for advertising in frame with logo after logo start mark position
@@ -4470,18 +4471,18 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                     save = true;
                 }
                 else {
-                    if (introductionStartPosition != -1) {
+                    if (introductionStart.position != -1) {
                         bool move = true;
                         // check blackscreen between introduction logo start and logo start, there should be no long blackscreen, short blackscreen are from retrospect
-                        cMark *blackMarkStart = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTART);
-                        cMark *blackMarkStop = blackMarks.GetNext(introductionStartPosition, MT_NOBLACKSTOP);
+                        cMark *blackMarkStart = blackMarks.GetNext(introductionStart.position, MT_NOBLACKSTART);
+                        cMark *blackMarkStop  = blackMarks.GetNext(introductionStart.position, MT_NOBLACKSTOP);
                         if (blackMarkStart && blackMarkStop && (blackMarkStart->position <= markLogo->position) && (blackMarkStop->position <= markLogo->position)) {
                             int innerLength = 1000 * (blackMarkStart->position - blackMarkStop->position) / decoder->GetVideoFrameRate();
-                            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found black screen start (%d) and stop (%d) between introduction logo (%d) and start mark (%d), length %dms", blackMarkStop->position, blackMarkStart->position, introductionStartPosition, markLogo->position, innerLength);
+                            dsyslog("cMarkAdStandalone::LogoMarkOptimization(): found black screen start (%d) and stop (%d) between introduction logo (%d) and start mark (%d), length %dms", blackMarkStop->position, blackMarkStart->position, introductionStart.position, markLogo->position, innerLength);
                             if (innerLength > 1000) move = false;  // only move if we found no long blackscreen between introduction logo and logo start
                         }
                         if (move) {
-                            markLogo = marks.Move(markLogo, markLogo->position, markLogo->pts, MT_INTRODUCTIONSTART);
+                            markLogo = marks.Move(markLogo, introductionStart.position, introductionStart.pts, MT_INTRODUCTIONSTART);
                         }
                         if (!markLogo) {
                             esyslog("cMarkAdStandalone::LogoMarkOptimization(): move mark failed");
