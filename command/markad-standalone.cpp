@@ -3184,15 +3184,15 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART ( 51224) ->   29800ms -> MT_LOGOSTOP ( 51969) ->     920ms -> MT_LOGOSTART ( 51992) ->  622840ms -> MT_STOP (67563)
 // MT_LOGOSTART ( 49708) ->  593600ms -> MT_LOGOSTOP ( 64548) ->     120ms -> MT_LOGOSTART ( 64551) ->   14880ms -> MT_STOP (64923)
 // MT_LOGOSTART ( 37720) ->   26280ms -> MT_LOGOSTOP ( 38377) ->     840ms -> MT_LOGOSTART ( 38398) ->  254120ms -> MT_STOP (44751)
+// MT_LOGOSTART ( 74875) ->    1400ms -> MT_LOGOSTOP ( 74910) ->     760ms -> MT_LOGOSTART ( 74929) ->  566480ms -> MT_STOP ( 89091)
 //
-
 // invalid stop/start pair from introduction logo change (detected as logo) to normal logo (kabel eins)
 // MT_LOGOSTART ( 99981) ->    7720ms -> MT_LOGOSTOP (100174) ->    1120ms -> MT_LOGOSTART (100202) -> 1098840ms -> MT_STOP (127673) -> introdution logo change (kabel eins)
 // MT_LOGOSTART ( 41139) ->    7760ms -> MT_LOGOSTOP ( 41333) ->    1080ms -> MT_LOGOSTART ( 41360) ->  872280ms -> MT_STOP ( 63167) -> introdution logo change (kabel eins)
 // MT_LOGOSTART ( 74781) ->    7800ms -> MT_LOGOSTOP ( 74976) ->    1040ms -> MT_LOGOSTART ( 75002) ->  416280ms -> MT_STOP ( 85409) -> introdution logo change (kabel eins)
 // MT_LOGOSTART ( 63508) ->    7920ms -> MT_LOGOSTOP ( 63706) ->     880ms -> MT_LOGOSTART ( 63728) -> 1204960ms -> MT_STOP ( 93852) -> introdution logo change (kabel eins)
                     if (criteria->IsIntroductionLogoChannel() &&
-                            (prevLogoStart_Stop     <=   7920) &&
+                            (prevLogoStart_Stop     >    1400) && (prevLogoStart_Stop <= 7920) &&
                             (stop_nextLogoStart     <=   1120) &&
                             (nextLogoStart_nextStop >= 416280)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from introduction logo, deleting", mark->position, nextLogoStart->position);
