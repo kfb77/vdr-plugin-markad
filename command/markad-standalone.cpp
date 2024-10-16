@@ -2263,7 +2263,13 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     cMark *hStart = marks.GetAround(1.3 * MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_HBORDERSTART);  // trust late hborder start mark
     if (hStart) { // we found a hborder start mark
         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start found at (%d)", hStart->position);
-
+        if (hStart->position <= IGNORE_AT_START) {  // hborder start at recording start is from previous recording
+            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): ignore too early hborder start (%d), try next", hStart->position);
+            hStart = marks.GetNext(hStart->position, MT_HBORDERSTART);
+            if (hStart) dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): next horizontal border start found at (%d)", hStart->position);
+        }
+    }
+    if (hStart) { // we found a hborder start mark
         // check if hborder marks are from long black closing credits
         cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);  // if there is a MT_HBORDERSTOP short after the MT_HBORDERSTART, MT_HBORDERSTART is not valid
         if (hStop) {   // hborder in opening credits alway have logo in border
@@ -2310,53 +2316,37 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
             }
         }
 
-        // check hborder start position
-        if (hStart->position >= IGNORE_AT_START) {  // position < IGNORE_AT_START is a hborder start from previous recording
-            // found valid horizontal border start mark
-            criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
-            // we found a hborder, check logo stop/start after to prevent to get closing credit from previous recording as start
-            // only works for channel with logo in border
-            if (criteria->LogoInBorder()) {
-                cMark *logoStop  = marks.GetNext(hStart->position, MT_LOGOSTOP);        // logo stop mark can be after hborder start
-                if (!logoStop) logoStop = marks.GetPrev(hStart->position, MT_LOGOSTOP); //                   or before hborder start
-                cMark *logoStart = marks.GetNext(hStart->position, MT_LOGOSTART);
-                if (logoStop && logoStart && (logoStart->position > logoStop->position)) {
-                    int diffStop  = (logoStop->position  - hStart->position) / decoder->GetVideoFrameRate();
-                    int diffStart = (logoStart->position - hStart->position) / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): found logo stop (%d) %ds and logo start (%d) %ds after hborder start (%d)", logoStop->position, diffStop, logoStart->position, diffStart, hStart->position);
-                    // example of hborder start in dark closing credits from previous recording
-                    // found logo stop (7569) 17s and logo start (7649) 21s after hborder start (7122)
-                    if ((diffStop >= -1) && (diffStop <= 17) && (diffStart <= 21)) {
-                        dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): hborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", hStart->position, logoStart->position);
-                        marks.Del(hStart->position);
-                        hStart = logoStart;
-                    }
-                }
-            }
-            // cleanup all logo marks if we have a hborder start mark
-            if (hStart->type != MT_LOGOSTART) {
-                dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): delete logo marks if any");
-                marks.DelType(MT_LOGOCHANGE, 0xF0);
-            }
-            // cleanup vborder marks
-            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): delete vborder marks if any");
-            marks.DelType(MT_VBORDERCHANGE, 0xF0);
-        }
-        else {
-            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): delete too early horizontal border mark (%d)", hStart->position);
-            marks.Del(hStart->position);
-            hStart = nullptr;
-            if (marks.Count(MT_HBORDERCHANGE, 0xF0) == 0) {
-                dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border since start, use it for mark detection");
-                criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
-                if (!criteria->LogoInBorder()) {
-                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): logo marks can not be valid, delete it");
-                    marks.DelType(MT_LOGOCHANGE, 0xF0);
+        // found valid horizontal border start mark
+        criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
+        // we found a hborder, check logo stop/start after to prevent to get closing credit from previous recording as start
+        // only works for channel with logo in border
+        if (criteria->LogoInBorder()) {
+            cMark *logoStop  = marks.GetNext(hStart->position, MT_LOGOSTOP);        // logo stop mark can be after hborder start
+            if (!logoStop) logoStop = marks.GetPrev(hStart->position, MT_LOGOSTOP); //                   or before hborder start
+            cMark *logoStart = marks.GetNext(hStart->position, MT_LOGOSTART);
+            if (logoStop && logoStart && (logoStart->position > logoStop->position)) {
+                int diffStop  = (logoStop->position  - hStart->position) / decoder->GetVideoFrameRate();
+                int diffStart = (logoStart->position - hStart->position) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): found logo stop (%d) %ds and logo start (%d) %ds after hborder start (%d)", logoStop->position, diffStop, logoStart->position, diffStart, hStart->position);
+                // example of hborder start in dark closing credits from previous recording
+                // found logo stop (7569) 17s and logo start (7649) 21s after hborder start (7122)
+                if ((diffStop >= -1) && (diffStop <= 17) && (diffStart <= 21)) {
+                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): hborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", hStart->position, logoStart->position);
+                    marks.Del(hStart->position);
+                    hStart = logoStart;
                 }
             }
         }
+        // cleanup all logo marks if we have a hborder start mark
+        if (hStart->type != MT_LOGOSTART) {
+            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): delete logo marks if any");
+            marks.DelType(MT_LOGOCHANGE, 0xF0);
+        }
+        // cleanup vborder marks
+        dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): delete vborder marks if any");
+        marks.DelType(MT_VBORDERCHANGE, 0xF0);
     }
-    else { // we found no hborder start mark
+    else { // we found no valid hborder start mark
         // check if we have a hborder double episode from recording start
         cMark *firstBorderStart = marks.GetNext(-1, MT_HBORDERSTART);
         if (firstBorderStart && (firstBorderStart->position <= IGNORE_AT_START) && (marks.Count(MT_HBORDERSTART) > marks.Count(MT_HBORDERSTOP))) {
