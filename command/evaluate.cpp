@@ -501,7 +501,7 @@ bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPositi
     if (nextLogoPairIterator == logoPairVector.end()) return false;
 
     // skip pair if there is nothing to detect
-    while ((nextLogoPairIterator->stopPosition < endRange) &&  // if we are in end range we possible need to detect colong credits
+    while ((nextLogoPairIterator->stopPosition < endRange) &&  // if we are in end range we need to detect at least closing credits
             (nextLogoPairIterator->isLogoChange == STATUS_NO) && (nextLogoPairIterator->isInfoLogo == STATUS_NO)) {
         ++nextLogoPairIterator;
         if (nextLogoPairIterator == logoPairVector.end()) return false;
