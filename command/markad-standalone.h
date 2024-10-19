@@ -167,7 +167,7 @@ public:
         criteria                  = nullptr;
         startA                    = origin.startA;
         stopA                     = origin.stopA;
-        packetCheckStart           = origin.packetCheckStart;
+        packetCheckStart          = origin.packetCheckStart;
         ptitle                    = title;
         directory                 = origin.directory;
         video                     = nullptr;
@@ -190,9 +190,10 @@ public:
         detectLogoStopStart       = origin.detectLogoStopStart;
         doneCheckStop             = origin.doneCheckStop;
         doneCheckStart            = origin.doneCheckStart;
-        packetCheckStop            = origin.packetCheckStop;
+        packetEndPart             = origin.packetEndPart;
+        packetCheckStop           = origin.packetCheckStop;
         extractLogo               = nullptr;
-        sleepcnt = origin.sleepcnt;
+        sleepcnt                  = origin.sleepcnt;
     };
 
     /**
@@ -205,7 +206,7 @@ public:
         criteria                  = nullptr;
         startA                    = origin->startA;
         stopA                     = origin->stopA;
-        packetCheckStart           = origin->packetCheckStart;
+        packetCheckStart          = origin->packetCheckStart;
         ptitle                    = title;
         directory                 = origin->directory;
         video                     = nullptr;
@@ -229,7 +230,8 @@ public:
         detectLogoStopStart       = origin->detectLogoStopStart;
         doneCheckStop             = origin->doneCheckStop;
         doneCheckStart            = origin->doneCheckStart;
-        packetCheckStop            = origin->packetCheckStop;
+        packetCheckStop           = origin->packetCheckStop;
+        packetEndPart             = origin->packetEndPart;
         extractLogo               = origin->extractLogo;
         return *this;
     }
@@ -536,6 +538,8 @@ private:
     int packetCheckStart             = 0;        //!< packet number to check for start mark
     //!<
     int packetCheckStop              = 0;        //!< packet number to check for end mark
+    //!<
+    int packetEndPart                = 0;        //!< packet number of start of end part
     //!<
     bool doneCheckStart              = false;    //!< true, if CheckStart() was called
     //!<

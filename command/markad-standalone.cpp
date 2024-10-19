@@ -177,12 +177,14 @@ void cMarkAdStandalone::CalculateCheckPositions(int startFrame) {
     stopA  = startA + decoder->GetVideoFrameRate() * length;
     packetCheckStart = startA + decoder->GetVideoFrameRate() * (1.6 * MAX_ASSUMED) ; //  adjust for later broadcast start, changed from 1.5 to 1.6
     packetCheckStop  = startFrame + decoder->GetVideoFrameRate() * (length + (1.5 * MAX_ASSUMED));
+    packetEndPart    = stopA - (decoder->GetVideoFrameRate() * MAX_ASSUMED);
 
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording:    %4ds  %3d:%02dmin", length, length / 60, length % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed start frame: (%6d)  %3d:%02dmin", startA, static_cast<int>(startA / decoder->GetVideoFrameRate() / 60), static_cast<int>(startA / decoder->GetVideoFrameRate()) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed stop frame:  (%6d)  %3d:%02dmin", stopA, static_cast<int>(stopA / decoder->GetVideoFrameRate() / 60), static_cast<int>(stopA / decoder->GetVideoFrameRate()) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check start set to:  (%6d)  %3d:%02dmin", packetCheckStart, static_cast<int>(packetCheckStart / decoder->GetVideoFrameRate() / 60), static_cast<int>(packetCheckStart / decoder->GetVideoFrameRate()) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check stop set to:   (%6d)  %3d:%02dmin", packetCheckStop, static_cast<int>(packetCheckStop / decoder->GetVideoFrameRate() / 60), static_cast<int>(packetCheckStop / decoder->GetVideoFrameRate()) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording:      %4ds  %3d:%02dmin", length, length / 60, length % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed start frame:   (%6d)  %3d:%02dmin", startA, static_cast<int>(startA / decoder->GetVideoFrameRate() / 60), static_cast<int>(startA / decoder->GetVideoFrameRate()) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed stop frame:    (%6d)  %3d:%02dmin", stopA, static_cast<int>(stopA / decoder->GetVideoFrameRate() / 60), static_cast<int>(stopA / decoder->GetVideoFrameRate()) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check start set to:    (%6d)  %3d:%02dmin", packetCheckStart, static_cast<int>(packetCheckStart / decoder->GetVideoFrameRate() / 60), static_cast<int>(packetCheckStart / decoder->GetVideoFrameRate()) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check stop set to:     (%6d)  %3d:%02dmin", packetCheckStop, static_cast<int>(packetCheckStop / decoder->GetVideoFrameRate() / 60), static_cast<int>(packetCheckStop / decoder->GetVideoFrameRate()) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): start end part set to: (%6d)  %3d:%02dmin", packetEndPart, static_cast<int>(packetEndPart / decoder->GetVideoFrameRate() / 60), static_cast<int>(packetEndPart / decoder->GetVideoFrameRate()) % 60);
 }
 
 
@@ -5776,7 +5778,7 @@ bool cMarkAdStandalone::ProcessFrame() {
     }
 
     // turn on all detection for end part even if we use stronger marks, just in case we will get no strong end mark
-    if (!restartLogoDetectionDone && (frameNumber > (stopA - (decoder->GetVideoFrameRate() * MAX_ASSUMED)))) {
+    if (!restartLogoDetectionDone && (frameNumber >= packetEndPart)) {
         dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d), reset detector status", frameNumber);
         video->Clear(true);
         criteria->SetDetectionState(MT_ALL, true);
