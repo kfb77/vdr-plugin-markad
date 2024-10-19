@@ -1833,10 +1833,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
     int isStartMarkInBroadcast = STATUS_UNKNOWN;
 
     // loop through all logo stop/start pairs
-    int endRange = 0;  // if we are called by CheckStart, get all pairs to detect at least closing credits
-    if (startA == 0) endRange = stopA - (27 * decoder_local->GetVideoFrameRate()); // if we are called by CheckStop, get all pairs after this frame to detect at least closing credits
-    // changed from 26 to 27
-    while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, &isStartMarkInBroadcast, endRange)) {
+    while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, &isStartMarkInBroadcast)) {
         if (abortNow) return;
         if (!marks.Get(startPosition) || !marks.Get(stopPosition)) continue;  // at least one of the mark from pair was deleted, nothing to do
 

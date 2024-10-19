@@ -496,7 +496,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 }
 
 
-bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, int *isStartMarkInBroadcast, const int endRange) {
+bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, int *isStartMarkInBroadcast) {
     if (!stopPosition)           return false;
     if (!startPosition)          return false;
     if (!isLogoChange)           return false;
@@ -505,8 +505,7 @@ bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPositi
     if (nextLogoPairIterator == logoPairVector.end()) return false;
 
     // skip pair if there is nothing to detect
-    while ((nextLogoPairIterator->stopPosition < endRange) &&  // if we are in end range we need to detect at least closing credits
-            (nextLogoPairIterator->isLogoChange == STATUS_NO) && (nextLogoPairIterator->isInfoLogo == STATUS_NO)) {
+    while ((nextLogoPairIterator->isLogoChange <= STATUS_NO) && (nextLogoPairIterator->isInfoLogo <= STATUS_NO) && (nextLogoPairIterator->isAdInFrame <= STATUS_NO) && (nextLogoPairIterator->isClosingCredits <= STATUS_NO)) {
         ++nextLogoPairIterator;
         if (nextLogoPairIterator == logoPairVector.end()) return false;
     }

@@ -103,10 +103,9 @@ public:
      * @param isLogoChange           -1 no logo change, 0 unknown, 1 is logo change
      * @param isInfoLogo             -1 pair is no introduction sequence, 0 unknown, 1 pair is introduction sequence
      * @param isStartMarkInBroadcast -1 start mark is not in broadcast, 0 not known, 1 start mark is in broadcast
-     * @param endRange               frame number of start of end range, we possible need to detect closing credits
      * @return true if there is a next logo stop/start pair, false otherwise
      */
-    bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, int *isStartMarkInBroadcast, const int endRange);
+    bool GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, int *isStartMarkInBroadcast);
 
     /**
      * get ad in frame status if logo stop frame
