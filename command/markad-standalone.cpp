@@ -175,14 +175,14 @@ void cMarkAdStandalone::CalculateCheckPositions(int startFrame) {
 
     startA = startFrame;
     stopA  = startA + decoder->GetVideoFrameRate() * length;
-    frameCheckStart = startA + decoder->GetVideoFrameRate() * (1.6 * MAX_ASSUMED) ; //  adjust for later broadcast start, changed from 1.5 to 1.6
-    frameCheckStop  = startFrame + decoder->GetVideoFrameRate() * (length + (1.5 * MAX_ASSUMED));
+    packetCheckStart = startA + decoder->GetVideoFrameRate() * (1.6 * MAX_ASSUMED) ; //  adjust for later broadcast start, changed from 1.5 to 1.6
+    packetCheckStop  = startFrame + decoder->GetVideoFrameRate() * (length + (1.5 * MAX_ASSUMED));
 
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): length of recording:    %4ds  %3d:%02dmin", length, length / 60, length % 60);
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed start frame: (%6d)  %3d:%02dmin", startA, static_cast<int>(startA / decoder->GetVideoFrameRate() / 60), static_cast<int>(startA / decoder->GetVideoFrameRate()) % 60);
     dsyslog("cMarkAdStandalone::CalculateCheckPositions(): assumed stop frame:  (%6d)  %3d:%02dmin", stopA, static_cast<int>(stopA / decoder->GetVideoFrameRate() / 60), static_cast<int>(stopA / decoder->GetVideoFrameRate()) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check start set to:  (%6d)  %3d:%02dmin", frameCheckStart, static_cast<int>(frameCheckStart / decoder->GetVideoFrameRate() / 60), static_cast<int>(frameCheckStart / decoder->GetVideoFrameRate()) % 60);
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check stop set to:   (%6d)  %3d:%02dmin", frameCheckStop, static_cast<int>(frameCheckStop / decoder->GetVideoFrameRate() / 60), static_cast<int>(frameCheckStop / decoder->GetVideoFrameRate()) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check start set to:  (%6d)  %3d:%02dmin", packetCheckStart, static_cast<int>(packetCheckStart / decoder->GetVideoFrameRate() / 60), static_cast<int>(packetCheckStart / decoder->GetVideoFrameRate()) % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): check stop set to:   (%6d)  %3d:%02dmin", packetCheckStop, static_cast<int>(packetCheckStop / decoder->GetVideoFrameRate() / 60), static_cast<int>(packetCheckStop / decoder->GetVideoFrameRate()) % 60);
 }
 
 
@@ -1820,7 +1820,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
     }
 
-    evaluateLogoStopStartPair->CheckLogoStopStartPairs(&marks, &blackMarks, startA, frameCheckStart, stopA);
+    evaluateLogoStopStartPair->CheckLogoStopStartPairs(&marks, &blackMarks, startA, packetCheckStart, stopA);
 
     char *indexToHMSFStop      = nullptr;
     char *indexToHMSFStart     = nullptr;
@@ -2436,16 +2436,16 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
             // we have only start/stop vborder sequence in start part, this can be from broadcast before or false vborder detection from dark scene in vborder
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no next vertical border start found after start (%d) and stop (%d)", vStart->position, vStopAfter->position);
             // check if it is false vborder detection from dark scene in vborder
-            int startAvBorderStart         = (vStart->position           - startA)               / decoder->GetVideoFrameRate();
-            int vBorderStopframeCheckStart = (decoder->GetPacketNumber() - vStopAfter->position) / decoder->GetVideoFrameRate();
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): startA (%5d) -> %4ds -> MT_VBORDERSTART (%5d) -> %3ds -> MT_VBORDERSTOP (%5d) -> %3ds -> packetCheckStart (%5d)", startA, startAvBorderStart,  vStart->position, vBorderStartvBorderStop, vStopAfter->position, vBorderStopframeCheckStart, frameCheckStart);
+            int startAvBorderStart          = (vStart->position           - startA)               / decoder->GetVideoFrameRate();
+            int vBorderStoppacketCheckStart = (decoder->GetPacketNumber() - vStopAfter->position) / decoder->GetVideoFrameRate();
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): startA (%5d) -> %4ds -> MT_VBORDERSTART (%5d) -> %3ds -> MT_VBORDERSTOP (%5d) -> %3ds -> packetCheckStart (%5d)", startA, startAvBorderStart,  vStart->position, vBorderStartvBorderStop, vStopAfter->position, vBorderStoppacketCheckStart, packetCheckStart);
             // example of valid vborder marks
             // startA ( 7475) ->  -31s -> MT_VBORDERSTART ( 6685) -> 149s -> MT_VBORDERSTOP (10432) -> 331s -> packetCheckStart (18725)
             // example of invalid vborder from dark scene or from broadcast before
             // startA ( 4075) ->    9s -> MT_VBORDERSTART ( 4310) -> 115s -> MT_VBORDERSTOP ( 7188) -> 355s -> packetCheckStart (16075)
             // startA (16350) -> -288s -> MT_VBORDERSTART ( 1933) -> 281s -> MT_VBORDERSTOP (16019) -> 456s -> packetCheckStart (38850) -> vborder from previous recording
             // startA ( 7450) -> -298s -> MT_VBORDERSTART (    0) -> 329s -> MT_VBORDERSTOP ( 8238) -> 448s -> PacketCheckStart (19450)
-            if ((startAvBorderStart <= 9) && (vBorderStartvBorderStop <= 329) && (vBorderStopframeCheckStart > 331)) {
+            if ((startAvBorderStart <= 9) && (vBorderStartvBorderStop <= 329) && (vBorderStoppacketCheckStart > 331)) {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start (%d) and stop (%d) from closing credits or dark scene, delete marks", vStart->position, vStopAfter->position);
                 marks.Del(vStart->position);
                 marks.Del(vStopAfter->position);
@@ -2540,7 +2540,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
 
 void cMarkAdStandalone::CheckStart() {
     LogSeparator(true);
-    dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", decoder->GetPacketNumber(), frameCheckStart);
+    dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", decoder->GetPacketNumber(), packetCheckStart);
     int maxStart = startA + (length * decoder->GetVideoFrameRate() / 2);  // half of recording
     char *indexToHMSFStart = marks.IndexToHMSF(startA, false);
     if (indexToHMSFStart) {
@@ -3367,11 +3367,11 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     }
 
 
-// delete start/stop hborder pairs before frameCheckStart if there are no other hborder marks, they are a preview with hborder before recording start
+// delete start/stop hborder pairs before packetCheckStart if there are no other hborder marks, they are a preview with hborder before recording start
     mark = marks.GetFirst();
     if (mark && (mark->type == MT_HBORDERSTART) && (marks.Count(MT_HBORDERSTART) == 1)) {
         cMark *markNext = mark->Next();
-        if (markNext && (markNext->type == MT_HBORDERSTOP) && (markNext->position < frameCheckStart) && (markNext->position != marks.GetLast()->position) && (marks.Count(MT_HBORDERSTOP) == 1)) {
+        if (markNext && (markNext->type == MT_HBORDERSTOP) && (markNext->position < packetCheckStart) && (markNext->position != marks.GetLast()->position) && (marks.Count(MT_HBORDERSTOP) == 1)) {
             dsyslog("cMarkAdStandalone::CheckMarks(): preview with hborder before recording start found, delete start (%d) stop (%d)", mark->position, mark->Next()->position);
             marks.Del(markNext->position);
             marks.Del(mark->position);
@@ -3920,8 +3920,8 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         }
         break;
     case MT_CHANNELSTOP:
-        if ((mark->position > frameCheckStart) && (mark->position < stopA * 2 / 3) && (marks.Count(MT_CHANNELSTART, 0xFF) == 0)) {
-            dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after frameCheckStart, disable video decoding detection now");
+        if ((mark->position > packetCheckStart) && (mark->position < stopA * 2 / 3) && (marks.Count(MT_CHANNELSTART, 0xFF) == 0)) {
+            dsyslog("cMarkAdStandalone::AddMark(): first audio channel change is after packetCheckStart, disable video decoding detection now");
             // disable all video detection
             video->ClearBorder();
             // use now channel change for detection
@@ -5751,10 +5751,10 @@ bool cMarkAdStandalone::ProcessFrame() {
         }
 
         // check start
-        if (!doneCheckStart && inBroadCast && (frameNumber > frameCheckStart)) CheckStart();
+        if (!doneCheckStart && inBroadCast && (frameNumber > packetCheckStart)) CheckStart();
 
         // check stop
-        if (!doneCheckStop && (frameNumber > frameCheckStop)) {
+        if (!doneCheckStop && (frameNumber > packetCheckStop)) {
             if (!doneCheckStart) {
                 dsyslog("cMarkAdStandalone::ProcessFrame(): assumed end reached but still no CheckStart() called, do it now");
                 CheckStart();

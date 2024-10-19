@@ -167,7 +167,7 @@ public:
         criteria                  = nullptr;
         startA                    = origin.startA;
         stopA                     = origin.stopA;
-        frameCheckStart           = origin.frameCheckStart;
+        packetCheckStart           = origin.packetCheckStart;
         ptitle                    = title;
         directory                 = origin.directory;
         video                     = nullptr;
@@ -190,7 +190,7 @@ public:
         detectLogoStopStart       = origin.detectLogoStopStart;
         doneCheckStop             = origin.doneCheckStop;
         doneCheckStart            = origin.doneCheckStart;
-        frameCheckStop            = origin.frameCheckStop;
+        packetCheckStop            = origin.packetCheckStop;
         extractLogo               = nullptr;
         sleepcnt = origin.sleepcnt;
     };
@@ -205,7 +205,7 @@ public:
         criteria                  = nullptr;
         startA                    = origin->startA;
         stopA                     = origin->stopA;
-        frameCheckStart           = origin->frameCheckStart;
+        packetCheckStart           = origin->packetCheckStart;
         ptitle                    = title;
         directory                 = origin->directory;
         video                     = nullptr;
@@ -229,7 +229,7 @@ public:
         detectLogoStopStart       = origin->detectLogoStopStart;
         doneCheckStop             = origin->doneCheckStop;
         doneCheckStart            = origin->doneCheckStart;
-        frameCheckStop            = origin->frameCheckStop;
+        packetCheckStop            = origin->packetCheckStop;
         extractLogo               = origin->extractLogo;
         return *this;
     }
@@ -533,9 +533,9 @@ private:
     //!<
     int stopA                        = 0;        //!< assumed end frame position
     //!<
-    int frameCheckStart              = 0;        //!< frame number to check for start mark
+    int packetCheckStart             = 0;        //!< packet number to check for start mark
     //!<
-    int frameCheckStop               = 0;        //!< frame number to check for end mark
+    int packetCheckStop              = 0;        //!< packet number to check for end mark
     //!<
     bool doneCheckStart              = false;    //!< true, if CheckStart() was called
     //!<
