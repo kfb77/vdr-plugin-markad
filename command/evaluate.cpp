@@ -84,6 +84,9 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
         if (criteria->IsClosingCreditsChannel()) IsClosingCredits(marks, &(*logoPairIterator));
         else logoPairIterator->isClosingCredits = STATUS_DISABLED;
 
+        // check for ad in frame
+        if (!criteria->IsAdInFrameWithLogoChannel()) logoPairIterator->isAdInFrame = STATUS_DISABLED;
+
         // global information about logo pairs
         // mark after pair
         const cMark *markStop_AfterPair = marks->GetNext(logoPairIterator->stopPosition, MT_LOGOSTOP);
