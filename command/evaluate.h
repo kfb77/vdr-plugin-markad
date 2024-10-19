@@ -131,10 +131,11 @@ public:
     /**
      * set closing credits status to STATUS_YES <br>
      * stopPosition / startPosition do not need exact match, they must be inbetween stop/start pair
-     * @param stopPosition  frame number of the logo stop mark
-     * @param startPosition frame number of the logo start mark
+     * @param stopPosition   packet number of the logo stop mark
+     * @param startPosition  packet number of the logo start mark
+     * @param state          new state
      */
-    void SetIsClosingCredits(const int stopPosition, const int startPosition);
+    void SetIsClosingCredits(const int stopPosition, const int startPosition, const int state);
 
     /**
      * get closing credits status before start mark
