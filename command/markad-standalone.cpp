@@ -1822,7 +1822,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
     }
 
-    evaluateLogoStopStartPair->CheckLogoStopStartPairs(&marks, &blackMarks, startA, packetCheckStart, stopA);
+    evaluateLogoStopStartPair->CheckLogoStopStartPairs(&marks, &blackMarks, startA, packetCheckStart, packetEndPart, stopA);
 
     char *indexToHMSFStop      = nullptr;
     char *indexToHMSFStart     = nullptr;

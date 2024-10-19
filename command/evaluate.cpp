@@ -33,7 +33,7 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 
 // Check logo stop/start pairs
 // used by logo change detection
-void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA) {
+void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART,  const int packetEndPart, const int iStopA) {
     if (!marks) {
         esyslog(" cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): marks missing");
         return;
@@ -50,7 +50,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
 #define LOGO_CHANGE_IS_ADVERTISING_MIN 300  // in s
 #define LOGO_CHANGE_IS_BROADCAST_MIN   240  // in s
 
-    dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): start with iStart %d, chkSTART %d, iStopA %d", iStart, chkSTART, iStopA);
+    dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): start with iStart (%d), chkSTART (%d), packetEndPart (%d), iStopA (%d)", iStart, chkSTART, packetEndPart, iStopA);
     sLogoStopStartPair newPair;
 
     cMark *mark = marks->GetFirst();
@@ -81,7 +81,8 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
         else logoPairIterator->isLogoChange = STATUS_DISABLED;
 
         // check for closing credits section
-        if (criteria->IsClosingCreditsChannel()) IsClosingCredits(marks, &(*logoPairIterator));
+        if (criteria->IsClosingCreditsChannel() &&  // only check closing credits in start part for end of broadcast before or in end part
+                ((logoPairIterator->stopPosition <= chkSTART) || logoPairIterator->startPosition >= packetEndPart)) IsClosingCredits(marks, &(*logoPairIterator));
         else logoPairIterator->isClosingCredits = STATUS_DISABLED;
 
         // check for ad in frame

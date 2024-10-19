@@ -66,9 +66,10 @@ public:
      * @param blackMarks      object with all black screen marks
      * @param iStart          assumed start frame position
      * @param chkSTART        frame position to check start part
+     * @param packetEndPart   start of end part
      * @param iStopA          assumed end mark position
      */
-    void CheckLogoStopStartPairs(cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int iStopA);
+    void CheckLogoStopStartPairs(cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int packetEndPart, const int iStopA);
 
     /**
      * check if logo stop/start pair could be closing credits
