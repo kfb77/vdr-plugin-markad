@@ -66,6 +66,7 @@ int cCriteria::LogoFadeInOut() {
     if (CompareChannelName(channelName, "SWR",            IGNORE_HD | IGNORE_CITY)) return FADE_IN;              // FADE_OUT only very short
     if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD))               return FADE_IN | FADE_OUT;
     if (CompareChannelName(channelName, "TLC",            IGNORE_HD))               return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "VOXup",          IGNORE_HD))               return FADE_OUT;
     if (CompareChannelName(channelName, "WELT",           IGNORE_HD))               return FADE_IN;
     if (CompareChannelName(channelName, "ZDF",            IGNORE_HD))               return FADE_IN | FADE_OUT;
 
