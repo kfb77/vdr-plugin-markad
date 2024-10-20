@@ -4422,9 +4422,9 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             }
 
             // check for advertising in frame with logo after logo start mark position
-            if (criteria->IsAdInFrameWithLogoChannel()) {
+            LogSeparator(false);
+            if (criteria->IsAdInFrameWithLogoChannel() && (evaluateLogoStopStartPair->GetIsAdInFrame(-1, markLogo->position) >= STATUS_UNKNOWN)) {
                 sMarkPos adInFrameEnd = {-1};
-                LogSeparator(false);
                 int searchEndPosition = markLogo->position + (60 * decoder->GetVideoFrameRate()); // advertising in frame are usually 30s
                 // sometimes advertising in frame has text in "e.g. Werbung"
                 // check longer range to prevent to detect text as second logo
@@ -4502,7 +4502,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 decoder->Restart();
             }
             // detect frames
-            if ((evaluateLogoStopStartPair->GetIsAdInFrame(markLogo->position) >= STATUS_UNKNOWN) && (detectLogoStopStart->Detect(searchStartPosition, markLogo->position))) {
+            if ((evaluateLogoStopStartPair->GetIsAdInFrame(markLogo->position, -1) >= STATUS_UNKNOWN) && (detectLogoStopStart->Detect(searchStartPosition, markLogo->position))) {
                 bool isEndMark = false;
                 if (markLogo->position == marks.GetLast()->position) isEndMark = true;
                 sMarkPos newStop = {-1};

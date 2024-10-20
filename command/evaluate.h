@@ -79,11 +79,12 @@ public:
     bool GetNextPair(sLogoStopStartPair *logoStopStartPair);
 
     /**
-     * get ad in frame status if logo stop frame
-     * @param stopPosition  frame number of the logo stop mark
-     * @return state new state
+     * get ad in frame status from logo stop position or logo start position
+     * @param stopPosition   position of the logo stop mark
+     * @param startPosition  position of the logo start mark
+     * @return               state
      */
-    int GetIsAdInFrame(const int stopPosition);
+    int GetIsAdInFrame(const int stopPosition, const int startPosition);
 
     /**
      * set ad in frame status to state

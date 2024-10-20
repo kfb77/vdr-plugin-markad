@@ -537,15 +537,16 @@ bool cEvaluateLogoStopStartPair::GetNextPair(sLogoStopStartPair *logoStopStartPa
 }
 
 
-int cEvaluateLogoStopStartPair::GetIsAdInFrame(const int stopPosition) {
-    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [stopPosition](sLogoStopStartPair const &value) ->bool { if (value.stopPosition == stopPosition) return true; else return false; });
+int cEvaluateLogoStopStartPair::GetIsAdInFrame(const int stopPosition, const int startPosition) {
+    std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [stopPosition, startPosition](sLogoStopStartPair const &value) ->bool {
+        if ((value.stopPosition == stopPosition) || (value.startPosition == startPosition)) return true; else return false; });
 
     if (found != logoPairVector.end()) {
-        dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrae(): isAdInFrame for stop (%d) mark: %d", found->stopPosition, found->isAdInFrame);
+        dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrae(): isAdInFrame for stop (%d) start (%d) mark: %d", found->stopPosition, found->startPosition, found->isAdInFrame);
         return found->isAdInFrame;
     }
 
-    dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): stop (%d) mark not found", stopPosition);
+    dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): stop (%d) and start (%d) mark not found", stopPosition, startPosition);
     return STATUS_UNKNOWN;
 }
 
