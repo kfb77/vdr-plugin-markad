@@ -5184,7 +5184,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     if ((diffBefore >=  3140) && (diffAfter <=  3740)) diffBefore = INT_MAX;
 
                     if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 5400;
-                    else                                     maxBefore = 1599;
+                    else                                     maxBefore = 2480;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
