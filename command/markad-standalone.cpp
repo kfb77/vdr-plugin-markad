@@ -5439,9 +5439,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     if (!(criteria->LogoFadeInOut() & FADE_IN) && (diffBefore >= 320) && (diffAfter <= 120)) diffBefore = INT_MAX;
 
                     // rule 2: scene start very short after logo start in old recording without fade in of fade in channel
-                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (diffBefore >= 1700) && (diffAfter <= 100)) diffBefore = INT_MAX;
+                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (diffBefore >= 1700) && (diffAfter <= 20)) diffBefore = INT_MAX;
 
-                    if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 9960;
+                    if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 6299;
                     else                                     maxBefore = 1599;
                     break;
                 case MT_CHANNELSTART:
@@ -5494,8 +5494,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 9160;  // changed from 1760 to 9160
                     break;
                 case MT_LOGOSTART:
-                    if (criteria->LogoFadeInOut() & FADE_IN) maxAfter =  0; // with fade in logo, scene after is always false
-                    else                                     maxAfter = 80; // some channels starts logo short before broadcast
+                    if (criteria->LogoFadeInOut() & FADE_IN) maxAfter =   0; // with fade in logo, scene after is always false
+                    else if (diffBefore >= 45400)            maxAfter = 460; // logo start before broadcast start, long scene before
+                    else                                     maxAfter =  80; // some channels starts logo short before broadcast
                     break;
                 case MT_ASPECTSTART:
                     maxAfter =  320;
