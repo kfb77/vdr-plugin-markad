@@ -510,6 +510,7 @@ bool cEvaluateLogoStopStartPair::GetNextPair(sLogoStopStartPair *logoStopStartPa
     logoStopStartPair->isLogoChange           = nextLogoPairIterator->isLogoChange;
     logoStopStartPair->isInfoLogo             = nextLogoPairIterator->isInfoLogo;
     logoStopStartPair->isAdInFrame            = nextLogoPairIterator->isAdInFrame;
+    logoStopStartPair->isClosingCredits       = nextLogoPairIterator->isClosingCredits;
     logoStopStartPair->isStartMarkInBroadcast = nextLogoPairIterator->isStartMarkInBroadcast;
     ++nextLogoPairIterator;
     dsyslog("cEvaluateLogoStopStartPair::GetNextPair(): stopPosition (%d), startPosition (%d)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
