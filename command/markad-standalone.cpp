@@ -1785,7 +1785,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         return;
     }
     // check if this channel has special logos, for performance reason only known and tested channels
-    if (!criteria->IsInfoLogoChannel() && !criteria->IsLogoChangeChannel() && !criteria->IsClosingCreditsChannel()) {
+    if (!criteria->IsInfoLogoChannel() && !criteria->IsLogoChangeChannel() && !criteria->IsClosingCreditsChannel() && !criteria->IsAdInFrameWithLogoChannel()) {
         dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): channel not in list for special logo");
         return;
     }
@@ -1826,19 +1826,15 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
 
     char *indexToHMSFStop      = nullptr;
     char *indexToHMSFStart     = nullptr;
-    int stopPosition           = 0;
-    int startPosition          = 0;
-    int isLogoChange           = STATUS_UNKNOWN;
-    int isInfoLogo             = STATUS_UNKNOWN;
-    int isStartMarkInBroadcast = STATUS_UNKNOWN;
+    sLogoStopStartPair logoStopStartPair;
 
     // loop through all logo stop/start pairs
-    while (evaluateLogoStopStartPair->GetNextPair(&stopPosition, &startPosition, &isLogoChange, &isInfoLogo, &isStartMarkInBroadcast)) {
+    while (evaluateLogoStopStartPair->GetNextPair(&logoStopStartPair)) {
         if (abortNow) return;
-        if (!marks.Get(startPosition) || !marks.Get(stopPosition)) continue;  // at least one of the mark from pair was deleted, nothing to do
+        if (!marks.Get(logoStopStartPair.startPosition) || !marks.Get(logoStopStartPair.stopPosition)) continue;  // at least one of the mark from pair was deleted, nothing to do
 
-        if (decoder_local->GetPacketNumber() >= stopPosition) {
-            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): packet (%d): overlapping pairs from info logo merge, skip pair logo stop (%d) start (%d)", decoder_local->GetPacketNumber(), stopPosition, startPosition);
+        if (decoder_local->GetPacketNumber() >= logoStopStartPair.stopPosition) {
+            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): packet (%d): overlapping pairs from info logo merge, skip pair logo stop (%d) start (%d)", decoder_local->GetPacketNumber(), logoStopStartPair.stopPosition, logoStopStartPair.startPosition);
             continue;
         }
 
@@ -1853,33 +1849,33 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
             free(indexToHMSFStart);
         }
         // get time of marks and log marks
-        indexToHMSFStop = marks.IndexToHMSF(stopPosition, false);
+        indexToHMSFStop = marks.IndexToHMSF(logoStopStartPair.stopPosition, false);
         if (indexToHMSFStop) {
             ALLOC(strlen(indexToHMSFStop)+1, "indexToHMSF");
         }
 
-        indexToHMSFStart = marks.IndexToHMSF(startPosition, false);
+        indexToHMSFStart = marks.IndexToHMSF(logoStopStartPair.startPosition, false);
         if (indexToHMSFStart) {
             ALLOC(strlen(indexToHMSFStart)+1, "indexToHMSF");
         }
 
         if (indexToHMSFStop && indexToHMSFStart) {
-            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): check logo stop (%d) at %s and logo start (%d) at %s, isInfoLogo %d", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart, isInfoLogo);
+            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): check logo stop (%d) at %s and logo start (%d) at %s, isInfoLogo %d", logoStopStartPair.stopPosition, indexToHMSFStop, logoStopStartPair.startPosition, indexToHMSFStart, logoStopStartPair.isInfoLogo);
         }
-        if (detectLogoStopStart->Detect(stopPosition, startPosition)) {
+        if (detectLogoStopStart->Detect(logoStopStartPair.stopPosition, logoStopStartPair.startPosition)) {
             bool doInfoCheck = true;
             // check for closing credits if no other checks will be done, only part of the loop elements in recording end range
             sMarkPos endClosingCredits = {-1};
-            if ((isInfoLogo <= STATUS_NO) && (isLogoChange <= STATUS_NO)) detectLogoStopStart->ClosingCredit(stopPosition, startPosition, &endClosingCredits);
+            if ((logoStopStartPair.isInfoLogo <= STATUS_NO) && (logoStopStartPair.isLogoChange <= STATUS_NO)) detectLogoStopStart->ClosingCredit(logoStopStartPair.stopPosition, logoStopStartPair.startPosition, &endClosingCredits);
 
             // check for info logo if  we are called by CheckStart and we are in broadcast
-            if ((startA > 0) && criteria->IsIntroductionLogoChannel() && (isStartMarkInBroadcast == STATUS_YES)) {
+            if ((startA > 0) && criteria->IsIntroductionLogoChannel() && (logoStopStartPair.isStartMarkInBroadcast == STATUS_YES)) {
                 // do not delete info logo, it can be introduction logo, it looks the same
                 // expect we have another start very short before
-                cMark *lStartBefore = marks.GetPrev(stopPosition, MT_LOGOSTART);
+                cMark *lStartBefore = marks.GetPrev(logoStopStartPair.stopPosition, MT_LOGOSTART);
                 if (lStartBefore) {
-                    int diffStart = 1000 * (stopPosition - lStartBefore->position) / decoder_local->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): logo start (%d) %dms before stop mark (%d)", lStartBefore->position, diffStart, stopPosition);
+                    int diffStart = 1000 * (logoStopStartPair.stopPosition - lStartBefore->position) / decoder_local->GetVideoFrameRate();
+                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): logo start (%d) %dms before stop mark (%d)", lStartBefore->position, diffStart, logoStopStartPair.stopPosition);
                     if (diffStart > 1240) {  // do info logo check if we have a logo start mark short before, some channel send a early info log after broadcast start
                         // changed from 1160 to 1240
                         dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): do not check for info logo, we are in start range, it can be introducion logo");
@@ -1887,20 +1883,20 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
                     }
                 }
             }
-            if (doInfoCheck && (isInfoLogo >= STATUS_UNKNOWN) && detectLogoStopStart->IsInfoLogo(stopPosition, startPosition)) {
+            if (doInfoCheck && (logoStopStartPair.isInfoLogo >= STATUS_UNKNOWN) && detectLogoStopStart->IsInfoLogo(logoStopStartPair.stopPosition, logoStopStartPair.startPosition)) {
                 // found info logo part
                 if (indexToHMSFStop && indexToHMSFStart) {
-                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+                    dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", logoStopStartPair.stopPosition, indexToHMSFStop, logoStopStartPair.startPosition, indexToHMSFStart);
                 }
-                evaluateLogoStopStartPair->SetIsInfoLogo(stopPosition, startPosition);
-                marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE, 0xF0);  // maybe there a false start/stop inbetween
+                evaluateLogoStopStartPair->SetIsInfoLogo(logoStopStartPair.stopPosition, logoStopStartPair.startPosition);
+                marks.DelFromTo(logoStopStartPair.stopPosition, logoStopStartPair.startPosition, MT_LOGOCHANGE, 0xF0);  // maybe there a false start/stop inbetween
             }
             // check logo change
-            if ((isLogoChange >= STATUS_UNKNOWN) && detectLogoStopStart->IsLogoChange(stopPosition, startPosition)) {
+            if ((logoStopStartPair.isLogoChange >= STATUS_UNKNOWN) && detectLogoStopStart->IsLogoChange(logoStopStartPair.stopPosition, logoStopStartPair.startPosition)) {
                 if (indexToHMSFStop && indexToHMSFStart) {
-                    isyslog("logo change between frame (%6d) at %s and (%6d) at %s, deleting marks between this positions", stopPosition, indexToHMSFStop, startPosition, indexToHMSFStart);
+                    isyslog("logo change between frame (%6d) at %s and (%6d) at %s, deleting marks between this positions", logoStopStartPair.stopPosition, indexToHMSFStop, logoStopStartPair.startPosition, indexToHMSFStart);
                 }
-                marks.DelFromTo(stopPosition, startPosition, MT_LOGOCHANGE, 0xF0);  // maybe there a false start/stop inbetween
+                marks.DelFromTo(logoStopStartPair.stopPosition, logoStopStartPair.startPosition, MT_LOGOCHANGE, 0xF0);  // maybe there a false start/stop inbetween
             }
         }
     }

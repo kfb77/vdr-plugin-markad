@@ -496,12 +496,8 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 }
 
 
-bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPosition, int *isLogoChange, int *isInfoLogo, int *isStartMarkInBroadcast) {
-    if (!stopPosition)           return false;
-    if (!startPosition)          return false;
-    if (!isLogoChange)           return false;
-    if (!isInfoLogo)             return false;
-    if (!isStartMarkInBroadcast) return false;
+bool cEvaluateLogoStopStartPair::GetNextPair(sLogoStopStartPair *logoStopStartPair) {
+    if (!logoStopStartPair) return false;
     if (nextLogoPairIterator == logoPairVector.end()) return false;
 
     // skip pair if there is nothing to detect
@@ -509,13 +505,14 @@ bool cEvaluateLogoStopStartPair::GetNextPair(int *stopPosition, int *startPositi
         ++nextLogoPairIterator;
         if (nextLogoPairIterator == logoPairVector.end()) return false;
     }
-    *stopPosition           = nextLogoPairIterator->stopPosition;
-    *startPosition          = nextLogoPairIterator->startPosition;
-    *isLogoChange           = nextLogoPairIterator->isLogoChange;
-    *isInfoLogo             = nextLogoPairIterator->isInfoLogo;
-    *isStartMarkInBroadcast = nextLogoPairIterator->isStartMarkInBroadcast;
+    logoStopStartPair->stopPosition           = nextLogoPairIterator->stopPosition;
+    logoStopStartPair->startPosition          = nextLogoPairIterator->startPosition;
+    logoStopStartPair->isLogoChange           = nextLogoPairIterator->isLogoChange;
+    logoStopStartPair->isInfoLogo             = nextLogoPairIterator->isInfoLogo;
+    logoStopStartPair->isAdInFrame            = nextLogoPairIterator->isAdInFrame;
+    logoStopStartPair->isStartMarkInBroadcast = nextLogoPairIterator->isStartMarkInBroadcast;
     ++nextLogoPairIterator;
-    dsyslog("cEvaluateLogoStopStartPair::GetNextPair(): stopPosition (%d), startPosition (%d)", *stopPosition, *startPosition);
+    dsyslog("cEvaluateLogoStopStartPair::GetNextPair(): stopPosition (%d), startPosition (%d)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition);
     return true;
 }
 

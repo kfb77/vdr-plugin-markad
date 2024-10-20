@@ -128,6 +128,39 @@ enum {
 
 
 /**
+ * evaluate stop/start pair status
+ */
+enum eEvaluateStatus {
+    STATUS_ERROR    = -3,
+    STATUS_DISABLED = -2,
+    STATUS_NO       = -1,
+    STATUS_UNKNOWN  =  0,
+    STATUS_YES      =  1
+};
+
+
+/**
+ * logo stop / start pair
+ */
+typedef struct sLogoStopStartPair {
+    int stopPosition           = -1;              //!< frame number of logo stop mark
+    //!<
+    int startPosition          = -1;              //!< frame number of logo start mark
+    //!<
+    int isLogoChange           = STATUS_UNKNOWN;  //!< status of logo change, value #eEvaluateStatus
+    //!<
+    int isAdInFrame            = STATUS_UNKNOWN;  //!< status of advertising in frame, value #eEvaluateStatus
+    //!<
+    int isStartMarkInBroadcast = STATUS_UNKNOWN;  //!< status of in broadacst, value #eEvaluateStatus
+    //!<
+    int isInfoLogo             = STATUS_UNKNOWN;  //!< status of info logo, value #eEvaluateStatus
+    //!<
+    int isClosingCredits       = STATUS_UNKNOWN;  //!< status of closing credits, value #eEvaluateStatus
+    //!<
+} sLogoStopStartPair;
+
+
+/**
  * logo size structure
  */
 typedef struct sLogoSize {
