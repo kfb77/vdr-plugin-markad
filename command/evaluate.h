@@ -40,6 +40,13 @@ public:
     void CheckLogoStopStartPairs(cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART, const int packetEndPart, const int iStopA);
 
     /**
+     * check if logo stop/start pair can have ad in frame before/after
+     * @param[in]     marks             object with all marks
+     * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isClosingCredits is set to -1 if the part is no logo change
+     */
+    void IsAdInFrame(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
+
+    /**
      * check if logo stop/start pair could be closing credits
      * @param[in]     marks             object with all marks
      * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isClosingCredits is set to -1 if the part is no logo change

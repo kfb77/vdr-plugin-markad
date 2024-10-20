@@ -86,7 +86,8 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
         else logoPairIterator->isClosingCredits = STATUS_DISABLED;
 
         // check for ad in frame
-        if (!criteria->IsAdInFrameWithLogoChannel()) logoPairIterator->isAdInFrame = STATUS_DISABLED;
+        if (criteria->IsAdInFrameWithLogoChannel()) IsAdInFrame(marks, &(*logoPairIterator));
+        else logoPairIterator->isAdInFrame = STATUS_DISABLED;
 
         // global information about logo pairs
         // mark after pair
@@ -110,7 +111,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
             }
         }
         if (delta_Stop_AfterPair >= LOGO_CHANGE_IS_BROADCAST_MIN) {
-            dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): ----- stop (%d) start (%d) pair: next stop mark after stop/start pair in %ds (expect >=%ds, start mark is in braoscast)", logoPairIterator->stopPosition, logoPairIterator->startPosition, delta_Stop_AfterPair, LOGO_CHANGE_IS_BROADCAST_MIN);
+            dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): ----- stop (%d) start (%d) pair: next stop mark after stop/start pair in %ds (expect >=%ds, start mark is in broadcast)", logoPairIterator->stopPosition, logoPairIterator->startPosition, delta_Stop_AfterPair, LOGO_CHANGE_IS_BROADCAST_MIN);
             logoPairIterator->isStartMarkInBroadcast = 1;
         }
     }
@@ -155,6 +156,24 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isClosingCredits       %2d", logoPairIterator->isClosingCredits);
     }
     nextLogoPairIterator = logoPairVector.begin();
+}
+
+
+// check if stop/start pair can have ad in frame before or after
+//
+void cEvaluateLogoStopStartPair::IsAdInFrame(cMarks *marks, sLogoStopStartPair *logoStopStartPair) {
+    if (!marks)             return;
+    if (!logoStopStartPair) return;
+    if (!decoder)           return;
+
+    int frameRate = decoder->GetVideoFrameRate();
+    if (frameRate == 0) return;
+    int diff = (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / frameRate;
+    if ((diff >= 19) && (diff <= 21)) {  // 20s is short ad in broadcast, there is no additional ad in frame before/after
+        dsyslog("cEvaluateLogoStopStartPair::IsAdInFrame():             ----- stop (%d) start (%d) pair: %ds is short ad, no ad in frame after", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, diff);
+
+        logoStopStartPair->isAdInFrame = STATUS_NO;
+    }
 }
 
 
