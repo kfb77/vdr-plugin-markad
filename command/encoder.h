@@ -290,6 +290,8 @@ private:
     //!<
     bool rollover                     = false;                    //!< PTS/DTS rollover
     //!<
+    bool firstFrameToEncoder          = true;                     //!< true if we send first frame to encoder
+    //!<
     SwrContext *swrArray[MAXSTREAMS]              = {nullptr};        //!< array of libswresample (lswr) for audiosample format conversion
     //!<
     AVCodecContext *codecCtxArrayOut[MAXSTREAMS]  = {nullptr};        //!< avcodec context for each output stream
@@ -367,11 +369,13 @@ private:
 #ifdef DEBUG_CUT_WRITE
     int64_t outputKeyPacketPTSbefore[MAXSTREAMS] = {-1};
 #endif
+#ifdef DEBUG_ENCODER
+    int64_t lastPacketOutDTS[MAXSTREAMS]         = {-1};      //!< DTS of last output packet from encoder
+#endif
 #ifdef DEBUG_PTS_DTS_CUT
     int64_t inputKeyPacketPTSbefore[MAXSTREAMS]  = {-1};
     int64_t lastPacketInPTS[MAXSTREAMS]          = {-1};      //!< PTS of last input packet
     int64_t lastPacketInDTS[MAXSTREAMS]          = {-1};      //!< DTS of last input packet
-    int64_t lastPacketOutDTS[MAXSTREAMS]         = {-1};      //!< DTS of last output packet from encoder
     int64_t lastFrameInPTS[MAXSTREAMS]           = {-1};      //!< PTS of last input frame from decoder, send to encoder
     int64_t lastFrameInDTS[MAXSTREAMS]           = {-1};      //!< DTS of last input frame from decoder, send to encoder
     //!<

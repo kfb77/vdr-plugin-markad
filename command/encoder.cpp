@@ -1265,6 +1265,7 @@ bool cEncoder::DrainVideoReEncode(const int64_t stopPTS) {
 
 bool cEncoder::ResetDecoderEncodeCodec() {
     dsyslog("cEncoder::ResetDecoderEncodeCodec(): reset decoder and encoder codec context");
+    firstFrameToEncoder = true;
     AVPixelFormat forcePixFmt = codecCtxArrayOut[videoOutputStreamIndex]->pix_fmt;   // keep same pixel format
     avcodec_flush_buffers(codecCtxArrayOut[videoOutputStreamIndex]);
     if (codecCtxArrayOut[videoOutputStreamIndex]->hw_frames_ctx) {
@@ -2099,7 +2100,17 @@ bool cEncoder::WritePacket(AVPacket *avpkt, const bool reEncoded) {
 bool cEncoder::SendFrameToEncoder(const int streamIndexOut, AVFrame *avFrame) {
     // correct PTS uncut to PTS after cut only with full decoding
     // with smart cut we correct PST/DTS in WritePacket()
+    if (firstFrameToEncoder && !avFrame) {
+        dsyslog("cEncoder::SendFrameToEncoder(): no frames encoded, flush not necessary");
+        return true;
+    }
+    firstFrameToEncoder = false;
     if (avFrame && (pass > 0) && (avFrame->pts != AV_NOPTS_VALUE)) avFrame->pts -= cutInfo.offset;     // can be nullptr to flush buffer
+
+#ifdef DEBUG_ENCODER
+    if (avFrame) dsyslog("cEncoder::SendFrameToEncoder(): encode frame: PTS %" PRId64 ", DTS %" PRId64, avFrame->pts, avFrame->pkt_dts);
+    else dsyslog("cEncoder::SendFrameToEncoder(): send flush");
+#endif
 
     int rcSend = avcodec_send_frame(codecCtxArrayOut[streamIndexOut], avFrame);
     if (rcSend < 0) {
