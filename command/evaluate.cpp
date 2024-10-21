@@ -667,7 +667,8 @@ cDetectLogoStopStart::cDetectLogoStopStart(cDecoder *decoderParam, cIndex *index
     criteria                  = criteriaParam;
     evaluateLogoStopStartPair = evaluateLogoStopStartPairParam;
     logoCorner                = logoCornerParam;
-    if ((logoCorner < 0) || (logoCorner >= CORNERS)) esyslog("cDetectLogoStopStart::cDetectLogoStopStart(): invalid logo corner %d", logoCorner);
+    // closing credits detection without logo is valid
+    if ((logoCorner < -1) || (logoCorner >= CORNERS)) esyslog("cDetectLogoStopStart::cDetectLogoStopStart(): invalid logo corner %d", logoCorner);
 
     sobel = new cSobel(decoder->GetVideoWidth(), decoder->GetVideoHeight(), 0);  // boundary = 0
     ALLOC(sizeof(*sobel), "sobel");
@@ -1426,7 +1427,7 @@ bool cDetectLogoStopStart::IsLogoChange(int startPos, int endPos) {
 
 
 // search for closing credits in frame without logo after broadcast end
-void cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, sMarkPos *endClosingCredits, const bool noLogoCorner) {
+void cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, sMarkPos *endClosingCredits, const bool noLogoCornerCheck) {
     if (!criteria->IsClosingCreditsChannel()) return;
 
     if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startPos, endPos) == STATUS_NO) {
@@ -1479,7 +1480,7 @@ void cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, sMarkPos *end
             if (((*cornerResultIt).rate[corner] >= 260) || ((*cornerResultIt).rate[corner] == -1)) moreSimilarCorners++;  // changed from 715 to 260
             if (((*cornerResultIt).rate[corner] >= 545) || ((*cornerResultIt).rate[corner] == -1)) equalCorners++;        // changed from 605 to 545
             if ( (*cornerResultIt).rate[corner] ==  -1) noPixelCount++;
-            if (((*cornerResultIt).rate[corner] <=   0) && (corner !=logoCorner)) darkCorner++;   // if we have no match, this can be a too dark corner
+            if (((*cornerResultIt).rate[corner] <=   0) && (corner != logoCorner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
         countFrames++;
         if (darkCorner >= 2) countDark++;  // if at least two corners but logo corner has no match, this is a very dark scene
@@ -1554,7 +1555,7 @@ void cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, sMarkPos *end
     int frameCorner        = -1;
     for (int corner = 0; corner < CORNERS; corner++) {
         allSumFramePortion += ClosingCredits.sumFramePortion[corner];
-        if (noLogoCorner && (corner == logoCorner)) continue;  // if we are called from Info logo, we can false detect the info logo as frame
+        if (noLogoCornerCheck && (corner == logoCorner)) continue;  // if we are called from Info logo, we can false detect the info logo as frame
         if (ClosingCredits.sumFramePortion[corner] > maxSumFramePortion) {
             maxSumFramePortion = ClosingCredits.sumFramePortion[corner];
             frameCorner = corner;

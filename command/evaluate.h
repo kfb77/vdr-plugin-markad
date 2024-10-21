@@ -279,12 +279,12 @@ public:
 
     /**
      * check for closing credits without logo and for closing still image
-     * @param startPos          start position for search (stop mark)
-     * @param endPos            end position for search
-     * @param endClosingCredits new end mark position after closing credits
-     * @param noLogoCorner      if true we have no logo
+     * @param startPos           start position for search (stop mark)
+     * @param endPos             end position for search
+     * @param endClosingCredits  new end mark position after closing credits
+     * @param noLogoCornerCheck  if true we not check logo corner because there is an info logo
      */
-    void ClosingCredit(int startPos, int endPos, sMarkPos *endClosingCredits, const bool noLogoCorner = false);
+    void ClosingCredit(int startPos, int endPos, sMarkPos *endClosingCredits, const bool noLogoCornerCheck = false);
 
     /**
      * check if current range is an advertising in frame with logo

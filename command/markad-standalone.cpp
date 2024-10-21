@@ -1741,9 +1741,11 @@ void cMarkAdStandalone::CheckStop() {
 //
 bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
-    if (criteria->GetClosingCreditsState(stopMark->position) < CRITERIA_UNKNOWN) return false;
-    if (video->GetLogoCorner() < 0) return false;  // not possible to detect without logo
-
+    int closingCreditsState = criteria->GetClosingCreditsState(stopMark->position);
+    if (closingCreditsState < CRITERIA_UNKNOWN) {
+        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): no check necessary, closing credits state: %d", closingCreditsState);
+        return false;
+    }
     dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits in frame without logo after position (%d)", stopMark->position);
 
     // init objects for logo mark optimization
