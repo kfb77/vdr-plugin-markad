@@ -4624,10 +4624,14 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     // rule 1: very short blackscreen with silence after
                     if (silenceAfter && (diffAfter <= 40)) diffBefore = INT_MAX;
 
-                    if      ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >= 160) && silenceBefore) maxBefore = 7119;
-                    else if ((criteria->LogoFadeInOut() & FADE_IN) && (lengthBefore >   40) && silenceBefore) maxBefore = 6840;
-                    else if  (criteria->LogoFadeInOut() & FADE_IN)                                            maxBefore = 5360;
-                    else                                                                                      maxBefore = 2999;
+                    if (criteria->LogoFadeInOut() & FADE_IN) {
+                        if (silenceBefore) {
+                            if (lengthBefore      >= 160) maxBefore = 7119;
+                            else if (lengthBefore >=  40) maxBefore = 5519;
+                        }
+                        else if (lengthBefore < 9720) maxBefore = 5360;
+                    }
+                    else maxBefore = 2999;
                     break;
                 case MT_CHANNELSTART:
                     maxBefore = 1240;
@@ -4650,11 +4654,11 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         // rule 3: not so far blackscreen after is start of broadcast, no silence around
                         else if (!silenceBefore && !silenceAfter && (diffBefore > 48040) && (diffAfter <= 26560) && (lengthAfter >= 80)) diffBefore = INT_MAX;
 
-                        if (criteria->GoodVPS()) maxBefore = 26099;
-                        else if (silenceBefore)                           maxBefore = 81800;
-                        else if (lengthBefore >= 600)                     maxBefore = 88400;
-                        else if (lengthBefore >= 240)                     maxBefore = 50480;
-                        else                                              maxBefore =     0;  // do not accept short black screen, too much false positiv
+                        if (criteria->GoodVPS())      maxBefore =  7419;
+                        else if (silenceBefore)       maxBefore = 81800;
+                        else if (lengthBefore >= 600) maxBefore = 88400;
+                        else if (lengthBefore >= 240) maxBefore = 50480;
+                        else                          maxBefore =     0;  // do not accept short black screen, too much false positiv
                         break;
                     default:
                         maxBefore = -1;
@@ -4681,7 +4685,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxAfter = 64519;
                     break;
                 case MT_LOGOSTART:
-                    maxAfter = 2240;
+                    if (criteria->LogoFadeInOut() & FADE_IN) maxAfter = 1440;
+                    else                                     maxAfter = 2240;
                     break;
                 case MT_HBORDERSTART:
                     maxAfter = 260;
