@@ -525,14 +525,24 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 110;
         }
 
-        // RTLZWEI                 16:9  720W  576H:->   82W  78H BOTTOM_RIGHT
-        // RTLZWEI                 16:9  720W  576H:->   82W  80H BOTTOM_RIGHT
-        // RTLZWEI                 16:9  720W  576H:->   84W  80H BOTTOM_RIGHT
-        // RTLZWEI                  4:3  720W  576H:->   98W  80H BOTTOM_RIGHT
+//   9 RTLZWEI                 16:9  720W  576H:->   82W  78H BOTTOM_RIGHT
+//  27 RTLZWEI                 16:9  720W  576H:->   82W  80H BOTTOM_RIGHT
+//   2 RTLZWEI                  4:3  720W  576H:->   98W  78H BOTTOM_RIGHT
+//   6 RTLZWEI                  4:3  720W  576H:->   98W  80H BOTTOM_RIGHT
         if (CompareChannelName(channelName, "RTLZWEI", IGNORE_NOTHING)) {
-            logo.widthMax  =  98;
-            logo.heightMin =  78;
-            logo.heightMax =  80;
+            const sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
+            if ((aspectRatio->num == 16) && (aspectRatio->den == 9)) {
+                logo.widthMin  =  72;
+                logo.widthMax  =  92;
+                logo.heightMin =  68;
+                logo.heightMax =  90;
+            }
+            else {
+                logo.widthMin  =  88;
+                logo.widthMax  = 108;
+                logo.heightMin =  68;
+                logo.heightMax =  90;
+            }
         }
 
         // RTLplus                 16:9  720W  576H:->  168W  64H TOP_LEFT
@@ -660,11 +670,13 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax  = 185;
         }
 
-        // ANIXE+                  16:9 1280W 1080H:->  294W 172H TOP_LEFT
+//   1 ANIXE+                  16:9 1280W 1080H:->  290W 164H TOP_LEFT
+//   1 ANIXE+                  16:9 1280W 1080H:->  294W 170H TOP_LEFT
         if (CompareChannelName(channelName, "ANIXE+", IGNORE_NOTHING)) {
-            logo.widthMax  = 294;
-            logo.heightMin = 169;
-            logo.heightMax = 173;
+            logo.widthMin  = 280;
+            logo.widthMax  = 300;
+            logo.heightMin = 154;
+            logo.heightMax = 180;
         }
 
         // ARD_alpha_HD            16:9 1280W  720H:->  206W  78H TOP_LEFT
