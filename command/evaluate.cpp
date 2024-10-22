@@ -542,7 +542,7 @@ int cEvaluateLogoStopStartPair::GetIsAdInFrame(const int stopPosition, const int
         if ((value.stopPosition == stopPosition) || (value.startPosition == startPosition)) return true; else return false; });
 
     if (found != logoPairVector.end()) {
-        dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrae(): isAdInFrame for stop (%d) start (%d) mark: %d", found->stopPosition, found->startPosition, found->isAdInFrame);
+        dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): isAdInFrame for stop (%d) start (%d) mark: %d", found->stopPosition, found->startPosition, found->isAdInFrame);
         return found->isAdInFrame;
     }
 
