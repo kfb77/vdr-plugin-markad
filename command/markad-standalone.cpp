@@ -1428,6 +1428,11 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
                 (diffStop1Start1 >=  720) && (diffStop1Start1 <= 1160) &&  // change from closing logo to logo
                 (diffStart1Mark  >= 6360) && (diffStart1Mark  <= 18880)) { // end part between closing logo and broadcast end
             dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): found closing info logo sequence");
+            // cleanup invalid logo marks
+            marks.Del(stop2Before->position);
+            marks.Del(start2Before->position);
+            marks.Del(stop1Before->position);
+            marks.Del(start1Before->position);
             return true;
         }
         else dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): logo stop mark (%d): closing logo info sequence is invalid", mark->position);
