@@ -1160,7 +1160,8 @@ bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos) {
             if (((corner ==logoCorner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchLogoCornerCount++;
             if (((corner !=logoCorner) && (*cornerResultIt).rate[corner] > INFO_LOGO_MACTH_MIN)) infoLogo.matchRestCornerCount++;
             if ((*cornerResultIt).rate[corner] <= 0) countZero++;
-            if (((*cornerResultIt).rate[corner] > 0) && ((*cornerResultIt).rate[corner] < 308)) isStatic = false;  // if all corner has high match, this is a separator picture
+            // if all corner has high match, this is a separator picture, changed from 308 to 600, mybe use scene change instead
+            if (((*cornerResultIt).rate[corner] > 0) && ((*cornerResultIt).rate[corner] < 600)) isStatic = false;
             sumPixel += (*cornerResultIt).rate[corner];
             if (((*cornerResultIt).rate[corner] <=   0) && (corner !=logoCorner)) darkCorner++;   // if we have no match, this can be a too dark corner
         }
