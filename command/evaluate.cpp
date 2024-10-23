@@ -327,7 +327,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 // info logo detected as logo, but not fade in/out (kabel eins)
 #define LOGO_INFO_NEXT_STOP_MIN                    1760  // changed from 2120 to 1760
 
-    int maxNextStop = 5920;
+    int maxNextStop = 6360;  // changed from 5920 to 6360
     if (logoStopStartPair->stopPosition > iStopA) maxNextStop = 4560; // avoid merge info logo with logo end mark
     // check length
     int length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / frameRate;
