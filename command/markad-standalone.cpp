@@ -947,33 +947,34 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
             if (silenceStart) {
                 cMark *silenceStop = silenceMarks.GetNext(silenceStart->position, MT_SOUNDSTART);
                 if (silenceStop) {
-                    cMark *logoStartAfter = marks.GetNext(silenceStop->position, MT_LOGOSTART);
-                    if (logoStartAfter) {
-                        int logoStartLogoStop       = 1000 * (mark->position           - logoStartBefore->position) / decoder->GetVideoFrameRate();
-                        int logoStopSilenceStart    = 1000 * (silenceStart->position   - mark->position)            / decoder->GetVideoFrameRate();
-                        int silenceStartSilenceStop = 1000 * (silenceStop->position    - silenceStart->position)    / decoder->GetVideoFrameRate();
-                        int silenceStopLogoStart    = 1000 * (logoStartAfter->position - silenceStop->position)     / decoder->GetVideoFrameRate();
-                        dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTART (%6d) -> %7ds -> MT_LOGOSTOP (%6d) -> %4dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_SOUNDSTART (%6d) -> %5dms -> MT_LOGOSTART (%6d)", logoStartBefore->position, logoStartLogoStop, mark->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, logoStartAfter->position);
+                    cMark *startAfter = marks.GetNext(silenceStop->position, MT_START, 0x0F);
+                    if (startAfter) {
+                        int logoStartLogoStop       = 1000 * (mark->position         - logoStartBefore->position) / decoder->GetVideoFrameRate();
+                        int logoStopSilenceStart    = 1000 * (silenceStart->position - mark->position)            / decoder->GetVideoFrameRate();
+                        int silenceStartSilenceStop = 1000 * (silenceStop->position  - silenceStart->position)    / decoder->GetVideoFrameRate();
+                        int silenceStopLogoStart    = 1000 * (startAfter->position   - silenceStop->position)     / decoder->GetVideoFrameRate();
+                        dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTART (%6d) -> %7ds -> MT_LOGOSTOP (%6d) -> %4dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_SOUNDSTART (%6d) -> %5dms -> MT_LOGOSTART (%6d) -> %s", logoStartBefore->position, logoStartLogoStop, mark->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, startAfter->position, macontext.Info.ChannelName);
 // valid sequence
-// MT_LOGOSTART ( 16056) -> 1505140s -> MT_LOGOSTOP ( 91313) ->  140ms -> MT_SOUNDSTOP ( 91320) ->  180ms -> MT_SOUNDSTART ( 91329) ->  1920ms -> MT_LOGOSTART ( 91425) -> RTL Television
-// MT_LOGOSTART ( 84526) ->   10400s -> MT_LOGOSTOP ( 84786) ->  160ms -> MT_SOUNDSTOP ( 84790) ->   80ms -> MT_SOUNDSTART ( 84792) ->  1920ms -> MT_LOGOSTART ( 84840) -> Pro7 MAXX
-// MT_LOGOSTART ( 81870) ->   10400s -> MT_LOGOSTOP ( 82130) ->    0ms -> MT_SOUNDSTOP ( 82130) ->  320ms -> MT_SOUNDSTART ( 82138) ->  1840ms -> MT_LOGOSTART ( 82184) -> Pro7 MAXX
-// MT_LOGOSTART ( 56844) ->   31760s -> MT_LOGOSTOP ( 57638) ->  840ms -> MT_SOUNDSTOP ( 57659) ->  440ms -> MT_SOUNDSTART ( 57670) ->  2360ms -> MT_LOGOSTART ( 57729) -> Comedy Central
-// MT_LOGOSTART ( 56372) ->   26000s -> MT_LOGOSTOP ( 57022) ->   80ms -> MT_SOUNDSTOP ( 57024) -> 1160ms -> MT_SOUNDSTART ( 57053) ->  2440ms -> MT_LOGOSTART ( 57114) -> Comedy Central
-// MT_LOGOSTART ( 79759) ->  224920s -> MT_LOGOSTOP ( 85382) ->  200ms -> MT_SOUNDSTOP ( 85387) ->   40ms -> MT_SOUNDSTART ( 85388) -> 27560ms -> MT_LOGOSTART ( 86077) -> VOX
-// MT_LOGOSTART ( 79759) ->  224880s -> MT_LOGOSTOP ( 85381) ->  240ms -> MT_SOUNDSTOP ( 85387) ->   40ms -> MT_SOUNDSTART ( 85388) ->   240ms -> MT_LOGOSTART ( 85394) -> VOX
-// MT_LOGOSTART ( 96625) ->   11840s -> MT_LOGOSTOP ( 96921) -> 1640ms -> MT_SOUNDSTOP ( 96962) ->   80ms -> MT_SOUNDSTART ( 96964) ->  1320ms -> MT_LOGOSTART ( 96997) -> TLC
+// MT_LOGOSTART ( 16056) -> 1505140s -> MT_LOGOSTOP ( 91313) ->  140ms -> MT_SOUNDSTOP ( 91320) ->  180ms -> MT_SOUNDSTART ( 91329) ->  1920ms -> MT_START ( 91425) -> RTL Television
+// MT_LOGOSTART ( 84526) ->   10400s -> MT_LOGOSTOP ( 84786) ->  160ms -> MT_SOUNDSTOP ( 84790) ->   80ms -> MT_SOUNDSTART ( 84792) ->  1920ms -> MT_START ( 84840) -> Pro7 MAXX
+// MT_LOGOSTART ( 81870) ->   10400s -> MT_LOGOSTOP ( 82130) ->    0ms -> MT_SOUNDSTOP ( 82130) ->  320ms -> MT_SOUNDSTART ( 82138) ->  1840ms -> MT_START ( 82184) -> Pro7 MAXX
+// MT_LOGOSTART ( 56844) ->   31760s -> MT_LOGOSTOP ( 57638) ->  840ms -> MT_SOUNDSTOP ( 57659) ->  440ms -> MT_SOUNDSTART ( 57670) ->  2360ms -> MT_START ( 57729) -> Comedy Central
+// MT_LOGOSTART ( 56372) ->   26000s -> MT_LOGOSTOP ( 57022) ->   80ms -> MT_SOUNDSTOP ( 57024) -> 1160ms -> MT_SOUNDSTART ( 57053) ->  2440ms -> MT_START ( 57114) -> Comedy Central
+// MT_LOGOSTART ( 79759) ->  224920s -> MT_LOGOSTOP ( 85382) ->  200ms -> MT_SOUNDSTOP ( 85387) ->   40ms -> MT_SOUNDSTART ( 85388) -> 27560ms -> MT_START ( 86077) -> VOX
+// MT_LOGOSTART ( 79759) ->  224880s -> MT_LOGOSTOP ( 85381) ->  240ms -> MT_SOUNDSTOP ( 85387) ->   40ms -> MT_SOUNDSTART ( 85388) ->   240ms -> MT_START ( 85394) -> VOX
+// MT_LOGOSTART ( 96625) ->   11840s -> MT_LOGOSTOP ( 96921) -> 1640ms -> MT_SOUNDSTOP ( 96962) ->   80ms -> MT_SOUNDSTART ( 96964) ->  1320ms -> MT_START ( 96997) -> TLC
+// MT_LOGOSTART ( 37067) ->   26000s -> MT_LOGOSTOP ( 37717) ->  880ms -> MT_SOUNDSTOP ( 37739) ->  160ms -> MT_SOUNDSTART ( 37743) -> 14960ms -> MT_LOGOT ( 38117) -> Comedy_Central
 //
 // invalid sequence
-// MT_LOGOSTART ( 87985) ->    1400s -> MT_LOGOSTOP ( 88020) -> 4840ms -> MT_SOUNDSTOP ( 88141) ->  160ms -> MT_SOUNDSTART ( 88145) ->  8400ms -> MT_LOGOSTART ( 88355) -> DMAX
+// MT_LOGOSTART ( 87985) ->    1400s -> MT_LOGOSTOP ( 88020) -> 4840ms -> MT_SOUNDSTOP ( 88141) ->  160ms -> MT_SOUNDSTART ( 88145) ->  8400ms -> MT_START ( 88355) -> DMAX
                         if ((logoStartLogoStop >= 10400) &&            // possible end of info logo before (or logo interuption at end of broadcast on TLC)
                                 (logoStopSilenceStart    <= 1640) &&   // silence start short after end mark
                                 (silenceStartSilenceStop >=   40) && (silenceStartSilenceStop <=  1160) &&
                                 (silenceStopLogoStart    >=  240) && (silenceStopLogoStart    <= 27560)) {
-                            dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): silence sequence is valid", mark->position);
+                            dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): silence sequence between end mark and next start mark  is valid", mark->position);
                             return true;
                         }
-                        dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): silence sequence is invalid", mark->position);
+                        dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo stop mark (%d): silence sequence between end mark and next start mark is invalid", mark->position);
                     }
                 }
             }
