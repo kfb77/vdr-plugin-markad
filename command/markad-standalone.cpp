@@ -847,12 +847,13 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                     int logoStopSilenceStart    = 1000 * (silenceStart->position - logoStop->position)     / decoder->GetVideoFrameRate();
                     int silenceStartSilenceStop = 1000 * (silenceStop->position  - silenceStart->position) / decoder->GetVideoFrameRate();
                     int silenceStopLogoStart    = 1000 * (mark->position         - silenceStop->position)  / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%6d) -> %5dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_SOUNDSTART (%6d) -> %4dms -> MT_LO>GOSTART (%6d) -> %s", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, mark->position, macontext.Info.ChannelName);
+                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%6d) -> %6dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_SOUNDSTART (%6d) -> %4dms -> MT_LOGOSTART (%6d) -> %s", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, mark->position, macontext.Info.ChannelName);
 // valid example
-// MT_LOGOSTOP (  7444) -> 24040ms -> MT_SOUNDSTOP (  8045) ->   80ms -> MT_SOUNDSTART (  8047) ->  760ms -> MT_LO>GOSTART (  8066) -> Disney_Channel
+// MT_LOGOSTOP (  7444) ->  24040ms -> MT_SOUNDSTOP (  8045) ->   80ms -> MT_SOUNDSTART (  8047) ->  760ms -> MT_LOGOSTART (  8066) -> Disney_Channel
 //
 // invalid example
-                    if ((logoStopSilenceStart        >=  24040) &&
+// MT_LOGOSTOP (  2028) -> 104400ms -> MT_SOUNDSTOP (  4638) ->  400ms -> MT_SOUNDSTART (  4648) ->  600ms -> MT_LOGOSTART (  4663) -> Comedy_Central, silence before first ad
+                    if ((logoStopSilenceStart        >=  24040) && (logoStopSilenceStart < 104400) &&
                             (silenceStartSilenceStop >=     80) &&
                             (silenceStopLogoStart    <=    760)) {
                         dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence sequence before logo start is valid", mark->position);
@@ -953,7 +954,7 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                         int logoStopSilenceStart    = 1000 * (silenceStart->position - mark->position)            / decoder->GetVideoFrameRate();
                         int silenceStartSilenceStop = 1000 * (silenceStop->position  - silenceStart->position)    / decoder->GetVideoFrameRate();
                         int silenceStopLogoStart    = 1000 * (startAfter->position   - silenceStop->position)     / decoder->GetVideoFrameRate();
-                        dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTART (%6d) -> %7ds -> MT_LOGOSTOP (%6d) -> %4dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_SOUNDSTART (%6d) -> %5dms -> MT_LOGOSTART (%6d) -> %s", logoStartBefore->position, logoStartLogoStop, mark->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, startAfter->position, macontext.Info.ChannelName);
+                        dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTART (%6d) -> %7ds -> MT_LOGOSTOP (%6d) -> %4dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_SOUNDSTART (%6d) -> %5dms -> MT_START (%6d) -> %s", logoStartBefore->position, logoStartLogoStop, mark->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, startAfter->position, macontext.Info.ChannelName);
 // valid sequence
 // MT_LOGOSTART ( 16056) -> 1505140s -> MT_LOGOSTOP ( 91313) ->  140ms -> MT_SOUNDSTOP ( 91320) ->  180ms -> MT_SOUNDSTART ( 91329) ->  1920ms -> MT_START ( 91425) -> RTL Television
 // MT_LOGOSTART ( 84526) ->   10400s -> MT_LOGOSTOP ( 84786) ->  160ms -> MT_SOUNDSTOP ( 84790) ->   80ms -> MT_SOUNDSTART ( 84792) ->  1920ms -> MT_START ( 84840) -> Pro7 MAXX
@@ -967,7 +968,9 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
 //
 // invalid sequence
 // MT_LOGOSTART ( 87985) ->    1400s -> MT_LOGOSTOP ( 88020) -> 4840ms -> MT_SOUNDSTOP ( 88141) ->  160ms -> MT_SOUNDSTART ( 88145) ->  8400ms -> MT_START ( 88355) -> DMAX
-                        if ((logoStartLogoStop >= 10400) &&            // possible end of info logo before (or logo interuption at end of broadcast on TLC)
+// MT_LOGOSTART ( 48324) ->   95520s -> MT_LOGOSTOP ( 50712) ->  240ms -> MT_SOUNDSTOP ( 50718) ->  320ms -> MT_SOUNDSTART ( 50726) -> 12720ms -> MT_START ( 51044) -> Comedy_Central
+                        if (  (((logoStartLogoStop >= 10400)  && (logoStartLogoStop <= 31760)) ||  // end of info logo before (or logo interuption at end of broadcast on TLC)
+                                (logoStartLogoStop >  95520)) &&                                   // no info logo before
                                 (logoStopSilenceStart    <= 1640) &&   // silence start short after end mark
                                 (silenceStartSilenceStop >=   40) && (silenceStartSilenceStop <=  1160) &&
                                 (silenceStopLogoStart    >=  240) && (silenceStopLogoStart    <= 27560)) {
