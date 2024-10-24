@@ -3165,7 +3165,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     int prevLogoStart_Stop      = 1000 * (mark->position          - prevLogoStart->position) /  decoder->GetVideoFrameRate();
                     long int stop_nextLogoStart = 1000 * (nextLogoStart->position - mark->position)          /  decoder->GetVideoFrameRate();
                     int nextLogoStart_nextStop  = 1000 * (nextStop->position      - nextLogoStart->position) /  decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%6d) -> %7dms -> MT_LOGOSTOP (%6d) -> %7ldms -> MT_LOGOSTART (%6d) -> %7dms -> MT_STOP (%6d)", prevLogoStart->position, prevLogoStart_Stop, mark->position, stop_nextLogoStart, nextLogoStart->position, nextLogoStart_nextStop, nextStop->position);
+                    dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%6d) -> %7dms -> MT_LOGOSTOP (%6d) -> %7ldms -> MT_LOGOSTART (%6d) -> %7dms -> MT_STOP (%6d) -> %s", prevLogoStart->position, prevLogoStart_Stop, mark->position, stop_nextLogoStart, nextLogoStart->position, nextLogoStart_nextStop, nextStop->position, macontext.Info.ChannelName);
 
 // cleanup logo detection failure
 // delete sequence long broadcast -> very short stop/start -> long broadcast
@@ -3244,8 +3244,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // invalid stop/start pair from short logo interruption channel, delete pair
 // a valid logo stop mark have black screen around logo stop
 //
-// invald logo stop mark
-// MT_LOGOSTART ( 17207) ->    5000ms -> MT_LOGOSTOP ( 17332) ->     880ms -> MT_LOGOSTART ( 17354) ->  605960ms -> MT_STOP ( 32503)
+// invald logo stop/start pair
 // MT_LOGOSTART ( 30526) ->   23840ms -> MT_LOGOSTOP ( 31122) ->     360ms -> MT_LOGOSTART ( 31131) ->  431040ms -> MT_STOP ( 41907) -> Comedy_Central: logo interruption
 // MT_LOGOSTART ( 30498) ->   11720ms -> MT_LOGOSTOP ( 30791) ->    1040ms -> MT_LOGOSTART ( 30817) ->    5120ms -> MT_STOP ( 30945) -> Comedy_Central: logo interruption
 // MT_LOGOSTART ( 30797) ->   23840ms -> MT_LOGOSTOP ( 31393) ->     400ms -> MT_LOGOSTART ( 31403) ->  532280ms -> MT_STOP ( 44710) -> Comedy_Central: logo interruption
@@ -3256,10 +3255,15 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART ( 30498) ->  653840ms -> MT_LOGOSTOP ( 46844) ->     560ms -> MT_LOGOSTART ( 46858) ->   26000ms -> MT_STOP ( 47508) -> Comedy_Central: logo interruption
 // MT_LOGOSTART ( 16305) ->   34920ms -> MT_LOGOSTOP ( 17178) ->    1160ms -> MT_LOGOSTART ( 17207) ->    5000ms -> MT_STOP ( 17332) -> Comedy_Central: logo interruption
 // MT_LOGOSTART ( 37831) ->  131040ms -> MT_LOGOSTOP ( 41107) ->    1480ms -> MT_LOGOSTART ( 41144) ->   38000ms -> MT_STOP ( 42094) -> Comedy_Central: logo interruption
+// MT_LOGOSTART ( 24904) ->   17960ms -> MT_LOGOSTOP ( 25353) ->     680ms -> MT_LOGOSTART ( 25370) ->  676760ms -> MT_STOP ( 42289) -> Comedy_Central: logo interruption
+// MT_LOGOSTART (  9697) ->   17920ms -> MT_LOGOSTOP ( 10145) ->    4360ms -> MT_LOGOSTART ( 10254) ->    1560ms -> MT_STOP ( 10293) -> Comedy_Central: logo interruption
+//
+// valid logo stop/start pair
+// MT_LOGOSTART ( 37656) ->    5280ms -> MT_LOGOSTOP ( 37788) ->    2880ms -> MT_LOGOSTART ( 37860) ->  169440ms -> MT_STOP ( 42096) -> Comedy_Central
                     if (criteria->IsLogoInterruptionChannel() &&
-                            (prevLogoStart_Stop     >= 5000) && (prevLogoStart_Stop     <  653840) &&
-                            (stop_nextLogoStart     >=  360) && (stop_nextLogoStart     <=   1480) &&
-                            (nextLogoStart_nextStop >= 5000) && (nextLogoStart_nextStop <= 635200)) {
+                            (prevLogoStart_Stop     >= 11720) && (prevLogoStart_Stop     <  653840) &&
+                            (stop_nextLogoStart     >=   360) && (stop_nextLogoStart     <=   4360) &&
+                            (nextLogoStart_nextStop >=  1560) && (nextLogoStart_nextStop <= 676760)) {
                         cMark *black = blackMarks.GetAround(1 * decoder->GetVideoFrameRate(), mark->position, MT_BLACKCHANGE, 0xF0);
                         if (black) dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair short but black screen around, stop mark is valid", mark->position, nextLogoStart->position);
                         else {
