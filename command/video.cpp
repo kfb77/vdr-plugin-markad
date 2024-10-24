@@ -1650,7 +1650,7 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
     else valRight = INT_MAX;  // left side has no border, so we have not to check right side
 
 #ifdef DEBUG_VBORDER
-    dsyslog("cVertBorderDetect::Process(): packet (%6d): status: %d, left: %3d, right: %3d, limit: %d|%d, bright: %3d, start: (%5d), valid %d, duration: %3d", decoder->GetPacketNumber(), borderstatus, valLeft, valRight, brightnessSure, brightnessMaybe, GetPictureBrightness(picture, 20), vBorderStartPacketNumber, valid, static_cast<int> ((decoder->GetPacketNumber() - vBorderStartPacketNumber) / frameRate));
+    dsyslog("cVertBorderDetect::Process(): packet (%6d): status: %d, left: %3d, right: %3d, limit: %d|%d, bright: %3d, start: (%5d), valid %d, brightness %d, duration: %3d", decoder->GetPacketNumber(), borderstatus, valLeft, valRight, brightnessSure, brightnessMaybe, GetPictureBrightness(picture, 20), vBorderStartPacketNumber, valid, GetPictureBrightness(picture, 20), static_cast<int> ((decoder->GetPacketNumber() - vBorderStartPacketNumber) / frameRate));
 #endif
 
     if (((valLeft <= brightnessMaybe) && (valRight <= brightnessSure)) || ((valLeft <= brightnessSure) && (valRight <= brightnessMaybe))) {
@@ -1662,12 +1662,15 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
             dsyslog("cVertBorderDetect::Process(): packet (%6d): vborder start detected", decoder->GetPacketNumber());
 #endif
         }
-        if (!valid && (GetPictureBrightness(picture, 20) > 61)) {  // ignore 20% right and left in case of we realy have a vborder
-            valid = true;
+        if (!valid) {
+            int pictureBrightness = GetPictureBrightness(picture, 20); // ignore 20% right and left in case of we realy have a vborder
+            if ((pictureBrightness > 61) ||
+                    ((pictureBrightness >= 43) && (valRight <= 16) && (valLeft <= 16))) { // 16 is min value of pixel, trust more for dark scene
+                valid = true;
 #ifdef DEBUG_VBORDER
-            dsyslog("cVertBorderDetect::Process(): packet (%6d): vborder start is valid", decoder->GetPacketNumber());
+                dsyslog("cVertBorderDetect::Process(): packet (%6d): vborder start is valid", decoder->GetPacketNumber());
 #endif
-
+            }
         }
         if (borderstatus != VBORDER_VISIBLE) {
             if (valid && (vBorderStartPacketNumber >= 0) && (packetNumber > (vBorderStartPacketNumber + frameRate * MIN_V_BORDER_SECS))) {
