@@ -1954,7 +1954,10 @@ void cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos, sMarkPos *
         //
         // frame ( 69378) and ( 69379):   991 ( 992)   946 (1001)   940 ( 842)   989 ( 993) ->  3866 ( 3828)
         // frame ( 69379) and ( 69380):    12 (   0)    58 ( 275)    57 (   0)   188 (   0) ->   315 (  275)
-        if (((sumPixelBefore >= 3866) && (sumFramePortionBefore >= 1961) && (sumPixel <= 315) && (sumFramePortion <= 275)) ||
+        //
+        // frame ( 69378) and ( 69379):   991 ( 992)   948 (1002)   944 ( 817)   988 ( 994) ->  3871 ( 3805)
+        // frame ( 69379) and ( 69380):    29 (   0)    62 ( 265)    65 (   0)   176 (   0) ->   332 (  265)
+        if (((sumPixelBefore >= 3866) && (sumFramePortionBefore >= 1961) && (sumPixel <= 332) && (sumFramePortion <= 275)) ||
                 //
                 // example of no separator frames (l = logo corner)
                 //  34   206(l)   0     0 = 240
@@ -2064,8 +2067,8 @@ void cDetectLogoStopStart::IntroductionLogo(int startPos, int endPos, sMarkPos *
                 }
 #if defined(DEBUG_MARK_OPTIMIZATION) || defined(DEBUG_INTRODUCTION)
                 dsyslog("cDetectLogoStopStart::IntroductionLogo(): packet (%d): end of introduction logo without separator because too low logo corner match", (*cornerResultIt).frameNumber2);
-                dsyslog("cDetectLogoStopStart::IntroductionLogo(): current      range: from (%d) to (%d), sum frame portion %4d, frames %3d", introductionLogo.start, introductionLogo.end, introductionLogo.framePortion, introductionLogo.frames);
-                dsyslog("cDetectLogoStopStart::IntroductionLogo(): current best range: from (%d) to (%d), avg frame portion %4d", introductionLogo.startFinal, introductionLogo.endFinal, introductionLogo.framePortionFinal);
+                dsyslog("cDetectLogoStopStart::IntroductionLogo(): current      range: from (%d) to (%d), sum frame portion %4d, frames %3d", introductionLogo.startPosition, introductionLogo.endPosition, introductionLogo.framePortion, introductionLogo.frames);
+                dsyslog("cDetectLogoStopStart::IntroductionLogo(): current best range: from (%d) to (%d), avg frame portion %4d", introductionLogo.startFinalPosition, introductionLogo.endFinalPosition, introductionLogo.framePortionFinal);
 #endif
                 introductionLogo.startPosition = -1;
                 introductionLogo.startPTS      = -1;
