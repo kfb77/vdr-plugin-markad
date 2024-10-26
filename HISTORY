@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-10-31: Version 4.2.5
+- plugin: remove use of MainThreadHook()
+- fix crash from missing codec
+- detect black screen despite permanent news ticker
+- some minor bug fixes and optimizations, see git
+
 2024-10-18: Version 4.2.4
 - fix parameter evaluation (thx to hopsi@www.vdr-portal.de and beinhart@www.vdr-portal.de for reporting)
 - remove check of APIVERSION in Makefile, no longer working with new VDR APIVERSION value (thx to hopsi@www.vdr-portal.de for reporting)
