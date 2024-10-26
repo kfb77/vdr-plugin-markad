@@ -2831,6 +2831,7 @@ void cMarkAdStandalone::CheckStart() {
         marks.DelAfterFromToEnd(begin->position);
     }
 
+    criteria->SetDetectionState(MT_LOWERBORDERCHANGE, false);  // we only use lower border for start and end mark optimization
     CheckStartMark();
     LogSeparator();
     CalculateCheckPositions(marks.GetFirst()->position);

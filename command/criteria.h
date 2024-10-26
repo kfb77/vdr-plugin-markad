@@ -210,6 +210,8 @@ private:
     //!<
     bool soundDetection       = true;              //!< true if we have to detect silence, false otherwise
     //!<
+    bool lowerBorderDetection = true;              //!< true if we have to detect lower border, false otherwise
+    //!<
     bool blackscreenDetection = true;              //!< true if we have to detect black screens, false otherwise
     //!<
     bool logoDetection        = true;              //!< true if we have to detect logo, false otherwise

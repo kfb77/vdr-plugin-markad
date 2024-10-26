@@ -44,11 +44,11 @@ enum {
 enum {
     BLACKSCREEN_ERROR         = -4,
     BLACKSCREEN_UNINITIALIZED = -3,
-    BLACKLOWER_INVISIBLE      = -2,
+    LOWER_BORDER_INVISIBLE    = -2,
     BLACKSCREEN_INVISIBLE     = -1,
     BLACKSCREEN_NOCHANGE      =  0,
     BLACKSCREEN_VISIBLE       =  1,
-    BLACKLOWER_VISIBLE        =  2
+    LOWER_BORDER_VISIBLE      =  2
 };
 
 enum {

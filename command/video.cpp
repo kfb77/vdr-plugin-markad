@@ -1318,11 +1318,11 @@ int cBlackScreenDetect::Process() {
     else maxBrightnessAll = (BLACKNESS + 1) * picture->width * picture->height;
 
     // limit for black lower border
-    if (lowerBorderStatus == BLACKLOWER_INVISIBLE) maxBrightnessLower = BLACKNESS * picture->width * PIXEL_COUNT_LOWER;
+    if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) maxBrightnessLower = BLACKNESS * picture->width * PIXEL_COUNT_LOWER;
     else maxBrightnessLower = (BLACKNESS + 1) * picture->width * PIXEL_COUNT_LOWER;
 
     // limit for white lower border
-    if (lowerBorderStatus == BLACKLOWER_INVISIBLE) minBrightnessLower = WHITE_LOWER * picture->width * PIXEL_COUNT_LOWER;
+    if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) minBrightnessLower = WHITE_LOWER * picture->width * PIXEL_COUNT_LOWER;
     else minBrightnessLower = (WHITE_LOWER - 1) * picture->width * PIXEL_COUNT_LOWER;
 
     int maxBrightnessGrey = 28 * picture->width *picture->height;
@@ -1361,22 +1361,24 @@ int cBlackScreenDetect::Process() {
         return ret; // detected stop of black screen
     }
 
-    // now lower black/white border visible, only report lower black/white border if we have no full black screen
-    if ((((valLower <= maxBrightnessLower) && (valAll >= 3 * maxBrightnessAll)) || // only report lower black border if we have no dark picture, changed from 2 to 3
-            (valLower >= minBrightnessLower)) &&
-            (lowerBorderStatus != BLACKLOWER_VISIBLE) && (blackScreenStatus != BLACKSCREEN_VISIBLE)) {
-        int ret = BLACKLOWER_VISIBLE;
-        if (lowerBorderStatus == BLACKSCREEN_UNINITIALIZED) ret = BLACKSCREEN_NOCHANGE;
-        lowerBorderStatus = BLACKLOWER_VISIBLE;
-        return ret; // detected start of black screen
-    }
-    // lower black border now invisible
-    if ((valLower > maxBrightnessLower) && (valLower < minBrightnessLower) &&
-            (lowerBorderStatus != BLACKLOWER_INVISIBLE) && (blackScreenStatus == BLACKSCREEN_INVISIBLE)) {  // only report if no active blackscreen
-        int ret = BLACKLOWER_INVISIBLE;
-        if (lowerBorderStatus == BLACKSCREEN_UNINITIALIZED) ret = BLACKSCREEN_NOCHANGE;
-        lowerBorderStatus = BLACKLOWER_INVISIBLE;
-        return ret; // detected stop of black screen
+    if (criteria->GetDetectionState(MT_LOWERBORDERCHANGE)) {
+        // now lower black/white border visible, only report lower black/white border if we have no full black screen
+        if ((((valLower <= maxBrightnessLower) && (valAll >= 3 * maxBrightnessAll)) || // only report lower black border if we have no dark picture, changed from 2 to 3
+                (valLower >= minBrightnessLower)) &&
+                (lowerBorderStatus != LOWER_BORDER_VISIBLE) && (blackScreenStatus != BLACKSCREEN_VISIBLE)) {
+            int ret = LOWER_BORDER_VISIBLE;
+            if (lowerBorderStatus == BLACKSCREEN_UNINITIALIZED) ret = BLACKSCREEN_NOCHANGE;
+            lowerBorderStatus = LOWER_BORDER_VISIBLE;
+            return ret; // detected start of black screen
+        }
+        // lower black border now invisible
+        if ((valLower > maxBrightnessLower) && (valLower < minBrightnessLower) &&
+                (lowerBorderStatus != LOWER_BORDER_INVISIBLE) && (blackScreenStatus == BLACKSCREEN_INVISIBLE)) {  // only report if no active blackscreen
+            int ret = LOWER_BORDER_INVISIBLE;
+            if (lowerBorderStatus == BLACKSCREEN_UNINITIALIZED) ret = BLACKSCREEN_NOCHANGE;
+            lowerBorderStatus = LOWER_BORDER_INVISIBLE;
+            return ret; // detected stop of black screen
+        }
     }
 
     return BLACKSCREEN_NOCHANGE;
@@ -1848,10 +1850,10 @@ sMarkAdMarks *cVideo::Process() {
         case BLACKSCREEN_VISIBLE:
             AddMark(MT_NOBLACKSTOP, packetNumber, framePTS);                 // use PTS of first frame with black screen as MT_NOBLACKSTOP mark (black screen start)
             break;
-        case BLACKLOWER_INVISIBLE:
+        case LOWER_BORDER_INVISIBLE:
             AddMark(MT_NOLOWERBORDERSTART, packetNumber, framePTS);   // first frame without lower border is start mark position
             break;
-        case BLACKLOWER_VISIBLE:
+        case LOWER_BORDER_VISIBLE:
             AddMark(MT_NOLOWERBORDERSTOP, packetNumber, framePTS);
             break;
         default:

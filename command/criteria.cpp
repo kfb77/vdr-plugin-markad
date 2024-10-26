@@ -450,6 +450,9 @@ bool cCriteria::GetDetectionState(const int type) const {
     case MT_SOUNDCHANGE:
         state = soundDetection;
         break;
+    case MT_LOWERBORDERCHANGE:
+        state = lowerBorderDetection;
+        break;
     case MT_BLACKCHANGE:
         state = blackscreenDetection;
         break;
@@ -489,6 +492,9 @@ void cCriteria::SetDetectionState(const int type, const bool state) {
     case MT_SOUNDCHANGE:
         soundDetection = state;
         break;
+    case MT_LOWERBORDERCHANGE:
+        lowerBorderDetection = state;
+        break;
     case MT_BLACKCHANGE:
         blackscreenDetection = state;
         break;
@@ -510,6 +516,7 @@ void cCriteria::SetDetectionState(const int type, const bool state) {
     case MT_ALL:
         sceneDetection       = state;
         soundDetection       = state;
+        lowerBorderDetection = state;
         blackscreenDetection = state;
         logoDetection        = state;
         vborderDetection     = state;
@@ -521,7 +528,7 @@ void cCriteria::SetDetectionState(const int type, const bool state) {
         esyslog("cMarkCriteria::SetDetectionState(): type 0x%X not valid", type);
         break;
     }
-    if (GetDetectionState(MT_SCENECHANGE) || GetDetectionState(MT_BLACKCHANGE) || GetDetectionState(MT_LOGOCHANGE) || GetDetectionState(MT_VBORDERCHANGE) || GetDetectionState(MT_HBORDERCHANGE) || GetDetectionState(MT_ASPECTCHANGE)) videoDecoding = true;
+    if (GetDetectionState(MT_SCENECHANGE) || GetDetectionState(MT_LOWERBORDERCHANGE) || GetDetectionState(MT_BLACKCHANGE) || GetDetectionState(MT_LOGOCHANGE) || GetDetectionState(MT_VBORDERCHANGE) || GetDetectionState(MT_HBORDERCHANGE) || GetDetectionState(MT_ASPECTCHANGE)) videoDecoding = true;
     else videoDecoding = false;
 
     if (GetDetectionState(MT_SOUNDCHANGE) || GetDetectionState(MT_CHANNELCHANGE)) audioDecoding = true;
@@ -537,14 +544,15 @@ void cCriteria::SetDetectionState(const int type, const bool state) {
 
 
 void cCriteria::ListDetection() const {
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_SCENECHANGE:     %s", GetDetectionState(MT_SCENECHANGE)   ? "on" : "off");
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_SOUNDCHANGE:     %s", GetDetectionState(MT_SOUNDCHANGE)   ? "on" : "off");
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_BLACKCHANGE:     %s", GetDetectionState(MT_BLACKCHANGE)   ? "on" : "off");
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_LOGOCHANGE:      %s", GetDetectionState(MT_LOGOCHANGE)    ? "on" : "off");
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_VBORDERCHANGE:   %s", GetDetectionState(MT_VBORDERCHANGE) ? "on" : "off");
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_HBORDERCHANGE:   %s", GetDetectionState(MT_HBORDERCHANGE) ? "on" : "off");
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_ASPECTCHANGE:    %s", GetDetectionState(MT_ASPECTCHANGE)  ? "on" : "off");
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_CHANNELCHANGE:   %s", GetDetectionState(MT_CHANNELCHANGE) ? "on" : "off");
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_VIDEO:           %s", GetDetectionState(MT_VIDEO)         ? "on" : "off");
-    dsyslog("cMarkCriteria::ListDetectionState(): MT_AUDIO:           %s", GetDetectionState(MT_AUDIO)         ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_SCENECHANGE:       %s", GetDetectionState(MT_SCENECHANGE)       ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_SOUNDCHANGE:       %s", GetDetectionState(MT_SOUNDCHANGE)       ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_LOWERBORDERCHANGE: %s", GetDetectionState(MT_LOWERBORDERCHANGE) ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_BLACKCHANGE:       %s", GetDetectionState(MT_BLACKCHANGE)       ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_LOGOCHANGE:        %s", GetDetectionState(MT_LOGOCHANGE)        ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_VBORDERCHANGE:     %s", GetDetectionState(MT_VBORDERCHANGE)     ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_HBORDERCHANGE:     %s", GetDetectionState(MT_HBORDERCHANGE)     ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_ASPECTCHANGE:      %s", GetDetectionState(MT_ASPECTCHANGE)      ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_CHANNELCHANGE:     %s", GetDetectionState(MT_CHANNELCHANGE)     ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_VIDEO:             %s", GetDetectionState(MT_VIDEO)             ? "on" : "off");
+    dsyslog("cMarkCriteria::ListDetectionState(): MT_AUDIO:             %s", GetDetectionState(MT_AUDIO)             ? "on" : "off");
 }
