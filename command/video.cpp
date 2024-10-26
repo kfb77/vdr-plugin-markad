@@ -1312,10 +1312,12 @@ int cBlackScreenDetect::Process() {
     int maxBrightnessAll;
     int maxBrightnessLower;   // for detetion of black lower border
     int minBrightnessLower;   // for detetion of white lower border
+    int pictureHeight = picture->height;
+    if (criteria->LogoInNewsTicker()) pictureHeight *= 0.85;  // news ticker is still visible in black screen
 
     // calculate limit with hysteresis
-    if (blackScreenStatus == BLACKSCREEN_INVISIBLE) maxBrightnessAll = BLACKNESS * picture->width * picture->height;
-    else maxBrightnessAll = (BLACKNESS + 1) * picture->width * picture->height;
+    if (blackScreenStatus == BLACKSCREEN_INVISIBLE) maxBrightnessAll = BLACKNESS * picture->width * pictureHeight;
+    else maxBrightnessAll = (BLACKNESS + 1) * picture->width * pictureHeight;
 
     // limit for black lower border
     if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) maxBrightnessLower = BLACKNESS * picture->width * PIXEL_COUNT_LOWER;
@@ -1325,17 +1327,17 @@ int cBlackScreenDetect::Process() {
     if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) minBrightnessLower = WHITE_LOWER * picture->width * PIXEL_COUNT_LOWER;
     else minBrightnessLower = (WHITE_LOWER - 1) * picture->width * PIXEL_COUNT_LOWER;
 
-    int maxBrightnessGrey = 28 * picture->width *picture->height;
+    int maxBrightnessGrey = 28 * picture->width * pictureHeight;
 
     int valAll   = 0;
     int valLower = 0;
     int maxPixel = 0;
     // calculate blackness
     for (int x = 0; x < picture->width; x++) {
-        for (int y = 0; y < picture->height; y++) {
+        for (int y = 0; y < pictureHeight; y++) {
             int pixel = picture->plane[0][x + y * picture->planeLineSize[0]];
             valAll += pixel;
-            if (y > (picture->height - PIXEL_COUNT_LOWER)) valLower += pixel;
+            if (y > (picture->height - PIXEL_COUNT_LOWER)) valLower += pixel;   // no lower border detection possible with news ticker
             if (pixel > maxPixel) maxPixel = pixel;
         }
     }
