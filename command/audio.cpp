@@ -72,11 +72,15 @@ void cAudio::Silence() {
             dsyslog("cAudio::Silence(): packet (%d): start: packet (%d), audio PIS %ld, video PTS %ld", decoder->GetPacketNumber(), audioMP2Silence.startPacketNumber, audioMP2Silence.startAudioPTS, audioMP2Silence.startVideoPTS);
             dsyslog("cAudio::Silence(): packet (%d): stop:  packet (%d), audio PIS %ld, video PTS %ld", decoder->GetPacketNumber(), audioMP2Silence.stopPacketNumber, audioMP2Silence.stopAudioPTS, audioMP2Silence.stopVideoPTS);
 #endif
-            if (audioMP2Silence.startPacketNumber < audioMP2Silence.stopPacketNumber) { // ignore very short silence with can result in reversed start/stop video packet numbers
-                // add marks
-                AddMark(MT_SOUNDSTOP,  audioMP2Silence.startPacketNumber, audioMP2Silence.startVideoPTS, 0, 0);
-                AddMark(MT_SOUNDSTART, audioMP2Silence.stopPacketNumber,  audioMP2Silence.stopVideoPTS,  0, 0);
+            // very short silence with can result in reversed start/stop video packet numbers becaue of negativ PTS offset
+            // swap start/stop position to fix that, don't care on position, for mark position we use PTS
+            if (audioMP2Silence.startPacketNumber > audioMP2Silence.stopPacketNumber) {
+                dsyslog("cAudio::Silence(): start (%d) > stop (%d), swap position", audioMP2Silence.startPacketNumber, audioMP2Silence.stopPacketNumber);
+                std::swap(audioMP2Silence.startPacketNumber, audioMP2Silence.stopPacketNumber);
             }
+            // add marks
+            AddMark(MT_SOUNDSTOP,  audioMP2Silence.startPacketNumber, audioMP2Silence.startVideoPTS, 0, 0);
+            AddMark(MT_SOUNDSTART, audioMP2Silence.stopPacketNumber,  audioMP2Silence.stopVideoPTS,  0, 0);
             // reset all values
             audioMP2Silence.startPacketNumber = -1;
             audioMP2Silence.startAudioPTS     = -1;
