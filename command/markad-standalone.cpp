@@ -4500,7 +4500,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 save = true;
             }
         }
-        if (markLogo->type == MT_LOGOSTOP) {
+        if ((markLogo->type == MT_LOGOSTOP) && criteria->IsAdInFrameWithLogoChannel()) {
             // check for advertising in frame with logo before logo stop mark position
             LogSeparator(false);
             int searchStartPosition = markLogo->position - (45 * decoder->GetVideoFrameRate()); // advertising in frame are usually 30s, changed from 35 to 45
