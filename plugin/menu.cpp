@@ -84,6 +84,7 @@ bool cMenuMarkAd::write() {
     Clear();
 
     bool header=false;
+    status->Check();     // refresh list of running markad tasks
     struct sRecording *Entry=nullptr;
     status->ResetActPos();
     do {

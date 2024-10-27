@@ -46,7 +46,7 @@ public:
     virtual bool Start(void);
     virtual void Stop(void);
     virtual void Housekeeping(void);
-    virtual void MainThreadHook(void);
+//    virtual void MainThreadHook(void);
     virtual cString Active(void);
     virtual time_t WakeupTime(void);
     virtual const char *MainMenuEntry(void);

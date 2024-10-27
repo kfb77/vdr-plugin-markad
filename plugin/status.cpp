@@ -935,6 +935,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
     if (!bindir)   return; // we cannot operate without bindir
     if (!logodir)  return; // we don't want to operate without logodir
 
+    Check();  // refresh and cleanup running recording list
 // recording started
     if (On) {
         runningRecordings++;

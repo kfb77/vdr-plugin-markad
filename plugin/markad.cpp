@@ -223,6 +223,7 @@ void cPluginMarkAd::Housekeeping(void) {
 }
 
 
+/*
 void cPluginMarkAd::MainThreadHook(void) {
     // Perform actions in the context of the main program thread.
     // WARNING: Use with great care - see PLUGINS.html!
@@ -232,6 +233,7 @@ void cPluginMarkAd::MainThreadHook(void) {
         lastcheck = now;
     }
 }
+*/
 
 
 cString cPluginMarkAd::Active(void) {
@@ -386,6 +388,7 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
         }
     }
     if (strcasecmp(Command, "STATUS") == 0) {
+        statusMonitor->Check();
         return statusMonitor->GetStatus();
     }
 #ifdef DEBUG_MEM
