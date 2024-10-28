@@ -56,7 +56,7 @@ void cAudio::Silence() {
             dsyslog("cAudio::Silence(): packet (%d): start silence at audio PTS %ld detected", decoder->GetPacketNumber(), audioMP2Silence.startAudioPTS);
 #endif
         }
-        if ((normVolume >  2) && (audioMP2Silence.startAudioPTS >= 0) && (audioMP2Silence.stopAudioPTS < 0)) {
+        if ((normVolume >= MIN_NONSILENCE_VOLUME) && (audioMP2Silence.startAudioPTS >= 0) && (audioMP2Silence.stopAudioPTS < 0)) {
             audioMP2Silence.stopAudioPTS = decoder->GetPacketPTS();  // end of silence
 #ifdef DEBUG_VOLUME
             dsyslog("cAudio::Silence(): packet (%d): stop silence at audio PTS %ld detected", decoder->GetPacketNumber(), audioMP2Silence.stopAudioPTS);

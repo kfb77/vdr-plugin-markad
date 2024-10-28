@@ -27,7 +27,7 @@
 typedef unsigned char uchar;
 #endif
 
-#define MAX_SILENCE_VOLUME 9   // max volume to detect as silence part
+#define MIN_NONSILENCE_VOLUME 3   // min volume to detect as no silence part
 #define MAXSTREAMS 10
 #define PLANES 3
 #define CORNERS 4

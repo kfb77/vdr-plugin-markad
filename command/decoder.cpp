@@ -889,9 +889,9 @@ int cDecoder::GetVolume() {
                 level += abs(samples[sample]);
 #if !defined(DEBUG_VOLUME)
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-                if ((level / avFrame.nb_samples / avFrame.ch_layout.nb_channels) > MAX_SILENCE_VOLUME) break;  // non silence reached
+                if ((level / avFrame.nb_samples / avFrame.ch_layout.nb_channels) > MIN_NONSILENCE_VOLUME) break;  // non silence reached
 #else
-                if ((level / avFrame.nb_samples / avFrame.channels)              > MAX_SILENCE_VOLUME) break;  // non silence reached
+                if ((level / avFrame.nb_samples / avFrame.channels)              > MIN_NONSILENCE_VOLUME) break;  // non silence reached
 #endif
 #endif
             }
