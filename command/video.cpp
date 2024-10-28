@@ -1332,9 +1332,14 @@ int cBlackScreenDetect::Process() {
     int valAll   = 0;
     int valLower = 0;
     int maxPixel = 0;
+
     // calculate blackness
     for (int x = 0; x < picture->width; x++) {
         for (int y = 0; y < pictureHeight; y++) {
+            if (!criteria->GetDetectionState(MT_LOWERBORDERCHANGE) && (valAll > maxBrightnessGrey)) {  // we have a clear result, there is no black picture
+                x = picture->width;  // terminate outer loop
+                break;               // terminate inner loop
+            }
             int pixel = picture->plane[0][x + y * picture->planeLineSize[0]];
             valAll += pixel;
             if (y > (picture->height - PIXEL_COUNT_LOWER)) valLower += pixel;   // no lower border detection possible with news ticker
