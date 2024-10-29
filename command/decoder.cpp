@@ -261,6 +261,10 @@ bool cDecoder::ReadNextFile() {
             useHWaccel = false;
             ret = InitDecoder(filename);
         }
+        if (!ret) {
+            esyslog("cDecoder:::ReadNextFile(): init decoder failed");
+            return false;
+        }
     }
     else {
         dsyslog("cDecoder:::ReadNextFile(): next file %s does not exists", filename);
@@ -496,18 +500,26 @@ bool cDecoder::InitDecoder(const char *filename) {
         }
         else codecInfo.codec= avcodec_find_decoder(codec_id);
         if (!codecInfo.codec) {  // ignore not supported DVB subtitle by libavcodec
+            switch (codec_id) {
 #if LIBAVCODEC_VERSION_INT < ((59<<16)+(18<<8)+100)
-            if (codec_id == 100359)
-#else
-            if (codec_id ==  98314)
-#endif
-            {   // not supported by libavcodec
+            case 100359:
                 dsyslog("cDecoder::InitDecoder(): ignore unsupported subtitle codec for stream %i codec id %d", streamIndex, codec_id);
                 continue;
-            }
-            else {
+                break;
+#else
+            case 98314:
+                dsyslog("cDecoder::InitDecoder(): ignore unsupported subtitle codec for stream %i codec id %d", streamIndex, codec_id);
+                continue;
+                break;
+#endif
+            case 94215:
+                esyslog("cDecoder::InitDecoder(): subtitle codec (dvb_teletext) for stream %i codec id %d missing, build libavcodec (FFmpeg) with --enable-libzvbi", streamIndex, codec_id);
+                return false;
+                break;
+            default:
                 esyslog("cDecoder::InitDecoder(): could not find decoder for stream %i codec id %i", streamIndex, codec_id);
                 return false;
+                break;
             }
         }
 
@@ -974,7 +986,13 @@ bool cDecoder::DecodePacket() {
 bool cDecoder::DecodeNextFrame(const bool audioDecode) {
     // receive a frame from decoder, one decoded packet can result in more than one frame
     if (decoderRestart) {   // send initial video key packet
-        if(GetPacketNumber() < 0) ReadNextPacket();        // read first packet after decoder restart
+        if(GetPacketNumber() < 0) {
+            int rc = ReadNextPacket();        // read first packet after decoder restart
+            if (!rc) {
+                dsyslog("cDecoder::DecodeNextFrame(): read first packet failed");
+                return false;
+            }
+        }
         while (!IsVideoKeyPacket()) {
             if (abortNow) return false;
             if(!ReadNextPacket()) {        // got a packet

@@ -6512,10 +6512,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     }
 
     // check if requested decoding parameter are valid for this video codec and used FFmpeg version
+    dsyslog("cMarkAdStandalone::cMarkAdStandalone(): check codec");
     char hwaccel[1] = {0};      //!< no hardware acceleration
     cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, 1, true, hwaccel, false, false, nullptr); // one thread, full decocode, no hwaccel, no force interlaced, no index
     ALLOC(sizeof(*decoderTest), "decoderTest");
-    decoderTest->DecodeNextFrame(false);  // decode one video frame to get video info
+    if (!decoderTest->DecodeNextFrame(false)) {  // decode one video frame to get video info
+        esyslog("cMarkAdStandalone::cMarkAdStandalone(): decode of first video packet failed");
+        exit(EXIT_FAILURE);
+    }
     int frameRate = decoderTest->GetVideoFrameRate();   // store frameRate for logo extraction and start mark if markad runs during recording
     marks.SetFrameRate(frameRate);  // register framerate to calculate VDR timestamps
     dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: %s, frame rate %d, type %d, pixel format %d", (decoderTest->IsInterlacedFrame()) ? "interlaced" : "progressive", frameRate, decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
