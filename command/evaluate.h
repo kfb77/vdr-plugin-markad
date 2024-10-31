@@ -44,7 +44,7 @@ public:
      * @param[in]     marks             object with all marks
      * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isClosingCredits is set to -1 if the part is no logo change
      */
-    void IsAdInFrame(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
+    void IsAdInFrame(const cMarks *marks, sLogoStopStartPair *logoStopStartPair);
 
     /**
      * check if logo stop/start pair could be closing credits

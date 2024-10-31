@@ -161,7 +161,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
 
 // check if stop/start pair can have ad in frame before or after
 //
-void cEvaluateLogoStopStartPair::IsAdInFrame(cMarks *marks, sLogoStopStartPair *logoStopStartPair) {
+void cEvaluateLogoStopStartPair::IsAdInFrame(const cMarks *marks, sLogoStopStartPair *logoStopStartPair) {
     if (!marks)             return;
     if (!logoStopStartPair) return;
     if (!decoder)           return;
