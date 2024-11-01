@@ -223,19 +223,6 @@ void cPluginMarkAd::Housekeeping(void) {
 }
 
 
-/*
-void cPluginMarkAd::MainThreadHook(void) {
-    // Perform actions in the context of the main program thread.
-    // WARNING: Use with great care - see PLUGINS.html!
-    time_t now = time(nullptr);
-    if (now > (lastcheck + 5)) {
-        statusMonitor->Check();
-        lastcheck = now;
-    }
-}
-*/
-
-
 cString cPluginMarkAd::Active(void) {
     // Return a message string if shutdown should be postponed
     dsyslog("markad: got shutdown request");
