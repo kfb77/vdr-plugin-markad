@@ -7281,9 +7281,11 @@ int main(int argc, char *argv[]) {
         config.logFile[sizeof("markad.log") - 1] = 0;
     }
 
-    // do nothing if called from vdr before/after the video is cutted
-    if (bEdited) return EXIT_SUCCESS;
-    if ((bAfter) && (config.online)) return EXIT_SUCCESS;
+    if (bEdited) return EXIT_SUCCESS; // do nothing if called from vdr before/after the video is cutted
+    if ((bAfter) && (config.online > 0)) { // online not valid together with after
+        fprintf(stderr, "parameter --online is invalid for start markad after recording end\n");
+        return EXIT_FAILURE;
+    }
     if ((config.before) && (config.online == 1) && recDir && (!strchr(recDir, '@'))) return EXIT_SUCCESS;
 
     // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
