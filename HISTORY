@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-11-07: Version 4.2.6
+- error exit on invalid use of --online parameter (thx to nobanzai@www.vdr-portal.de for reporting)
+- remove shutdown debug message (requested by shofmann@www.vdr-portal.de and MarkusE@www.vdr-portal.de)
+- fix start of markad from svdrpsend if start before/after recording is disabled
+- some minor bug fixes and optimizations, see git
+
 2024-10-31: Version 4.2.5
 - plugin: remove use of MainThreadHook()
 - fix crash from missing codec
