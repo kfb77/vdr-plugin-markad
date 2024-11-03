@@ -20,7 +20,7 @@ MarkAd \- marks advertisements in VDR recordings.
 marks advertisements in VDR recordings.
 .SH "OPTIONS"
 .TP 
-Usage: markad [options] cmd <recording>
+Usage: markad [options] <cmd> <recording>
 .TP 
 
 .BI \-b\ ,\ \-\-background
@@ -143,8 +143,15 @@ disables creation of \fImarkad.pid\fR file in the recording directory
 .TP 
 
 .BI \fB\-\-online[=1|2] 
+.RS
+only used by markad plugin internal call, do not use it for command line start
+.RE
+.RS
 default is 1
+.RE
+.RS
 start markad immediately when called with "before" as cmd
+.RE
 .RS
 If online is 1, markad starts online for live recordings
 only, online=2 starts markad online for every recording.
@@ -182,7 +189,7 @@ use VPS events from markad.vps to optimize start and stop marks
 .BI \-\-svdrpport= \fR<port>\fR  "  ( default is 6419 ) "
  port of a remote VDR for OSD messages
 .TP
-\fBcmd\fR: one of
+\fB<cmd>\fR one of:
 .RE
 .RS
 \-            dummy parameter if called directly
@@ -192,14 +199,16 @@ nice         runs markad directly and with nice(19)
 .RE
 .RS
 after        markad started by VDR after the recording is complete
+             only used by markad plugin internal call, do not use it for command line start
 .RE
 .RS
 before       markad started by VDR before the recording is complete, only valid together with --online
+             only used by markad plugin internal call, do not use it for command line start
 .RE
 .RS
 edited       markad started by VDR in edit function and exits immediately
+             only used by markad plugin internal call, do not use it for command line start
 .RE
-.RS
 <record>     is the name of the directory where the recording is stored
 .SH "EXIT STATUS"
 .TP
