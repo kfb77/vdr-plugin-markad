@@ -1157,23 +1157,35 @@ bool cDecoder::ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat) {
 
 
 sVideoPicture *cDecoder::GetVideoPicture() {
-    if (!frameValid) {
-        dsyslog("cDecoder::GetVideoPicture(): frame not valid");
-        return nullptr;
-    }
-    if (!IsVideoFrame()) {
-        dsyslog("cDecoder::GetVideoPicture(): no video frame");
-        return nullptr;
-    }
     Time(true);
     if (videoPicture.packetNumber == packetNumber) {
         Time(false);
         return &videoPicture;  // use cached picture
     }
+    if (!frameValid) {
+        dsyslog("cDecoder::GetVideoPicture(): frame not valid");
+        Time(false);
+        return nullptr;
+    }
+    if (!IsVideoFrame()) {
+        dsyslog("cDecoder::GetVideoPicture(): no video frame");
+        Time(false);
+        return nullptr;
+    }
+    // check if picture is valid
+    if (GetFramePTS() == AV_NOPTS_VALUE) {
+        esyslog("cDecoder::GetVideoPicture(): frame PTS invalid");
+        Time(false);
+        return nullptr;
+    }
+    if ((GetVideoWidth() <= 0) || (GetVideoHeight() <= 0)) {
+        esyslog("cDecoder::GetVideoPicture(): picture size %dWX%dH invalid", GetVideoWidth(), GetVideoHeight());
+        Time(false);
+        return nullptr;
+    }
 
     AVFrame *avFrameResult = &avFrame;
-    // have to convert pixel format to AV_PIX_FMT_YUV420P
-    if (avFrame.format != AV_PIX_FMT_YUV420P) {
+    if (avFrame.format != AV_PIX_FMT_YUV420P) { // have to convert pixel format to AV_PIX_FMT_YUV420P
         if (!ConvertVideoPixelFormat(AV_PIX_FMT_YUV420P)) {
             dsyslog("cDecoder::GetVideoPicture(): ConvertVideoPixelFormat() from %d to %d failed", avFrame.format, AV_PIX_FMT_YUV420P);
             Time(false);
@@ -1185,7 +1197,7 @@ sVideoPicture *cDecoder::GetVideoPicture() {
     // check if picture planes are valid
     bool valid = true;
     for (int i = 0; i < PLANES; i++) {
-        if (avFrameResult->data[i]) {
+        if ((avFrameResult->data[i]) && (avFrameResult->linesize[i] > 0)) {
             videoPicture.plane[i]         = avFrameResult->data[i];
             videoPicture.planeLineSize[i] = avFrameResult->linesize[i];
         }
