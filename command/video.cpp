@@ -1438,21 +1438,9 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
 #define CHECKHEIGHT           5  // changed from 8 to 5
 #define NO_HBORDER          200  // internal limit for early loop exit, must be more than BRIGHTNESS_H_MAYBE
 
-    int64_t framePTS = decoder->GetFramePTS();
-    if (framePTS < 0) return HBORDER_ERROR;     // frame not valid
-    int packetNumber = decoder->GetPacketNumber();
-
     sVideoPicture *picture = decoder->GetVideoPicture();
-    if (!picture) {
+    if (!picture) {  // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
         dsyslog("cHorizBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
-        return HBORDER_ERROR;
-    }
-    if(!picture->plane[0]) {
-        dsyslog("cHorizBorderDetect::Process::Process(): packet (%d): picture plane 0 not valid", decoder->GetPacketNumber());
-        return HBORDER_ERROR;
-    }
-    if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cHorizBorderDetect::Process::Process(): packet (%d): picture planeLineSize[0] invalid", decoder->GetPacketNumber());
         return HBORDER_ERROR;
     }
 
@@ -1506,11 +1494,11 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
         dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ++++++: borderstatus %d, hBorderStartPacketNumber (%d), duration %ds", picture->packetNumber, borderstatus, hBorderStartPacketNumber, duration);
 #endif
         if (hBorderStartPacketNumber == -1) {  // got first frame with hborder
-            hBorderStartPacketNumber = packetNumber;
-            hBorderStartFramePTS     = framePTS;
+            hBorderStartPacketNumber = picture->packetNumber;
+            hBorderStartFramePTS     = picture->pts;
         }
         if (borderstatus != HBORDER_VISIBLE) {
-            if (packetNumber > (hBorderStartPacketNumber + frameRate * MIN_H_BORDER_SECS)) {
+            if (picture->packetNumber > (hBorderStartPacketNumber + frameRate * MIN_H_BORDER_SECS)) {
                 switch (borderstatus) {
                 case HBORDER_UNINITIALIZED:
                     *hBorderPacketNumber        = 0;                    // report back a border change after recording start
@@ -1551,8 +1539,8 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
 #ifdef DEBUG_HBORDER
     dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder return: borderstatus %d, hBorderStartPacketNumber (%d), hBorderPacketNumber (%d)", picture->packetNumber, borderstatus, hBorderStartPacketNumber, *hBorderPacketNumber);
 #endif
-    prevPacketNumber = packetNumber;
-    prevFramePTS     = framePTS;
+    prevPacketNumber = picture->packetNumber;
+    prevFramePTS     = picture->pts;
     return borderstatus;
 }
 
