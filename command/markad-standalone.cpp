@@ -5576,7 +5576,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_LOGOSTOP:
                     // rule 1: if no fade out logo, usually we have delayed logo stop from detection fault (bright picture or patten in background)
                     // very near scene change can be valid from very short fade out logo
-                    if (!(criteria->LogoFadeInOut() & FADE_OUT) && ((diffBefore <= 200) || (diffAfter > 200))) diffAfter = INT_MAX;
+                    if (!(criteria->LogoFadeInOut() & FADE_OUT) && ((diffBefore <= 1720) || (diffAfter >= 760))) diffAfter = INT_MAX;
 
                     maxAfter = 4800;
                     break;
