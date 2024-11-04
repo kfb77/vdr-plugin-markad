@@ -2319,9 +2319,19 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
         if (hStop) {
             int lengthBroadcast = (hStop->position - hStart->position) / decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): next horizontal border stop mark (%d), length of broadcast %ds", hStop->position, lengthBroadcast);
-            const cMark *hNextStart = marks.GetNext(hStop->position, MT_HBORDERSTART);
-            // invalid example
-            // vertical border stop at (9645) 321s after vertical border start (1614)
+            cMark *hNextStart = marks.GetNext(hStop->position, MT_HBORDERSTART);
+            if (hNextStart) {
+                int lengthAd = (hNextStart->position - hStop->position) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): MT_HBORDERSTART (%d) -> %ds -> MT_HBORDERSTOP (%d) -> %ds -> MT_HBORDERSTART (%d)", hStart->position, lengthBroadcast, hStop->position, lengthAd, hNextStart->position);
+                // some dokus have black hborder parts
+                // invalid sequence example
+                // MT_HBORDERSTART (36238) -> 87s -> MT_HBORDERSTOP (40601) -> 1602s -> MT_HBORDERSTART (120704)
+                if ((lengthBroadcast <= 87) && (lengthAd >= 1602)) {
+                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): hborder sequence invalid, assume hborder are in broadcast");
+                    marks.DelType(MT_HBORDERCHANGE, 0xF0);
+                    return nullptr;
+                }
+            }
             if ((((hStart->position == 0) || (lengthBroadcast <= 321)) && !hNextStart) || // hborder preview or hborder brodcast before broadcast start, changed from 291 to 321
                     (lengthBroadcast <=  74)) {                                           // very short broadcast length is never valid
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start (%d) and stop (%d) mark from previous recording, delete all marks from up to hborder stop", hStart->position, hStop->position);
