@@ -18,20 +18,24 @@
 extern bool abortNow;
 
 
-int cVideoTools::GetPictureBrightness(sVideoPicture *picture, const int ignoreV) {
-    if (!picture) return -1;
-    if (ignoreV >= 90) return -1;   // prevent division by zero
-    if (picture->packetNumber == pictureBrightness.packetNumber) return pictureBrightness.brightness;
 
-    // in case of vborder ignore a part from left and right
-    int startColumn = picture->width * ignoreV / 100;
-    int endColumn   = picture->width - startColumn;
+int cVideoTools::GetPictureCenterBrightness(sVideoPicture *picture) {
+    if (!picture) return -1;
+    if (picture->packetNumber == pictureBrightness.packetNumber) return pictureBrightness.brightness;  // re-use result
+#define IGNORE_PORTION 20
+
+    // calculate start and end
+    int startLine   = picture->height * IGNORE_PORTION / 100;
+    int endLine     = picture->height - startLine;
+    int startColumn = picture->width  * IGNORE_PORTION / 100;
+    int endColumn   = picture->width  - startColumn;
     int  brightness = 0;
-    for (int line = 0; line < picture->height ; line++) {
+
+    for (int line = startLine; line < endLine ; line++) {
         for (int column = startColumn; column < endColumn; column++) brightness += picture->plane[0][(line * picture->planeLineSize[0] + column)];
     }
     pictureBrightness.packetNumber = picture->packetNumber;
-    pictureBrightness.brightness   = brightness / ((endColumn - startColumn) * picture->height);
+    pictureBrightness.brightness   = brightness / ((endColumn - startColumn) * (endLine - startLine));
     return pictureBrightness.brightness;
 }
 
@@ -1429,6 +1433,7 @@ void cHorizBorderDetect::Clear(const bool isRestart) {
     else           borderstatus = HBORDER_UNINITIALIZED;
     hBorderStartPacketNumber = -1;
     hBorderStartFramePTS     = -1;
+    valid                    = false;
 }
 
 
@@ -1487,38 +1492,44 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
     dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", picture->packetNumber, valTop, valBottom, brightnessSure, brightnessMaybe);
 #endif
 
-    if ((valTop <= brightnessMaybe) && (valBottom <= brightnessSure) || (valTop <= brightnessSure) && (valBottom <= brightnessMaybe)) {
-        // hborder detected
+    if ((valTop <= brightnessMaybe) && (valBottom <= brightnessSure) || (valTop <= brightnessSure) && (valBottom <= brightnessMaybe)) {  // hborder detected
+        // check if we have hborder in bright picture
+        if (!valid) {
+            int pictureBrightness = GetPictureCenterBrightness(picture);
+            if (pictureBrightness > 44) {
+                dsyslog("cHorizBorderDetect::Process(): packet (%7d): first hborder in bright %d picture", picture->packetNumber, pictureBrightness);
+                valid = true;
+            }
+        }
 #ifdef DEBUG_HBORDER
         int duration = (picture->packetNumber - hBorderStartPacketNumber) / decoder->GetVideoFrameRate();
-        dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ++++++: borderstatus %d, hBorderStartPacketNumber (%d), duration %ds", picture->packetNumber, borderstatus, hBorderStartPacketNumber, duration);
+        dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ++++++: borderstatus %d, hBorderStartPacketNumber (%d), brightness %d, duration %ds", picture->packetNumber, borderstatus, hBorderStartPacketNumber, GetPictureCenterBrightness(picture), duration);
 #endif
         if (hBorderStartPacketNumber == -1) {  // got first frame with hborder
             hBorderStartPacketNumber = picture->packetNumber;
             hBorderStartFramePTS     = picture->pts;
         }
-        if (borderstatus != HBORDER_VISIBLE) {
-            if (picture->packetNumber > (hBorderStartPacketNumber + frameRate * MIN_H_BORDER_SECS)) {
-                switch (borderstatus) {
-                case HBORDER_UNINITIALIZED:
-                    *hBorderPacketNumber        = 0;                    // report back a border change after recording start
-                    if (index) *hBorderFramePTS = index->GetStartPTS(); // use PTS of recording start
-                    else *hBorderFramePTS = -1;                         // called by logo extraction, we have no index
-                    break;
-                case HBORDER_RESTART:
-                    *hBorderPacketNumber = -1;  // do not report back a border change after detection restart, only set internal state
-                    *hBorderFramePTS     = -1;  // do not report back a border change after detection restart, only set internal state
-                    break;
-                default:
-                    *hBorderPacketNumber = hBorderStartPacketNumber;
-                    *hBorderFramePTS     = hBorderStartFramePTS;
-                }
-                borderstatus = HBORDER_VISIBLE; // detected start of black border
+        if (valid && (borderstatus != HBORDER_VISIBLE) && (picture->packetNumber > (hBorderStartPacketNumber + frameRate * MIN_H_BORDER_SECS))) {  // hborder start
+            switch (borderstatus) {
+            case HBORDER_UNINITIALIZED:
+                *hBorderPacketNumber        = 0;                    // report back a border change after recording start
+                if (index) *hBorderFramePTS = index->GetStartPTS(); // use PTS of recording start
+                else *hBorderFramePTS = -1;                         // called by logo extraction, we have no index
+                break;
+            case HBORDER_RESTART:
+                *hBorderPacketNumber = -1;  // do not report back a border change after detection restart, only set internal state
+                *hBorderFramePTS     = -1;  // do not report back a border change after detection restart, only set internal state
+                break;
+            default:
+                *hBorderPacketNumber = hBorderStartPacketNumber;
+                *hBorderFramePTS     = hBorderStartFramePTS;
             }
+            borderstatus = HBORDER_VISIBLE; // detected start of black border
         }
     }
     else {
         // no hborder detected
+        valid = false;
 #ifdef DEBUG_HBORDER
         dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder ------: borderstatus %d, hBorderStartPacketNumber (%d)", picture->packetNumber, borderstatus, hBorderStartPacketNumber);
 #endif
@@ -1660,7 +1671,7 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
 #endif
         }
         if (!valid) {
-            int pictureBrightness = GetPictureBrightness(picture, 20); // ignore 20% right and left in case of we realy have a vborder
+            int pictureBrightness = GetPictureCenterBrightness(picture);
             if ((pictureBrightness > 61) ||
                     ((pictureBrightness >= 43) && (valRight <= 16) && (valLeft <= 16))) { // 16 is min value of pixel, trust more for dark scene
                 valid = true;

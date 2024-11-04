@@ -82,12 +82,11 @@ public:
     ~cVideoTools() {};
 
     /**
-     * get brightness of picture
+     * get brightness of center of picture
      * @param picture video picture
-     * @param ignoreV quote of pixel to ignore left and right
-     * @return avg pixel value
+     * @return avg pixel value of picture center
      */
-    int GetPictureBrightness(sVideoPicture *picture, const int ignoreV);
+    int GetPictureCenterBrightness(sVideoPicture *picture);
 
 private:
     /**
@@ -361,7 +360,7 @@ private:
 /**
  * cladd to detect horizental border
  */
-class cHorizBorderDetect {
+class cHorizBorderDetect : private cVideoTools {
 public:
 
     /**
@@ -420,6 +419,7 @@ private:
     //!<
     int64_t hBorderStartFramePTS = -1;                    //!< frame PTS of detected horizontal border
     //!<
+    bool valid                   = false;                 //!< true if we found hborder in bright picture
 };
 
 
