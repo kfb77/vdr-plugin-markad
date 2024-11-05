@@ -3806,7 +3806,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         free(markType);
         return;
     }
-    if (mark->framePTS < 0) {
+    if (mark->framePTS == AV_NOPTS_VALUE) {
         char *markType = marks.TypeToText(mark->type);
         esyslog("cMarkAdStandalone::AddMark(): mark packet number (%d), type 0x%X <%s %s>: no frame frame PTS %" PRId64, mark->position, mark->type, markType, ((mark->type & 0x0F) == MT_START)? "start" : "stop", mark->framePTS);
         FREE(strlen(markType)+1, "text");
