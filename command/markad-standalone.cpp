@@ -1514,7 +1514,7 @@ void cMarkAdStandalone::CheckStop() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): start check stop (%d)", decoder->GetPacketNumber());
 
-    char *indexToHMSF = marks.IndexToHMSF(stopA, false);
+    char *indexToHMSF = marks.IndexToHMSF(stopA, AV_NOPTS_VALUE, false);
     if (indexToHMSF) {
         ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
         dsyslog("assumed stop position (%d) at %s", stopA, indexToHMSF);
@@ -1525,7 +1525,7 @@ void cMarkAdStandalone::CheckStop() {
     // check start mark, re-calculate assumed stop if later start mark was selected
     if (CheckStartMark()) {
         stopA = marks.GetFirst()->position + decoder->GetVideoFrameRate() * length;
-        indexToHMSF = marks.IndexToHMSF(stopA, false);
+        indexToHMSF = marks.IndexToHMSF(stopA, AV_NOPTS_VALUE, false);
         if (indexToHMSF) {
             ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
             dsyslog("new assumed stop position after final start mark selection (%d) at %s", stopA, indexToHMSF);
@@ -1868,12 +1868,12 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
             free(indexToHMSFStart);
         }
         // get time of marks and log marks
-        indexToHMSFStop = marks.IndexToHMSF(logoStopStartPair.stopPosition, false);
+        indexToHMSFStop = marks.IndexToHMSF(logoStopStartPair.stopPosition, AV_NOPTS_VALUE, false);
         if (indexToHMSFStop) {
             ALLOC(strlen(indexToHMSFStop)+1, "indexToHMSF");
         }
 
-        indexToHMSFStart = marks.IndexToHMSF(logoStopStartPair.startPosition, false);
+        indexToHMSFStart = marks.IndexToHMSF(logoStopStartPair.startPosition, AV_NOPTS_VALUE, false);
         if (indexToHMSFStart) {
             ALLOC(strlen(indexToHMSFStart)+1, "indexToHMSF");
         }
@@ -2566,7 +2566,7 @@ void cMarkAdStandalone::CheckStart() {
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStart(): checking start at frame (%d) check start planed at (%d)", decoder->GetPacketNumber(), packetCheckStart);
     int maxStart = startA + (length * decoder->GetVideoFrameRate() / 2);  // half of recording
-    char *indexToHMSFStart = marks.IndexToHMSF(startA, false);
+    char *indexToHMSFStart = marks.IndexToHMSF(startA, AV_NOPTS_VALUE, false);
     if (indexToHMSFStart) {
         ALLOC(strlen(indexToHMSFStart) + 1, "indexToHMSFStart");
         dsyslog("cMarkAdStandalone::CheckStart(): assumed start frame %d at %s, max allowed start frame (%d)", startA, indexToHMSFStart, maxStart);
@@ -3717,7 +3717,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
     char *comment = nullptr;
     char *timeText = nullptr;
     if (!isPause) {
-        char *indexToHMSF = marks.IndexToHMSF(vpsFrame, false);
+        char *indexToHMSF = marks.IndexToHMSF(vpsFrame, AV_NOPTS_VALUE, false);
         if (indexToHMSF) {
             ALLOC(strlen(indexToHMSF) + 1, "indexToHMSF");
         }
@@ -3729,7 +3729,7 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
         mark = ((type == MT_START)) ? marks.GetNext(0, MT_START, 0x0F) : marks.GetPrev(INT_MAX, MT_STOP, 0x0F);
     }
     else {
-        char *indexToHMSF = marks.IndexToHMSF(vpsFrame, false);
+        char *indexToHMSF = marks.IndexToHMSF(vpsFrame, AV_NOPTS_VALUE, false);
         if (indexToHMSF) {
             ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
         }
@@ -3994,7 +3994,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         sceneMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, mark->framePTS, nullptr, inBroadCast);
         if (comment) {
 #ifdef DEBUG_WEAK_MARKS
-            char *indexToHMSF = marks.IndexToHMSF(mark->position, false);
+            char *indexToHMSF = marks.IndexToHMSF(mark->position, mark->framePTS, false);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
                 if (indexToHMSF) {
@@ -4011,7 +4011,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     case MT_SOUNDCHANGE:
         silenceMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, mark->framePTS, nullptr, inBroadCast);
         if (comment) {
-            char *indexToHMSF = marks.IndexToHMSF(mark->position, false);
+            char *indexToHMSF = marks.IndexToHMSF(mark->position, mark->framePTS, false);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
                 dsyslog("cMarkAdStandalone::AddMark(): %s PTS %" PRId64 " at %s", comment, mark->framePTS, indexToHMSF);
@@ -4026,7 +4026,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
     case MT_BLACKCHANGE:
         blackMarks.Add(mark->type, MT_UNDEFINED, MT_UNDEFINED, mark->position, mark->framePTS, nullptr, inBroadCast);
         if (comment) {
-            char *indexToHMSF = marks.IndexToHMSF(mark->position, false);
+            char *indexToHMSF = marks.IndexToHMSF(mark->position, mark->framePTS, false);
             if (indexToHMSF) {
                 ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
                 dsyslog("cMarkAdStandalone::AddMark(): %s PTS %" PRId64 " at %s", comment, mark->framePTS, indexToHMSF);
@@ -4048,7 +4048,7 @@ void cMarkAdStandalone::AddMark(sMarkAdMark *mark) {
         if (mark->type == MT_RECORDINGSTART) {
             if (asprintf(&indexToHMSF, "00:00:00.00") == -1) esyslog("cMarkAdStandalone::AddMark(): asprintf failed");  // we have no index to get time for packet number 0
         }
-        else indexToHMSF = marks.IndexToHMSF(mark->position, false);
+        else indexToHMSF = marks.IndexToHMSF(mark->position, mark->framePTS, false);
         if (indexToHMSF) {
             ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
             if (comment) isyslog("%s PTS %" PRId64 " at %s", comment, mark->framePTS, indexToHMSF);
@@ -4438,7 +4438,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                     searchStartPosition = stopBefore->position;
                 }
 
-                char *indexToHMSFSearchStart = marks.IndexToHMSF(searchStartPosition, false);
+                char *indexToHMSFSearchStart = marks.IndexToHMSF(searchStartPosition, AV_NOPTS_VALUE, false);
                 if (indexToHMSFSearchStart) {
                     ALLOC(strlen(indexToHMSFSearchStart)+1, "indexToHMSFSearchStart");
                 }
@@ -4463,7 +4463,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
                 // check longer range to prevent to detect text as second logo
                 // changed from 35 to 60
 
-                char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, false);
+                char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, AV_NOPTS_VALUE, false);
                 if (indexToHMSFSearchEnd) {
                     ALLOC(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");
                 }
@@ -4517,7 +4517,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             int searchStartPosition = markLogo->position - (45 * decoder->GetVideoFrameRate()); // advertising in frame are usually 30s, changed from 35 to 45
             // sometimes there is a closing credit in frame with logo before
             const char *indexToHMSFStopMark = marks.GetTime(markLogo);
-            char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchStartPosition, false);
+            char *indexToHMSFSearchPosition = marks.IndexToHMSF(searchStartPosition, AV_NOPTS_VALUE, false);
             if (indexToHMSFSearchPosition) {
                 ALLOC(strlen(indexToHMSFSearchPosition)+1, "indexToHMSF");
             }

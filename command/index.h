@@ -113,7 +113,14 @@ public:
     int GetKeyPacketNumberAfter(int packetNumber, int64_t *afterPTS = nullptr);
 
     /**
-     * get offset time from recording start in ms
+     * get offset time from recording start in ms from PTS
+     * @param pts  presentation timestamp
+     * @return offset time from recoring start in ms
+     */
+    int GetTimeOffsetFromPTS(int64_t pts);
+
+    /**
+     * get offset time from recording start in ms from key packet number after
      * @param packetNumber number of the packet
      * @return offset time from recoring start in ms
      */

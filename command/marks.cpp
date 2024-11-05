@@ -764,7 +764,7 @@ cMark *cMarks::Move(cMark *dscMark, int newPosition, int64_t newPTS, const int n
 }
 
 
-char *cMarks::IndexToHMSF(const int packetNumber, const bool isVDR, int *offsetSeconds) {
+char *cMarks::IndexToHMSF(const int packetNumber, const int64_t pts, const bool isVDR, int *offsetSeconds) {
     if (frameRate <= 0) {
         esyslog("cMarks::IndexToHMSF(): frame rate not set");
         return nullptr;
@@ -783,7 +783,10 @@ char *cMarks::IndexToHMSF(const int packetNumber, const bool isVDR, int *offsetS
     }
     else { // PTS based timestamp for debug with VLC
         int time_ms  = -1;
-        if (index) time_ms = index->GetTimeOffsetFromKeyPacketAfter(packetNumber);
+        if (index) {
+            if (pts != AV_NOPTS_VALUE) time_ms = index->GetTimeOffsetFromPTS(pts);  // do not search in index if we have a PTS
+            else time_ms = index->GetTimeOffsetFromKeyPacketAfter(packetNumber);
+        }
         if (time_ms < 0) { // called by logo search, we have no index, or called for broadcast start time during recording, we have not yet frames in index
             dsyslog("cMarks::IndexToHMSF(): no index available, use frame rate %d", frameRate);
             time_ms = packetNumber * 1000 / frameRate;
@@ -808,7 +811,7 @@ char *cMarks::GetTime(cMark *mark) {
     char *timeChar = mark->GetTime();
     if (!timeChar) {
         int timeSec = -1;
-        timeChar = IndexToHMSF(mark->position, false, &timeSec);
+        timeChar = IndexToHMSF(mark->position, mark->pts, false, &timeSec);
         if (timeChar) {
             ALLOC(strlen(timeChar)+1, "timeOffsetPTS");
         }
@@ -909,7 +912,7 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
         }
         if (iFrame < 0) iFrame = mark->position;  // fallback if index is not yet initialized
         // PTS based timestamp
-        char *indexToHMSF_PTS = IndexToHMSF(iFrame, false);;      // PTS based timestamp
+        char *indexToHMSF_PTS = IndexToHMSF(iFrame, AV_NOPTS_VALUE, false);;      // PTS based timestamp
         if (indexToHMSF_PTS) {
             ALLOC(strlen(indexToHMSF_PTS) + 1, "indexToHMSF_PTS");
         }
@@ -918,7 +921,7 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
             return false;
         }
         // VDR based timestamp
-        char *indexToHMSF_VDR = IndexToHMSF(iFrame, true);      // vdr based timestamp
+        char *indexToHMSF_VDR = IndexToHMSF(iFrame, AV_NOPTS_VALUE, true);      // vdr based timestamp
         if (indexToHMSF_VDR) {
             ALLOC(strlen(indexToHMSF_VDR) + 1, "indexToHMSF_VDR");
         }

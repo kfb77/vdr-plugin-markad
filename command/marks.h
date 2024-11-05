@@ -201,11 +201,12 @@ public:
      * convert packet number to time string
      * if isVDR packetNumber / frameRate is used, else PTS based time offset is used
      * @param packetNumber packet number
+     * @param pts          presentation timestamp
      * @param isVDR true: calculate timestamp based on packet number, false: calculate timestamp based on PTS of packet number
      * @param offsetSeconds offset in seconds since recording start
      * @return time string
      */
-    char *IndexToHMSF(const int packetNumber, const bool isVDR, int *offsetSeconds = nullptr);
+    char *IndexToHMSF(const int packetNumber, const int64_t pts, const bool isVDR, int *offsetSeconds = nullptr);
 
     /**
      * get PTS based time offset of mark position

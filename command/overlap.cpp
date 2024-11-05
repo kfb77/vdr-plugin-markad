@@ -126,7 +126,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
     }
 
     // seek to start frame of overlap check
-    char *indexToHMSF = marks->IndexToHMSF(fRangeBegin, false);
+    char *indexToHMSF = marks->IndexToHMSF(fRangeBegin, AV_NOPTS_VALUE, false);
     if (indexToHMSF) {
         ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
         dsyslog("cOverlap::ProcessMarksOverlap(): start check %ds before start mark (%d) from frame (%d) at %s", OVERLAP_CHECK_BEFORE, (*mark1)->position, fRangeBegin, indexToHMSF);
@@ -181,7 +181,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
         return false;
     }
     if (fRangeBegin <  decoder->GetPacketNumber()) fRangeBegin = decoder->GetPacketNumber(); // on very short stop/start pairs we have no room to go before start mark
-    indexToHMSF = marks->IndexToHMSF(fRangeBegin, false);
+    indexToHMSF = marks->IndexToHMSF(fRangeBegin, AV_NOPTS_VALUE, false);
     if (indexToHMSF) {
         ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
         dsyslog("cOverlap::ProcessMarksOverlap(): seek forward to frame (%d) at %s before start mark (%d) and start overlap check", fRangeBegin, indexToHMSF, (*mark2)->position);
@@ -229,22 +229,22 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
         int lengthBefore = 1000 * (overlapPos.similarBeforeEndPacketNumber - overlapPos.similarBeforeStartPacketNumber + 1) / frameRate; // include first and last
         int lengthAfter  = 1000 * (overlapPos.similarAfterEndPacketNumber  - overlapPos.similarAfterStartPacketNumber  + 1) / frameRate;
 
-        char *indexToHMSFbeforeStart = marks->IndexToHMSF(overlapPos.similarBeforeStartPacketNumber, false);
+        char *indexToHMSFbeforeStart = marks->IndexToHMSF(overlapPos.similarBeforeStartPacketNumber, overlapPos.similarBeforeStartPTS, false);
         if (indexToHMSFbeforeStart) {
             ALLOC(strlen(indexToHMSFbeforeStart)+1, "indexToHMSFbeforeStart");
         }
 
-        char *indexToHMSFbeforeEnd   = marks->IndexToHMSF(overlapPos.similarBeforeEndPacketNumber, false);
+        char *indexToHMSFbeforeEnd   = marks->IndexToHMSF(overlapPos.similarBeforeEndPacketNumber, overlapPos.similarBeforeEndPTS, false);
         if (indexToHMSFbeforeEnd) {
             ALLOC(strlen(indexToHMSFbeforeEnd)+1, "indexToHMSFbeforeEnd");
         }
 
-        char *indexToHMSFafterStart  = marks->IndexToHMSF(overlapPos.similarAfterStartPacketNumber, false);
+        char *indexToHMSFafterStart  = marks->IndexToHMSF(overlapPos.similarAfterStartPacketNumber, overlapPos.similarAfterStartPTS, false);
         if (indexToHMSFafterStart) {
             ALLOC(strlen(indexToHMSFafterStart)+1, "indexToHMSFafterStart");
         }
 
-        char *indexToHMSFafterEnd    = marks->IndexToHMSF(overlapPos.similarAfterEndPacketNumber, false);
+        char *indexToHMSFafterEnd    = marks->IndexToHMSF(overlapPos.similarAfterEndPacketNumber, overlapPos.similarAfterEndPTS, false);
         if (indexToHMSFafterEnd) {
             ALLOC(strlen(indexToHMSFafterEnd)+1, "indexToHMSFafterEnd");
         }

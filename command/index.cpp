@@ -325,6 +325,19 @@ int64_t cIndex::GetPTSFromKeyPacketNumber(const int frameNumber) {
 }
 
 
+int cIndex::GetTimeOffsetFromPTS(int64_t pts) {
+    if (pts == AV_NOPTS_VALUE) {
+        esyslog("cIndex::GetTimeOffsetFromPTS(): invalid PTS");
+        return -1;
+    }
+    pts -= start_time;
+    if (pts < 0 ) {
+        pts += 0x200000000;    // libavodec restart at 0 if pts greater than 0x200000000
+    }
+    return round(1000 * pts * av_q2d(time_base));
+}
+
+
 int cIndex::GetTimeOffsetFromKeyPacketAfter(const int packetNumber) {
     if (indexVector.empty()) {  // expected if called to write start mark during running recording
         dsyslog("cIndex::GetTimeOffsetFromKeyPacketAfter(): packet (%d): index not initialized", packetNumber);
@@ -336,11 +349,7 @@ int cIndex::GetTimeOffsetFromKeyPacketAfter(const int packetNumber) {
         esyslog("cIndex::GetTimeOffsetFromKeyPacketAfter(): packet (%d): get PTS failed", packetNumber);
         return -1;
     }
-    framePTS -= start_time;
-    if (framePTS < 0 ) {
-        framePTS += 0x200000000;    // libavodec restart at 0 if pts greater than 0x200000000
-    }
-    int offsetTime_ms = round(1000 * framePTS * av_q2d(time_base));
+    int offsetTime_ms = GetTimeOffsetFromPTS(framePTS);
     return offsetTime_ms;
 }
 
