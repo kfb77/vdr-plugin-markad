@@ -72,7 +72,7 @@ void cIndex::Add(const int fileNumber, const int packetNumber, const int64_t pts
         ALLOC(sizeof(sIndexElement), "indexVector");
 
 #ifdef DEBUG_INDEX
-        dsyslog("cIndex::Add(): fileNumber %d, packetNumber (%5d), rollover %d, PTS %6ld: time offset PTS %6dms", fileNumber, packetNumber, rollover, pts, GetTimeFromFrame(packetNumber));
+        dsyslog("cIndex::Add(): fileNumber %d, packetNumber (%5d), rollover %d, PTS %6ld: time offset PTS %6dms", fileNumber, packetNumber, rollover, pts, GetTimeOffsetFromKeyPacketAfter(packetNumber));
 #endif
     }
 }
@@ -325,15 +325,15 @@ int64_t cIndex::GetPTSFromKeyPacketNumber(const int frameNumber) {
 }
 
 
-int cIndex::GetTimeFromFrame(const int packetNumber) {
+int cIndex::GetTimeOffsetFromKeyPacketAfter(const int packetNumber) {
     if (indexVector.empty()) {  // expected if called to write start mark during running recording
-        dsyslog("cIndex::GetTimeFromFrame(): packet (%d): index not initialized", packetNumber);
+        dsyslog("cIndex::GetTimeOffsetFromKeyPacketAfter(): packet (%d): index not initialized", packetNumber);
         return -1;
     }
-    // use PTS based time from i-frame index
+    // use PTS based time from key packet index
     int64_t framePTS = GetPTSAfterKeyPacketNumber(packetNumber);
     if (framePTS < 0) {
-        esyslog("cIndex::GetTimeFromFrame(): packet (%d): get PTS failed", packetNumber);
+        esyslog("cIndex::GetTimeOffsetFromKeyPacketAfter(): packet (%d): get PTS failed", packetNumber);
         return -1;
     }
     framePTS -= start_time;

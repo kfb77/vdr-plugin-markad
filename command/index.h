@@ -117,7 +117,7 @@ public:
      * @param packetNumber number of the packet
      * @return offset time from recoring start in ms
      */
-    int GetTimeFromFrame(const int packetNumber);
+    int GetTimeOffsetFromKeyPacketAfter(const int packetNumber);
 
     /**
      * get frame number to offset of recording start
