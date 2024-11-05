@@ -1814,7 +1814,7 @@ void cVideo::SetAspectRatioBroadcast(sAspectRatio aspectRatio) {
 
 sMarkAdMarks *cVideo::Process() {
     int64_t framePTS = decoder->GetFramePTS();
-    if (framePTS < 0) return nullptr;    // current frame invalid or not yet decoded
+    if (framePTS == AV_NOPTS_VALUE) return nullptr;    // current frame invalid or not yet decoded
 
     int packetNumber = decoder->GetPacketNumber();
     videoMarks = {};   // reset array of new marks
