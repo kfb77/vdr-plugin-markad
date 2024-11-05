@@ -288,7 +288,7 @@ int64_t cIndex::GetPTSAfterKeyPacketNumber(const int frameNumber) {
     if (found == indexVector.end()) {
         esyslog("cIndex::GetPTSAfterKeyPacketNumber(): frame (%d) not in index", frameNumber);
         dsyslog("cIndex::GetPTSAfterKeyPacketNumber(): index content: first packet (%d) , last packet (%d)", indexVector.front().packetNumber, indexVector.back().packetNumber);
-        return -1;
+        return AV_NOPTS_VALUE;
     }
     return found->pts;
 
@@ -297,7 +297,7 @@ int64_t cIndex::GetPTSAfterKeyPacketNumber(const int frameNumber) {
         for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
             if (frameIterator->frameNumber >= frameNumber) return frameIterator->pts;
         }
-        return -1;  // this shout never reached
+        return AV_NOPTS_VALUE;  // this shout never reached
     */
 }
 
@@ -332,7 +332,7 @@ int cIndex::GetTimeOffsetFromKeyPacketAfter(const int packetNumber) {
     }
     // use PTS based time from key packet index
     int64_t framePTS = GetPTSAfterKeyPacketNumber(packetNumber);
-    if (framePTS < 0) {
+    if (framePTS == AV_NOPTS_VALUE) {
         esyslog("cIndex::GetTimeOffsetFromKeyPacketAfter(): packet (%d): get PTS failed", packetNumber);
         return -1;
     }
