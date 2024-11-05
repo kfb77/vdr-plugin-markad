@@ -897,38 +897,34 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
     }
     cMark *mark = first;
     while (mark) {
-        // index only contains i-frames, VDR also uses only i-frames
+        // PTS based timestamp
+        char *indexToHMSF_PTS = IndexToHMSF(mark->position, mark->pts, false);;      // PTS based timestamp
+        if (!indexToHMSF_PTS) {
+            esyslog("cMarks::Save(): failed to get PTS timestamp for (%d) PTS %" PRId64, mark->position, mark->pts);
+            return false;
+        }
+        ALLOC(strlen(indexToHMSF_PTS) + 1, "indexToHMSF_PTS");
+
+        // VDR based timestamp
         int iFrame = -1;
-        if (index) {
-            if (mark->pts >= 0) {
+        if (index) {  // index only contains key packets, VDR also uses only key packet to seek
+            if (mark->pts != AV_NOPTS_VALUE) {
                 if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfterPTS(mark->pts);
                 else                                 iFrame = index->GetKeyPacketNumberBeforePTS(mark->pts);
                 dsyslog("cMarks::Save(): %s mark (%5d), PTS %10" PRId64 ": key packet (%5d)", ((mark->type & 0x0F) == MT_START) ? "start" : "stop ", mark->position, mark->pts, iFrame);
             }
             if (iFrame < 0) {   // fallback if PTS lookup failed
-                if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfter(mark->position);  // if mark position is i-frame, we want to use it
+                if ((mark->type & 0x0F) == MT_START) iFrame = index->GetKeyPacketNumberAfter(mark->position);  // if mark position is key packet, we want to use it
                 else                                 iFrame = index->GetKeyPacketNumberBefore(mark->position);
             }
         }
         if (iFrame < 0) iFrame = mark->position;  // fallback if index is not yet initialized
-        // PTS based timestamp
-        char *indexToHMSF_PTS = IndexToHMSF(iFrame, AV_NOPTS_VALUE, false);;      // PTS based timestamp
-        if (indexToHMSF_PTS) {
-            ALLOC(strlen(indexToHMSF_PTS) + 1, "indexToHMSF_PTS");
-        }
-        else {
-            esyslog("cMarks::Save(): failed to get PTS timestamp for (%d)", iFrame);
-            return false;
-        }
-        // VDR based timestamp
         char *indexToHMSF_VDR = IndexToHMSF(iFrame, AV_NOPTS_VALUE, true);      // vdr based timestamp
-        if (indexToHMSF_VDR) {
-            ALLOC(strlen(indexToHMSF_VDR) + 1, "indexToHMSF_VDR");
-        }
-        else {
+        if (!indexToHMSF_VDR) {
             esyslog("cMarks::Save(): failed to get VDR timestamp for (%d)", iFrame);
             return false;
         }
+        ALLOC(strlen(indexToHMSF_VDR) + 1, "indexToHMSF_VDR");
 
 #ifdef DEBUG_SAVEMARKS
         dsyslog("cMarks::Save(): offset PTS %s", indexToHMSF_PTS);
