@@ -678,27 +678,9 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
     *logoPacketNumber = -1;
     *logoFramePTS     = -1;
 
-    int packetNumber = decoder->GetPacketNumber();
-    int64_t framePTS = decoder->GetFramePTS();
-    if (framePTS < 0) return LOGO_ERROR;
-
     sVideoPicture *picture = decoder->GetVideoPicture();
-    if (!picture) {
-        dsyslog("cLogoDetect::Detect(): packet (%d): picture not valid", packetNumber);
-        packetNumberBefore = packetNumber;
-        framePTSBefore     = framePTS;
-        return LOGO_ERROR;
-    }
-    if(!picture->plane[0]) {
-        esyslog("cLogoDetect::Detect(): packet (%d): picture plane 0 not valid", packetNumber);
-        packetNumberBefore = packetNumber;
-        framePTSBefore     = framePTS;
-        return LOGO_ERROR;
-    }
-    if(picture->planeLineSize[0] <= 0) {
-        esyslog("cLogoDetect::Detect(): packet (%d): picture planeLineSize[0] valid", packetNumber);
-        packetNumberBefore = packetNumber;
-        framePTSBefore     = framePTS;
+    if (!picture) {   // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
+        dsyslog("cLogoDetect::Detect(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return LOGO_ERROR;
     }
 
@@ -763,8 +745,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
     }
 
     if (processed == 0) {
-        packetNumberBefore = packetNumber;
-        framePTSBefore     = framePTS;
+        packetNumberBefore = picture->packetNumber;
+        framePTSBefore     = picture->pts;
         return LOGO_ERROR;  // we have no plane processed
     }
 
@@ -808,8 +790,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cLogoDetect::Detect(): frame (%6d) too bright %d for logo start", packetNumber, area.intensity);
 #endif
-            packetNumberBefore = packetNumber;
-            framePTSBefore     = framePTS;
+            packetNumberBefore = picture->packetNumber;
+            framePTSBefore     = picture->pts;
             return LOGO_NOCHANGE;
         }
 
@@ -818,8 +800,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cLogoDetect::Detect(): frame (%6d) with transparent logo too bright %d for detection", packetNumber, area.intensity);
 #endif
-            packetNumberBefore = packetNumber;
-            framePTSBefore     = framePTS;
+            packetNumberBefore = picture->packetNumber;
+            framePTSBefore     = picture->pts;
             return LOGO_NOCHANGE;
         }
 
@@ -837,8 +819,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 #endif
 
             if ((rPixel >= logo_vmark) && (rPixelWithout <= logo_imark) && (quoteInverse >= 63)) {
-                packetNumberBefore = packetNumber;
-                framePTSBefore     = framePTS;
+                packetNumberBefore = picture->packetNumber;
+                framePTSBefore     = picture->pts;
                 return LOGO_NOCHANGE;  // too much background pattern to decide
             }
             rPixel         = rPixelWithout; // now use this result for detection
@@ -884,10 +866,10 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
             int quoteInverse  = 100 * area.iPixel[0] / ((area.logoSize.height * area.logoSize.width) - area.mPixel[0]);  // quote of pixel from background
             int rPixelWithout = area.rPixel[0] * (100 - quoteInverse) / 100;
             if (rPixelWithout >= area.mPixel[0] * LOGO_VMARK) {
-                dsyslog("cLogoDetect::Detect(): frame (%6d): rPixel plane 0 %d: transparent logo detected, fallback to plane 0 only", packetNumber, rPixelWithout);
+                dsyslog("cLogoDetect::Detect(): frame (%6d): rPixel plane 0 %d: transparent logo detected, fallback to plane 0 only", picture->packetNumber, rPixelWithout);
                 ReducePlanes();
-                packetNumberBefore = packetNumber;
-                framePTSBefore     = framePTS;
+                packetNumberBefore = picture->packetNumber;
+                framePTSBefore     = picture->pts;
                 return LOGO_NOCHANGE;
             }
         }
@@ -914,8 +896,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 #ifdef DEBUG_LOGO_DETECTION
         dsyslog("cLogoDetect::Detect(): frame (%6d): no valid result", packetNumber);
 #endif
-        packetNumberBefore = packetNumber;
-        framePTSBefore     = framePTS;
+        packetNumberBefore = picture->packetNumber;
+        framePTSBefore     = picture->pts;
         return LOGO_NOCHANGE;
     }
 
@@ -925,13 +907,13 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         if (rPixel >= logo_vmark) area.status = LOGO_VISIBLE;
         if (rPixel <= logo_imark) area.status = LOGO_INVISIBLE;  // wait for a clear result
         if (area.statePacketNumber == -1) {
-            area.statePacketNumber = packetNumber;
-            area.stateFramePTS     = framePTS;
+            area.statePacketNumber = picture->packetNumber;
+            area.stateFramePTS     = picture->pts;
         }
-        *logoPacketNumber = area.statePacketNumber;
-        *logoFramePTS     = area.stateFramePTS;
-        packetNumberBefore = packetNumber;
-        framePTSBefore     = framePTS;
+        *logoPacketNumber  = area.statePacketNumber;
+        *logoFramePTS      = area.stateFramePTS;
+        packetNumberBefore = picture->packetNumber;
+        framePTSBefore     = picture->pts;
         return area.status;
     }
     if (area.status == LOGO_RESTART) {
@@ -940,10 +922,10 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         // no logo change report after detection restart
         *logoPacketNumber = -1;
         *logoFramePTS     = -1;
-        area.statePacketNumber = packetNumber;
-        area.stateFramePTS     = framePTS;
-        packetNumberBefore = packetNumber;
-        framePTSBefore     = framePTS;
+        area.statePacketNumber = picture->packetNumber;
+        area.stateFramePTS     = picture->pts;
+        packetNumberBefore     = picture->packetNumber;
+        framePTSBefore         = picture->pts;
         return area.status;
     }
 
@@ -959,15 +941,15 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
             }
             else {
                 if (!area.counter) {
-                    area.statePacketNumber = packetNumber;
-                    area.stateFramePTS     = framePTS;
+                    area.statePacketNumber = picture->packetNumber;
+                    area.stateFramePTS     = picture->pts;
                 }
                 area.counter++;
             }
         }
         else {
-            area.statePacketNumber = packetNumber;
-            area.stateFramePTS     = framePTS;
+            area.statePacketNumber = picture->packetNumber;
+            area.stateFramePTS     = picture->pts;
             area.counter = 0;
         }
     }
@@ -992,7 +974,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
                     if (rPixel == 0) {
                         area.counter++;   // very good detect for logo invisible
                         if (area.intensity <= 80) { // best detect, blackscreen without logo, increased from 30 to 70 to 80
-                            dsyslog("cLogoDetect::Detect(): black screen without logo detected at frame (%d)", packetNumber);
+                            dsyslog("cLogoDetect::Detect(): black screen without logo detected at frame (%d)", picture->packetNumber);
                             area.status = ret = LOGO_INVISIBLE;
                             *logoPacketNumber = area.statePacketNumber;
                             *logoFramePTS     = area.stateFramePTS;
@@ -1022,8 +1004,8 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
 #endif
 
-    packetNumberBefore = packetNumber;
-    framePTSBefore     = framePTS;
+    packetNumberBefore = picture->packetNumber;
+    framePTSBefore     = picture->pts;
     return ret;
 }
 
