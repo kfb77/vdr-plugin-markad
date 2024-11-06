@@ -1076,21 +1076,9 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
     if (!changePacketNumber) return SCENE_ERROR;
     if (!changeFramePTS)     return SCENE_ERROR;
 
-    int64_t framePTS = decoder->GetFramePTS();
-    if (framePTS < 0) return SCENE_ERROR;
-    int packetNumber = decoder->GetPacketNumber();
-
     sVideoPicture *picture = decoder->GetVideoPicture();
-    if (!picture) {
-        dsyslog("cSceneChangeDetect::Process(): packet (%d): picture not valid", packetNumber);
-        return SCENE_ERROR;
-    }
-    if(!picture->plane[0]) {
-        esyslog("cSceneChangeDetect::Process(): packet (%d): picture plane 0 not valid", packetNumber);
-        return SCENE_ERROR;
-    }
-    if(picture->planeLineSize[0] <= 0) {
-        esyslog("cSceneChangeDetect::Process(): packet (%d): picture planeLineSize[0] valid", packetNumber);
+    if (!picture) {  // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
+        dsyslog("cSceneChangeDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return SCENE_ERROR;
     }
 
@@ -1241,8 +1229,8 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
     }
 
     prevHistogram    = currentHistogram;
-    prevPacketNumber = packetNumber;
-    prevFramePTS     = framePTS;
+    prevPacketNumber = picture->packetNumber;
+    prevFramePTS     = picture->pts;
 
 #ifdef DEBUG_SCENE_CHANGE
     if (*changePacketNumber >= 0) {
