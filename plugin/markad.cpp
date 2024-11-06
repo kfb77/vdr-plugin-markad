@@ -330,6 +330,7 @@ bool cPluginMarkAd::ReadTitle(const char *Directory) {
     char *line = nullptr;
     size_t length;
     while (getline(&line, &length, f) != -1) {
+        ALLOC(strlen(line) + 1, "line");
         if (line[0] == 'T') {
             int result = sscanf(line, "%*c %79c", title);
             if ((result == 0) || (result == EOF)) {
@@ -344,7 +345,7 @@ bool cPluginMarkAd::ReadTitle(const char *Directory) {
         }
     }
     if (line) {
-        FREE(strlen(line)+1, "line");
+        FREE(strlen(line) + 1, "line");
         free(line);
     }
 
