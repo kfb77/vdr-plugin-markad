@@ -722,13 +722,6 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
 
     // prepare cmd option
     char *cmdOption = nullptr;
-    if (setup->ProcessDuring == PROCESS_AFTER) {
-        if(!asprintf(&cmdOption, " after")) {
-            esyslog("markad: asprintf svdrPortOption ouf of memory");
-            return false;
-        }
-        ALLOC(strlen(cmdOption) + 1, "cmdOption");
-    }
     if (setup->ProcessDuring == PROCESS_DURING) {
         if(!asprintf(&cmdOption, " --online=%d before ", direct ? 1 : 2)) {
             esyslog("markad: asprintf cmdOption ouf of memory");
@@ -736,6 +729,14 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
         }
         ALLOC(strlen(cmdOption) + 1, "cmdOption");
     }
+    else {
+        if(!asprintf(&cmdOption, " after")) {  // PROCESS_AFTER and PROCESS_NONE (called by svdrpsend command)
+            esyslog("markad: asprintf svdrPortOption ouf of memory");
+            return false;
+        }
+        ALLOC(strlen(cmdOption) + 1, "cmdOption");
+    }
+
 
     // prepare hwaccel Option
     char *hwaccelOption = nullptr;
