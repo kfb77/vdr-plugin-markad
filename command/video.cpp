@@ -1270,16 +1270,8 @@ int cBlackScreenDetect::Process() {
 #define WHITE_LOWER       220  // minimum brightness to detect white lower border
 #define PIXEL_COUNT_LOWER  25  // count pixel from bottom for detetion of lower border, changed from 40 to 25
     sVideoPicture *picture = decoder->GetVideoPicture();
-    if (!picture) {
+    if (!picture) {  // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
         dsyslog("cBlackScreenDetect::Process(): picture not valid");
-        return BLACKSCREEN_ERROR;
-    }
-    if(!picture->plane[0]) {
-        dsyslog("cBlackScreenDetect::Process()(): picture plane 0 not valid");
-        return BLACKSCREEN_ERROR;
-    }
-    if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cBlackScreenDetect::Process()(): picture planeLineSize[0] valid");
         return BLACKSCREEN_ERROR;
     }
 
