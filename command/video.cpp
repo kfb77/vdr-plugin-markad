@@ -1556,29 +1556,13 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
 #define CHECKWIDTH 10           // do not reduce, very small vborder are unreliable to detect, better use logo in this case
 #define BRIGHTNESS_V_SURE   27  // changed from 33 to 27, some channels has dark separator before vborder start
 #define BRIGHTNESS_V_MAYBE 101  // some channel have logo or infos in one border, so we must accept a higher value, changed from 100 to 101
-    int packetNumber = decoder->GetPacketNumber();
-    int64_t framePTS = decoder->GetFramePTS();
-    if (framePTS < 0) return VBORDER_ERROR;
 
     sVideoPicture *picture = decoder->GetVideoPicture();
-    if (!picture) {
+    if (!picture) {   // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
         dsyslog("cVertBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
-    if(!picture->plane[0]) {
-        dsyslog("cVertBorderDetect::Process(): packet (%d): picture plane 0 not valid", decoder->GetPacketNumber());
-        return VBORDER_ERROR;
-    }
-    if(picture->planeLineSize[0] <= 0) {
-        dsyslog("cVertBorderDetect::Process(): packet (%d): picture planeLineSize[0] valid", decoder->GetPacketNumber());
-        return VBORDER_ERROR;
-    }
-    if (picture->width == 0) {
-        dsyslog("cVertBorderDetect::Process(): packet (%d): picture width %d not valid", decoder->GetPacketNumber(), picture->width);
-    }
-    if (picture->height == 0) {
-        dsyslog("cVertBorderDetect::Process(): packet (%d): picture height %d not valid", decoder->GetPacketNumber(), picture->height);
-    }
+
     if (frameRate == 0) {
         dsyslog("cVertBorderDetect::Process(): packet (%d): video frames per second  not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
@@ -1626,8 +1610,8 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
     if (((valLeft <= brightnessMaybe) && (valRight <= brightnessSure)) || ((valLeft <= brightnessSure) && (valRight <= brightnessMaybe))) {
         // vborder detected
         if (vBorderStartPacketNumber == -1) {   // first vborder detected
-            vBorderStartPacketNumber = packetNumber;
-            vBorderStartFramePTS     = framePTS;
+            vBorderStartPacketNumber = picture->packetNumber;
+            vBorderStartFramePTS     = picture->pts;
 #ifdef DEBUG_VBORDER
             dsyslog("cVertBorderDetect::Process(): packet (%6d): vborder start detected", decoder->GetPacketNumber());
 #endif
@@ -1643,7 +1627,7 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
             }
         }
         if (borderstatus != VBORDER_VISIBLE) {
-            if (valid && (vBorderStartPacketNumber >= 0) && (packetNumber > (vBorderStartPacketNumber + frameRate * MIN_V_BORDER_SECS))) {
+            if (valid && (vBorderStartPacketNumber >= 0) && (picture->packetNumber > (vBorderStartPacketNumber + frameRate * MIN_V_BORDER_SECS))) {
                 switch (borderstatus) {
                 case VBORDER_UNINITIALIZED:
                     *vBorderPacketNumber = 0;
@@ -1670,8 +1654,8 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
                 *vBorderFramePTS     = -1;  // do not report back a border change, only set internal state
             }
             else {
-                *vBorderPacketNumber = packetNumber;
-                *vBorderFramePTS     = framePTS;
+                *vBorderPacketNumber = picture->packetNumber;
+                *vBorderFramePTS     = picture->pts;
             }
             borderstatus = VBORDER_INVISIBLE; // detected stop of black border
         }
