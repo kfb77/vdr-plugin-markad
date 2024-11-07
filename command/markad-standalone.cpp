@@ -4555,7 +4555,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
             bool silenceAfter  = false;
             // stop of black screen is start mark
             cMark *startBlackBefore  = nullptr;
-            cMark *startBlackAfter         = nullptr;
+            cMark *startBlackAfter   = nullptr;
             cMark *stopBlackBefore   = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTART); // new part starts after the black screen
             cMark *stopBlackAfter    = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTART); // new part starts after the black screen
             if (stopBlackBefore) {
@@ -4603,7 +4603,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
 
                     if (criteria->LogoFadeInOut() & FADE_IN) {
                         if (silenceBefore) {
-                            if (lengthBefore      >= 160) maxBefore = 7119;
+                            if (lengthBefore      >= 160) maxBefore = 6639;
                             else if (lengthBefore >=  40) maxBefore = 5519;
                         }
                         else if (lengthBefore < 9720) maxBefore = 5360;
@@ -4626,10 +4626,10 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         if (criteria->GoodVPS() && (diffAfter < diffBefore) && (lengthAfter > lengthBefore)) diffBefore = INT_MAX;
 
                         // rule 2: blackscreen with silence before VPS start (preview) and black screen with silence after VPS start (broadcast start)
-                        if (silenceBefore && silenceAfter && (diffBefore >= 26660) && (diffAfter <= 44100)) diffBefore = INT_MAX;
+                        else if (silenceBefore && silenceAfter && (diffBefore >= 26660) && (diffAfter <= 44100)) diffBefore = INT_MAX;
 
                         // rule 3: not so far blackscreen after is start of broadcast, no silence around
-                        else if (!silenceBefore && !silenceAfter && (diffBefore > 48040) && (diffAfter <= 26560) && (lengthAfter >= 80)) diffBefore = INT_MAX;
+                        else if (!silenceBefore && !silenceAfter && (diffBefore >= 54200) && (diffAfter <= 20960)) diffBefore = INT_MAX;
 
                         if (criteria->GoodVPS())      maxBefore =  7419;
                         else if (silenceBefore)       maxBefore = 81800;
@@ -4645,8 +4645,9 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxBefore = -1;
                 }
                 if (diffBefore <= maxBefore) {  // move even to same position to prevent scene change do a move
-                    if (mark->position == marks.First()->position) mark = marks.Move(mark, startBlackBefore->position, startBlackBefore->pts, MT_NOBLACKSTART); // start broadcast with some black picture
-                    else                                           mark = marks.Move(mark, stopBlackBefore->position,  stopBlackBefore->pts,  MT_NOBLACKSTART);
+                    if ((mark->position == marks.First()->position) && (lengthBefore < 9720)) // start broadcast with some black picture, prevent to use closing credits before
+                        mark = marks.Move(mark, startBlackBefore->position, startBlackBefore->pts, MT_NOBLACKSTART);
+                    else mark = marks.Move(mark, stopBlackBefore->position,  stopBlackBefore->pts,  MT_NOBLACKSTART);
                     if (mark) {
                         moved = true;
                         save  = true;
@@ -4687,7 +4688,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     case MT_VPSSTART:
                         if (criteria->GoodVPS())        maxAfter =   7020;
                         else if (silenceAfter)          maxAfter = 139480;
-                        else                            maxAfter =  21680;
+                        else                            maxAfter =  20960;
                         break;
                     case MT_INTRODUCTIONSTART:
                         if (lengthAfter >= 3800) maxAfter = 3760;
@@ -4711,21 +4712,21 @@ void cMarkAdStandalone::BlackScreenOptimization() {
         // optimize stop marks
         if ((mark->type & 0x0F) == MT_STOP) {
             // log available stop marks
-            bool  moved         = false;
-            long int diffBefore = INT_MAX;
-            int   diffAfter     = INT_MAX;
-            bool  silenceBefore = false;
-            bool  silenceAfter  = false;
+            bool  moved             = false;
+            long int diffBefore     = INT_MAX;
+            int   diffAfter         = INT_MAX;
             cMark *stopBlackAfter   = nullptr;
             cMark *startBlackAfter  = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTOP);
             cMark *blackStartBefore = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTOP);
             cMark *blackStopBefore  = nullptr;
+            bool  silenceAfter      = false;
             if (blackStartBefore) {
                 diffBefore = 1000 * (mark->position - blackStartBefore->position) / decoder->GetVideoFrameRate();
                 blackStopBefore = blackMarks.GetNext(blackStartBefore->position, MT_NOBLACKSTART);
                 if (blackStopBefore) {
                     lengthBefore = 1000 * (blackStopBefore->position - blackStartBefore->position) / decoder->GetVideoFrameRate();
                     // check if there is silence around black screen
+                    bool  silenceBefore = false;
                     cMark *silence = silenceMarks.GetAround(decoder->GetVideoFrameRate(), blackStartBefore->position, MT_SOUNDCHANGE, 0xF0);
                     if (silence) silenceBefore = true;
                     dsyslog("cMarkAdStandalone::BlackScreenOptimization(): stop  mark (%6d): found black screen from (%6d) to (%6d), %7ldms before -> length %5dms, silence around %d", mark->position, blackStartBefore->position, blackStopBefore->position, diffBefore, lengthBefore, silenceBefore);
@@ -4788,20 +4789,13 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        // rule 1: silence before and after, first black screen is end mark, second is after preview or in next broadcast
-                        if (silenceBefore && silenceAfter && (diffBefore <= 6360) && (diffAfter >= 12560)) diffAfter = INT_MAX;
+                        // rule 1: near black screen before is end mark, far after is from preview or in next broadcast
+                        if ((diffBefore <= 6360) && (diffAfter >= 8500)) diffAfter = INT_MAX;
 
-                        // rule 2: no silence before or after, first near black screen is end mark, second far from stop is after preview or in next broadcast
-                        else if (!silenceBefore && !silenceAfter && (diffBefore <= 1760) && (lengthBefore >= 40) && (diffAfter >= 112720) && (lengthAfter <= 400)) diffAfter = INT_MAX;
-                        // rule 3: no silence before or after, first black screen is end mark, second is after preview or in next broadcast
-                        else if (!silenceBefore && !silenceAfter && (diffBefore <= 116120) && (lengthBefore >= 200) && (diffAfter >= 8500) && (lengthAfter <= 280)) diffAfter = INT_MAX;
-
-                        // rule 4: valid black screen with silence around before
-                        else if (silenceBefore && !silenceAfter && (diffBefore <= 6260) && (diffAfter >= 4180)) diffAfter = INT_MAX;
-
-                        if (criteria->GoodVPS())    maxAfter =  12779;
-                        else if (lengthAfter >= 80) maxAfter = 200759;
-                        else                        maxAfter =   2200;
+                        if (criteria->GoodVPS())    maxAfter = 12779;
+                        else if (silenceAfter)      maxAfter = 82920;
+                        else if (lengthAfter >= 80) maxAfter = 92360;
+                        else                        maxAfter = 11560;
                         break;
                     case MT_CLOSINGCREDITSSTOP:
                         maxAfter = 11040;
@@ -4838,7 +4832,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     break;
                 case MT_LOGOSTOP:
                     if (criteria->LogoFadeInOut() & FADE_OUT) {
-                        if (lengthBefore > diffBefore) maxBefore =   360;   // logo fade around black screen
+                        if (lengthBefore > diffBefore) maxBefore =   840;   // logo fade around black screen
                         else                           maxBefore =     0;   // never use black screen before fade out logo
                     }
                     else                               maxBefore =  5139;
@@ -4855,13 +4849,10 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (criteria->GoodVPS())      maxBefore = 60000;
-                        else if (lengthBefore >= 360) maxBefore = 116120;
-                        else if (silenceBefore)       maxBefore =   6360;
-                        else                          maxBefore =   5800;
+                        maxBefore = 6360;
                         break;
                     case MT_CLOSINGCREDITSSTOP:
-                        maxBefore = 15200;
+                        maxBefore = 9519;
                         break;
                     case MT_NOADINFRAMESTOP:
                         if ((mark->position == marks.GetLast()->position) && (lengthBefore > diffBefore)) maxBefore =    -1;  // long black closing credits before ad in frame, keep this
