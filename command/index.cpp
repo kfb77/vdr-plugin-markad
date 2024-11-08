@@ -456,7 +456,7 @@ int cIndex::GetPSliceKeyPacketNumberAfterPTS(const int64_t pts, int64_t *pSliceP
 int64_t cIndex::GetPTSFromPacketNumber(const int packetNumber) {
     if (ptsRing.size() == 0) {
         esyslog("cIndex::GetPTSFromPacketNumber(): index is empty");
-        return -1;
+        return AV_NOPTS_VALUE;
     }
     std::vector<sPTS_RingbufferElement>::iterator found = std::find_if(ptsRing.begin(), ptsRing.end(), [packetNumber](sPTS_RingbufferElement const &value) ->bool { if (value.packetNumber == packetNumber) return true; else return false; });
     if (found != ptsRing.end()) {
@@ -470,7 +470,7 @@ int64_t cIndex::GetPTSFromPacketNumber(const int packetNumber) {
         }
     */
     esyslog("cIndex::GetPTSFromPacketNumber(): packet %d: not found, index contains from (%d) to (%d)", packetNumber, ptsRing.front().packetNumber, ptsRing.back().packetNumber);
-    return -1;
+    return AV_NOPTS_VALUE;
 }
 
 
