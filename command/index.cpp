@@ -311,7 +311,7 @@ int64_t cIndex::GetPTSFromKeyPacketNumber(const int frameNumber) {
     if (found == indexVector.end()) {
         dsyslog("cIndex::GetPTSFromKeyPacketNumber(): frame (%d) not in index", frameNumber);
         dsyslog("cIndex::GetPTSFromKeyPacketNumber(): index content: first packet (%d) , last packet (%d)", indexVector.front().packetNumber, indexVector.back().packetNumber);
-        return -1;
+        return AV_NOPTS_VALUE;
     }
     return found->pts;
 
@@ -320,7 +320,7 @@ int64_t cIndex::GetPTSFromKeyPacketNumber(const int frameNumber) {
         for (std::vector<sIndexElement>::iterator frameIterator = indexVector.begin(); frameIterator != indexVector.end(); ++frameIterator) {
             if (frameIterator->frameNumber >= frameNumber) return frameIterator->pts;
         }
-        return -1;  // this shout never reached
+        return AV_NOPTS_VALUE;  // this shout never reached
     */
 }
 
