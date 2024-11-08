@@ -1300,19 +1300,20 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     }
 // channel without fade out logo
 // valid sequence:
-// MT_LOGOSTOP (81055) ->     0ms -> MT_NOBLACKSTOP (81055) ->    40ms ->  MT_NOBLACKSTART (81056) ->   1680ms -> MT_LOGOSTART (81098) -> RTL2
-// MT_LOGOSTOP (84786) ->   120ms -> MT_NOBLACKSTOP (84789) ->   240ms ->  MT_NOBLACKSTART (84795) ->   1800ms -> MT_LOGOSTART (84840) -> Pro7 MAXX
-// MT_LOGOSTOP (86549) ->    80ms -> MT_NOBLACKSTOP (86551) ->   280ms ->  MT_NOBLACKSTART (86558) ->  31800ms -> MT_LOGOSTART (87353) -> Pro7 MAXX (conflict)
-// MT_LOGOSTOP (82130) ->    80ms -> MT_NOBLACKSTOP (82132) ->   240ms ->  MT_NOBLACKSTART (82138) ->   1840ms -> MT_LOGOSTART (82184) -> Pro7 MAXX
-// MT_LOGOSTOP (78161) ->    80ms -> MT_NOBLACKSTOP (78163) ->   240ms ->  MT_NOBLACKSTART (78169) ->   2800ms -> MT_LOGOSTART (78239) -> Pro7 MAXX
-// MT_LOGOSTOP (46818) ->   840ms -> MT_NOBLACKSTOP (46839) ->   160ms ->  MT_NOBLACKSTART (46843) ->   2680ms -> MT_LOGOSTART (46910) -> Comedy Central
+// MT_LOGOSTOP (81055) ->     0ms -> MT_NOBLACKSTOP (81055) ->    40ms ->  MT_NOBLACKSTART (81056) ->   1680ms -> MT_START (81098) -> RTL2
+// MT_LOGOSTOP (84786) ->   120ms -> MT_NOBLACKSTOP (84789) ->   240ms ->  MT_NOBLACKSTART (84795) ->   1800ms -> MT_START (84840) -> Pro7 MAXX
+// MT_LOGOSTOP (86549) ->    80ms -> MT_NOBLACKSTOP (86551) ->   280ms ->  MT_NOBLACKSTART (86558) ->  31800ms -> MT_START (87353) -> Pro7 MAXX (conflict)
+// MT_LOGOSTOP (82130) ->    80ms -> MT_NOBLACKSTOP (82132) ->   240ms ->  MT_NOBLACKSTART (82138) ->   1840ms -> MT_START (82184) -> Pro7 MAXX
+// MT_LOGOSTOP (78161) ->    80ms -> MT_NOBLACKSTOP (78163) ->   240ms ->  MT_NOBLACKSTART (78169) ->   2800ms -> MT_START (78239) -> Pro7 MAXX
+// MT_LOGOSTOP (46818) ->   840ms -> MT_NOBLACKSTOP (46839) ->   160ms ->  MT_NOBLACKSTART (46843) ->   2680ms -> MT_START (46910) -> Comedy Central
+// MT_LOGOSTOP (51734) ->    40ms -> MT_NOBLACKSTOP (51735) ->   320ms ->  MT_NOBLACKSTART (51743) ->    520ms -> MT_START (51756) -> sixx
 //
 // invalid sequence:
 // MT_LOGOSTOP (81485) ->  4040ms -> MT_NOBLACKSTOP (81586) ->   160ms ->  MT_NOBLACKSTART (81590) ->  95920ms -> MT_LOGOSTART (83988) -> RTLZWEI, sequence in preview
-// MT_LOGOSTOP (55728) ->    40ms -> MT_NOBLACKSTOP (55729) ->   120ms ->  MT_NOBLACKSTART (55732) ->   8440ms -> MT_LOGOSTART (55943) -> Comedy Central, sequence in preview
+// MT_LOGOSTOP (55728) ->    40ms -> MT_NOBLACKSTOP (55729) ->   120ms ->  MT_NOBLACKSTART (55732) ->   8440ms -> MT_LOGOSTART (55943) -> Comedy Central, sequence in preview (conflict)
                     if (!(criteria->LogoFadeInOut() & FADE_OUT) &&
-                            (diffLogoStopBlackStart <=  840) && (diffBlackStartBlackStop >=   40) &&
-                            (diffBlackStopLogoStart >= 1680) && (diffBlackStopLogoStart  <= 2800)) {
+                            (diffLogoStopBlackStart <= 840) && (diffBlackStartBlackStop >=   40) &&
+                            (diffBlackStopLogoStart >= 520) && (diffBlackStopLogoStart  <= 2800)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence between logo end mark and start of next broadcast is valid (no fade out logo)", mark->position);
                         return true;
                     }
