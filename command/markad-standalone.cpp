@@ -156,7 +156,7 @@ void syslog_with_tid(int priority, const char *format, ...) {
 // - before CheckStart: timer or VPS start time, negativ if recoring start after timer start
 // - after  CheckStart: real start frame
 void cMarkAdStandalone::CalculateCheckPositions(int startFrame) {
-    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): timer or VPS start:  (%6d)  %3d:%02dmin", startFrame, static_cast<int>(startFrame / decoder->GetVideoFrameRate() / 60), startFrame /  decoder->GetVideoFrameRate() % 60);
+    dsyslog("cMarkAdStandalone::CalculateCheckPositions(): timer or VPS start:    (%6d)  %3d:%02dmin", startFrame, static_cast<int>(startFrame / decoder->GetVideoFrameRate() / 60), startFrame /  decoder->GetVideoFrameRate() % 60);
 
     if (!length) {
         dsyslog("CalculateCheckPositions(): length of recording not found, set to 100h");
