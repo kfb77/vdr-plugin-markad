@@ -6556,7 +6556,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     }
 #endif
 
-    // inform decoder who use hwaccel, the video is interlaaced. In this case this is not possible to detect from decoder because hwaccel deinterlaces frames
+    // inform decoder who use hwaccel, the video is interlaced. In this case this is not possible to detect from decoder because hwaccel deinterlaces frames
     if ((macontext.Config->hwaccel[0] != 0) && decoderTest->IsInterlacedFrame() && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
         dsyslog("cMarkAdStandalone::cMarkAdStandalone(): inform decoder with hwaccel about H.264 interlaced video and force full decode");
         macontext.Config->forceInterlaced  = true;
