@@ -33,10 +33,11 @@ extern bool abortNow;
 extern int logoSearchTime_ms;
 
 
-cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio) {
+cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, const bool fullDecodeParam, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio) {
     LogSeparator(true);
     recDir      = recDirParam;
     channelName = channelNameParam;
+    fullDecode  = fullDecodeParam;
 
     // requested aspect ratio
     // requestedLogoAspectRatio = requestedAspectRatio;  avoid cppceck warning:
@@ -44,7 +45,7 @@ cExtractLogo::cExtractLogo(const char *recDirParam, const char *channelNameParam
     requestedLogoAspectRatio.den = requestedAspectRatio.den;
 
     // create all used objects
-    decoder = new cDecoder(recDir, threads, true, hwaccel, forceHW, false, nullptr);    // recDir, threads, fullDecode, hwaccel, forceHW, forceInterlace, index
+    decoder = new cDecoder(recDir, threads, fullDecode, hwaccel, forceHW, false, nullptr);    // recDir, threads, fullDecode, hwaccel, forceHW, forceInterlace, index
     ALLOC(sizeof(*decoder), "decoder");
 
     criteria = new cCriteria(channelName);
@@ -2223,14 +2224,16 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
             break; // finish read frames and find best match
         }
         // skip some packets to prevent to get logo from ad scene or wrong coloured logo from background
-        int skipPackets = decoder->GetVideoFrameRate() / 10;
-        if (force) {
-            if (criteria->IsLogoRotating()) skipPackets = 1;  // for rotating logo skip at least one frame to catch the full logo
-            else                            skipPackets = 0;
-        }
-        for (int i = 1; i <= skipPackets; i++) {
-            decoder->DecodeNextFrame(false);
-            decoder->DropFrame();  // frame not used, drop frame buffer
+        if (fullDecode) {
+            int skipPackets = decoder->GetVideoFrameRate() / 10;
+            if (force) {
+                if (criteria->IsLogoRotating()) skipPackets = 1;  // for rotating logo skip at least one frame to catch the full logo
+                else                            skipPackets = 0;
+            }
+            for (int i = 1; i <= skipPackets; i++) {
+                decoder->DecodeNextFrame(false);
+                decoder->DropFrame();  // frame not used, drop frame buffer
+            }
         }
     }
 

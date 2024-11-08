@@ -1025,7 +1025,7 @@ bool cLogoDetect::ChangeLogoAspectRatio(sAspectRatio *aspectRatio) {
     if (LoadLogo()) return true;
     // no logo in cache or recording directory, try to extract from recording
     dsyslog("cLogoDetect::ChangeLogoAspectRatio(): no logo found in recording directory or logo cache, try to extract from recording");
-    cExtractLogo *extractLogo = new cExtractLogo(recDir, criteria->GetChannelName(), decoder->GetThreads(), decoder->GetHWaccelName(), decoder->GetForceHWaccel(), *aspectRatio);
+    cExtractLogo *extractLogo = new cExtractLogo(recDir, criteria->GetChannelName(), decoder->GetThreads(), decoder->GetFullDecode(), decoder->GetHWaccelName(), decoder->GetForceHWaccel(), *aspectRatio);
     ALLOC(sizeof(*extractLogo), "extractLogo");
     int endPos = extractLogo->SearchLogo(decoder->GetPacketNumber(), true);
     for (int retry = 1; retry <= 5; retry++) {               // if aspect ratio from info file is wrong, we need a new full search cycle at recording start

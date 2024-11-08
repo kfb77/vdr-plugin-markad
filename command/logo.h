@@ -55,11 +55,12 @@ public:
      * @param recDirParam          recording directory
      * @param channelNameParam     channel name
      * @param threads              count of FFmpeg threads
+     * @param fullDecodeParam      true for full decoding
      * @param hwaccel              device type of hwaccel
      * @param forceHW              force hwaccel for MPEG2 codec
      * @param requestedAspectRatio video aspect ratio for requested logo
      */
-    explicit cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio);
+    explicit cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, const bool fullDecodeParam, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio);
     ~cExtractLogo();
 
     /**
@@ -73,6 +74,7 @@ public:
         sobel               = nullptr;
         hBorder             = nullptr;
         vborder             = nullptr;
+        fullDecode          = origin.fullDecode;
         recordingFrameCount = origin.recordingFrameCount;
         audioState          = origin.audioState;
         memcpy(aCorner, origin.aCorner, sizeof(origin.aCorner));
@@ -92,6 +94,7 @@ public:
         sobel               = nullptr;
         hBorder             = nullptr;
         vborder             = nullptr;
+        fullDecode          = origin->fullDecode;
         recordingFrameCount = origin->recordingFrameCount;
         audioState          = origin->audioState;
         memcpy(aCorner, origin->aCorner, sizeof(origin->aCorner));
@@ -270,6 +273,8 @@ private:
     cDecoder *decoder                     = nullptr;      //!< pointer to decoder
     //!<
     cCriteria *criteria                   = nullptr;      //!< channel criteria for logo detection
+    //!<
+    bool fullDecode                       = false;        //!< true if we do full decoding
     //!<
     sAreaT area                           = {};           //!< sobel transformed pixels of logo area
     //!<

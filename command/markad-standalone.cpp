@@ -6029,7 +6029,8 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
         }
         isyslog("no logo for %s %d:%d found in recording directory %s, trying to extract logo from recording", macontext.Info.ChannelName, macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den, macontext.Config->recDir);
 
-        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
+        // only full decode if we have to because og H.264 interlaced
+        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->forcedFullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
         ALLOC(sizeof(*extractLogo), "extractLogo");
 
         int startPos =  (macontext.Info.tStart + 2 *60) * frameRate;  // search logo from assumed start + 2 min to prevent to get logos from ad
@@ -6515,7 +6516,7 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     // manually extract logo from recording
     if (config->logoExtraction >= 0) {
-        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
+        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->forcedFullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
         ALLOC(sizeof(*extractLogo), "extractLogo");
         extractLogo->ManuallyExtractLogo(config->logoExtraction, config->logoWidth, config->logoHeight);
         ALLOC(sizeof(*extractLogo), "extractLogo");
