@@ -865,7 +865,7 @@ int64_t cDecoder::GetFramePTS() const {
 
 
 int64_t cDecoder::GetFrameDTS() const {
-    if (!frameValid) return -1;
+    if (!frameValid) return AV_NOPTS_VALUE;
     return avFrame.pkt_dts;
 }
 
