@@ -73,8 +73,8 @@ public:
 
     /**
      * get next logo stop/start pair
-     * @param stopStartPair pointer to structure of logo stop/start pair
-     * @return true if there is a next logo stop/start pair, false otherwise
+     * @param logoStopStartPair  pointer to structure of logo stop/start pair
+     * @return                   true if there is a next logo stop/start pair, false otherwise
      */
     bool GetNextPair(sLogoStopStartPair *logoStopStartPair);
 
