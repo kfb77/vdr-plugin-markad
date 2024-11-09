@@ -918,8 +918,8 @@ int cDecoder::GetVolume() {
 #endif
         return normVolume;
     }
-    else  esyslog("cDecoder::GetSilence(): packet (%d), stream %d: invalid format %d", packetNumber, avpkt.stream_index, avFrame.format);
-    return .1;
+    else esyslog("cDecoder::GetSilence(): packet (%d), stream %d: invalid format %d", packetNumber, avpkt.stream_index, avFrame.format);
+    return -1;
 }
 
 
