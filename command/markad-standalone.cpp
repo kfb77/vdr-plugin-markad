@@ -1772,8 +1772,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     }
     // check current read position of decoder
     if (stopMark->position < decoder->GetPacketNumber()) decoder->Restart();
-
-    int endPos = stopMark->position + (25 * decoder->GetVideoFrameRate());  // try till 25s after stopMarkPosition
+    int endPos = stopMark->position + (MAX_CLOSING_CREDITS_SEARCH * decoder->GetVideoFrameRate());  // try till 25s after stopMarkPosition
     sMarkPos endClosingCredits = {-1};
     if (detectLogoStopStart->Detect(stopMark->position, endPos)) {
         detectLogoStopStart->ClosingCredit(stopMark->position, endPos, &endClosingCredits);
@@ -1873,15 +1872,21 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         if (indexToHMSFStop) {
             ALLOC(strlen(indexToHMSFStop)+1, "indexToHMSF");
         }
-
         indexToHMSFStart = marks.IndexToHMSF(logoStopStartPair.startPosition, AV_NOPTS_VALUE, false);
         if (indexToHMSFStart) {
             ALLOC(strlen(indexToHMSFStart)+1, "indexToHMSF");
         }
-
         if (indexToHMSFStop && indexToHMSFStart) {
             dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): check logo stop (%d) at %s and logo start (%d) at %s, isInfoLogo %d", logoStopStartPair.stopPosition, indexToHMSFStop, logoStopStartPair.startPosition, indexToHMSFStart, logoStopStartPair.isInfoLogo);
         }
+        // only closing credits check have to be done, limit search range
+        if ((logoStopStartPair.isInfoLogo <= STATUS_NO) && (logoStopStartPair.isLogoChange <= STATUS_NO)) {
+            if ((logoStopStartPair.stopPosition + logoStopStartPair.startPosition) / decoder->GetVideoFrameRate() > MAX_CLOSING_CREDITS_SEARCH) {
+                logoStopStartPair.startPosition = logoStopStartPair.stopPosition + (MAX_CLOSING_CREDITS_SEARCH * decoder->GetVideoFrameRate());
+                dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): search range too big for only closing credits search, reduce search range from stop mark (%d) to (%d)", logoStopStartPair.stopPosition,  logoStopStartPair.startPosition);
+            }
+        }
+        // start detection
         if (detectLogoStopStart->Detect(logoStopStartPair.stopPosition, logoStopStartPair.startPosition)) {
             bool doInfoCheck = true;
             // check for closing credits if no other checks will be done, only part of the loop elements in recording end range
