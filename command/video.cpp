@@ -1459,7 +1459,9 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
         if (!valid) {
             int pictureBrightness = GetPictureCenterBrightness(picture);
             if (pictureBrightness > 44) {
+#ifdef DEBUG_HBORDER
                 dsyslog("cHorizBorderDetect::Process(): packet (%7d): first hborder in bright %d picture", picture->packetNumber, pictureBrightness);
+#endif
                 valid = true;
             }
         }
