@@ -140,6 +140,17 @@ enum eEvaluateStatus {
 
 
 /**
+ * mark position
+ */
+typedef struct sMarkPos {
+    int position = -1;  //!< packet number decoded of mark position
+    //!<
+    int64_t pts  = -1;  //!< pts of decoded frame
+    //!<
+} sMarkPos;
+
+
+/**
  * logo stop / start pair
  */
 typedef struct sLogoStopStartPair {
@@ -156,6 +167,8 @@ typedef struct sLogoStopStartPair {
     int isInfoLogo             = STATUS_UNKNOWN;  //!< status of info logo, value #eEvaluateStatus
     //!<
     int isClosingCredits       = STATUS_UNKNOWN;  //!< status of closing credits, value #eEvaluateStatus
+    //!<
+    sMarkPos endClosingCredits = {-1};            //!< mark position of end of closing credits
     //!<
 } sLogoStopStartPair;
 
@@ -295,16 +308,6 @@ typedef struct sAreaT {
     //!<
 } sAreaT;
 
-
-/**
- * mark position
- */
-typedef struct sMarkPos {
-    int position = -1;  //!< packet number decoded of mark position
-    //!<
-    int64_t pts  = -1;  //!< pts of decoded frame
-    //!<
-} sMarkPos;
 
 
 /**
