@@ -582,7 +582,7 @@ void cEvaluateLogoStopStartPair::SetIsInfoLogo(const int stopPosition, const int
 
 // set isClosingCredits to STAUS_YES
 // stopPosition / startPosition do not need exact match, they must be inbetween stop/start pair
-void cEvaluateLogoStopStartPair::SetIsClosingCredits(const int stopPosition, const int startPosition, const int endClosingCreditsPosition, const int64_t endClosingCreditsPTS, const int state) {
+void cEvaluateLogoStopStartPair::SetIsClosingCredits(const int stopPosition, const int startPosition, const int endClosingCreditsPosition, const int64_t endClosingCreditsPTS, const eEvaluateStatus state) {
     std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](sLogoStopStartPair const &value) ->bool { if ((value.startPosition >= startPosition) && (value.stopPosition <= stopPosition)) return true; else return false; });
 
     if (found != logoPairVector.end()) {
@@ -637,11 +637,15 @@ void cEvaluateLogoStopStartPair::AddAdInFrame(const int startPosition, const int
 }
 
 
-int cEvaluateLogoStopStartPair::GetIsClosingCredits(const int stopPosition, const int startPosition) {
+enum eEvaluateStatus cEvaluateLogoStopStartPair::GetIsClosingCredits(const int stopPosition, const int startPosition, sMarkPos *endClosingCredits) {
     std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [startPosition, stopPosition](sLogoStopStartPair const &value) ->bool { if ((value.startPosition >= startPosition) && (value.stopPosition <= stopPosition)) return true; else return false; });
 
     if (found != logoPairVector.end()) {
         dsyslog("cEvaluateLogoStopStartPair::GetIsClosingCredits(): isClosingCredits for stop (%d) start (%d) pair: %d", found->stopPosition, found->startPosition, found->isClosingCredits);
+        if (endClosingCredits) {
+            endClosingCredits->position = found->endClosingCredits.position;
+            endClosingCredits->pts      = found->endClosingCredits.pts;
+        }
         return found->isClosingCredits;
     }
 
@@ -1433,7 +1437,7 @@ bool cDetectLogoStopStart::IsLogoChange(int startPos, int endPos) {
 void cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, sMarkPos *endClosingCredits, const bool noLogoCornerCheck) {
     if (!criteria->IsClosingCreditsChannel()) return;
 
-    if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startPos, endPos) == STATUS_NO) {
+    if (evaluateLogoStopStartPair && evaluateLogoStopStartPair->GetIsClosingCredits(startPos, endPos, nullptr) == STATUS_NO) {
         dsyslog("cDetectLogoStopStart::ClosingCredit(): already known no closing credits from (%d) to (%d)", startPos, endPos);
         return;
     }
@@ -1585,7 +1589,11 @@ void cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, sMarkPos *end
         }
     }
 
-    if (evaluateLogoStopStartPair && (endClosingCredits->position >= 0)) evaluateLogoStopStartPair->SetIsClosingCredits(startPos, endPos, endClosingCredits->position, endClosingCredits->pts, STATUS_YES);
+    if (evaluateLogoStopStartPair && ((endPos - startPos) / decoder->GetVideoFrameRate() >= MAX_CLOSING_CREDITS_SEARCH)) {
+        dsyslog("cDetectLogoStopStart::ClosingCredit(): full range check was done, store result");
+        if (endClosingCredits->position >= 0) evaluateLogoStopStartPair->SetIsClosingCredits(startPos, endPos, endClosingCredits->position, endClosingCredits->pts, STATUS_YES);
+        else evaluateLogoStopStartPair->SetIsClosingCredits(startPos, endPos, endClosingCredits->position, endClosingCredits->pts, STATUS_NO);
+    }
     return;
 }
 

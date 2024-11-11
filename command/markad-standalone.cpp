@@ -1758,26 +1758,49 @@ void cMarkAdStandalone::CheckStop() {
 //
 bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
     if (!stopMark) return false;
+    // check if channel uses closing credits without logo
     int closingCreditsState = criteria->GetClosingCreditsState(stopMark->position);
     if (closingCreditsState < CRITERIA_UNKNOWN) {
         dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): no check necessary, closing credits state: %d", closingCreditsState);
         return false;
     }
-    dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): check closing credits in frame without logo after position (%d)", stopMark->position);
-
-    // init objects for logo mark optimization
-    if (!detectLogoStopStart) {  // init in RemoveLogoChangeMarks(), but maybe not used
-        detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, evaluateLogoStopStartPair, video->GetLogoCorner());
-        ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
-    }
-    // check current read position of decoder
-    if (stopMark->position < decoder->GetPacketNumber()) decoder->Restart();
-    int endPos = stopMark->position + (MAX_CLOSING_CREDITS_SEARCH * decoder->GetVideoFrameRate());  // try till 25s after stopMarkPosition
+    dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): detect closing credits in frame without logo after position (%d)", stopMark->position);
+    // check if we already know if there is a closing credits
     sMarkPos endClosingCredits = {-1};
-    if (detectLogoStopStart->Detect(stopMark->position, endPos)) {
-        detectLogoStopStart->ClosingCredit(stopMark->position, endPos, &endClosingCredits);
+    enum eEvaluateStatus isClosingStatus = STATUS_UNKNOWN;
+    if (evaluateLogoStopStartPair) isClosingStatus = evaluateLogoStopStartPair->GetIsClosingCredits(stopMark->position, stopMark->position + (MAX_CLOSING_CREDITS_SEARCH * decoder->GetVideoFrameRate()), &endClosingCredits);
+    switch (isClosingStatus) {
+    case STATUS_DISABLED:
+        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): IsClosingCredits state DISABLED");
+        break;
+    case STATUS_NO:
+        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): IsClosingCredits state NO");
+        break;
+    case STATUS_ERROR:
+        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): IsClosingCredits state ERROR"); // pair not found, try detection now
+    case STATUS_UNKNOWN:  // we have to detect now
+    {
+        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): IsClosingCredits state UNKNOWN or ERROR, detect now");
+        if (!detectLogoStopStart) {  // init in RemoveLogoChangeMarks(), but maybe not used
+            detectLogoStopStart = new cDetectLogoStopStart(decoder, index, criteria, evaluateLogoStopStartPair, video->GetLogoCorner());
+            ALLOC(sizeof(*detectLogoStopStart), "detectLogoStopStart");
+        }
+        // check current read position of decoder
+        if (stopMark->position < decoder->GetPacketNumber()) decoder->Restart();
+        int endPos = stopMark->position + (MAX_CLOSING_CREDITS_SEARCH * decoder->GetVideoFrameRate());  // try till MAX_CLOSING_CREDITS_SEARCH after stopMarkPosition
+        endClosingCredits = {-1};
+        if (detectLogoStopStart->Detect(stopMark->position, endPos)) detectLogoStopStart->ClosingCredit(stopMark->position, endPos, &endClosingCredits);
+    }
+    break;
+    case STATUS_YES:
+        dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): use known closing credits from (%d) to (%d)", stopMark->position, endClosingCredits.position);
+        break;
+    default:
+        esyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): IsClosingCredits state invalid %d", isClosingStatus);
+        break;
     }
 
+    // move mark if closing credits found
     if (endClosingCredits.position > stopMark->position) {
         dsyslog("cMarkAdStandalone::MoveLastStopAfterClosingCredits(): closing credits found, move stop mark to position (%d) PTS %" PRId64, endClosingCredits.position, endClosingCredits.pts);
         marks.Move(stopMark, endClosingCredits.position, endClosingCredits.pts, MT_CLOSINGCREDITSSTOP);
@@ -1882,6 +1905,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         // only closing credits check have to be done, limit search range
         if ((logoStopStartPair.isInfoLogo <= STATUS_NO) && (logoStopStartPair.isLogoChange <= STATUS_NO)) {
             if ((logoStopStartPair.stopPosition + logoStopStartPair.startPosition) / decoder->GetVideoFrameRate() > MAX_CLOSING_CREDITS_SEARCH) {
+                // set new search range
                 logoStopStartPair.startPosition = logoStopStartPair.stopPosition + (MAX_CLOSING_CREDITS_SEARCH * decoder->GetVideoFrameRate());
                 dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): search range too big for only closing credits search, reduce search range from stop mark (%d) to (%d)", logoStopStartPair.stopPosition,  logoStopStartPair.startPosition);
             }

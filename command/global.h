@@ -154,21 +154,21 @@ typedef struct sMarkPos {
  * logo stop / start pair
  */
 typedef struct sLogoStopStartPair {
-    int stopPosition           = -1;              //!< frame number of logo stop mark
+    int stopPosition                 = -1;              //!< frame number of logo stop mark
     //!<
-    int startPosition          = -1;              //!< frame number of logo start mark
+    int startPosition                = -1;              //!< frame number of logo start mark
     //!<
-    int isLogoChange           = STATUS_UNKNOWN;  //!< status of logo change, value #eEvaluateStatus
+    int isLogoChange                 = STATUS_UNKNOWN;  //!< status of logo change, value #eEvaluateStatus
     //!<
-    int isAdInFrame            = STATUS_UNKNOWN;  //!< status of advertising in frame, value #eEvaluateStatus
+    int isAdInFrame                  = STATUS_UNKNOWN;  //!< status of advertising in frame, value #eEvaluateStatus
     //!<
-    int isStartMarkInBroadcast = STATUS_UNKNOWN;  //!< status of in broadacst, value #eEvaluateStatus
+    int isStartMarkInBroadcast       = STATUS_UNKNOWN;  //!< status of in broadacst, value #eEvaluateStatus
     //!<
-    int isInfoLogo             = STATUS_UNKNOWN;  //!< status of info logo, value #eEvaluateStatus
+    int isInfoLogo                   = STATUS_UNKNOWN;  //!< status of info logo, value #eEvaluateStatus
     //!<
-    int isClosingCredits       = STATUS_UNKNOWN;  //!< status of closing credits, value #eEvaluateStatus
+    eEvaluateStatus isClosingCredits = STATUS_UNKNOWN;  //!< status of closing credits, value #eEvaluateStatus
     //!<
-    sMarkPos endClosingCredits = {-1};            //!< mark position of end of closing credits
+    sMarkPos endClosingCredits       = {-1};            //!< mark position of end of closing credits
     //!<
 } sLogoStopStartPair;
 

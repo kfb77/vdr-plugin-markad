@@ -17,6 +17,10 @@
 #include "logo.h"
 
 
+// max range of search after stop mark for closing credits
+#define MAX_CLOSING_CREDITS_SEARCH 25 //!< max range of search after stop mark for closing credits
+
+
 /**
  * class to evaluate logo stop/start pair
  */
@@ -109,7 +113,7 @@ public:
      * @param endClosingCreditsPTS      mark PTS of end of closing credits
      * @param state                     new state
      */
-    void SetIsClosingCredits(const int stopPosition, const int startPosition, const int endClosingCreditsPosition, const int64_t endClosingCreditsPTS, const int state);
+    void SetIsClosingCredits(const int stopPosition, const int startPosition, const int endClosingCreditsPosition, const int64_t endClosingCreditsPTS, const eEvaluateStatus state);
 
     /**
      * get closing credits status before start mark
@@ -136,11 +140,12 @@ public:
 
     /**
      * get closing credits status
-     * @param stopPosition  frame number of logo stop mark
-     * @param startPosition frame number of logo start mark
+     * @param stopPosition      frame number of logo stop mark
+     * @param startPosition     frame number of logo start mark
+     * @param endClosingCredits end position of closing credits
      * @return value of isClosingCredits
      */
-    int GetIsClosingCredits(const int stopPosition, const int startPosition);
+    eEvaluateStatus GetIsClosingCredits(const int stopPosition, const int startPosition, sMarkPos *endClosingCredits);
 
     /** check if there is a info logo part between a logo stop/start pair
      * @param stopPosition  frame number of logo stop mark

@@ -36,9 +36,6 @@ class cOSDMessage;
 // max distance for valid mark from assumed start/stop
 #define MAX_ASSUMED 300
 
-// max range of search after stop mark for closing credits
-#define MAX_CLOSING_CREDITS_SEARCH 25
-
 
 /**
  * markad configuration structure
