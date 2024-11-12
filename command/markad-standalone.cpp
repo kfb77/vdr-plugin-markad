@@ -5383,7 +5383,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     // rule 2: scene start very short after logo start in old recording without fade in of fade in channel
                     else if ((criteria->LogoFadeInOut() & FADE_IN) && (diffBefore >= 1700) && (diffAfter <= 20)) diffBefore = INT_MAX;
 
-                    if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 6299;
+                    if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 6059;
                     else                                     maxBefore = 1599;
                     break;
                 case MT_CHANNELSTART:
@@ -5396,11 +5396,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         // rule 1: prefer scene change short after silence
                         if (diffAfter <= 120) diffBefore = INT_MAX;
 
-                        // rule 2: scene blend around silence, both are invalid
-                        else if ((diffBefore >= 4120) && (diffAfter >= 1160)) {
-                            diffBefore = INT_MAX;
-                            diffAfter  = INT_MAX;
-                        }
+                        // rule 2: silence in closing scene
+                        else if ((diffBefore >= 22200) && (diffAfter >= 7120)) diffBefore = INT_MAX;
+
                         maxBefore = 1180;
                         break;
                     case MT_VPSSTART:
@@ -5452,7 +5450,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_SOUNDSTART:
-                        maxAfter = 920;
+                        maxAfter = 7120;
                         break;
                     case MT_NOLOWERBORDERSTART:
                         maxAfter = 5000;
@@ -5535,8 +5533,8 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 2520;
                         break;
                     case MT_SOUNDSTOP:
-                        // rule1: use scene change short before silence (silence is at start of ad / closing credits)
-                        if (diffBefore <= 80) diffAfter = INT_MAX;
+                        // rule1: use scene change short before silence (silence is at start of ad / separator / closing credits)
+                        if (diffBefore <= 160) diffAfter = INT_MAX;
 
                         maxAfter = 360;
                         break;
@@ -5593,7 +5591,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_NOLOWERBORDERSTOP:
-                        maxBefore = 80;
+                        maxBefore = 160;
                         break;
                     case MT_SOUNDSTOP:
                         maxBefore = 2120;
