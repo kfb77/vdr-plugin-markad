@@ -41,6 +41,15 @@ public:
 
 private:
     /**
+    * list of states and counties in channel name to ignore
+    */
+    const char* countries[2] = {
+        "_AUSTRIA",
+        "_BAYERN"
+    };
+
+
+    /**
     * list of cities in channel name to ignore
     */
     const char* cities[20] = {

@@ -40,12 +40,16 @@ bool cTools::CompareChannelName(const char *nameA, const char *nameB, const int 
     std::transform(name1.begin(), name1.end(), name1.begin(), ::toupper);
     std::transform(name2.begin(), name2.end(), name2.begin(), ::toupper);
 
-    // remove _Austria
+    // remove state and country
     if (flags & IGNORE_COUNTRY) {
-        size_t pos = name1.find("_AUSTRIA");
-        if (pos != std::string::npos) name1.replace(pos, 8, "");
-        pos = name2.find("_AUSTRIA");
-        if (pos != std::string::npos) name2.replace(pos, 8, "");
+        for (const char *country : countries) {
+            size_t pos    = name1.find(country);
+            size_t length = strlen(country);
+            if (pos != std::string::npos) name1.replace(pos, length, "");
+            pos = name2.find(country);
+            if (pos != std::string::npos) name2.replace(pos, length, "");
+        }
+
     }
 
     // remove cities

@@ -1603,7 +1603,7 @@ bool cExtractLogo::CompareLogoPairRotating(sLogoInfo *logo1, sLogoInfo *logo2, c
     int logoEndLine     = 0;
     int logoStartColumn = 0;
     int logoEndColumn   = 0;
-    if (CompareChannelName(channelName, "SAT_1", IGNORE_NOTHING)) {
+    if (CompareChannelName(channelName, "SAT_1", IGNORE_COUNTRY)) {
         logoStartLine   =  18;
         logoEndLine     =  75;
         logoStartColumn = 143;
