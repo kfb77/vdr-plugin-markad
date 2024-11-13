@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-11-30: Version 4.2.7
+- prevent double check of closing credits
+- improve performance of logo extraction from recording
+- some minor bug fixes and optimizations, see git
+
 2024-11-07: Version 4.2.6
 - error exit on invalid use of --online parameter (thx to nobanzai@www.vdr-portal.de for reporting)
 - remove shutdown debug message (requested by shofmann@www.vdr-portal.de and MarkusE@www.vdr-portal.de)
