@@ -1872,6 +1872,10 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
     // loop through all logo stop/start pairs
     while (evaluateLogoStopStartPair->GetNextPair(&logoStopStartPair)) {
         if (abortNow) return;
+        if (logoStopStartPair.stopPosition <= IGNORE_AT_START) {
+            dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): ignore initial mark (%d)", logoStopStartPair.stopPosition);
+            continue;
+        }
         if (!marks.Get(logoStopStartPair.startPosition) || !marks.Get(logoStopStartPair.stopPosition)) continue;  // at least one of the mark from pair was deleted, nothing to do
         if ((logoStopStartPair.isLogoChange <= STATUS_NO) && (logoStopStartPair.isInfoLogo <= STATUS_NO) && (logoStopStartPair.isClosingCredits <= STATUS_NO)) continue;
 
