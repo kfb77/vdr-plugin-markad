@@ -47,48 +47,47 @@ void cAudio::AddMark(int type, const int packetNumber, const int64_t framePTS, c
 
 void cAudio::Silence() {
     int normVolume = decoder->GetVolume();
+    if (normVolume < 0) return;  // no valid volume
 
-    if (normVolume >= 0) {  // valid deteced volume
-        // set start/end, with audio packets there is packet PTS the same as frame PTS
-        if ((normVolume == 0) && (audioMP2Silence.startAudioPTS <  0)) {
-            audioMP2Silence.startAudioPTS = decoder->GetPacketPTS();   // start of silence
+    // set start/end, with audio packets there is packet PTS the same as frame PTS
+    if ((normVolume == 0) && (audioMP2Silence.startAudioPTS <  0)) {
+        audioMP2Silence.startAudioPTS = decoder->GetPacketPTS();   // start of silence
 #ifdef DEBUG_VOLUME
-            dsyslog("cAudio::Silence(): packet (%d): start silence at audio PTS %ld detected", decoder->GetPacketNumber(), audioMP2Silence.startAudioPTS);
+        dsyslog("cAudio::Silence(): packet (%d): start silence at audio PTS %ld detected", decoder->GetPacketNumber(), audioMP2Silence.startAudioPTS);
 #endif
-        }
-        if ((normVolume >= MIN_NONSILENCE_VOLUME) && (audioMP2Silence.startAudioPTS >= 0) && (audioMP2Silence.stopAudioPTS < 0)) {
-            audioMP2Silence.stopAudioPTS = decoder->GetPacketPTS();  // end of silence
+    }
+    if ((normVolume >= MIN_NONSILENCE_VOLUME) && (audioMP2Silence.startAudioPTS >= 0) && (audioMP2Silence.stopAudioPTS < 0)) {
+        audioMP2Silence.stopAudioPTS = decoder->GetPacketPTS();  // end of silence
 #ifdef DEBUG_VOLUME
-            dsyslog("cAudio::Silence(): packet (%d): stop silence at audio PTS %ld detected", decoder->GetPacketNumber(), audioMP2Silence.stopAudioPTS);
+        dsyslog("cAudio::Silence(): packet (%d): stop silence at audio PTS %ld detected", decoder->GetPacketNumber(), audioMP2Silence.stopAudioPTS);
 #endif
-        }
-        // get nearesr video packet number and PTS
-        if ((audioMP2Silence.startAudioPTS >= 0) && (audioMP2Silence.startPacketNumber < 0)) audioMP2Silence.startPacketNumber = index->GetPacketNumberBeforePTS(audioMP2Silence.startAudioPTS, &audioMP2Silence.startVideoPTS);
-        if ((audioMP2Silence.stopAudioPTS  >= 0) && (audioMP2Silence.stopPacketNumber  < 0)) audioMP2Silence.stopPacketNumber = index->GetPacketNumberAfterPTS(audioMP2Silence.stopAudioPTS, &audioMP2Silence.stopVideoPTS);
-        // return result
-        if ((audioMP2Silence.startPacketNumber >= 0) && (audioMP2Silence.stopPacketNumber >= 0)) {  // silence ready, can be processed
+    }
+    // get nearesr video packet number and PTS
+    if ((audioMP2Silence.startAudioPTS >= 0) && (audioMP2Silence.startPacketNumber < 0)) audioMP2Silence.startPacketNumber = index->GetPacketNumberBeforePTS(audioMP2Silence.startAudioPTS, &audioMP2Silence.startVideoPTS);
+    if ((audioMP2Silence.stopAudioPTS  >= 0) && (audioMP2Silence.stopPacketNumber  < 0)) audioMP2Silence.stopPacketNumber = index->GetPacketNumberAfterPTS(audioMP2Silence.stopAudioPTS, &audioMP2Silence.stopVideoPTS);
+    // return result
+    if ((audioMP2Silence.startPacketNumber >= 0) && (audioMP2Silence.stopPacketNumber >= 0)) {  // silence ready, can be processed
 
 #ifdef DEBUG_VOLUME
-            dsyslog("cAudio::Silence(): packet (%d): start: packet (%d), audio PIS %ld, video PTS %ld", decoder->GetPacketNumber(), audioMP2Silence.startPacketNumber, audioMP2Silence.startAudioPTS, audioMP2Silence.startVideoPTS);
-            dsyslog("cAudio::Silence(): packet (%d): stop:  packet (%d), audio PIS %ld, video PTS %ld", decoder->GetPacketNumber(), audioMP2Silence.stopPacketNumber, audioMP2Silence.stopAudioPTS, audioMP2Silence.stopVideoPTS);
+        dsyslog("cAudio::Silence(): packet (%d): start: packet (%d), audio PIS %ld, video PTS %ld", decoder->GetPacketNumber(), audioMP2Silence.startPacketNumber, audioMP2Silence.startAudioPTS, audioMP2Silence.startVideoPTS);
+        dsyslog("cAudio::Silence(): packet (%d): stop:  packet (%d), audio PIS %ld, video PTS %ld", decoder->GetPacketNumber(), audioMP2Silence.stopPacketNumber, audioMP2Silence.stopAudioPTS, audioMP2Silence.stopVideoPTS);
 #endif
-            // very short silence with can result in reversed start/stop video packet numbers becaue of negativ PTS offset
-            // swap start/stop position to fix that, don't care on position, for mark position we use PTS
-            if (audioMP2Silence.startPacketNumber > audioMP2Silence.stopPacketNumber) {
-                dsyslog("cAudio::Silence(): start (%d) > stop (%d), swap position", audioMP2Silence.startPacketNumber, audioMP2Silence.stopPacketNumber);
-                std::swap(audioMP2Silence.startPacketNumber, audioMP2Silence.stopPacketNumber);
-            }
-            // add marks
-            AddMark(MT_SOUNDSTOP,  audioMP2Silence.startPacketNumber, audioMP2Silence.startVideoPTS, 0, 0);
-            AddMark(MT_SOUNDSTART, audioMP2Silence.stopPacketNumber,  audioMP2Silence.stopVideoPTS,  0, 0);
-            // reset all values
-            audioMP2Silence.startPacketNumber = -1;
-            audioMP2Silence.startAudioPTS     = -1;
-            audioMP2Silence.startVideoPTS     = -1;
-            audioMP2Silence.stopPacketNumber  = -1;
-            audioMP2Silence.stopAudioPTS      = -1;
-            audioMP2Silence.stopVideoPTS      = -1;
+        // very short silence with can result in reversed start/stop video packet numbers becaue of negativ PTS offset
+        // swap start/stop position to fix that, don't care on position, for mark position we use PTS
+        if (audioMP2Silence.startPacketNumber > audioMP2Silence.stopPacketNumber) {
+            dsyslog("cAudio::Silence(): start (%d) > stop (%d), swap position", audioMP2Silence.startPacketNumber, audioMP2Silence.stopPacketNumber);
+            std::swap(audioMP2Silence.startPacketNumber, audioMP2Silence.stopPacketNumber);
         }
+        // add marks
+        AddMark(MT_SOUNDSTOP,  audioMP2Silence.startPacketNumber, audioMP2Silence.startVideoPTS, 0, 0);
+        AddMark(MT_SOUNDSTART, audioMP2Silence.stopPacketNumber,  audioMP2Silence.stopVideoPTS,  0, 0);
+        // reset all values
+        audioMP2Silence.startPacketNumber = -1;
+        audioMP2Silence.startAudioPTS     = -1;
+        audioMP2Silence.startVideoPTS     = -1;
+        audioMP2Silence.stopPacketNumber  = -1;
+        audioMP2Silence.stopAudioPTS      = -1;
+        audioMP2Silence.stopVideoPTS      = -1;
     }
     return;
 }
