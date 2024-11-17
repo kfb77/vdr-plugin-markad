@@ -101,8 +101,9 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
 
     int frameRate = decoder->GetVideoFrameRate();
 
-#define OVERLAP_CHECK_BEFORE 90  // start before stop mark, max found 58s, changed from 120 to 90
-#define OVERLAP_CHECK_AFTER  90  // end after start mark,                  changed from 300 to 90
+// max overlap found: 94200ms (TELE 5)
+#define OVERLAP_CHECK_BEFORE 100  // start before stop mark, changed from 90 to 100
+#define OVERLAP_CHECK_AFTER  100  // end after start mark,   changed from 90 to 100
 
     // calculate overlap check positions
     int fRangeBegin = (*mark1)->position - (frameRate * OVERLAP_CHECK_BEFORE);
