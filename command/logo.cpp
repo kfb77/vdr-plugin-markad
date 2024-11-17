@@ -312,7 +312,9 @@ void cExtractLogo::CutOut(sLogoInfo *logoInfo, int cutPixelH, int cutPixelV, sLo
             }
         }
     }
+#ifdef DEBUG_LOGO_RESIZE
     dsyslog("cExtractLogo::CutOut(): logo size after cut out:    %3d width %3d height on corner %12s", logoSizeFinal->width, logoSizeFinal->height, aCorner[corner]);
+#endif
 }
 
 
@@ -1006,7 +1008,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
     int acceptFalsePixelV;
     if (decoder->GetVideoWidth() < 3840) acceptFalsePixelV = logoSizeFinal->height / 33; // increase from 27 to 33 to get left start from SIXX logo
     else acceptFalsePixelV = logoSizeFinal->height / 30;                                 // UDH has very thin logo structure
+#ifdef DEBUG_LOGO_RESIZE
     dsyslog("cExtractLogo::Resize(): accept false pixel horizontal %d, vertical %d", acceptFalsePixelH, acceptFalsePixelV);
+#endif
 
     for (int repeat = 1; repeat <= 2; repeat++) {
         if ((logoSizeFinal->width <= 0) || (logoSizeFinal->height <= 0)) {
@@ -1045,7 +1049,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 }
                 else break;
             }
+#ifdef DEBUG_LOGO_RESIZE
             dsyslog("cExtractLogo::Resize(): repeat %d, top logo: %d white lines under logo", repeat, whiteLines);
+#endif
             if (whiteLines > 0) {
                 CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
 #ifdef DEBUG_LOGO_RESIZE
@@ -1062,7 +1068,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
 
 // search for text under logo
 // search for at least 2 (SD) or 4 (HD) white lines to cut logos with text addon (e.g. "Neue Folge" or "Live"), but do not cut out "HD"
+#ifdef DEBUG_LOGO_RESIZE
             dsyslog("cExtractLogo::Resize(): repeat %d, top logo: search for text under logo", repeat);
+#endif
 #define MAX_FALSE_PIXEL 2
             int minWhiteLines = 2;
             if (decoder->GetVideoWidth() > 720) minWhiteLines = 4;
@@ -1094,7 +1102,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 if (logoButtomLine >= 0) break;
             }
             if (logoButtomLine < 0) logoButtomLine = logoSizeFinal->width - 1;  // logo end at buttom
+#ifdef DEBUG_LOGO_RESIZE
             dsyslog("cExtractLogo::Resize(): logo top line %d, buttom line %d", logoTopLine, logoButtomLine);
+#endif
 
             // search for white lines from buttom to top of logo (more than half can not be text)
             int topWhiteLine     = -1;
@@ -1119,7 +1129,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
             }
             int countWhite = bottomWhiteLine - topWhiteLine + 1;
             int textHeight = logoSizeFinal->height - bottomWhiteLine - 1;
+#ifdef DEBUG_LOGO_RESIZE
             dsyslog("cExtractLogo::Resize(): repeat %d, top logo:: found white from line %d -> %d, height %d, text below from line %d -> %d, height %d", repeat, topWhiteLine, bottomWhiteLine, countWhite, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight);
+#endif
             if ((countWhite <= 22) && (textHeight < logoSizeFinal->height)) {    // too much white is not possible for text under logo, changed from 11 to 22
                 // get width of text
                 int leftColumn  = -1;
@@ -1140,7 +1152,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 int textWidth       = rightColumn - leftColumn + 1;
                 int textWidthQuote  = 1000 * textWidth / decoder->GetVideoWidth();
                 int textHeightQuote = 1000 * textHeight / decoder->GetVideoHeight();
+#ifdef DEBUG_LOGO_RESIZE
                 dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found text under logo: line %3d -> %3d, height %d (%d), column %d -> %d, width %d (%d)", repeat, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, textHeightQuote, leftColumn, rightColumn, textWidth, textWidthQuote);
+#endif
                 // example of valid test to delete
                 // line  86 ->  97, height 12 (20), column 185 -> 205, width 21 (29)   -> Pro7 MAXX "neu" under logo
                 //
@@ -1148,7 +1162,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 // line 101 -> 113, height 13 (18), column 267 -> 289, width 23 (17)   -> Das Erste "HD" under logo
                 if ((textHeight <= 2) || // pixel error
                         ((textHeightQuote > 18) && (textWidthQuote > 17))) {
+#ifdef DEBUG_LOGO_RESIZE
                     dsyslog("cExtractLogo::Resize(): repeat %d, top logo: cut out valid text under logo", repeat);
+#endif
                     if ((logoSizeFinal->height - topWhiteLine) > 0) {
                         CutOut(bestLogoInfo, logoSizeFinal->height - topWhiteLine, 0, logoSizeFinal, bestLogoCorner);
 #ifdef DEBUG_LOGO_RESIZE
@@ -1163,9 +1179,13 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
 #endif
                     }
                 }
+#ifdef DEBUG_LOGO_RESIZE
                 else dsyslog("cExtractLogo::Resize(): repeat %d, top logo: no valid text under logo found", repeat);
+#endif
             }
+#ifdef DEBUG_LOGO_RESIZE
             else dsyslog("cExtractLogo::Resize(): repeat %d, top logo: no valid text under logo found", repeat);
+#endif
         }
 
         else { // bottom corners, calculate new height and cut from above
@@ -1187,7 +1207,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 dsyslog("cExtractLogo::Resize(): logo invalid after removal of false pixel");
                 return false;
             }
+#ifdef DEBUG_LOGO_RESIZE
             dsyslog("cExtractLogo::Resize(): repeat %d, bottom logo: %d white lines found", repeat, whiteLines);
+#endif
             if (whiteLines > 0) {
                 CutOut(bestLogoInfo, whiteLines, 0, logoSizeFinal, bestLogoCorner);
 #ifdef DEBUG_LOGO_RESIZE
@@ -1272,7 +1294,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 }
                 else break;
             }
+#ifdef DEBUG_LOGO_RESIZE
             dsyslog("cExtractLogo::Resize(): repeat %d, right logo: %d white columns found", repeat, whiteColumns);
+#endif
             if (whiteColumns > 0) {
                 CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
 #ifdef DEBUG_LOGO_RESIZE
@@ -1356,7 +1380,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 }
                 else break;
             }
+#ifdef DEBUG_LOGO_RESIZE
             dsyslog("cExtractLogo::Resize(): repeat %d, left logo: %d white columns found", repeat, whiteColumns);
+#endif
             if (whiteColumns > 0) {
                 CutOut(bestLogoInfo, 0, whiteColumns, logoSizeFinal, bestLogoCorner);
 #ifdef DEBUG_LOGO_RESIZE
