@@ -1367,7 +1367,7 @@ cHorizBorderDetect::cHorizBorderDetect(cDecoder *decoderParam, cIndex *indexPara
 #define BRIGHTNESS_H_SURE    22
 #define BRIGHTNESS_H_MAYBE  148  // some channel have infos in border, so we will detect a higher value, changed from 137 to 148
     brightnessSure  = BRIGHTNESS_H_SURE;
-    if (criteria->LogoInBorder()) brightnessSure = BRIGHTNESS_H_SURE + 1;  // for pixel from logo
+//    if (criteria->LogoInBorder()) brightnessSure = BRIGHTNESS_H_SURE + 1;  // for pixel from logo, removed, logo should be out of CHECKHEIGHT, need max 22 to prevent false positiv
     brightnessMaybe = BRIGHTNESS_H_SURE;
     if (criteria->InfoInBorder()) brightnessMaybe = BRIGHTNESS_H_MAYBE;    // for pixel from info in border
     Clear();
