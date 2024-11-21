@@ -422,6 +422,7 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
 // (+) contrast  54, brightness 181  -> no logo in frame
 // (+) contrast  52, brightness 189  -> bright background without logo  (conflict)
 // (+) contrast  49, brightness 175  -> red separator picture without logo
+// (+) contrast  41, brightness 191  -> logo with sky in background     (conflict)
 // (-) contrast  47, brightness 189  -> bright background with logo
 // (-) contrast  43, brightness 192  -> bright background with logo
 // (-) contrast  39, brightness 187  -> bright background with logo
