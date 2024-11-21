@@ -687,10 +687,10 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
     // apply sobel transformation to all planes
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
     processed = sobel->SobelPicture(recDir, picture, &area, false);  // don't ignore logo
-    if ((packetNumber > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (packetNumber < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
+    if ((decoder->GetPacketNumber() > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (decoder->GetPacketNumber() < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
         // current full picture
         char *fileName = nullptr;
-        if (asprintf(&fileName,"%s/F__%07d.pgm", recDir, packetNumber) >= 1) {
+        if (asprintf(&fileName,"%s/F__%07d.pgm", recDir, decoder->GetPacketNumber()) >= 1) {
             ALLOC(strlen(fileName) + 1, "fileName");
             SaveVideoPlane0(fileName, decoder->GetVideoPicture());
             FREE(strlen(fileName) + 1, "fileName");
@@ -777,7 +777,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
     if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
     if (rPixel <= logo_imark) strcpy(detectStatus, "-");
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
-    dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", packetNumber, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
+    dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", decoder->GetPacketNumber(), rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
 #endif
 
     // we have only 1 plane (no coloured logo)
@@ -788,7 +788,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         // prevent to detect logo start on very bright background, this is not possible
         if ((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark) && area.intensity >= 218) {  // possible state change from invisible to visible
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d) too bright %d for logo start", packetNumber, area.intensity);
+            dsyslog("cLogoDetect::Detect(): frame (%6d) too bright %d for logo start", decoder->GetPacketNumber(), area.intensity);
 #endif
             packetNumberBefore = picture->packetNumber;
             framePTSBefore     = picture->pts;
@@ -798,7 +798,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         // transparent logo decetion on bright backbround is imposible, changed from 189 to 173
         if (criteria->LogoTransparent() && (area.intensity >= 154)) {  // changed from 161 to 154
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d) with transparent logo too bright %d for detection", packetNumber, area.intensity);
+            dsyslog("cLogoDetect::Detect(): frame (%6d) with transparent logo too bright %d for detection", decoder->GetPacketNumber(), area.intensity);
 #endif
             packetNumberBefore = picture->packetNumber;
             framePTSBefore     = picture->pts;
@@ -815,7 +815,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
             int rPixelWithout = rPixel * (100 - quoteInverse) / 100;
 
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect():           frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", packetNumber, rPixel, quoteInverse, rPixelWithout);
+            dsyslog("cLogoDetect::Detect():           frame (%6d): rPixel %d, rPixel without pattern quote inverse %d: %d", decoder->GetPacketNumber(), rPixel, quoteInverse, rPixelWithout);
 #endif
 
             if ((rPixel >= logo_vmark) && (rPixelWithout <= logo_imark) && (quoteInverse >= 63)) {
@@ -830,7 +830,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 // if current state is logo uninitialized (to get an early logo start) and we have a lot of matches, trust logo is there
         if (!logoStatus && (area.status == LOGO_UNINITIALIZED) && (rPixel > logo_imark)) {
 #ifdef DEBUG_LOGO_DETECTION
-            dsyslog("cLogoDetect::Detect(): frame (%6d) state uninitialized and some machtes, trust logo visible", packetNumber);
+            dsyslog("cLogoDetect::Detect(): frame (%6d) state uninitialized and some machtes, trust logo visible", decoder->GetPacketNumber());
 #endif
             logoStatus = true;
         }
@@ -894,7 +894,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 
     if (!logoStatus) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::Detect(): frame (%6d): no valid result", packetNumber);
+        dsyslog("cLogoDetect::Detect(): frame (%6d): no valid result", decoder->GetPacketNumber());
 #endif
         packetNumberBefore = picture->packetNumber;
         framePTSBefore     = picture->pts;
@@ -1000,7 +1000,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
     strcpy(detectStatus, "o");
     if (rPixel >= logo_vmark) strcpy(detectStatus, "+");
     if (rPixel <= logo_imark) strcpy(detectStatus, "-");
-    dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", packetNumber, rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
+    dsyslog("cLogoDetect::Detect():           frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", decoder->GetPacketNumber(), rPixel, iPixel, mPixel, logo_vmark, logo_imark, area.intensity, area.counter, area.status, processed, detectStatus);
     dsyslog("----------------------------------------------------------------------------------------------------------------------------------------------");
 #endif
 
