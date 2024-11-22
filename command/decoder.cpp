@@ -1416,6 +1416,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
             esyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%5d): avcodec_receive_frame decode failed with return code %d", packetNumber, rc);
             break;
         }
+        frameValid = false;
         av_frame_unref(&avFrame);
         Time(false);
         return rc;
@@ -1434,6 +1435,7 @@ int cDecoder::ReceiveFrameFromDecoder() {
             decodeErrorCount++;
         }
         dsyslog("cDecoder::ReceiveFrameFromDecoder(): packet (%d), stream %d: frame corrupt: decode_error_flags %d, decoding errors %d", packetNumber, avpkt.stream_index, avFrame.decode_error_flags, decodeErrorCount);
+        frameValid = false;
         av_frame_unref(&avFrame);
         avcodec_flush_buffers(codecCtxArray[avpkt.stream_index]);
         Time(false);
