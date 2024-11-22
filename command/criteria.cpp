@@ -32,6 +32,7 @@ bool cCriteria::GoodVPS() {
     if (CompareChannelName(channelName, "KiKA",         IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "NDR_FS",       IGNORE_HD | IGNORE_CITY)) return true;
     if (CompareChannelName(channelName, "rbb",          IGNORE_HD | IGNORE_CITY)) return true;
+    if (CompareChannelName(channelName, "SR_Fernsehen", IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "tagesschau24", IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "WDR",          IGNORE_HD | IGNORE_CITY)) return true;
     if (CompareChannelName(channelName, "ZDF",          IGNORE_HD))               return true;
