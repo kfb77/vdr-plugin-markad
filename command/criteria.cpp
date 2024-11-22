@@ -143,7 +143,8 @@ bool cCriteria::LogoColorChange() {
 
 bool cCriteria::IsLogoRotating() {
     if (!channelName) return false;
-    if (CompareChannelName(channelName, "SAT_1", IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "SAT_1",   IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "SAT_1_A", IGNORE_NOTHING))             return true;
     return false;
 }
 
