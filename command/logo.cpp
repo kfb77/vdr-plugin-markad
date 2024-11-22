@@ -532,7 +532,7 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
 //  27 RTLZWEI                 16:9  720W  576H:->   82W  80H BOTTOM_RIGHT
 //   2 RTLZWEI                  4:3  720W  576H:->   98W  78H BOTTOM_RIGHT
 //   6 RTLZWEI                  4:3  720W  576H:->   98W  80H BOTTOM_RIGHT
-        if (CompareChannelName(channelName, "RTLZWEI", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "RTLZWEI", IGNORE_COUNTRY)) {
             const sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
             if ((aspectRatio->num == 16) && (aspectRatio->den == 9)) {
                 logo.widthMin  =  72;
