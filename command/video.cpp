@@ -730,7 +730,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
     // don't miss logo invisible for:
     // - down shiftet logo in add (Pro7_MAXX), will only work on dark background
     // - part of logo in black screen as stop mark instead of no logo (Comedy_Central)
-#define AREA_INTENSITY_TRUST    53 // we trust detection, use higher invisible value, changed from 54 to 53
+#define AREA_INTENSITY_TRUST    47 // we trust detection on dark picture, use higher invisible value, changed from 53 to 47
 #define QUOTE_TRUST              2 // uplift factor for logo invisible threshold
     if (!criteria->LogoTransparent() && (area.intensity <= AREA_INTENSITY_TRUST)) logo_imark *= QUOTE_TRUST;
 
