@@ -5082,10 +5082,10 @@ void cMarkAdStandalone::LowerBorderOptimization() {
             bool moved = false;
 
             // get lower border before stop mark
-            long int diffBefore      = INT_MAX;
-            cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOLOWERBORDERSTOP);
-            cMark *stopBefore  = nullptr;
-            bool silenceBefore = false;
+            long int diffBefore = LONG_MAX;
+            cMark *startBefore  = blackMarks.GetPrev(mark->position + 1, MT_NOLOWERBORDERSTOP);
+            cMark *stopBefore   = nullptr;
+            bool silenceBefore  = false;
             while (startBefore) {
                 stopBefore = blackMarks.GetNext(startBefore->position, MT_NOLOWERBORDERSTART);
                 if (!stopBefore) break;
@@ -5096,6 +5096,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 startBefore = blackMarks.GetPrev(startBefore->position, MT_NOLOWERBORDERSTOP);  // previous start of lower border
             }
             if ((lengthBefore < MIN_LOWER_BORDER) || (lengthBefore > MAX_LOWER_BORDER)) { // we got no valid result
+                diffBefore  = LONG_MAX;
                 startBefore = nullptr;
                 stopBefore  = nullptr;
             }
@@ -5121,6 +5122,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 startAfter = blackMarks.GetNext(startAfter->position, MT_NOLOWERBORDERSTOP);  // next start of lower border
             }
             if ((lengthAfter < MIN_LOWER_BORDER) || (lengthAfter > MAX_LOWER_BORDER)) { // we got no valid result
+                diffAfter  = INT_MAX;
                 startAfter = nullptr;
                 stopAfter  = nullptr;
             }
@@ -5170,9 +5172,9 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (criteria->GoodVPS())                                 maxBefore =   6579;
-                        else if ((diffAfter == INT_MAX) && (diffBefore <= 4920)) maxBefore = 120040;  // no lower border after, typical max length of lower border
-                        else                                                     maxBefore =  99879;
+                        if (criteria->GoodVPS())                                   maxBefore =   6579;
+                        else if ((diffAfter == INT_MAX) && (lengthBefore <= 4920)) maxBefore = 120040;  // no lower border after, typical max length of lower border
+                        else                                                       maxBefore =  99879;
                         break;
                     default:
                         maxBefore = -1;
