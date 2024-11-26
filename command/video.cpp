@@ -392,7 +392,8 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
                 ((contrastLogo  >   0) && (contrastLogo <=   3) && (brightnessLogo > 221)) ||
                 ((contrastLogo  >   3) && (contrastLogo <=  10) && (brightnessLogo > 202)) ||
                 ((contrastLogo  >  10) && (contrastLogo <=  20) && (brightnessLogo > 197)) ||
-                ((contrastLogo  >  20) && (contrastLogo <=  35) && (brightnessLogo > 192)) ||
+                // (-) contrast  31, brightness 187   -> logo on bright sky
+                ((contrastLogo  >  20) && (contrastLogo <=  35) && (brightnessLogo > 186)) ||
                 ((contrastLogo  >  35) && (contrastLogo <= 130) && (brightnessLogo > 180)) ||
                 ((contrastLogo  > 130) && (contrastLogo <= 150) && (brightnessLogo > 150)) ||
                 ((contrastLogo  > 150) && (contrastLogo <= 180) && (brightnessLogo > 140)) ||
