@@ -47,7 +47,6 @@ int logoSearchTime_ms          = 0;
 double decodeTime_ms           = 0;
 
 struct timeval startAll, endAll = {};
-struct timeval startTime1, endTime1 = {}; // pass 1 (logo search) time
 struct timeval startTime2, endTime2 = {}; // pass 2 (mark detection) time
 struct timeval startTime3, endTime3 = {}; // pass 3 (mark optimization) time
 struct timeval startTime5, endTime5 = {}; // pass 5 (cut recording) time
@@ -5949,18 +5948,17 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
 
 
 bool cMarkAdStandalone::CheckLogo(const int frameRate) {
-    if (!macontext.Config) return false;
+    if (!macontext.Config)                      return false;
     if (!*macontext.Config->logoCacheDirectory) return false;
-    if (!macontext.Info.ChannelName) return false;
-    if (macontext.Config->perftest) return false;    // nothing to do in perftest
+    if (!macontext.Info.ChannelName)            return false;
+    if (macontext.Config->perftest)             return false;    // nothing to do in perftest
 
+    StartSection("initial logo search");
     bool logoFound = false;
     int len = strlen(macontext.Info.ChannelName);
     if (!len) return false;
 
-    gettimeofday(&startTime1, nullptr);
-    dsyslog("cMarkAdStandalone::CheckLogo(): using logo cache directory %s", macontext.Config->logoCacheDirectory);
-    dsyslog("cMarkAdStandalone::CheckLogo(): searching logo for %s", macontext.Info.ChannelName);
+    dsyslog("cMarkAdStandalone::CheckLogo(): using logo cache directory %s, searching logo for %s", macontext.Config->logoCacheDirectory, macontext.Info.ChannelName);
     DIR *dir = opendir(macontext.Config->logoCacheDirectory);
     if (!dir) {
         esyslog("logo cache directory %s does not exist, use /tmp", macontext.Config->logoCacheDirectory);
@@ -5976,6 +5974,7 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
             dsyslog("cMarkAdStandalone::CheckLogo(): logo found: %s", dirent->d_name);
             if ((macontext.Config->autoLogo == 0) || (macontext.Config->autoLogo == 2)) {
                 closedir(dir);
+                elapsedTime.logoSearch = EndSection("initial logo search");
                 return true; // use only logos from cache or prefer logo from cache
             }
             logoFound = true;
@@ -5992,7 +5991,7 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
                 if (!strncmp(direntRec->d_name, macontext.Info.ChannelName, len)) {
                     closedir(recDIR);
                     isyslog("logo found in recording directory");
-                    gettimeofday(&endTime1, nullptr);
+                    elapsedTime.logoSearch = EndSection("initial logo search");
                     return true;
                 }
             }
@@ -6021,15 +6020,11 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
 
         if (endpos == 0) {
             dsyslog("cMarkAdStandalone::CheckLogo(): found extracted logo in recording recording directory");
-            gettimeofday(&endTime1, nullptr);
             logoFound = true;
         }
-        else {
-            dsyslog("cMarkAdStandalone::CheckLogo(): logo search failed");
-            gettimeofday(&endTime1, nullptr);
-        }
+        else dsyslog("cMarkAdStandalone::CheckLogo(): logo search failed");
     }
-    gettimeofday(&endTime1, nullptr);
+    elapsedTime.logoSearch = EndSection("initial logo search");
     return logoFound;
 }
 
@@ -6662,23 +6657,19 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         if (macontext.Info.ChannelName) vps->LogMatch(macontext.Info.ChannelName, &marks);
 
         dsyslog("processing statistics: ----------------------------------------------------------------------");
-        time_t sec = endTime1.tv_sec - startTime1.tv_sec;
-        suseconds_t usec = endTime1.tv_usec - startTime1.tv_usec;
-        if (usec < 0) {
-            usec += 1000000;
-            sec--;
-        }
-        if ((sec + usec) > 0) dsyslog("pass 1 (initial logosearch): time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+        // initial logo search
+        time_t sec = round(static_cast<double>(elapsedTime.logoSearch) / 1000);
+        dsyslog("pass 1 (initial logosearch): time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
-        sec = endTime2.tv_sec - startTime2.tv_sec;
-        usec = endTime2.tv_usec - startTime2.tv_usec;
+        sec              = endTime2.tv_sec  - startTime2.tv_sec;
+        suseconds_t usec = endTime2.tv_usec - startTime2.tv_usec;
         if (usec < 0) {
             usec += 1000000;
             sec--;
         }
         if ((sec + usec) > 0) dsyslog("pass 2 (mark detection):     time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
-        sec = endTime3.tv_sec - startTime3.tv_sec;
+        sec  = endTime3.tv_sec  - startTime3.tv_sec;
         usec = endTime3.tv_usec - startTime3.tv_usec;
         if (usec < 0) {
             usec += 1000000;
@@ -6690,7 +6681,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         sec = round(static_cast<double>(elapsedTime.overlap) / 1000);
         dsyslog("pass 4 (overlap detection):  time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
-        sec = endTime5.tv_sec - startTime5.tv_sec;
+        sec  = endTime5.tv_sec  - startTime5.tv_sec;
         usec = endTime5.tv_usec - startTime5.tv_usec;
         if (usec < 0) {
             usec += 1000000;
@@ -6698,7 +6689,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         }
         if ((sec + usec) > 0) dsyslog("pass 5 (cut recording):      time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
-        sec = endTime6.tv_sec - startTime6.tv_sec;
+        sec  = endTime6.tv_sec  - startTime6.tv_sec;
         usec = endTime6.tv_usec - startTime6.tv_usec;
         if (usec < 0) {
             usec += 1000000;
@@ -6711,7 +6702,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         dsyslog("decoding:                    time %5ds -> %d:%02d:%02dh", decodeTime_s, decodeTime_s / 3600, (decodeTime_s % 3600) / 60,  decodeTime_s % 60);
 
         gettimeofday(&endAll, nullptr);
-        sec = endAll.tv_sec - startAll.tv_sec;
+        sec  = endAll.tv_sec  - startAll.tv_sec;
         usec = endAll.tv_usec - startAll.tv_usec;
         if (usec < 0) {
             usec += 1000000;

@@ -567,10 +567,12 @@ private:
     //!<
     cDetectLogoStopStart *detectLogoStopStart             = nullptr;  //!< pointer to class cDetectLogoStopStart
     //!<
-    struct sElapsedTime {
-        int overlap = 0;       //!< elapsed time in ms for overlap detection
-        //!<
-    } elapsedTime; //!< global markad state infos
 
+    struct sElapsedTime {
+        int overlap    = 0;       //!< elapsed time in ms for overlap detection
+        //!<
+        int logoSearch = 0;       //!< elapsed time in ms for initial logo search and extraxtion from cache/recording directory or recording
+        //!<
+    } elapsedTime; //!< elapsed time statistics
 };
 #endif
