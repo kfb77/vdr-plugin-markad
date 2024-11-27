@@ -47,7 +47,6 @@ int logoSearchTime_ms          = 0;
 double decodeTime_ms           = 0;
 
 struct timeval startAll, endAll = {};
-struct timeval startTime5, endTime5 = {}; // pass 5 (cut recording) time
 struct timeval startTime6, endTime6 = {}; // pass 6 (mark pictures) time
 
 
@@ -4263,8 +4262,8 @@ void cMarkAdStandalone::MarkadCut() {
         esyslog("cMarkAdStandalone::MarkadCut(): decoder not set");
         return;
     }
-    LogSeparator(true);
-    dsyslog("cMarkAdStandalone::MarkadCut():cut video based on marks: fullDecode = %d, fullEncode = %d, ac3ReEncode = %d", macontext.Config->fullDecode, macontext.Config->fullEncode,  macontext.Config->ac3ReEncode);
+    StartSection("cut");
+    dsyslog("cMarkAdStandalone::MarkadCut(): cut video based on marks: fullDecode = %d, fullEncode = %d, ac3ReEncode = %d", macontext.Config->fullDecode, macontext.Config->fullEncode,  macontext.Config->ac3ReEncode);
 
     if (macontext.Config->fullEncode && !macontext.Config->fullDecode) {
         esyslog("full encode needs full decode, disable full encode");
@@ -4350,7 +4349,7 @@ void cMarkAdStandalone::MarkadCut() {
     FREE(sizeof(*encoder), "encoder");
     delete encoder;  // encoder must be valid here because it is used above
     encoder = nullptr;
-    dsyslog("cMarkAdStandalone::MarkadCut(): end at frame %d", decoder->GetPacketNumber());
+    elapsedTime.cut = EndSection("cut");
 }
 
 
@@ -6666,17 +6665,12 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         // overlap detection
         sec = round(static_cast<double>(elapsedTime.overlap) / 1000);
         dsyslog("pass 4 (overlap detection):  time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+        // video cut, only cut is done
+        sec = round(static_cast<double>(elapsedTime.cut) / 1000);
+        if (sec > 0) dsyslog("pass 5 (cut recording):      time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
-        sec  = endTime5.tv_sec  - startTime5.tv_sec;
-        suseconds_t usec = endTime5.tv_usec - startTime5.tv_usec;
-        if (usec < 0) {
-            usec += 1000000;
-            sec--;
-        }
-        if ((sec + usec) > 0) dsyslog("pass 5 (cut recording):      time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
-
-        sec  = endTime6.tv_sec  - startTime6.tv_sec;
-        usec = endTime6.tv_usec - startTime6.tv_usec;
+        sec              = endTime6.tv_sec  - startTime6.tv_sec;
+        suseconds_t usec = endTime6.tv_usec - startTime6.tv_usec;
         if (usec < 0) {
             usec += 1000000;
             sec--;
@@ -7441,11 +7435,7 @@ int main(int argc, char *argv[]) {
                 cmasta->SceneChangeOptimization();   // final optimization with scene changes (if we habe nothing else, try this as last resort)
 
                 // video cut
-                if (config.MarkadCut) {
-                    gettimeofday(&startTime5, nullptr);
-                    cmasta->MarkadCut();
-                    gettimeofday(&endTime5, nullptr);
-                }
+                if (config.MarkadCut) cmasta->MarkadCut();
 
                 // write debug mark pictures
 #ifdef DEBUG_MARK_FRAMES

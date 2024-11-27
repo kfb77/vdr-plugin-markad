@@ -577,6 +577,8 @@ private:
         //!<
         int overlap          = 0;    //!< elapsed time in ms for overlap detection
         //!<
+        int cut              = 0;    //!< elepsed time in ms for video cut
+        //!<
     } elapsedTime; //!< elapsed time statistics
 };
 #endif
