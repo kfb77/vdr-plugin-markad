@@ -47,7 +47,6 @@ int logoSearchTime_ms          = 0;
 double decodeTime_ms           = 0;
 
 struct timeval startAll, endAll = {};
-struct timeval startTime2, endTime2 = {}; // pass 2 (mark detection) time
 struct timeval startTime3, endTime3 = {}; // pass 3 (mark optimization) time
 struct timeval startTime5, endTime5 = {}; // pass 5 (cut recording) time
 struct timeval startTime6, endTime6 = {}; // pass 6 (mark pictures) time
@@ -5793,8 +5792,7 @@ bool cMarkAdStandalone::ProcessFrame() {
 void cMarkAdStandalone::Recording() {
     if (abortNow) return;
 
-    LogSeparator(true);
-    dsyslog("cMarkAdStandalone::Recording(): start processing recording");
+    StartSection("mark detection");
     if (!macontext.Config->fullDecode) criteria->SetDetectionState(MT_SCENECHANGE, false);  // does not work without full decode
     criteria->ListDetection();
     if (macontext.Config->backupMarks) marks.Backup(directory);
@@ -5873,7 +5871,7 @@ void cMarkAdStandalone::Recording() {
     CheckMarks();
 
     if (!abortNow) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
-    dsyslog("cMarkAdStandalone::Recording(): end processing files");
+    elapsedTime.markDetection = EndSection("mark detection");
 }
 
 
@@ -6660,17 +6658,12 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         // initial logo search
         time_t sec = round(static_cast<double>(elapsedTime.logoSearch) / 1000);
         dsyslog("pass 1 (initial logosearch): time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+        // mark detection
+        sec = round(static_cast<double>(elapsedTime.markDetection) / 1000);
+        dsyslog("pass 2 (mark detection):     time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
-        sec              = endTime2.tv_sec  - startTime2.tv_sec;
-        suseconds_t usec = endTime2.tv_usec - startTime2.tv_usec;
-        if (usec < 0) {
-            usec += 1000000;
-            sec--;
-        }
-        if ((sec + usec) > 0) dsyslog("pass 2 (mark detection):     time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
-
-        sec  = endTime3.tv_sec  - startTime3.tv_sec;
-        usec = endTime3.tv_usec - startTime3.tv_usec;
+        sec              = endTime3.tv_sec  - startTime3.tv_sec;
+        suseconds_t usec = endTime3.tv_usec - startTime3.tv_usec;
         if (usec < 0) {
             usec += 1000000;
             sec--;
@@ -7440,9 +7433,7 @@ int main(int argc, char *argv[]) {
             else {
 
                 // detect marks
-                gettimeofday(&startTime2, nullptr);
                 cmasta->Recording();
-                gettimeofday(&endTime2, nullptr);
 
                 // logo mark optimization
                 gettimeofday(&startTime3, nullptr);
