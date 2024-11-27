@@ -8,6 +8,8 @@
 #ifndef __tools_h_
 #define __tools_h_
 
+#include <chrono>
+
 
 // flags for CompareChannelName()
 #define IGNORE_NOTHING 0   // exact match
@@ -30,6 +32,18 @@ public:
     */
     static void LogSeparator(const bool main = false);
 
+    /**
+    * log start of section and store timestamp
+    * @param name section name
+    */
+    void StartSection(const char* name);
+
+    /**
+    * log end of section and calculate elapsed time
+    * @param name section name
+    * return elapsed time in ms
+    */
+    int EndSection(const char* name) const;
 
     /**
     * compare channel name pair
@@ -74,5 +88,9 @@ private:
         "_SüD",
         "_NORD"
     };
+
+
+    std::chrono::high_resolution_clock::time_point startSectionTime = {};  //!< start time of section
+    //!<
 };
 #endif

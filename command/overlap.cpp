@@ -30,9 +30,6 @@ bool cOverlap::DetectOverlap(cMarks *marksParam) {
     if (!marksParam) return false;
     marks = marksParam;
 
-    LogSeparator(true);
-    dsyslog("cOverlap::DetectOverlap(): start overlap detection");
-    marks->Debug();
     if (marks->Count() < 4) {
         dsyslog("cOverlap::DetectOverlap(): not enough marks for overlap detection");
         return false;

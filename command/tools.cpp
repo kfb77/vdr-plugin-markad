@@ -7,9 +7,11 @@
 
 #include "tools.h"
 #include "debug.h"
+
 #include <string>
 #include <cstring>
 #include <algorithm>
+#include <math.h>
 
 cTools::cTools() {
 }
@@ -21,6 +23,21 @@ cTools::~cTools() {
 void cTools::LogSeparator(const bool main) {
     if (main) dsyslog("=======================================================================================================================");
     else      dsyslog("-----------------------------------------------------------------------------------------------------------------------");
+}
+
+
+void cTools::StartSection(const char* name) {
+    startSectionTime = std::chrono::high_resolution_clock::now();
+    dsyslog("<<<<<<<<<< start section %s <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", name);
+}
+
+
+int cTools::EndSection(const char* name) const {
+    std::chrono::high_resolution_clock::time_point stopSectionTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> durationSection = stopSectionTime - startSectionTime;
+    int msElapsed = round(durationSection.count());
+    dsyslog(">>>>>>>>>> end  section %s: %5ds %3dms >>>>>>>>>>>>>>>>>", name, static_cast<int>(msElapsed / 1000), msElapsed % 1000);
+    return msElapsed;
 }
 
 

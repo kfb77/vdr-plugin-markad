@@ -50,7 +50,6 @@ struct timeval startAll, endAll = {};
 struct timeval startTime1, endTime1 = {}; // pass 1 (logo search) time
 struct timeval startTime2, endTime2 = {}; // pass 2 (mark detection) time
 struct timeval startTime3, endTime3 = {}; // pass 3 (mark optimization) time
-struct timeval startTime4, endTime4 = {}; // pass 4 (overlap detection) time
 struct timeval startTime5, endTime5 = {}; // pass 5 (cut recording) time
 struct timeval startTime6, endTime6 = {}; // pass 6 (mark pictures) time
 
@@ -5750,17 +5749,17 @@ void cMarkAdStandalone::ProcessOverlap() {
     if ((length == 0) || (startTime == 0)) {  // no recording length or start time from info file
         return;
     }
+    StartSection("overlap detection");
     bool save = false;
 
     // overlap detection
-    LogSeparator(true);
-    dsyslog("ProcessOverlap(): start overlap detection");
     DebugMarks();     //  only for debugging
     cOverlap *overlap = new cOverlap(decoder, index);
     ALLOC(sizeof(*overlap), "overlap");
     save = overlap->DetectOverlap(&marks);
     FREE(sizeof(*overlap), "overlap");
     delete overlap;
+    elapsedTime.overlap = EndSection("overlap detection");
 
     // check last stop mark if closing credits follows
     LogSeparator(false);
@@ -5785,7 +5784,6 @@ void cMarkAdStandalone::ProcessOverlap() {
     }
 
     if (save) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
-    dsyslog("cMarkAdStandalone::ProcessOverlap(): end");
     return;
 }
 
@@ -6764,13 +6762,9 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         }
         if ((sec + usec) > 0) dsyslog("pass 3 (mark optimization):  time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
-        sec = endTime4.tv_sec - startTime4.tv_sec;
-        usec = endTime4.tv_usec - startTime4.tv_usec;
-        if (usec < 0) {
-            usec += 1000000;
-            sec--;
-        }
-        if ((sec + usec) > 0) dsyslog("pass 4 (overlap detection):  time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+        // overlap detection
+        sec = round(static_cast<double>(elapsedTime.overlap) / 1000);
+        dsyslog("pass 4 (overlap detection):  time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
         sec = endTime5.tv_sec - startTime5.tv_sec;
         usec = endTime5.tv_usec - startTime5.tv_usec;
@@ -7541,9 +7535,7 @@ int main(int argc, char *argv[]) {
                 gettimeofday(&endTime3, nullptr);
 
                 // overlap detection
-                gettimeofday(&startTime4, nullptr);
                 cmasta->ProcessOverlap();            // overlap and closing credits detection
-                gettimeofday(&endTime4, nullptr);
 
                 // minor mark position optimization
                 cmasta->BlackScreenOptimization();   // mark optimization with black scene
