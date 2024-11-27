@@ -569,11 +569,13 @@ private:
     //!<
 
     struct sElapsedTime {
-        int markDetection = 0;    //!< elapsed time in ms for mark detection
+        int markDetection    = 0;    //!< elapsed time in ms for mark detection
         //!<
-        int logoSearch = 0;       //!< elapsed time in ms for initial logo search and extraxtion from cache/recording directory or recording
+        int markOptimization = 0;    //!< elapsed time in ms for mark optimization
         //!<
-        int overlap    = 0;       //!< elapsed time in ms for overlap detection
+        int logoSearch       = 0;    //!< elapsed time in ms for initial logo search and extraxtion from cache/recording directory or recording
+        //!<
+        int overlap          = 0;    //!< elapsed time in ms for overlap detection
         //!<
     } elapsedTime; //!< elapsed time statistics
 };

@@ -47,7 +47,6 @@ int logoSearchTime_ms          = 0;
 double decodeTime_ms           = 0;
 
 struct timeval startAll, endAll = {};
-struct timeval startTime3, endTime3 = {}; // pass 3 (mark optimization) time
 struct timeval startTime5, endTime5 = {}; // pass 5 (cut recording) time
 struct timeval startTime6, endTime6 = {}; // pass 6 (mark pictures) time
 
@@ -4362,17 +4361,16 @@ void cMarkAdStandalone::MarkadCut() {
 // - remove stop/start from info logo
 //
 void cMarkAdStandalone::LogoMarkOptimization() {
-    if (!decoder)                   return;
-    if (!index)                     return;
-    if (!criteria)                  return;
+    if (!decoder)  return;
+    if (!index)    return;
+    if (!criteria) return;
 
     if (marks.Count(MT_LOGOCHANGE, 0xF0) == 0) {
         dsyslog("cMarkAdStandalone::LogoMarkOptimization(): no logo marks used");
         return;
     }
 
-    LogSeparator(true);
-    dsyslog("cMarkAdStandalone::LogoMarkOptimization(): start logo mark optimization");
+    StartSection("mark optimization");
     if (!evaluateLogoStopStartPair) {  // init in RemoveLogoChangeMarks(), but maybe not used
         evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
         ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
@@ -4534,6 +4532,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
 
     // save marks
     if (save) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
+    elapsedTime.markOptimization = EndSection("mark optimization");
 }
 
 
@@ -6661,21 +6660,15 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         // mark detection
         sec = round(static_cast<double>(elapsedTime.markDetection) / 1000);
         dsyslog("pass 2 (mark detection):     time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
-
-        sec              = endTime3.tv_sec  - startTime3.tv_sec;
-        suseconds_t usec = endTime3.tv_usec - startTime3.tv_usec;
-        if (usec < 0) {
-            usec += 1000000;
-            sec--;
-        }
-        if ((sec + usec) > 0) dsyslog("pass 3 (mark optimization):  time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
-
+        // mark optimization
+        sec = round(static_cast<double>(elapsedTime.markOptimization) / 1000);
+        dsyslog("pass 3 (mark optimization):  time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
         // overlap detection
         sec = round(static_cast<double>(elapsedTime.overlap) / 1000);
         dsyslog("pass 4 (overlap detection):  time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
         sec  = endTime5.tv_sec  - startTime5.tv_sec;
-        usec = endTime5.tv_usec - startTime5.tv_usec;
+        suseconds_t usec = endTime5.tv_usec - startTime5.tv_usec;
         if (usec < 0) {
             usec += 1000000;
             sec--;
@@ -7436,9 +7429,7 @@ int main(int argc, char *argv[]) {
                 cmasta->Recording();
 
                 // logo mark optimization
-                gettimeofday(&startTime3, nullptr);
                 cmasta->LogoMarkOptimization();      // logo mark optimization
-                gettimeofday(&endTime3, nullptr);
 
                 // overlap detection
                 cmasta->ProcessOverlap();            // overlap and closing credits detection
