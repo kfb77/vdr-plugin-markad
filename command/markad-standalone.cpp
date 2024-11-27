@@ -47,7 +47,6 @@ int logoSearchTime_ms          = 0;
 double decodeTime_ms           = 0;
 
 struct timeval startAll, endAll = {};
-struct timeval startTime6, endTime6 = {}; // pass 6 (mark pictures) time
 
 
 #ifdef POSIX
@@ -4177,7 +4176,7 @@ void cMarkAdStandalone::CheckIndexGrowing()
 void cMarkAdStandalone::DebugMarkFrames() {
     if (!decoder) return;
 
-    LogSeparator(true);
+    StartSection("debug mark pictures");
     dsyslog("cMarkAdStandalone::DebugMarkFrames(): final marks:");
     marks.Debug();
 
@@ -4253,6 +4252,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
         }
         else decoder->DropFrame();   // clenup frame buffer
     }
+    elapsedTime.markPictures = EndSection("debug mark pictures");
 }
 #endif
 
@@ -6668,22 +6668,17 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         // video cut, only cut is done
         sec = round(static_cast<double>(elapsedTime.cut) / 1000);
         if (sec > 0) dsyslog("pass 5 (cut recording):      time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
-
-        sec              = endTime6.tv_sec  - startTime6.tv_sec;
-        suseconds_t usec = endTime6.tv_usec - startTime6.tv_usec;
-        if (usec < 0) {
-            usec += 1000000;
-            sec--;
-        }
-        if ((sec + usec) > 0) dsyslog("pass 6 (mark pictures):      time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
+        // mark pictures
+        sec = round(static_cast<double>(elapsedTime.markPictures) / 1000);
+        if (sec > 0) dsyslog("pass 6 (mark pictures):      time %5lds -> %ld:%02ld:%02ldh", sec, sec / 3600, (sec % 3600) / 60,  sec % 60);
 
         dsyslog("global statistics: --------------------------------------------------------------------------");
         int decodeTime_s = round(decodeTime_ms / 1000);
         dsyslog("decoding:                    time %5ds -> %d:%02d:%02dh", decodeTime_s, decodeTime_s / 3600, (decodeTime_s % 3600) / 60,  decodeTime_s % 60);
 
         gettimeofday(&endAll, nullptr);
-        sec  = endAll.tv_sec  - startAll.tv_sec;
-        usec = endAll.tv_usec - startAll.tv_usec;
+        sec              = endAll.tv_sec  - startAll.tv_sec;
+        suseconds_t usec = endAll.tv_usec - startAll.tv_usec;
         if (usec < 0) {
             usec += 1000000;
             sec--;
@@ -7439,9 +7434,7 @@ int main(int argc, char *argv[]) {
 
                 // write debug mark pictures
 #ifdef DEBUG_MARK_FRAMES
-                gettimeofday(&startTime6, nullptr);
                 cmasta->DebugMarkFrames(); // write frames picture of marks to recording directory
-                gettimeofday(&endTime6, nullptr);
 #endif
 
             }
@@ -7449,8 +7442,6 @@ int main(int argc, char *argv[]) {
         FREE(sizeof(*cmasta), "cmasta");
         delete cmasta;
         cmasta = nullptr;
-
-        gettimeofday(&endTime6, nullptr);
 
 #ifdef DEBUG_MEM
         memList();

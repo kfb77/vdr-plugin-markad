@@ -568,6 +568,9 @@ private:
     cDetectLogoStopStart *detectLogoStopStart             = nullptr;  //!< pointer to class cDetectLogoStopStart
     //!<
 
+    /**
+     * elapsed time of section
+     */
     struct sElapsedTime {
         int markDetection    = 0;    //!< elapsed time in ms for mark detection
         //!<
@@ -577,7 +580,9 @@ private:
         //!<
         int overlap          = 0;    //!< elapsed time in ms for overlap detection
         //!<
-        int cut              = 0;    //!< elepsed time in ms for video cut
+        int cut              = 0;    //!< elapsed time in ms for video cut
+        //!<
+        int markPictures     = 0;    //!< elapsed time in ms for debug mark position picture
         //!<
     } elapsedTime; //!< elapsed time statistics
 };
