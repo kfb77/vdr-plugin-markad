@@ -3016,93 +3016,17 @@ bool cMarkAdStandalone::CheckStartMark() {
 }
 
 
-
-// write all current marks to log file
-//
 void cMarkAdStandalone::DebugMarks() {           // write all marks to log file
-    dsyslog("***********************************************************************************************************************");
-    dsyslog("cMarkAdStandalone::DebugMarks(): current marks:");
-
-    // strong marks
-    cMark *mark = marks.GetFirst();
-    while (mark) {
-        const char *indexToHMSF = marks.GetTime(mark);
-        if (indexToHMSF) {
-            char *markType = marks.TypeToText(mark->type);
-            if (markType) {
-                if ((mark->type & 0x0F) == MT_START) LogSeparator(false);
-                if ((mark->type & 0xF0) == MT_MOVED) {
-                    char *markOldType = marks.TypeToText(mark->oldType);
-                    char *markNewType = marks.TypeToText(mark->newType);
-                    if (markOldType && markNewType) {
-                        dsyslog("mark at position %6d: %-5s %-18s at %s, PTS %10" PRId64 ", inBroadCast %d, old type: %s %s, new type: %s %s", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->pts, mark->inBroadCast, markOldType, ((mark->oldType & 0x0F) == MT_START)? "start" : "stop", markNewType, ((mark->newType & 0x0F) == MT_START)? "start" : "stop");
-                        FREE(strlen(markOldType)+1, "text");
-                        free(markOldType);
-                        FREE(strlen(markNewType)+1, "text");
-                        free(markNewType);
-                    }
-                }
-                else dsyslog("mark at position %6d: %-5s %-18s at %s, PTS %10" PRId64 ", inBroadCast %d", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->pts, mark->inBroadCast);
-                FREE(strlen(markType)+1, "text");
-                free(markType);
-            }
-            else dsyslog("cMarkAdStandalone::DebugMarks(): could not get type to mark (%d) type %d", mark->position, mark->type);
-        }
-        else esyslog("cMarkAdStandalone::DebugMarks(): could not get time to mark (%d) type %d", mark->position, mark->type);
-        mark = mark->Next();
-    }
+    marks.Debug();
 #ifdef DEBUG_WEAK_MARKS
     // weak marks
-    dsyslog("------------------------------------------------------------");
     dsyslog("cMarkAdStandalone::DebugMarks(): current black marks:");
-    mark = blackMarks.GetFirst();
-    while (mark) {
-        const char *indexToHMSF = marks.GetTime(mark);
-        if (indexToHMSF) {
-            char *markType = marks.TypeToText(mark->type);
-            if (markType) {
-                dsyslog("mark at position %6d: %-5s %-18s at %s, PTS %10ld, inBroadCast %d", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->pts, mark->inBroadCast);
-                FREE(strlen(markType)+1, "text");
-                free(markType);
-            }
-            else esyslog("cMarkAdStandalone::DebugMarks(): could not get type to mark (%d) type %d", mark->position, mark->type);
-        }
-        mark=mark->Next();
-    }
-    dsyslog("------------------------------------------------------------");
+    blackMarks.Debug();
     dsyslog("cMarkAdStandalone::DebugMarks(): current silence marks:");
-    mark = silenceMarks.GetFirst();
-    while (mark) {
-        const char *indexToHMSF = marks.GetTime(mark);
-        if (indexToHMSF) {
-            char *markType = marks.TypeToText(mark->type);
-            if (markType) {
-                dsyslog("mark at position %6d: %-5s %-18s at %s inBroadCast %d", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->inBroadCast);
-                FREE(strlen(markType)+1, "text");
-                free(markType);
-            }
-            else dsyslog("cMarkAdStandalone::DebugMarks(): could not get type to mark (%d) type %d", mark->position, mark->type);
-        }
-        mark=mark->Next();
-    }
-    dsyslog("------------------------------------------------------------");
+    silenceMarks.Debug();
     dsyslog("cMarkAdStandalone::DebugMarks(): current scene change marks:");
-    mark = sceneMarks.GetFirst();
-    while (mark) {
-        const char *indexToHMSF = marks.GetTime(mark);
-        if (indexToHMSF) {
-            char *markType = marks.TypeToText(mark->type);
-            if (markType) {
-                dsyslog("mark at position %6d: %-5s %-18s at %s inBroadCast %d", mark->position, ((mark->type & 0x0F) == MT_START)? "start" : "stop", markType, indexToHMSF, mark->inBroadCast);
-                FREE(strlen(markType)+1, "text");
-                free(markType);
-            }
-            else dsyslog("cMarkAdStandalone::DebugMarks(): could not get type to mark (%d) type %d", mark->position, mark->type);
-        }
-        mark=mark->Next();
-    }
+    sceneMarks.Debug();
 #endif
-    dsyslog("***********************************************************************************************************************");
 }
 
 
