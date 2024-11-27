@@ -1376,6 +1376,7 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 // special case opening logo sequence from kabel eins, unable to detect info logo change from this channel, too much and too short
 bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
     if (!mark) return false;
+    if (!criteria->IsInfoLogoChannel()) return false;
     // check logo start mark
     if (mark->type == MT_LOGOSTART) {
         // MT_LOGOSTART  (mark, info logo detected as logo) -> MT_LOGOSTOP (change from info logo to logo) -> MT_LOGOSTART (logo) -> MT_LOGOSTOP (end of first part)
