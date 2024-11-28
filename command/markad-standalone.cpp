@@ -2448,10 +2448,10 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     // check if we have marks from an unreliable small vborder
     if (vStart && criteria->LogoInBorder()) {
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): check if vborder marks are valid");
-        // we habe logo in border, all vborder marks should have a same type logo mark around
+        // we have logo in border, all vborder marks should have a same type logo mark around
         cMark *vMark = vStart;
         while (vMark) {
-            cMark *logoMark = marks.GetAround(30 * decoder->GetVideoFrameRate(), vMark->position, vMark->type - MT_VBORDERCHANGE + MT_LOGOCHANGE);
+            cMark *logoMark = marks.GetAround(35 * decoder->GetVideoFrameRate(), vMark->position, vMark->type - MT_VBORDERCHANGE + MT_LOGOCHANGE); // changed from 30 to 35, preview with logo direct to broacast start
             if (logoMark) dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder mark (%d): found logo mark (%d)", vMark->position, logoMark->position);
             else {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder mark (%d): no logo mark around found, vborder marks are invalid", vMark->position);
