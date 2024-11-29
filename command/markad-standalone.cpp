@@ -3208,8 +3208,9 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                             (prevLogoStart_Stop     >= 11720) && (prevLogoStart_Stop     <  653840) &&
                             (stop_nextLogoStart     >=   360) && (stop_nextLogoStart     <=   4360) &&
                             (nextLogoStart_nextStop >=  1560) && (nextLogoStart_nextStop <= 676760)) {
-                        cMark *black = blackMarks.GetAround(1 * decoder->GetVideoFrameRate(), mark->position, MT_BLACKCHANGE, 0xF0);
-                        if (black) dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair short but black screen around, stop mark is valid", mark->position, nextLogoStart->position);
+                        cMark *blackAoundStop  = blackMarks.GetAround(1 * decoder->GetVideoFrameRate(), mark->position, MT_BLACKCHANGE, 0xF0);
+                        cMark *blackAoundStart = blackMarks.GetAround(1 * decoder->GetVideoFrameRate(), nextLogoStart->position, MT_BLACKCHANGE, 0xF0);
+                        if (blackAoundStop || blackAoundStart) dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair short but black screen around, marks are valid", mark->position, nextLogoStart->position);
                         else {
                             dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from short logo interruption, deleting", mark->position, nextLogoStart->position);
                             cMark *tmp = nextStop;
