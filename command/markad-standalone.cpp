@@ -789,7 +789,7 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
     // check start mark
     if (mark->type == MT_LOGOSTART) {
         // check sequence MT_LOGOSTOP -> MT_SOUNDSTOP -> MT_SOUNDSTART -> MT_LOGOSTART (mark) -> MT_LOGOSTOP
-        // does only work for short stop/start sequence without long ad between previous and current broadcast
+        // long broadcast part after logo start mark required to prevent false positiv
         // too much false positiv otherwise
         cMark *silenceStop  = silenceMarks.GetPrev(mark->position, MT_SOUNDSTART);
         cMark *nextLogoStop = marks.GetNext(mark->position, MT_LOGOSTOP);
@@ -830,35 +830,6 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                 }
             }
         }
-        // check sequence MT_LOGOSTOP -> MT_SOUNDSTOP -> MT_SOUNDSTART -> MT_LOGOSTART
-        // silence before logo start
-        silenceStop = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTART);   // end of silence can be on same frame as logo start
-        if (silenceStop) {
-            cMark *silenceStart = silenceMarks.GetPrev(silenceStop->position, MT_SOUNDSTOP);
-            if (silenceStart) {
-                cMark *logoStop = marks.GetPrev(silenceStart->position, MT_LOGOSTOP);
-                if (logoStop) {
-                    int logoStopSilenceStart    = 1000 * (silenceStart->position - logoStop->position)     / decoder->GetVideoFrameRate();
-                    int silenceStartSilenceStop = 1000 * (silenceStop->position  - silenceStart->position) / decoder->GetVideoFrameRate();
-                    int silenceStopLogoStart    = 1000 * (mark->position         - silenceStop->position)  / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%6d) -> %6dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_SOUNDSTART (%6d) -> %4dms -> MT_LOGOSTART (%6d) -> %s", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartSilenceStop, silenceStop->position, silenceStopLogoStart, mark->position, macontext.Info.ChannelName);
-// valid example
-// MT_LOGOSTOP (  7444) ->  24040ms -> MT_SOUNDSTOP (  8045) ->   80ms -> MT_SOUNDSTART (  8047) ->  760ms -> MT_LOGOSTART (  8066) -> Disney_Channel
-//
-// invalid example
-// MT_LOGOSTOP (  2028) -> 104400ms -> MT_SOUNDSTOP (  4638) ->  400ms -> MT_SOUNDSTART (  4648) ->  600ms -> MT_LOGOSTART (  4663) -> Comedy_Central, silence before first ad
-                    if ((logoStopSilenceStart        >=  24040) && (logoStopSilenceStart < 104400) &&
-                            (silenceStartSilenceStop >=     80) &&
-                            (silenceStopLogoStart    <=    760)) {
-                        dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence sequence before logo start is valid", mark->position);
-                        return true;
-                    }
-                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence sequence before logo start is invalid", mark->position);
-                }
-            }
-        }
-
-
         // check sequence MT_LOGOSTOP -> MT_SOUNDSTOP -> MT_LOGOSTART -> MT_SOUNDSTART
         // silence around logo start
         silenceStop = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTART);   // end of silence can be on same frame as logo start
