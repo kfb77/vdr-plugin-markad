@@ -1344,7 +1344,7 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
     if (!criteria->IsInfoLogoChannel()) return false;
     // check logo start mark
     if (mark->type == MT_LOGOSTART) {
-        // MT_LOGOSTART  (mark, info logo detected as logo) -> MT_LOGOSTOP (change from info logo to logo) -> MT_LOGOSTART (logo) -> MT_LOGOSTOP (end of first part)
+        // MT_LOGOSTART  (mark, info logo detected as logo) -> MT_LOGOSTOP (change from info logo to logo) -> MT_LOGOSTART (logo) -> MT_LOGOSTOP (long broadcast to end of first part)
         cMark *stop1After = marks.GetNext(mark->position, MT_LOGOSTOP);
         if (!stop1After) return false;
         cMark *start2After = marks.GetNext(stop1After->position, MT_LOGOSTART);
@@ -1355,20 +1355,16 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
         int diffMarkStop1After          = 1000 * (stop1After->position  - mark->position)        / decoder->GetVideoFrameRate();
         int diffStop1AfterStart2After   = 1000 * (start2After->position - stop1After->position)  / decoder->GetVideoFrameRate();
         int diffStStart2AfterStop2After = 1000 * (endPart1Pos            - start2After->position) / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %4dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d) -> %4ds -> MT_LOGOSTOP (%5d) -> %s", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position, diffStStart2AfterStop2After, endPart1Pos, macontext.Info.ChannelName);
+        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %4dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d) -> %6ds -> MT_LOGOSTOP (%5d) -> %s", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position, diffStStart2AfterStop2After, endPart1Pos, macontext.Info.ChannelName);
         // valid logo start mark example
-        // MT_LOGOSTART ( 5439) -> 5920ms -> MT_LOGOSTOP ( 5587) -> 1120ms -> MT_LOGOSTART ( 5615)                                  -> kabel eins
-        // MT_LOGOSTART ( 7913) -> 4480ms -> MT_LOGOSTOP ( 8025) -> 2200ms -> MT_LOGOSTART ( 8080)                                  -> kabel eins
-        // MT_LOGOSTART ( 8298) -> 7760ms -> MT_LOGOSTOP ( 8492) -> 1080ms -> MT_LOGOSTART ( 8519)                                  -> kabel eins
-        // MT_LOGOSTART ( 8786) -> 7840ms -> MT_LOGOSTOP ( 8982) -> 1080ms -> MT_LOGOSTART ( 9009) -> 13680s -> MT_LOGOSTOP ( 9351) -> kabel eins
+        // MT_LOGOSTART ( 8374) -> 6240ms -> MT_LOGOSTOP ( 8530) ->  840ms -> MT_LOGOSTART ( 8551) -> 1992840s -> MT_LOGOSTOP (58372) -> kabel_eins
         //
         // invald logo start mark example
-        // MT_LOGOSTART ( 3833) ->  480ms -> MT_LOGOSTOP ( 3845) ->  480ms -> MT_LOGOSTART ( 3857) -> DMAX
-        // MT_LOGOSTART ( 3459) -> 5880ms -> MT_LOGOSTOP ( 3606) -> 1160ms -> MT_LOGOSTART ( 3635) -> 20800s -> MT_LOGOSTOP ( 4155) -> kabel eins, end sequence of broadcast before
-        // MT_LOGOSTART ( 3744) -> 6040ms -> MT_LOGOSTOP ( 3895) -> 1160ms -> MT_LOGOSTART ( 3924) -> 20960s -> MT_LOGOSTOP ( 4448) -> kabel eins, end sequence of broadcast before
+        // MT_LOGOSTART ( 3459) -> 5880ms -> MT_LOGOSTOP ( 3606) -> 1160ms -> MT_LOGOSTART ( 3635) ->   20800s -> MT_LOGOSTOP ( 4155) -> kabel eins, end sequence of broadcast before
+        // MT_LOGOSTART ( 3744) -> 6040ms -> MT_LOGOSTOP ( 3895) -> 1160ms -> MT_LOGOSTART ( 3924) ->   20960s -> MT_LOGOSTOP ( 4448) -> kabel eins, end sequence of broadcast before
         if (    (diffMarkStop1After          >= 4480) && (diffMarkStop1After        <= 7840) &&
-                (diffStop1AfterStart2After   >= 1080) && (diffStop1AfterStart2After <= 2200) &&
-                (diffStStart2AfterStop2After <= 13680)) {
+                (diffStop1AfterStart2After   >=  840) && (diffStop1AfterStart2After <= 2200) &&
+                (diffStStart2AfterStop2After > 20960)) {
             dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): opening info logo sequence is valid");
             return true;
         }
