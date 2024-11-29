@@ -930,11 +930,12 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
 // MT_LOGOSTART ( 79759) ->  224880s -> MT_LOGOSTOP ( 85381) ->  240ms -> MT_SOUNDSTOP ( 85387) ->   40ms -> MT_SOUNDSTART ( 85388) ->   240ms -> MT_START ( 85394) -> VOX
 // MT_LOGOSTART ( 96625) ->   11840s -> MT_LOGOSTOP ( 96921) -> 1640ms -> MT_SOUNDSTOP ( 96962) ->   80ms -> MT_SOUNDSTART ( 96964) ->  1320ms -> MT_START ( 96997) -> TLC
 // MT_LOGOSTART ( 37067) ->   26000s -> MT_LOGOSTOP ( 37717) ->  880ms -> MT_SOUNDSTOP ( 37739) ->  160ms -> MT_SOUNDSTART ( 37743) -> 14960ms -> MT_LOGOT ( 38117) -> Comedy_Central
+// MT_LOGOSTART ( 55133) ->   37680s -> MT_LOGOSTOP ( 56075) ->  840ms -> MT_SOUNDSTOP ( 56096) ->   40ms -> MT_SOUNDSTART ( 56097) ->  2120ms -> MT_START ( 56150) -> Comedy_Central
 //
 // invalid sequence
 // MT_LOGOSTART ( 87985) ->    1400s -> MT_LOGOSTOP ( 88020) -> 4840ms -> MT_SOUNDSTOP ( 88141) ->  160ms -> MT_SOUNDSTART ( 88145) ->  8400ms -> MT_START ( 88355) -> DMAX
 // MT_LOGOSTART ( 48324) ->   95520s -> MT_LOGOSTOP ( 50712) ->  240ms -> MT_SOUNDSTOP ( 50718) ->  320ms -> MT_SOUNDSTART ( 50726) -> 12720ms -> MT_START ( 51044) -> Comedy_Central
-                        if (  (((logoStartLogoStop >= 10400)  && (logoStartLogoStop <= 31760)) ||  // end of info logo before (or logo interuption at end of broadcast on TLC)
+                        if (  (((logoStartLogoStop >= 10400)  && (logoStartLogoStop <= 37680)) ||  // end of undetected info logo or short logo interuption from TLC/Comedy_Central
                                 (logoStartLogoStop >  95520)) &&                                   // no info logo before
                                 (logoStopSilenceStart    <= 1640) &&   // silence start short after end mark
                                 (silenceStartSilenceStop >=   40) && (silenceStartSilenceStop <=  1160) &&
