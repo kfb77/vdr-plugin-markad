@@ -149,6 +149,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
     }
     for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): add stop (%d) start (%d) pair:", logoPairIterator->stopPosition, logoPairIterator->startPosition);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  hasBorder              %2d", logoPairIterator->hasBorder);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isLogoChange           %2d", logoPairIterator->isLogoChange);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isAdInFrame            %2d", logoPairIterator->isAdInFrame);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isStartMarkInBroadcast %2d", logoPairIterator->isStartMarkInBroadcast);
@@ -497,7 +498,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     }
     // check blackscreen after stop/start
     // if direct after logo start is a blackscreen mark stop/start pair, this logo stop is a valid stop mark with closing credits after
-    blackStop = blackMarks->GetNext(logoStopStartPair->startPosition - 1, MT_NOBLACKSTOP);  // blackscreen can stop at the same position as logo stop
+    blackStop  = blackMarks->GetNext(logoStopStartPair->startPosition - 1, MT_NOBLACKSTOP);  // blackscreen can stop at the same position as logo stop
     blackStart = blackMarks->GetNext(logoStopStartPair->startPosition - 1, MT_NOBLACKSTART); // blackscreen can start at the same position as logo stop
     if (blackStop && blackStart) {
         int diff = 1000 * (blackStart->position - logoStopStartPair->startPosition) / frameRate;
@@ -511,6 +512,16 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
     }
     dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           +++++ stop (%d) start (%d) pair: possible info logo section found, length  %dms (expect >=%dms and <=%dms)", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, length, LOGO_INFO_LENGTH_MIN, LOGO_INFO_LENGTH_MAX);
     logoStopStartPair->isInfoLogo = STATUS_UNKNOWN;
+    // this is a possible info logo stop/start pair, check if there is a hborder aktiv (can be from documentations)
+    // in this case we can not (and need not) check for frame or still picture
+    cMark *hBorderStartBefore = marks->GetPrev(logoStopStartPair->stopPosition, MT_HBORDERSTART);
+    if (hBorderStartBefore) {
+        cMark *hBorderStopAfter = marks->GetNext(hBorderStartBefore->position, MT_HBORDERSTOP);
+        if (hBorderStopAfter && (hBorderStopAfter->position >= logoStopStartPair->startPosition)) {
+            dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: active hborder from (%d) to (%d) found", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, hBorderStartBefore->position, hBorderStopAfter->position);
+            logoStopStartPair->hasBorder = true;
+        }
+    }
     return;
 }
 
@@ -526,6 +537,7 @@ bool cEvaluateLogoStopStartPair::GetNextPair(sLogoStopStartPair *logoStopStartPa
     }
     logoStopStartPair->stopPosition           = nextLogoPairIterator->stopPosition;
     logoStopStartPair->startPosition          = nextLogoPairIterator->startPosition;
+    logoStopStartPair->hasBorder              = nextLogoPairIterator->hasBorder;
     logoStopStartPair->isLogoChange           = nextLogoPairIterator->isLogoChange;
     logoStopStartPair->isInfoLogo             = nextLogoPairIterator->isInfoLogo;
     logoStopStartPair->isAdInFrame            = nextLogoPairIterator->isAdInFrame;
@@ -1111,7 +1123,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 }
 
 
-bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos) {
+bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos, const bool hasBorder) {
     if (!decoder) return false;
     if (compareResult.empty()) return false;
     if ((logoCorner < 0) || (logoCorner >= CORNERS)) {
@@ -1124,7 +1136,7 @@ bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos) {
         return false;
     }
 
-    dsyslog("cDetectLogoStopStart::IsInfoLogo(): detect from (%d) to (%d)", startPos, endPos);
+    dsyslog("cDetectLogoStopStart::IsInfoLogo(): detect from (%d) to (%d), hasBorder %d", startPos, endPos, hasBorder);
     int frameRate = decoder->GetVideoFrameRate();
 
     // start and stop frame of assumed info logo section
@@ -1242,7 +1254,7 @@ bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos) {
     if (staticQuote >= MAX_STATIC_QUOTE) found = false;
 
     // check if "no logo" corner has same matches as logo corner, in this case it must be a static scene (e.g. static preview picture in frame or adult warning) and no info logo
-    if (found) {
+    if (found && !hasBorder) {
         infoLogo.matchRestCornerCountFinal /= 3;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): count matches greater than limit of %d: %d logo corner, avg rest corners %d", INFO_LOGO_MACTH_MIN, infoLogo.matchLogoCornerCountFinal, infoLogo.matchRestCornerCountFinal);
         if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 9)) {  // changed from 3 to 9, part time static separator picture with blends (kabel eins)

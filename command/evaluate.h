@@ -273,9 +273,12 @@ public:
     /**
      * a info logo is a static alternate logo (e.g. telexext info) <br>
      * fade in/out is possible
+     * @param startPos  start position of possible info logo
+     * @param endPos    end position of possible info logo
+     * @param hasBorder true if there is a vborder or hborder from startPos to endPos
      * @return true if part is info logo, false otherwise
      */
-    bool IsInfoLogo(int startPos, int endPos);
+    bool IsInfoLogo(int startPos, int endPos, const bool hasBorder);
 
 /// check for logo change
     /**
