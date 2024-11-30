@@ -3121,8 +3121,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART ( 70977) ->   83260ms -> MT_LOGOSTOP ( 75140) ->    1020ms -> MT_LOGOSTART ( 75191) -> 1536500ms -> MT_STOP (152016)
 // MT_LOGOSTART ( 13993) -> 1092500ms -> MT_LOGOSTOP ( 68618) ->    1700ms -> MT_LOGOSTART ( 68703) ->   82620ms -> MT_STOP ( 72834)
 // MT_LOGOSTART ( 14595) ->  752000ms -> MT_LOGOSTOP ( 52195) ->    2500ms -> MT_LOGOSTART ( 52320) ->  718960ms -> MT_STOP ( 88268) -> ZDFinfo_HD
-                    if ((prevLogoStart_Stop     >= 83260) &&
-                            (stop_nextLogoStart     <= 2500) &&
+                    if (    (prevLogoStart_Stop     >= 83260) &&
+                            (stop_nextLogoStart     <=  2500) &&
                             (nextLogoStart_nextStop >= 82620)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from logo detection failure, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
@@ -3191,39 +3191,21 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                         continue;
                     }
 // invalid stop/start pair from short logo interruption channel, delete pair
-// a valid logo stop mark have black screen around logo stop
-//
-// invald logo stop/start pair
-// MT_LOGOSTART ( 30526) ->   23840ms -> MT_LOGOSTOP ( 31122) ->     360ms -> MT_LOGOSTART ( 31131) ->  431040ms -> MT_STOP ( 41907) -> Comedy_Central: logo interruption
-// MT_LOGOSTART ( 30498) ->   11720ms -> MT_LOGOSTOP ( 30791) ->    1040ms -> MT_LOGOSTART ( 30817) ->    5120ms -> MT_STOP ( 30945) -> Comedy_Central: logo interruption
-// MT_LOGOSTART ( 30797) ->   23840ms -> MT_LOGOSTOP ( 31393) ->     400ms -> MT_LOGOSTART ( 31403) ->  532280ms -> MT_STOP ( 44710) -> Comedy_Central: logo interruption
-// MT_LOGOSTART ( 30498) ->   17880ms -> MT_LOGOSTOP ( 30945) ->     760ms -> MT_LOGOSTART ( 30964) ->  635200ms -> MT_STOP ( 46844) -> Comedy_Central: logo interruption
-// MT_LOGOSTART ( 10247) ->  186080ms -> MT_LOGOSTOP ( 14899) ->     520ms -> MT_LOGOSTART ( 14912) ->   11600ms -> MT_STOP ( 15202) -> Comedy_Central: logo interruption
-// MT_LOGOSTART (  4725) ->  198360ms -> MT_LOGOSTOP (  9684) ->     520ms -> MT_LOGOSTART (  9697) ->   17920ms -> MT_STOP ( 10145) -> Comedy_Central: logo interruption
-// MT_LOGOSTART ( 31403) ->  493680ms -> MT_LOGOSTOP ( 43745) ->     920ms -> MT_LOGOSTART ( 43768) ->   37680ms -> MT_STOP ( 44710) -> Comedy_Central: logo interruption
-// MT_LOGOSTART ( 30498) ->  653840ms -> MT_LOGOSTOP ( 46844) ->     560ms -> MT_LOGOSTART ( 46858) ->   26000ms -> MT_STOP ( 47508) -> Comedy_Central: logo interruption
-// MT_LOGOSTART ( 16305) ->   34920ms -> MT_LOGOSTOP ( 17178) ->    1160ms -> MT_LOGOSTART ( 17207) ->    5000ms -> MT_STOP ( 17332) -> Comedy_Central: logo interruption
-// MT_LOGOSTART ( 37831) ->  131040ms -> MT_LOGOSTOP ( 41107) ->    1480ms -> MT_LOGOSTART ( 41144) ->   38000ms -> MT_STOP ( 42094) -> Comedy_Central: logo interruption
-// MT_LOGOSTART ( 24904) ->   17960ms -> MT_LOGOSTOP ( 25353) ->     680ms -> MT_LOGOSTART ( 25370) ->  676760ms -> MT_STOP ( 42289) -> Comedy_Central: logo interruption
-// MT_LOGOSTART (  9697) ->   17920ms -> MT_LOGOSTOP ( 10145) ->    4360ms -> MT_LOGOSTART ( 10254) ->    1560ms -> MT_STOP ( 10293) -> Comedy_Central: logo interruption
-//
-// valid logo stop/start pair
-// MT_LOGOSTART ( 37656) ->    5280ms -> MT_LOGOSTOP ( 37788) ->    2880ms -> MT_LOGOSTART ( 37860) ->  169440ms -> MT_STOP ( 42096) -> Comedy_Central
+// delete more aggressiv
+// example of logo stop/start pair from logo interruption
+// MT_LOGOSTART ( 42010) ->   17800ms -> MT_LOGOSTOP ( 42455) ->     840ms -> MT_LOGOSTART ( 42476) ->  543960ms -> MT_STOP ( 56075) -> Comedy_Central
+// MT_LOGOSTART ( 10503) ->  158960ms -> MT_LOGOSTOP ( 14477) ->     520ms -> MT_LOGOSTART ( 14490) ->   11600ms -> MT_STOP ( 14780) -> Comedy_Central
+// MT_LOGOSTART ( 10503) ->  575520ms -> MT_LOGOSTOP ( 24891) ->     520ms -> MT_LOGOSTART ( 24904) ->   11760ms -> MT_STOP ( 25198) -> Comedy_Central
                     if (criteria->IsLogoInterruptionChannel() &&
-                            (prevLogoStart_Stop     >= 11720) && (prevLogoStart_Stop     <  653840) &&
-                            (stop_nextLogoStart     >=   360) && (stop_nextLogoStart     <=   4360) &&
-                            (nextLogoStart_nextStop >=  1560) && (nextLogoStart_nextStop <= 676760)) {
-                        cMark *blackAoundStop  = blackMarks.GetAround(1 * decoder->GetVideoFrameRate(), mark->position, MT_BLACKCHANGE, 0xF0);
-                        cMark *blackAoundStart = blackMarks.GetAround(1 * decoder->GetVideoFrameRate(), nextLogoStart->position, MT_BLACKCHANGE, 0xF0);
-                        if (blackAoundStop || blackAoundStart) dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair short but black screen around, marks are valid", mark->position, nextLogoStart->position);
-                        else {
-                            dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from short logo interruption, deleting", mark->position, nextLogoStart->position);
-                            cMark *tmp = nextStop;
-                            marks.Del(nextLogoStart);
-                            marks.Del(mark);
-                            mark = tmp;
-                            continue;
-                        }
+                            (prevLogoStart_Stop     >= 17800) && (prevLogoStart_Stop     <= 575520) &&
+                            (stop_nextLogoStart     >=   520) && (stop_nextLogoStart     <=    840) &&
+                            (nextLogoStart_nextStop >= 11600) && (nextLogoStart_nextStop <= 543960)) {
+                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from logo change, deleting", mark->position, nextLogoStart->position);
+                        cMark *tmp = nextStop;
+                        marks.Del(nextLogoStart);
+                        marks.Del(mark);
+                        mark = tmp;
+                        continue;
                     }
                 }
             }
