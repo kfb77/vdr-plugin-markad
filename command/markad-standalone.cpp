@@ -1234,31 +1234,32 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
             }
         }
 
-        // check sequence: MT_LOGOSTOP -> MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_START
+        // check sequence: MT_LOGOSTART -> MT_LOGOSTOP (mark) -> MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_START
         // black screen between logo end mark and start of next broadcast, near (depends on fade out logo) by logo end mark
-        cMark *blackStart = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTOP);
-        if (blackStart) {
+        cMark *logoStartBefore = marks.GetPrev(mark->position, MT_LOGOSTART);
+        cMark *blackStart      = blackMarks.GetNext(mark->position - 1, MT_NOBLACKSTOP);
+        if (logoStartBefore && blackStart) {
             blackStop = blackMarks.GetNext(blackStart->position, MT_NOBLACKSTART);
             if (blackStop) {
                 cMark *nextStart = marks.GetNext(mark->position, MT_START, 0x0F);  // next broadcast can have border start mark and no logo start mark
                 if (nextStart) {
-                    int diffLogoStopBlackStart  = 1000 * (blackStart->position - mark->position)       /  decoder->GetVideoFrameRate();
-                    int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position) /  decoder->GetVideoFrameRate();
-                    int diffBlackStopLogoStart  = 1000 * (nextStart->position  - blackStop->position)  /  decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP (%5d) -> %5dms -> MT_NOBLACKSTOP (%5d) -> %5dms ->  MT_NOBLACKSTART (%5d) -> %6dms -> MT_START (%5d) -> %s", mark->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, nextStart->position, macontext.Info.ChannelName);
+                    int diffLogoStartLogoStop   = 1000 * (mark->position       - logoStartBefore->position) /  decoder->GetVideoFrameRate();
+                    int diffLogoStopBlackStart  = 1000 * (blackStart->position - mark->position)            /  decoder->GetVideoFrameRate();
+                    int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position)      /  decoder->GetVideoFrameRate();
+                    int diffBlackStopLogoStart  = 1000 * (nextStart->position  - blackStop->position)       /  decoder->GetVideoFrameRate();
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTART (%5d) -> %4dms -> MT_LOGOSTOP (%5d) -> %5dms -> MT_NOBLACKSTOP (%5d) -> %5dms ->  MT_NOBLACKSTART (%5d) -> %6dms -> MT_START (%5d) -> %s", logoStartBefore->position, diffLogoStartLogoStop, mark->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, nextStart->position, macontext.Info.ChannelName);
 // channel with fade out logo
 // valid sequence:
-// MT_LOGOSTOP (72210) ->  1400ms -> MT_NOBLACKSTOP (72245) ->   200ms ->  MT_NOBLACKSTART (72250) -> 104320ms -> MT_START (74858) -> TLC
-// MT_LOGOSTOP (86133) ->  1320ms -> MT_NOBLACKSTOP (86166) ->  2120ms ->  MT_NOBLACKSTART (86219) ->  16000ms -> MT_START (86619) -> Disney Channel
-// MT_LOGOSTOP (72310) ->  4240ms -> MT_NOBLACKSTOP (72416) ->   440ms ->  MT_NOBLACKSTART (72427) ->    800ms -> MT_START (72447) -> Disney Channel
-// MT_LOGOSTOP (47508) ->   840ms -> MT_NOBLACKSTOP (47529) ->   120ms ->  MT_NOBLACKSTART (47532) ->  13040ms -> MT_START (47858) -> Comedy Central
-// MT_LOGOSTOP (43346) ->  6560ms -> MT_NOBLACKSTOP (43510) ->   120ms ->  MT_NOBLACKSTART (43513) ->  20040ms -> MT_START (44014) -> Comedy Central
+//                                   MT_LOGOSTOP (72210) ->  1400ms -> MT_NOBLACKSTOP (72245) ->   200ms ->  MT_NOBLACKSTART (72250) -> 104320ms -> MT_START (74858) -> TLC
+//                                   MT_LOGOSTOP (86133) ->  1320ms -> MT_NOBLACKSTOP (86166) ->  2120ms ->  MT_NOBLACKSTART (86219) ->  16000ms -> MT_START (86619) -> Disney Channel
+//                                   MT_LOGOSTOP (72310) ->  4240ms -> MT_NOBLACKSTOP (72416) ->   440ms ->  MT_NOBLACKSTART (72427) ->    800ms -> MT_START (72447) -> Disney Channel
+//                                   MT_LOGOSTOP (47508) ->   840ms -> MT_NOBLACKSTOP (47529) ->   120ms ->  MT_NOBLACKSTART (47532) ->  13040ms -> MT_START (47858) -> Comedy Central
+//                                   MT_LOGOSTOP (43346) ->  6560ms -> MT_NOBLACKSTOP (43510) ->   120ms ->  MT_NOBLACKSTART (43513) ->  20040ms -> MT_START (44014) -> Comedy Central
 //
 // invalid sequence:
-// MT_LOGOSTOP (38975) ->  1360ms -> MT_NOBLACKSTOP (39009) ->   120ms ->  MT_NOBLACKSTART (39012) ->   4520ms -> MT_LOGOSTART (39125) -> Nickelodeon, black screen after preview (conflict)
-// MT_LOGOSTOP (39756) ->  1480ms -> MT_NOBLACKSTOP (39793) ->   120ms ->  MT_NOBLACKSTART (39796) ->   4520ms -> MT_LOGOSTART (39909) -> Nickelodeon, black screen after preview (conflict)
-//
+// MT_LOGOSTART (56190) ->  360ms -> MT_LOGOSTOP (56199) ->   520ms -> MT_NOBLACKSTOP (56212) ->   240ms ->  MT_NOBLACKSTART (56218) ->  16880ms -> MT_START (56640) -> Comedy_Central
                     if ((criteria->LogoFadeInOut() & FADE_OUT) &&
+                            (diffLogoStartLogoStop > 360) &&
                             (diffLogoStopBlackStart <= 6560) && (diffBlackStartBlackStop >=    120) &&
                             (diffBlackStopLogoStart >=  800) && (diffBlackStopLogoStart  <= 104320)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence between logo end mark and start of next broadcast is valid (fade out logo)", mark->position);
