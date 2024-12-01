@@ -883,16 +883,18 @@ int64_t cDecoder::GetPacketDuration() const {
 
 
 int cDecoder::GetVolume() {
-    if (!fullDecode) return -1;                           // no audio frames decoded
+    if (!fullDecode)                         return -1;   // no audio frames decoded
     if (avpkt.stream_index != firstMP2Index) return -1;   // only check first MP2 stream
-    if (avpkt.pts < index->GetStartPTS())    return -1;   // audio PTS is before video stream start
+    if (avpkt.pts < index->GetStartPTS())    return -1;   // audio starts before video stream, ignore audio packets with PTS before video stream start PTS
 
     // get volume of MP2 frame
     if (avFrame.format == AV_SAMPLE_FMT_S16P) {
         int level = 0;
 #if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
+        int noSilenceLimit = avFrame.nb_samples * avFrame.ch_layout.nb_channels * MIN_NONSILENCE_VOLUME;
         for (int channel = 0; channel < avFrame.ch_layout.nb_channels; channel++)
 #else
+        int noSilenceLimit = avFrame.nb_samples * avFrame.channels * MIN_NONSILENCE_VOLUME;
         for (int channel = 0; channel < avFrame.channels; channel++)
 #endif
         {
@@ -900,11 +902,7 @@ int cDecoder::GetVolume() {
             for (int sample = 0; sample < avFrame.nb_samples; sample++) {
                 level += abs(samples[sample]);
 #if !defined(DEBUG_VOLUME)
-#if LIBAVCODEC_VERSION_INT >= ((59<<16)+( 25<<8)+100)
-                if ((level / avFrame.nb_samples / avFrame.ch_layout.nb_channels) > MIN_NONSILENCE_VOLUME) break;  // non silence reached
-#else
-                if ((level / avFrame.nb_samples / avFrame.channels)              > MIN_NONSILENCE_VOLUME) break;  // non silence reached
-#endif
+                if (level > noSilenceLimit) break;  // non silence reached
 #endif
             }
         }
