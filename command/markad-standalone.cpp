@@ -2916,12 +2916,12 @@ bool cMarkAdStandalone::CheckStartMark() {
                         }
 // check for very short first ad, which is usually between broadcasts, but take care of undetected info logo
 // example of valid logo start mark
-// MT_LOGOSTART (13699) |246s| -> 172s -> MT_LOGOSTOP (18002) ->    0s ->  MT_LOGOSTART (18011) |419s| ->  397s -> MT_LOGOSTOP ( 27952) -> Comedy Central: info logo
-// MT_LOGOSTART (11703) |167s| -> 175s -> MT_LOGOSTOP (16094) ->    0s ->  MT_LOGOSTART (16105) |343s| ->  425s -> MT_LOGOSTOP ( 26745) -> Comedy Central: info logo
-// MT_LOGOSTART (11919) |176s| -> 191s -> MT_LOGOSTOP (16717) ->    0s ->  MT_LOGOSTART (16728) |369s| ->  574s -> MT_LOGOSTOP ( 31092) -> Comedy Central: info logo
-// MT_LOGOSTART ( 4725) |  9s| -> 216s -> MT_LOGOSTOP (10145) ->    6s ->  MT_LOGOSTART (10303) |232s| ->  501s -> MT_LOGOSTOP ( 22838) -> Comedy Central: info logo
-// MT_LOGOSTART ( 7733) |  8s| -> 130s -> MT_LOGOSTOP (10984) ->    0s ->  MT_LOGOSTART (10994) |138s| ->  501s -> MT_LOGOSTOP ( 23533) -> Comedy Central: info logo
-// MT_LOGOSTART ( 7486) |  0s| ->  94s -> MT_LOGOSTOP ( 9858) ->    0s ->  MT_LOGOSTART ( 9868) | 94s| ->  472s -> MT_LOGOSTOP ( 21678) -> Comedy Central: info logo
+// MT_LOGOSTART (13699) | 246s| -> 172s -> MT_LOGOSTOP (18002) ->    0s ->  MT_LOGOSTART (18011) | 419s| ->  397s -> MT_LOGOSTOP ( 27952) -> Comedy Central: info logo
+// MT_LOGOSTART (11703) | 167s| -> 175s -> MT_LOGOSTOP (16094) ->    0s ->  MT_LOGOSTART (16105) | 343s| ->  425s -> MT_LOGOSTOP ( 26745) -> Comedy Central: info logo
+// MT_LOGOSTART (11919) | 176s| -> 191s -> MT_LOGOSTOP (16717) ->    0s ->  MT_LOGOSTART (16728) | 369s| ->  574s -> MT_LOGOSTOP ( 31092) -> Comedy Central: info logo
+// MT_LOGOSTART ( 4725) |   9s| -> 216s -> MT_LOGOSTOP (10145) ->    6s ->  MT_LOGOSTART (10303) | 232s| ->  501s -> MT_LOGOSTOP ( 22838) -> Comedy Central: info logo
+// MT_LOGOSTART ( 7733) |   8s| -> 130s -> MT_LOGOSTOP (10984) ->    0s ->  MT_LOGOSTART (10994) | 138s| ->  501s -> MT_LOGOSTOP ( 23533) -> Comedy Central: info logo
+// MT_LOGOSTART ( 7486) |   0s| ->  94s -> MT_LOGOSTOP ( 9858) ->    0s ->  MT_LOGOSTART ( 9868) |  94s| ->  472s -> MT_LOGOSTOP ( 21678) -> Comedy Central: info logo
 //
 // example of invalid logo start mark, delete first start/stop pair
 // MT_LOGOSTART ( 6059)         -> 181s -> MT_LOGOSTOP (15142) ->   35s ->  MT_LOGOSTART (16925)         -> 5342s -> MT_LOGOSTOP (284034) -> Das Erste HD, first part is Tagesschau
