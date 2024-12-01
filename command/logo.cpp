@@ -475,13 +475,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 126;
         }
 
-//   1 NITRO                   16:9  720W  576H:->  112W 106H TOP_LEFT
+//   2 NITRO                   16:9  720W  576H:->  110W  64H TOP_LEFT
+//   3 NITRO                   16:9  720W  576H:->  112W  64H TOP_LEFT
 //   1 NITRO                    4:3  720W  576H:->  130W  62H TOP_LEFT
         if (CompareChannelName(channelName, "NITRO", IGNORE_NOTHING)) {
             logo.widthMin  = 102;
             logo.widthMax  = 140;
             logo.heightMin =  52;
-            logo.heightMax = 116;
+            logo.heightMax =  74;
         }
 
         if ((CompareChannelName(channelName, "n-tv", IGNORE_COUNTRY)) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
@@ -528,6 +529,8 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 110;
         }
 
+//     RTLZWEI                 16:9  720W  576H:->   72W  84H TOP_RIGHT       -> wrong logo from ad
+//
 //   9 RTLZWEI                 16:9  720W  576H:->   82W  78H BOTTOM_RIGHT
 //  27 RTLZWEI                 16:9  720W  576H:->   82W  80H BOTTOM_RIGHT
 //   2 RTLZWEI                  4:3  720W  576H:->   98W  78H BOTTOM_RIGHT
@@ -535,7 +538,7 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         if (CompareChannelName(channelName, "RTLZWEI", IGNORE_COUNTRY)) {
             const sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
             if ((aspectRatio->num == 16) && (aspectRatio->den == 9)) {
-                logo.widthMin  =  72;
+                logo.widthMin  =  73;
                 logo.widthMax  =  92;
                 logo.heightMin =  68;
                 logo.heightMax =  90;
@@ -728,9 +731,16 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 100;
         }
 
-        // KiKA_HD                 16:9 1280W  720H:->  228W 112H TOP_LEFT
+//  28 KiKA_HD                 16:9 1280W  720H:->  228W  96H TOP_LEFT
+//   2 KiKA_HD                 16:9 1280W  720H:->  230W 112H TOP_LEFT
+//  61 KiKA_HD                 16:9 1280W  720H:->  230W  96H TOP_LEFT
+//   6 KiKA_HD                 16:9 1280W  720H:->  254W  96H TOP_LEFT
+//  10 KiKA_HD                 16:9 1280W  720H:->  256W  96H TOP_LEFT
         if (CompareChannelName(channelName, "KiKA_HD", IGNORE_NOTHING)) {
-            logo.widthMin  = 228;
+            logo.widthMin  = 218;
+            logo.widthMax  = 266;
+            logo.heightMin =  86;
+            logo.heightMax = 122;
         }
 
         if (CompareChannelName(channelName, "MDR_HD", IGNORE_CITY)) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
@@ -860,9 +870,12 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 203;
         }
 
-        // ANIXE_HD                16:9 1920W 1080H:->  390W 178H TOP_LEFT
+//    1 ANIXE_HD                16:9 1920W 1080H:->  438W 180H TOP_LEFT
         if (CompareChannelName(channelName, "ANIXE_HD", IGNORE_NOTHING)) {
-            logo.heightMin = 178;
+            logo.widthMin  = 428;
+            logo.widthMax  = 448;
+            logo.heightMin = 170;
+            logo.heightMax = 190;
         }
 
         // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
@@ -945,10 +958,10 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         }
 
         // default values
-        if (logo.widthMin  == 0) logo.widthMin  =  130; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
-        if (logo.widthMax  == 0) logo.widthMax  =  428; // mþnchen_tv_HD           16:9 1920W 1080H:->  428W  96H TOP_LEFT
-        if (logo.heightMin == 0) logo.heightMin =   96; // münchen_tv_HD           16:9 1920W 1080H:->  336W  96H TOP_LEFT
-        if (logo.heightMax == 0) logo.heightMax =  200; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
+        if (logo.widthMin  == 0) logo.widthMin  =  140; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
+        if (logo.widthMax  == 0) logo.widthMax  =  448; // ANIXE_HD                16:9 1920W 1080H:->  438W 180H TOP_LEFT
+        if (logo.heightMin == 0) logo.heightMin =   86; // münchen_tv_HD           16:9 1920W 1080H:->  336W  96H TOP_LEFT
+        if (logo.heightMax == 0) logo.heightMax =  210; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
         break;
 
     case 3840:
