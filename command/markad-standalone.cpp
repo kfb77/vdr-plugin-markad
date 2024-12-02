@@ -2034,10 +2034,12 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
 
 
 cMark *cMarkAdStandalone::Check_LOGOSTART() {
-    cMark *begin = nullptr;
-
+    if (!index) {
+        esyslog("cMarkAdStandalone::Check_LOGOSTART(): index not valid");
+        return nullptr;
+    }
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): search for logo start mark");
-
+    cMark *begin = nullptr;
     if (!evaluateLogoStopStartPair) {
         evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
         ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
@@ -2049,16 +2051,16 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         if (lStart->type == MT_LOGOSTART) {
             bool delMark = false;
             // remove very early logo start marks, this can be delayed logo start detection
-            int diff = lStart->position / decoder->GetVideoFrameRate();
-            if (diff <= 10) {
-                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start (%5d) %ds after recording start too early", lStart->position, diff);
+            int startOffset = index->GetTimeOffsetFromPTS(lStart->pts) / 1000;  // in seconds
+            if (startOffset <= 11) {  // changed from 10 to 11
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start (%5d) %ds after recording start too early", lStart->position, startOffset);
                 delMark = true;
             }
             else {
                 // remove very short logo start/stop pairs, this, is a false positive logo detection
                 cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);
                 if (lStop) {
-                    diff = 1000 * (lStop->position - lStart->position) / decoder->GetVideoFrameRate();
+                    int diff = 1000 * (lStop->position - lStart->position) / decoder->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start (%5d) logo stop (%5d), distance %dms", lStart->position, lStop->position, diff);
                     if (diff <= 60) {
                         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): distance too short, deleting marks");
