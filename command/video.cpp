@@ -1237,16 +1237,15 @@ int cBlackScreenDetect::Process() {
         dsyslog("cBlackScreenDetect::Process(): picture not valid");
         return BLACKSCREEN_ERROR;
     }
-
+    bool detectLowerBorder = criteria->GetDetectionState(MT_LOWERBORDERCHANGE);
     int maxBrightnessAll;
     int maxBrightnessLower;   // for detetion of black lower border
     int minBrightnessLower;   // for detetion of white lower border
-    int pictureHeight = picture->height;
-    if (criteria->LogoInNewsTicker()) pictureHeight *= 0.85;  // news ticker is still visible in black screen
+    if (criteria->LogoInNewsTicker()) picture->height *= 0.85;  // news ticker is still visible in black screen
 
     // calculate limit with hysteresis
-    if (blackScreenStatus == BLACKSCREEN_INVISIBLE) maxBrightnessAll = BLACKNESS * picture->width * pictureHeight;
-    else maxBrightnessAll = (BLACKNESS + 1) * picture->width * pictureHeight;
+    if (blackScreenStatus == BLACKSCREEN_INVISIBLE) maxBrightnessAll = BLACKNESS * picture->width * picture->height;
+    else maxBrightnessAll = (BLACKNESS + 1) * picture->width * picture->height;
 
     // limit for black lower border
     if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) maxBrightnessLower = BLACKNESS * picture->width * PIXEL_COUNT_LOWER;
@@ -1256,24 +1255,21 @@ int cBlackScreenDetect::Process() {
     if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) minBrightnessLower = WHITE_LOWER * picture->width * PIXEL_COUNT_LOWER;
     else minBrightnessLower = (WHITE_LOWER - 1) * picture->width * PIXEL_COUNT_LOWER;
 
-    int maxBrightnessGrey = 28 * picture->width * pictureHeight;
+    int maxBrightnessGrey = 28 * picture->width * picture->height;
 
     int valAll   = 0;
     int valLower = 0;
     int maxPixel = 0;
 
     // calculate blackness
-    for (int x = 0; x < picture->width; x++) {
-        for (int y = 0; y < pictureHeight; y++) {
-            if (!criteria->GetDetectionState(MT_LOWERBORDERCHANGE) && (valAll > maxBrightnessGrey)) {  // we have a clear result, there is no black picture
-                x = picture->width;  // terminate outer loop
-                break;               // terminate inner loop
-            }
-            int pixel = picture->plane[0][x + y * picture->planeLineSize[0]];
+    for (int line = 0; line < picture->height; line++) {
+        for (int column = 0; column < picture->width; column++) {
+            int pixel = picture->plane[0][column + line * picture->planeLineSize[0]];
             valAll += pixel;
-            if (y > (picture->height - PIXEL_COUNT_LOWER)) valLower += pixel;   // no lower border detection possible with news ticker
+            if (detectLowerBorder && (line > (picture->height - PIXEL_COUNT_LOWER))) valLower += pixel;   // no lower border detection possible with news ticker
             if (pixel > maxPixel) maxPixel = pixel;
         }
+        if (!detectLowerBorder && (valAll > maxBrightnessGrey)) break;  // we have a clear result, there is no black picture
     }
 
 #ifdef DEBUG_BLACKSCREEN
@@ -1297,7 +1293,7 @@ int cBlackScreenDetect::Process() {
         return ret; // detected stop of black screen
     }
 
-    if (criteria->GetDetectionState(MT_LOWERBORDERCHANGE)) {
+    if (detectLowerBorder) {
         // now lower black/white border visible, only report lower black/white border if we have no full black screen
         if ((((valLower <= maxBrightnessLower) && (valAll >= 3 * maxBrightnessAll)) || // only report lower black border if we have no dark picture, changed from 2 to 3
                 (valLower >= minBrightnessLower)) &&
