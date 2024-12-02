@@ -298,7 +298,7 @@ sLogoSize cSobel::GetMaxLogoSize() const {
         logoSizeMax.height =  220;
         break;
     case 1920:
-        logoSizeMax.width  =  440;  // changed from 400 to 440 for münchen.tv
+        logoSizeMax.width  =  470;  // changed from 440 to 470 for ANIXE HD
         logoSizeMax.height =  220;
         break;
     case 3840:
