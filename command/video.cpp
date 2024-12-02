@@ -1325,11 +1325,12 @@ cHorizBorderDetect::cHorizBorderDetect(cDecoder *decoderParam, cIndex *indexPara
     criteria     = criteriaParam;
     frameRate    = decoder->GetVideoFrameRate();
     // set limits
-#define BRIGHTNESS_H_SURE    22
-#define BRIGHTNESS_H_MAYBE  148  // some channel have infos in border, so we will detect a higher value, changed from 137 to 148
-    brightnessSure  = BRIGHTNESS_H_SURE;
+#define BRIGHTNESS_H_SURE_MIN  22  // max avg pixel for usually black border
+#define BRIGHTNESS_H_SURE_MAX  30  // some channel use dark grey border instead of black
+#define BRIGHTNESS_H_MAYBE    148  // some channel have infos in border, so we will detect a higher value, changed from 137 to 148
+    brightnessSure  = BRIGHTNESS_H_SURE_MAX;
 //    if (criteria->LogoInBorder()) brightnessSure = BRIGHTNESS_H_SURE + 1;  // for pixel from logo, removed, logo should be out of CHECKHEIGHT, need max 22 to prevent false positiv
-    brightnessMaybe = BRIGHTNESS_H_SURE;
+    brightnessMaybe = BRIGHTNESS_H_SURE_MAX;
     if (criteria->InfoInBorder()) brightnessMaybe = BRIGHTNESS_H_MAYBE;    // for pixel from info in border
     Clear();
 }
@@ -1372,44 +1373,35 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
         return HBORDER_ERROR;
     }
 
-    *hBorderPacketNumber = -1;   // packet number of first hborder, otherwise -1
-    *hBorderFramePTS     = -1;   // frame  number of first hborder, otherwise -1
-    int height = picture->height;
+    *hBorderPacketNumber = -1;   // packet number from first hborder, otherwise -1
+    *hBorderFramePTS     = -1;   // PTS of frame  from first hborder, otherwise -1
+    int sumTop           =  0;
+    int valTop           =  0;
+    int sumBottom        =  0;
+    int valBottom        =  0;
 
-    int start     = (height - CHECKHEIGHT) * picture->planeLineSize[0];
-    int end       = height * picture->planeLineSize[0];
-    int valTop    = 0;
-    int valBottom = 0;
-    int cnt       = 0;
-    int xz        = 0;
-
-    for (int x = start; x < end; x++) {
-        if (xz < picture->width) {
-            valBottom += picture->plane[0][x];
-            cnt++;
+    // check top border
+    for (int line = 1; line < CHECKHEIGHT ; line++) {  // ignore first line, sometimes the are pixel
+        for (int column = 0; column < picture->width; column++) {
+            sumTop += picture->plane[0][(line * picture->planeLineSize[0] + column)];
         }
-        xz++;
-        if (xz >= picture->planeLineSize[0]) xz = 0;
+        valTop = sumTop / ((CHECKHEIGHT - 1) * picture->width);
+        if (valTop > brightnessMaybe) break;
     }
-    valBottom /= cnt;
+    valTop = sumTop / ((CHECKHEIGHT - 1) * picture->width);
 
-    // if we have a bottom border, test top border
-    if (valBottom <= brightnessMaybe) {
-        start = picture->planeLineSize[0];
-        end = picture->planeLineSize[0] * CHECKHEIGHT;
-        cnt = 0;
-        xz  = 0;
-        for (int x = start; x < end; x++) {
-            if (xz < picture->width) {
-                valTop += picture->plane[0][x];
-                cnt++;
+    // check bottom border
+    if (valTop <= brightnessMaybe) {
+        for (int line = picture->height - CHECKHEIGHT; line < picture->height; line++) {
+            for (int column = 0; column < picture->width; column++) {
+                sumBottom += picture->plane[0][(line * picture->planeLineSize[0] + column)];
             }
-            xz++;
-            if (xz >= picture->planeLineSize[0]) xz = 0;
+            valBottom = sumBottom / (CHECKHEIGHT * picture->width);
+            if (valBottom > brightnessMaybe) break;
         }
-        valTop /= cnt;
+        valBottom = sumBottom / (CHECKHEIGHT * picture->width);
     }
-    else valTop = NO_HBORDER;   // we have no botton border, so we do not have to calculate top border
+    else valBottom = NO_HBORDER;   // we have no top border, so we do not have to calculate bottom border
 
 #ifdef DEBUG_HBORDER
     dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder brightness top %4d bottom %4d (expect one <=%d and one <= %d)", picture->packetNumber, valTop, valBottom, brightnessSure, brightnessMaybe);
@@ -1475,6 +1467,7 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
 #ifdef DEBUG_HBORDER
     dsyslog("cHorizBorderDetect::Process(): packet (%7d) hborder return: borderstatus %d, hBorderStartPacketNumber (%d), hBorderPacketNumber (%d)", picture->packetNumber, borderstatus, hBorderStartPacketNumber, *hBorderPacketNumber);
 #endif
+    if ((borderstatus == HBORDER_VISIBLE) && ((valTop < BRIGHTNESS_H_SURE_MAX) || (valBottom < BRIGHTNESS_H_SURE_MAX))) brightnessSure = BRIGHTNESS_H_SURE_MIN; // prevent false positiv
     prevPacketNumber = picture->packetNumber;
     prevFramePTS     = picture->pts;
     return borderstatus;
