@@ -170,11 +170,11 @@ extern void syslog_with_tid(int priority, const char *format, ...) __attribute__
 #endif
 
 #if defined(DEBUG_PICTURE)
-void SaveVideoPicture(const char *baseName, sVideoPicture *picture);
+void SaveVideoPicture(const char *baseName, const sVideoPicture *picture);
 #endif
 
 #if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_DECODER_SEEK) || defined(DEBUG_CUT)
-void SaveVideoPlane0(const char *fileName, sVideoPicture *picture);
+void SaveVideoPlane0(const char *fileName, const sVideoPicture *picture);
 #endif
 
 #ifdef DEBUG_MEM

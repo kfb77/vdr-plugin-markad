@@ -13,7 +13,7 @@
 #if defined(DEBUG_PICTURE)
 #include <stdio.h>
 #include <stdlib.h>
-void SaveVideoPicture(const char *baseName, sVideoPicture *picture) {
+void SaveVideoPicture(const char *baseName, const sVideoPicture *picture) {
     if (!baseName) {
         esyslog("SaveVideoPicture(): baseName not valid");
     }
@@ -63,7 +63,7 @@ void SaveVideoPicture(const char *baseName, sVideoPicture *picture) {
 #if defined(DEBUG_MARK_FRAMES) || defined(DEBUG_LOGO_DETECT_FRAME_CORNER) || defined(DEBUG_DECODER_SEEK) || defined(DEBUG_CUT)
 #include <stdio.h>
 #include <stdlib.h>
-void SaveVideoPlane0(const char *fileName, sVideoPicture *picture) {
+void SaveVideoPlane0(const char *fileName, const sVideoPicture *picture) {
     if (!fileName) {
         esyslog("SaveVideoPlane0(): fileName not valid");
     }

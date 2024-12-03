@@ -69,14 +69,14 @@ void cTest::Perf() const {
 #pragma GCC push_options
 #pragma GCC optimize ("-O0")
 void cTest::PerfDecoder(sPerfResult *result) const {
-    const int testFrames   = 300;              // count test frames to decode
-    double sumDecode       = 0;
-    double sumTransfer     = 0;
-    double sumRead         = 0;
-    int countFrames        = 0;
-    int countPictures      = 0;
-    bool nextFrame         = true;
-    sVideoPicture *picture = nullptr;
+    const int testFrames         = 300;              // count test frames to decode
+    double sumDecode             = 0;
+    double sumTransfer           = 0;
+    double sumRead               = 0;
+    int countFrames              = 0;
+    int countPictures            = 0;
+    bool nextFrame               = true;
+    const sVideoPicture *picture = nullptr;
 
     // init decoder
     cDecoder *decoder = new cDecoder(recDir, result->threads, fullDecode, result->hwaccel, true, false, nullptr);  // recording directory, threads, full decode, hwaccel methode, force hwaccel, interlaced, index

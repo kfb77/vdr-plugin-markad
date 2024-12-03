@@ -1154,7 +1154,7 @@ bool cDecoder::ConvertVideoPixelFormat(enum AVPixelFormat pixelFormat) {
 }
 
 
-sVideoPicture *cDecoder::GetVideoPicture() {
+const sVideoPicture *cDecoder::GetVideoPicture() {
     Time(true);
     if (videoPicture.packetNumber == packetNumber) {
         Time(false);

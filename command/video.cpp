@@ -19,7 +19,7 @@ extern bool abortNow;
 
 
 
-int cVideoTools::GetPictureCenterBrightness(sVideoPicture *picture) {
+int cVideoTools::GetPictureCenterBrightness(const sVideoPicture *picture) {
     if (!picture) return -1;
     if (picture->packetNumber == pictureBrightness.packetNumber) return pictureBrightness.brightness;  // re-use result
 #define IGNORE_PORTION 20
@@ -225,7 +225,7 @@ int cLogoDetect::GetLogoCorner() const {
 // return true if we now have a valid detection result
 //
 bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
-    sVideoPicture *picture = decoder->GetVideoPicture();
+    const sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cLogoDetect::ReduceBrightness(): picture not valid");
         return false;
@@ -584,7 +584,7 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
         isInitColourChange = true;
     }
     // sobel transformation of colored planes
-    sVideoPicture *picture = decoder->GetVideoPicture();
+    const sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {
         dsyslog("cLogoDetect::LogoColourChange(): picture not valid");
         return false;
@@ -641,7 +641,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
     *logoPacketNumber = -1;
     *logoFramePTS     = -1;
 
-    sVideoPicture *picture = decoder->GetVideoPicture();
+    const sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {   // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
         dsyslog("cLogoDetect::Detect(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return LOGO_ERROR;
@@ -1039,7 +1039,7 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
     if (!changePacketNumber) return SCENE_ERROR;
     if (!changeFramePTS)     return SCENE_ERROR;
 
-    sVideoPicture *picture = decoder->GetVideoPicture();
+    const sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {  // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
         dsyslog("cSceneChangeDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return SCENE_ERROR;
@@ -1232,7 +1232,7 @@ int cBlackScreenDetect::Process() {
 #define BLACKNESS          19  // maximum brightness to detect a blackscreen, +1 to detect end of blackscreen, changed from 17 to 19 because of undetected black screen
 #define WHITE_LOWER       220  // minimum brightness to detect white lower border
 #define PIXEL_COUNT_LOWER  25  // count pixel from bottom for detetion of lower border, changed from 40 to 25
-    sVideoPicture *picture = decoder->GetVideoPicture();
+    const sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {  // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
         dsyslog("cBlackScreenDetect::Process(): picture not valid");
         return BLACKSCREEN_ERROR;
@@ -1241,11 +1241,12 @@ int cBlackScreenDetect::Process() {
     int maxBrightnessAll;
     int maxBrightnessLower;   // for detetion of black lower border
     int minBrightnessLower;   // for detetion of white lower border
-    if (criteria->LogoInNewsTicker()) picture->height *= 0.85;  // news ticker is still visible in black screen
+    int pictureHeight = picture->height;
+    if (criteria->LogoInNewsTicker()) pictureHeight *= 0.85;  // news ticker is always visible in black screen
 
     // calculate limit with hysteresis
-    if (blackScreenStatus == BLACKSCREEN_INVISIBLE) maxBrightnessAll = BLACKNESS * picture->width * picture->height;
-    else maxBrightnessAll = (BLACKNESS + 1) * picture->width * picture->height;
+    if (blackScreenStatus == BLACKSCREEN_INVISIBLE) maxBrightnessAll = BLACKNESS * picture->width * pictureHeight;
+    else maxBrightnessAll = (BLACKNESS + 1) * picture->width * pictureHeight;
 
     // limit for black lower border
     if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) maxBrightnessLower = BLACKNESS * picture->width * PIXEL_COUNT_LOWER;
@@ -1255,18 +1256,18 @@ int cBlackScreenDetect::Process() {
     if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) minBrightnessLower = WHITE_LOWER * picture->width * PIXEL_COUNT_LOWER;
     else minBrightnessLower = (WHITE_LOWER - 1) * picture->width * PIXEL_COUNT_LOWER;
 
-    int maxBrightnessGrey = 28 * picture->width * picture->height;
+    int maxBrightnessGrey = 28 * picture->width * pictureHeight;
 
     int valAll   = 0;
     int valLower = 0;
     int maxPixel = 0;
 
     // calculate blackness
-    for (int line = 0; line < picture->height; line++) {
+    for (int line = 0; line < pictureHeight; line++) {
         for (int column = 0; column < picture->width; column++) {
             int pixel = picture->plane[0][column + line * picture->planeLineSize[0]];
             valAll += pixel;
-            if (detectLowerBorder && (line > (picture->height - PIXEL_COUNT_LOWER))) valLower += pixel;   // no lower border detection possible with news ticker
+            if (detectLowerBorder && (line > (pictureHeight - PIXEL_COUNT_LOWER))) valLower += pixel;   // no lower border detection possible with news ticker
             if (pixel > maxPixel) maxPixel = pixel;
         }
         if (!detectLowerBorder && (valAll > maxBrightnessGrey)) break;  // we have a clear result, there is no black picture
@@ -1364,7 +1365,7 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
 #define CHECKHEIGHT           5  // changed from 8 to 5
 #define NO_HBORDER          200  // internal limit for early loop exit, must be more than BRIGHTNESS_H_MAYBE
 
-    sVideoPicture *picture = decoder->GetVideoPicture();
+    const sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {  // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
         dsyslog("cHorizBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return HBORDER_ERROR;
@@ -1518,7 +1519,7 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
 #define BRIGHTNESS_V_SURE   27  // changed from 33 to 27, some channels has dark separator before vborder start
 #define BRIGHTNESS_V_MAYBE 101  // some channel have logo or infos in one border, so we must accept a higher value, changed from 100 to 101
 
-    sVideoPicture *picture = decoder->GetVideoPicture();
+    const sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {   // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
         dsyslog("cVertBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;

@@ -38,7 +38,7 @@ public:
      * @param[in]     beforeAd     true if called with a frame before advertising, false otherwise
      * @param[in]     h264         true if HD video, false otherwise
      */
-    void Process(sVideoPicture *picture, const int frameCount, const bool beforeAd, const bool h264);
+    void Process(const sVideoPicture *picture, const int frameCount, const bool beforeAd, const bool h264);
 
     /**
      * detect overlaps before and after advertising
@@ -69,7 +69,7 @@ private:
      * @param[in]     picture    video picture
      * @param[in,out] dest       histogram
      */
-    void GetHistogram(sVideoPicture *picture, simpleHistogram &dest) const;
+    void GetHistogram(const sVideoPicture *picture, simpleHistogram &dest) const;
 
     /**
      * histogram buffer for overlap detection

@@ -1993,7 +1993,7 @@ void cExtractLogo::ManuallyExtractLogo(const int corner, const int width, const 
     while (decoder->DecodeNextFrame(false)) {
         if (abortNow) return;
         int frameNumber = decoder->GetPacketNumber();
-        sVideoPicture *picture = decoder->GetVideoPicture();
+        const sVideoPicture *picture = decoder->GetVideoPicture();
         if (picture) {
             // logo name
             char *logoName=nullptr;
@@ -2128,7 +2128,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
         }
 
         // get next video picture
-        sVideoPicture *picture = decoder->GetVideoPicture();
+        const sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) {
             dsyslog("cExtractLogo::SearchLogo(): frame (%d): failed to get video data", decoder->GetPacketNumber());
             continue;

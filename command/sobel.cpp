@@ -133,9 +133,9 @@ bool cSobel::FreeAreaBuffer(sAreaT *area) {
 
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-int cSobel::SobelPicture(const char *recDir, sVideoPicture *picture, sAreaT *area, const bool ignoreLogo) {
+int cSobel::SobelPicture(const char *recDir, const sVideoPicture *picture, sAreaT *area, const bool ignoreLogo) {
 #else
-int cSobel::SobelPicture(sVideoPicture *picture, sAreaT *area, const bool ignoreLogo) {
+int cSobel::SobelPicture(const sVideoPicture *picture, sAreaT *area, const bool ignoreLogo) {
 #endif
 
     if (!ignoreLogo && !area->valid[0]) {
@@ -160,7 +160,7 @@ int cSobel::SobelPicture(sVideoPicture *picture, sAreaT *area, const bool ignore
 }
 
 
-bool cSobel::SobelPlane(sVideoPicture *picture, sAreaT *area, const int plane) {
+bool cSobel::SobelPlane(const sVideoPicture *picture, sAreaT *area, const int plane) {
     if (!picture) {
         esyslog("cSobel::SobelPlane(): picture missing");
         return false;

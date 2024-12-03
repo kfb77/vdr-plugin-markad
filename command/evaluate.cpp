@@ -1037,7 +1037,7 @@ bool cDetectLogoStopStart::Detect(int startFrame, int endFrame) {
 
         if (decoder->GetPacketNumber() >= endFrame) break;  // use packet number to prevent overlapping seek (before mark, after mark)
 
-        sVideoPicture *picture = decoder->GetVideoPicture();
+        const sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) {
             dsyslog("cDetectLogoStopStart::Detect(): frame (%d): picture not valid", decoder->GetPacketNumber());
             continue;

@@ -167,7 +167,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
         if ((decoder->GetPacketNumber() > (DEBUG_OVERLAP_FRAME_BEFORE - DEBUG_OVERLAP_FRAME_RANGE)) &&
                 (decoder->GetPacketNumber() < (DEBUG_OVERLAP_FRAME_BEFORE + DEBUG_OVERLAP_FRAME_RANGE))) SaveFrame(decoder->GetPacketNumber(), nullptr, nullptr);
 #endif
-        sVideoPicture *picture = decoder->GetVideoPicture();
+        const sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) continue;
         overlapAroundAd->Process(picture, frameCount, true, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
     }
@@ -212,7 +212,7 @@ bool cOverlap::ProcessMarksOverlap(cOverlapAroundAd *overlapAroundAd, cMark **ma
                 (decoder->GetPacketNumber() < (DEBUG_OVERLAP_FRAME_AFTER + DEBUG_OVERLAP_FRAME_RANGE))) SaveFrame(decoder->GetPacketNumber(), nullptr, nullptr);
 #endif
 
-        sVideoPicture *picture = decoder->GetVideoPicture();
+        const sVideoPicture *picture = decoder->GetVideoPicture();
         if (!picture) continue;
         overlapAroundAd->Process(picture, frameCount, false, (decoder->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264));
     }
@@ -338,7 +338,7 @@ cOverlapAroundAd::~cOverlapAroundAd() {
     }
 }
 
-void cOverlapAroundAd::Process(sVideoPicture *picture, const int frameCount, const bool beforeAd, const bool h264) {
+void cOverlapAroundAd::Process(const sVideoPicture *picture, const int frameCount, const bool beforeAd, const bool h264) {
 #ifdef DEBUG_OVERLAP
     dsyslog("cOverlapAroundAd::Process(): frameNumber %d, frameCount %d, beforeAd %d, isH264 %d", frameNumber, frameCount, beforeAd, h264);
 #endif
@@ -517,7 +517,7 @@ void cOverlapAroundAd::Detect(sOverlapPos *overlapPos) {
 }
 
 
-void cOverlapAroundAd::GetHistogram(sVideoPicture *picture, simpleHistogram &dest) const {
+void cOverlapAroundAd::GetHistogram(const sVideoPicture *picture, simpleHistogram &dest) const {
     memset(dest, 0, sizeof(simpleHistogram));
     int videoHeight = decoder->GetVideoHeight();
     int videoWidth  = decoder->GetVideoWidth();

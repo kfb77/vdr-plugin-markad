@@ -250,7 +250,7 @@ public:
     * get current picture from decoded frame
     * @return pointer to picture
     */
-    sVideoPicture *GetVideoPicture();
+    const sVideoPicture *GetVideoPicture();
 
     /**
      * get current packet

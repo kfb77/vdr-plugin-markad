@@ -86,7 +86,7 @@ public:
      * @param picture video picture
      * @return avg pixel value of picture center
      */
-    int GetPictureCenterBrightness(sVideoPicture *picture);
+    int GetPictureCenterBrightness(const sVideoPicture *picture);
 
 private:
     /**

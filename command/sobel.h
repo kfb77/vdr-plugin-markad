@@ -75,9 +75,9 @@ public:
     * @return number of planes processed
     */
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-    int SobelPicture(const char *recDir, sVideoPicture *picture, sAreaT *area, const bool ignoreLogo);
+    int SobelPicture(const char *recDir, const sVideoPicture *picture, sAreaT *area, const bool ignoreLogo);
 #else
-    int SobelPicture(sVideoPicture *picture, sAreaT *area, const bool ignoreLogo);
+    int SobelPicture(const sVideoPicture *picture, sAreaT *area, const bool ignoreLogo);
 #endif
 
     /**
@@ -87,7 +87,7 @@ public:
     * @param plane      number of video plane
     * @return           true if successful, false otherwise
     */
-    bool SobelPlane(sVideoPicture *picture, sAreaT *area, const int plane);
+    bool SobelPlane(const sVideoPicture *picture, sAreaT *area, const int plane);
 
     /**
      * calculate coordinates of logo position (values for array index, from 0 to (Video.Info.width - 1) or (Video.Info.height)

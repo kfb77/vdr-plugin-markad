@@ -4181,7 +4181,7 @@ void cMarkAdStandalone::DebugMarkFrames() {
             if (framePTS < mark->pts) strcpy(suffix2, "BEFORE");
             if ((macontext.Config->fullDecode)  && (framePTS > mark->pts)) strcpy(suffix2, "AFTER");
             if ((!macontext.Config->fullDecode) && (framePTS > mark->pts + 1)) strcpy(suffix2, "AFTER");  // for interlaced stream we will get the picture after the iFrame
-            sVideoPicture *picture = decoder->GetVideoPicture();
+            const sVideoPicture *picture = decoder->GetVideoPicture();
             if (picture) {
                 char *fileName = nullptr;
                 if (asprintf(&fileName,"%s/F__%07d_%s_%s.pgm", macontext.Config->recDir, packetNumber, suffix1, suffix2) >= 1) {
