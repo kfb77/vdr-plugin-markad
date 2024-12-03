@@ -903,6 +903,7 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
         char *indexToHMSF_PTS = IndexToHMSF(mark->position, mark->pts, false);;      // PTS based timestamp
         if (!indexToHMSF_PTS) {
             esyslog("cMarks::Save(): failed to get PTS timestamp for (%d) PTS %" PRId64, mark->position, mark->pts);
+            fclose(mf);
             return false;
         }
         ALLOC(strlen(indexToHMSF_PTS) + 1, "indexToHMSF_PTS");
@@ -924,6 +925,7 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
         char *indexToHMSF_VDR = IndexToHMSF(iFrame, AV_NOPTS_VALUE, true);      // vdr based timestamp
         if (!indexToHMSF_VDR) {
             esyslog("cMarks::Save(): failed to get VDR timestamp for (%d)", iFrame);
+            fclose(mf);
             return false;
         }
         ALLOC(strlen(indexToHMSF_VDR) + 1, "indexToHMSF_VDR");
