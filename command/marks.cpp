@@ -36,7 +36,9 @@ cMark::cMark(const int typeParam, const int oldTypeParam, const int newTypeParam
     inBroadCast = inBroadCastParam;
     if (commentParam) {
         comment = strdup(commentParam);
-        ALLOC(strlen(comment)+1, "comment");
+        if (comment) {
+            ALLOC(strlen(comment)+1, "comment");
+        }
     }
     else comment = nullptr;
 
