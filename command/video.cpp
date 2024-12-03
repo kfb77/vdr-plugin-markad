@@ -1048,6 +1048,7 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
     // get simple histogramm from current frame
     int *currentHistogram = nullptr;
     currentHistogram = static_cast<int *>(malloc(sizeof(int) * 256));
+    if (!currentHistogram) return SCENE_ERROR;
     ALLOC(sizeof(*currentHistogram), "SceneChangeHistogramm");
     memset(currentHistogram, 0, sizeof(int[256]));
     for (int Y = 0; Y < picture->height; Y++) {

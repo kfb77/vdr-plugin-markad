@@ -1901,6 +1901,7 @@ bool cEncoder::EncodeVideoFrame() {
             long int strLength = strlen(codecCtxArrayOut[streamIndexOut]->stats_out);
             if (!stats_in.data) {
                 stats_in.data = static_cast<char *>(malloc(strLength + 1));  // take care of terminating 0
+                if (!stats_in.data) return false;
                 stats_in.size = strLength + 1;
                 strcpy(stats_in.data, codecCtxArrayOut[streamIndexOut]->stats_out);
                 ALLOC(stats_in.size, "stats_in");

@@ -488,6 +488,7 @@ bool cDecoder::InitDecoder(const char *filename) {
     }
 
     codecCtxArray = static_cast<AVCodecContext **>(malloc(sizeof(AVCodecContext *) * avctx->nb_streams));
+    if (!codecCtxArray) return false;
     ALLOC(sizeof(AVCodecContext *) * avctx->nb_streams, "codecCtxArray");
     memset(codecCtxArray, 0, sizeof(AVCodecContext *) * avctx->nb_streams);
 
