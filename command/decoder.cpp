@@ -1589,20 +1589,6 @@ bool cDecoder::IsSubtitlePacket() const {
 }
 
 
-/* unused
-int cDecoder::GetFrameNumber() {
-    if (!frameValid) return -1;
-    if (!index)      return -1;
-    if (avFrame.pts != ptsFrameCache.pts) {
-        ptsFrameCache.pts = avFrame.pts;
-        ptsFrameCache.frameNumber = index->GetPacketNumberFromPTS(avFrame.pts);
-        if (ptsFrameCache.frameNumber < 0) esyslog("cDecoder::GetFrameNumber(): packet (%d): GetPacketNumberFromPTS() failed", packetNumber);
-    }
-    return ptsFrameCache.frameNumber;
-}
-*/
-
-
 int cDecoder::GetPacketNumber() const {
     return packetNumber;
 }
