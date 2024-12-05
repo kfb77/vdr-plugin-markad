@@ -5169,7 +5169,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     // rule 1: logo start is in ad, silence before and after ad
                     if ((diffBefore >=  3140) && (diffAfter <=  3740)) diffBefore = INT_MAX;
 
-                    if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 5359;
+                    if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 7040;
                     else                                     maxBefore = 2480;
                     break;
                 case MT_MOVEDSTART:
@@ -5178,7 +5178,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                         // rule 1: refer silence after VPS start event
                         if ((diffAfter <= 231440) && (lengthAfter > 80)) diffBefore = INT_MAX;
 
-                        if (criteria->GoodVPS()) maxBefore =  30259;
+                        if (criteria->GoodVPS()) maxBefore =  29479;
                         else                     maxBefore = 171080;
                         break;
                     case MT_INTRODUCTIONSTART:
@@ -5246,12 +5246,13 @@ void cMarkAdStandalone::SilenceOptimization() {
             cMark *soundStartBefore = nullptr;
             cMark *soundStopAfter   = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
             cMark *soundStartAfter  = nullptr;
+            int lengthBefore        = 0;
             int lengthAfter         = 0;
             if (soundStopBefore) {
                 diffBefore = 1000 * (mark->position - soundStopBefore->position) / decoder->GetVideoFrameRate();
                 soundStartBefore = silenceMarks.GetNext(soundStopBefore->position, MT_SOUNDSTART);
                 if (soundStartBefore) {
-                    int lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / decoder->GetVideoFrameRate();
+                    lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / decoder->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%6d) to (%6d) %8ldms before, length %4dms", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore);
                 }
             }
@@ -5291,7 +5292,7 @@ void cMarkAdStandalone::SilenceOptimization() {
 
                         if (criteria->GoodVPS())      maxAfter = 31479;
                         else if (lengthAfter >= 3000) maxAfter = 81920;
-                        else                          maxAfter = 74799;
+                        else                          maxAfter = 66999;
                         break;
                     default:
                         maxAfter = 0;
@@ -5318,7 +5319,8 @@ void cMarkAdStandalone::SilenceOptimization() {
                     break;
                 case MT_LOGOSTOP:
                     if (criteria->LogoFadeInOut() & FADE_OUT) maxBefore =  520;
-                    else                                      maxBefore = 4440;
+                    else if (lengthBefore > 40)               maxBefore = 4440;
+                    else                                      maxBefore = 3439;
                     break;
                 case MT_CHANNELSTOP:
                     maxBefore = 1100;
