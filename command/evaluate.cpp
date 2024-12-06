@@ -31,6 +31,15 @@ cEvaluateLogoStopStartPair::~cEvaluateLogoStopStartPair() {
 }
 
 
+void cEvaluateLogoStopStartPair::SetDecoder(cDecoder *decoderParam) {
+    if (!decoder) {
+        esyslog("cEvaluateLogoStopStartPair::SetDecoder(): invalid decoder");
+        return;
+    }
+    decoder  = decoderParam;
+}
+
+
 // Check logo stop/start pairs
 // used by logo change detection
 void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *blackMarks, const int iStart, const int chkSTART,  const int packetEndPart, const int iStopA) {
@@ -87,7 +96,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
 
         // check for ad in frame
         if (criteria->IsAdInFrameWithLogoChannel()) IsAdInFrame(marks, &(*logoPairIterator));
-        else logoPairIterator->isAdInFrame = STATUS_DISABLED;
+        else logoPairIterator->isAdInFrameBeforeStop = STATUS_DISABLED;
 
         // global information about logo pairs
         // mark after pair
@@ -95,7 +104,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
         int deltaStopStart = (logoPairIterator->startPosition - logoPairIterator->stopPosition ) / frameRate;
         if (deltaStopStart >= LOGO_CHANGE_IS_ADVERTISING_MIN) {
             dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): ----- stop (%d) start (%d) pair: delta %ds (expect >=%ds) is a advertising", logoPairIterator->stopPosition, logoPairIterator->startPosition, deltaStopStart, LOGO_CHANGE_IS_ADVERTISING_MIN);
-            logoPairIterator->isAdInFrame = STATUS_YES;
+            logoPairIterator->isAdInFrameBeforeStop = STATUS_YES;
         }
 
         // check next stop distance after stop/start pair
@@ -120,7 +129,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
     // search for part between advertising and broadcast, keep this mark, because it contains the start mark of the broadcast
     //
     for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
-        if (logoPairIterator->isAdInFrame == STATUS_YES) {  // advertising pair
+        if (logoPairIterator->isAdInFrameBeforeStop == STATUS_YES) {  // advertising pair
             std::vector<sLogoStopStartPair>::iterator next1LogoPairIterator = logoPairIterator;
             ++next1LogoPairIterator;
             if (next1LogoPairIterator != logoPairVector.end()) {
@@ -151,7 +160,8 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): add stop (%d) start (%d) pair:", logoPairIterator->stopPosition, logoPairIterator->startPosition);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  hasBorder              %2d", logoPairIterator->hasBorder);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isLogoChange           %2d", logoPairIterator->isLogoChange);
-        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isAdInFrame            %2d", logoPairIterator->isAdInFrame);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isAdInFrameAfterStart  %2d", logoPairIterator->isAdInFrameAfterStart);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isAdInFrameBeforeStop  %2d", logoPairIterator->isAdInFrameBeforeStop);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isStartMarkInBroadcast %2d", logoPairIterator->isStartMarkInBroadcast);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isInfoLogo             %2d", logoPairIterator->isInfoLogo);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isClosingCredits       %2d", logoPairIterator->isClosingCredits);
@@ -162,7 +172,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
 
 // check if stop/start pair can have ad in frame before or after
 //
-void cEvaluateLogoStopStartPair::IsAdInFrame(const cMarks *marks, sLogoStopStartPair *logoStopStartPair) {
+void cEvaluateLogoStopStartPair::IsAdInFrame(cMarks *marks, sLogoStopStartPair *logoStopStartPair) {
     if (!marks)             return;
     if (!logoStopStartPair) return;
     if (!decoder)           return;
@@ -171,9 +181,19 @@ void cEvaluateLogoStopStartPair::IsAdInFrame(const cMarks *marks, sLogoStopStart
     if (frameRate == 0) return;
     int diff = (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / frameRate;
     if ((diff >= 19) && (diff <= 21)) {  // 20s is short ad in broadcast, there is no additional ad in frame before/after
-        dsyslog("cEvaluateLogoStopStartPair::IsAdInFrame():             ----- stop (%d) start (%d) pair: %ds is short ad, no ad in frame after", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, diff);
+        dsyslog("cEvaluateLogoStopStartPair::IsAdInFrame():            ----- stop (%d) start (%d) pair: %ds is short ad, no ad in frame after stop mark", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, diff);
 
-        logoStopStartPair->isAdInFrame = STATUS_NO;
+        logoStopStartPair->isAdInFrameBeforeStop = STATUS_NO;
+    }
+    // check if there is a hborder aktiv after logo start mark (can be from documentations)
+    // in this case we can not (and need not) check for frame after start mark
+    cMark *hBorderStartBefore = marks->GetPrev(logoStopStartPair->startPosition, MT_HBORDERSTART);
+    if (hBorderStartBefore) {
+        cMark *hBorderStopAfter = marks->GetNext(hBorderStartBefore->position, MT_HBORDERSTOP);
+        if (hBorderStopAfter && (hBorderStopAfter->position >= (logoStopStartPair->startPosition + (MAX_AD_IN_FRAME * frameRate)))) {
+            dsyslog("cEvaluateLogoStopStartPair::IsAdInFrame():          ----- stop (%d) start (%d) pair: active hborder from (%d) to (%d) after start found", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, hBorderStartBefore->position, hBorderStopAfter->position);
+            logoStopStartPair->isAdInFrameAfterStart = STATUS_NO;
+        }
     }
 }
 
@@ -531,7 +551,7 @@ bool cEvaluateLogoStopStartPair::GetNextPair(sLogoStopStartPair *logoStopStartPa
     if (nextLogoPairIterator == logoPairVector.end()) return false;
 
     // skip pair if there is nothing to detect
-    while ((nextLogoPairIterator->isLogoChange <= STATUS_NO) && (nextLogoPairIterator->isInfoLogo <= STATUS_NO) && (nextLogoPairIterator->isAdInFrame <= STATUS_NO) && (nextLogoPairIterator->isClosingCredits <= STATUS_NO)) {
+    while ((nextLogoPairIterator->isLogoChange <= STATUS_NO) && (nextLogoPairIterator->isInfoLogo <= STATUS_NO) && (nextLogoPairIterator->isAdInFrameBeforeStop <= STATUS_NO) && (nextLogoPairIterator->isClosingCredits <= STATUS_NO)) {
         ++nextLogoPairIterator;
         if (nextLogoPairIterator == logoPairVector.end()) return false;
     }
@@ -540,7 +560,8 @@ bool cEvaluateLogoStopStartPair::GetNextPair(sLogoStopStartPair *logoStopStartPa
     logoStopStartPair->hasBorder              = nextLogoPairIterator->hasBorder;
     logoStopStartPair->isLogoChange           = nextLogoPairIterator->isLogoChange;
     logoStopStartPair->isInfoLogo             = nextLogoPairIterator->isInfoLogo;
-    logoStopStartPair->isAdInFrame            = nextLogoPairIterator->isAdInFrame;
+    logoStopStartPair->isAdInFrameAfterStart  = nextLogoPairIterator->isAdInFrameAfterStart;
+    logoStopStartPair->isAdInFrameBeforeStop  = nextLogoPairIterator->isAdInFrameBeforeStop;
     logoStopStartPair->isClosingCredits       = nextLogoPairIterator->isClosingCredits;
     logoStopStartPair->isStartMarkInBroadcast = nextLogoPairIterator->isStartMarkInBroadcast;
     ++nextLogoPairIterator;
@@ -554,10 +575,15 @@ int cEvaluateLogoStopStartPair::GetIsAdInFrame(const int stopPosition, const int
         if ((value.stopPosition == stopPosition) || (value.startPosition == startPosition)) return true; else return false; });
 
     if (found != logoPairVector.end()) {
-        dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): isAdInFrame for stop (%d) start (%d) mark: %d", found->stopPosition, found->startPosition, found->isAdInFrame);
-        return found->isAdInFrame;
+        if (found->stopPosition == stopPosition) {
+            dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): isAdInFrameBeforeStop for stop (%d) start (%d) mark: %d", found->stopPosition, found->startPosition, found->isAdInFrameBeforeStop);
+            return found->isAdInFrameBeforeStop;
+        }
+        else {
+            dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): isAdInFrameAfterStart for stop (%d) start (%d) mark: %d", found->stopPosition, found->startPosition, found->isAdInFrameAfterStart);
+            return found->isAdInFrameAfterStart;;
+        }
     }
-
     dsyslog("cEvaluateLogoStopStartPair::GetIsAdInFrame(): stop (%d) and start (%d) mark not found", stopPosition, startPosition);
     return STATUS_UNKNOWN;
 }
@@ -567,14 +593,14 @@ void cEvaluateLogoStopStartPair::SetIsAdInFrame(const int stopPosition, const in
     std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [stopPosition](sLogoStopStartPair const &value) ->bool { if (value.stopPosition == stopPosition) return true; else return false; });
 
     if (found != logoPairVector.end()) {
-        dsyslog("cEvaluateLogoStopStartPair::SetIsAdInFrame(): set isAdInFrame for stop (%d) to %d", found->stopPosition, state);
-        found->isAdInFrame = state;
+        dsyslog("cEvaluateLogoStopStartPair::SetIsAdInFrame(): set isAdInFrameBeforeStop for stop (%d) to %d", found->stopPosition, state);
+        found->isAdInFrameBeforeStop = state;
         return;
     }
     dsyslog("cEvaluateLogoStopStartPair::SetIsAdInFrame(): stop (%d) not found, add in list with state %d", stopPosition, state);
     sLogoStopStartPair newPair;
     newPair.stopPosition = stopPosition;
-    newPair.isAdInFrame  = state;
+    newPair.isAdInFrameBeforeStop  = state;
     logoPairVector.push_back(newPair);
     ALLOC(sizeof(sLogoStopStartPair), "logoPairVector");
 }
@@ -643,7 +669,7 @@ void cEvaluateLogoStopStartPair::AddAdInFrame(const int startPosition, const int
     sLogoStopStartPair newPair;
     newPair.startPosition = startPosition;
     newPair.stopPosition  = stopPosition;
-    newPair.isAdInFrame   = STATUS_YES;
+    newPair.isAdInFrameBeforeStop   = STATUS_YES;
     logoPairVector.push_back(newPair);
     ALLOC(sizeof(sLogoStopStartPair), "logoPairVector");
 }

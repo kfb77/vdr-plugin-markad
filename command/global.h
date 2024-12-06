@@ -162,7 +162,9 @@ typedef struct sLogoStopStartPair {
     //!<
     int isLogoChange                 = STATUS_UNKNOWN;  //!< status of logo change, value #eEvaluateStatus
     //!<
-    int isAdInFrame                  = STATUS_UNKNOWN;  //!< status of advertising in frame, value #eEvaluateStatus
+    int isAdInFrameAfterStart        = STATUS_UNKNOWN;  //!< status of advertising in frame with logo after logo start mark, value #eEvaluateStatus
+    //!<
+    int isAdInFrameBeforeStop        = STATUS_UNKNOWN;  //!< status of advertising in frame with logo before logo stop mark, value #eEvaluateStatus
     //!<
     int isStartMarkInBroadcast       = STATUS_UNKNOWN;  //!< status of in broadacst, value #eEvaluateStatus
     //!<

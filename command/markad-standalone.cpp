@@ -471,6 +471,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
         ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
     }
+    else evaluateLogoStopStartPair->SetDecoder(decoder);
 
     cMark *lEnd = nullptr;
     // try to select best logo end mark based on closing credits follow
@@ -1827,6 +1828,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder_local, criteria);
         ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
     }
+    else evaluateLogoStopStartPair->SetDecoder(decoder_local);
 
     evaluateLogoStopStartPair->CheckLogoStopStartPairs(&marks, &blackMarks, startA, packetCheckStart, packetEndPart, stopA);
 
@@ -1929,7 +1931,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         free(indexToHMSFStart);
     }
 
-    // delete only one time used object from CheckStart() call
+    // delete only one time used object from CheckStart() call, keep evaluateLogoStopStartPair for later use
     if (checkStart) {
         FREE(sizeof(*decoder_local), "decoder_local");
         delete decoder_local;
@@ -1937,9 +1939,6 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         FREE(sizeof(*detectLogoStopStart), "detectLogoStopStart");
         delete detectLogoStopStart;
         detectLogoStopStart = nullptr;
-        FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
-        delete evaluateLogoStopStartPair;
-        evaluateLogoStopStartPair = nullptr;
     }
 
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): marks after detect and remove logo stop/start mark pairs with special logo");
@@ -2044,6 +2043,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
         ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
     }
+    else evaluateLogoStopStartPair->SetDecoder(decoder);
 
     // cleanup invalid logo start marks
     cMark *lStart = marks.GetFirst();
@@ -4334,6 +4334,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
         evaluateLogoStopStartPair = new cEvaluateLogoStopStartPair(decoder, criteria);
         ALLOC(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
     }
+    else evaluateLogoStopStartPair->SetDecoder(decoder);
 
     // init objects for logo mark optimization
     if (!detectLogoStopStart) {        // init in RemoveLogoChangeMarks(), but maybe not used
@@ -4383,11 +4384,7 @@ void cMarkAdStandalone::LogoMarkOptimization() {
             LogSeparator(false);
             sMarkPos adInFrameEnd = {-1};
             if (criteria->IsAdInFrameWithLogoChannel() && (evaluateLogoStopStartPair->GetIsAdInFrame(-1, markLogo->position) >= STATUS_UNKNOWN)) {
-                int searchEndPosition = markLogo->position + (60 * decoder->GetVideoFrameRate()); // advertising in frame are usually 30s
-                // sometimes advertising in frame has text in "e.g. Werbung"
-                // check longer range to prevent to detect text as second logo
-                // changed from 35 to 60
-
+                int searchEndPosition = markLogo->position + (MAX_AD_IN_FRAME * decoder->GetVideoFrameRate());
                 char *indexToHMSFSearchEnd = marks.IndexToHMSF(searchEndPosition, AV_NOPTS_VALUE, false);
                 if (indexToHMSFSearchEnd) {
                     ALLOC(strlen(indexToHMSFSearchEnd)+1, "indexToHMSFSearchEnd");

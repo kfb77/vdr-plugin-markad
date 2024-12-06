@@ -20,6 +20,11 @@
 // max range of search after stop mark for closing credits
 #define MAX_CLOSING_CREDITS_SEARCH 25 //!< max range of search after stop mark for closing credits
 
+#define MAX_AD_IN_FRAME 60  //!< max range of search after logo start / before logo stop marks for ad in frame with logo
+// sometimes advertising in frame has text in "e.g. Werbung"
+// check longer range to prevent to detect text as second logo
+// changed from 35 to 60
+
 
 /**
  * class to evaluate logo stop/start pair
@@ -31,6 +36,12 @@ public:
      */
     cEvaluateLogoStopStartPair(cDecoder *decoderParam, cCriteria *criteriaParam);
     ~cEvaluateLogoStopStartPair();
+
+    /**
+     * set decoder to use in this object
+     * @param decoder    pointer to current decoder to use in this object
+     */
+    void SetDecoder(cDecoder *decoderParam);
 
     /**
      * check logo stop/start pairs
@@ -45,10 +56,11 @@ public:
 
     /**
      * check if logo stop/start pair can have ad in frame before/after
-     * @param[in]     marks             object with all marks
+     * @param         marks             object with all marks
+     * @param         blackMarks        object with all black screen marks
      * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isClosingCredits is set to -1 if the part is no logo change
      */
-    void IsAdInFrame(const cMarks *marks, sLogoStopStartPair *logoStopStartPair);
+    void IsAdInFrame(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
 
     /**
      * check if logo stop/start pair could be closing credits
