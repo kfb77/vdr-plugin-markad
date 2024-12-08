@@ -1245,19 +1245,20 @@ int cBlackScreenDetect::Process() {
     int pictureHeight = picture->height;
     if (criteria->LogoInNewsTicker()) pictureHeight *= 0.85;  // news ticker is always visible in black screen
 
-    // calculate limit with hysteresis
+    // calculate limit for black screen with hysteresis
     if (blackScreenStatus == BLACKSCREEN_INVISIBLE) maxBrightnessAll = BLACKNESS * picture->width * pictureHeight;
     else maxBrightnessAll = (BLACKNESS + 1) * picture->width * pictureHeight;
-
-    // limit for black lower border
-    if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) maxBrightnessLower = BLACKNESS * picture->width * PIXEL_COUNT_LOWER;
-    else maxBrightnessLower = (BLACKNESS + 1) * picture->width * PIXEL_COUNT_LOWER;
-
-    // limit for white lower border
-    if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) minBrightnessLower = WHITE_LOWER * picture->width * PIXEL_COUNT_LOWER;
-    else minBrightnessLower = (WHITE_LOWER - 1) * picture->width * PIXEL_COUNT_LOWER;
-
     int maxBrightnessGrey = 28 * picture->width * pictureHeight;
+
+    // lower border limits
+    if (detectLowerBorder) {
+        // limit for black lower border
+        if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) maxBrightnessLower = BLACKNESS * picture->width * PIXEL_COUNT_LOWER;
+        else maxBrightnessLower = (BLACKNESS + 1) * picture->width * PIXEL_COUNT_LOWER;
+        // limit for white lower border
+        if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) minBrightnessLower = WHITE_LOWER * picture->width * PIXEL_COUNT_LOWER;
+        else minBrightnessLower = (WHITE_LOWER - 1) * picture->width * PIXEL_COUNT_LOWER;
+    }
 
     int valAll   = 0;
     int valLower = 0;
