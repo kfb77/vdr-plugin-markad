@@ -2602,7 +2602,10 @@ void cMarkAdStandalone::CheckStart() {
     // if we have no aspect change an 16:9 video, we have no aspect ratio marks
     if ((marks.Count(MT_ASPECTCHANGE, 0xF0) == 0) && aspectRatioFrame && (aspectRatioFrame->num == 16) && (aspectRatioFrame->den == 9))criteria->SetMarkTypeState(MT_ASPECTCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
 
-// recording start
+    // if we have no channel change and 2 channel audio, we have no channel marks (GetAC3ChannelCount will return 0 if there is no AC3 stream)
+    if ((marks.Count(MT_CHANNELCHANGE, 0xF0) == 0) && (decoder->GetAC3ChannelCount() <= 2)) criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
+
+// check recording start mark
     cMark *begin = marks.GetAround(startA, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
     if (begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): found MT_RECORDINGSTART (%i), use this as start mark for the incomplete recording", begin->position);
@@ -2618,7 +2621,7 @@ void cMarkAdStandalone::CheckStart() {
     }
 
 // audio channel start
-    if (!begin) begin = Check_CHANNELSTART();
+    if (!begin && (criteria->GetMarkTypeState(MT_CHANNELCHANGE) > CRITERIA_UNAVAILABLE)) begin = Check_CHANNELSTART();
 
 // check if aspect ratio from VDR info file is valid
     bool checkedAspectRatio = false;
