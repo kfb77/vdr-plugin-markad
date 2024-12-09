@@ -2734,10 +2734,10 @@ void cMarkAdStandalone::CheckStart() {
     RemoveLogoChangeMarks(true);
 
 // horizontal border start
-    if (!begin) begin = Check_HBORDERSTART();
+    if (!begin && (criteria->GetMarkTypeState(MT_HBORDERCHANGE) > CRITERIA_UNAVAILABLE)) begin = Check_HBORDERSTART();
 
 // vertical border start
-    if (!begin) begin = Check_VBORDERSTART(maxStart);
+    if (!begin && (criteria->GetMarkTypeState(MT_VBORDERCHANGE) > CRITERIA_UNAVAILABLE)) begin = Check_VBORDERSTART(maxStart);
 
 // try logo start mark
     if (!begin) begin = Check_LOGOSTART();
