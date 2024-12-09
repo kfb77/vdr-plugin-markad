@@ -6325,16 +6325,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         }
     }
 
+    // log version and hostname
+    char hostname[64];
+    gethostname(hostname, 64);
     long lb;
     errno = 0;
     lb=sysconf(_SC_LONG_BIT);
-    if (errno == 0) isyslog("starting markad v%s (%libit)", VERSION, lb);
-    else isyslog("starting markad v%s", VERSION);
-
-    // log hostname and user
-    char hostname[64];
-    gethostname(hostname, 64);
-    dsyslog("running on %s", hostname);
+    if (errno == 0) isyslog("starting markad v%s (%libit) on %s", VERSION, lb, hostname);
+    else            isyslog("starting markad v%s on %s", VERSION, hostname);
     if (config->cmd) dsyslog("called with parameter cmd = %s", config->cmd);
 
     //  give vdr markad plugin time to pause this process until recording end
