@@ -152,16 +152,16 @@ int cIndex::GetKeyPacketNumberAfterPTS(const int64_t pts, int64_t *afterPTS, con
 }
 
 
-int cIndex::GetFrameBefore(int frameNumber) {
-    if (frameNumber == 0) return 0;
-    if (fullDecode) return frameNumber - 1;
+int cIndex::GetPacketNumberBefore(int packetNumber) {
+    if (packetNumber == 0) return 0;
+    if (fullDecode) return packetNumber - 1;
     else {
-        int iFrameBefore = GetKeyPacketNumberBefore(frameNumber - 1);  // if frameNumber is i-frame, GetKeyPacketBefore() will return same frameNumber
-        if (iFrameBefore < 0) {
-            esyslog("cIndex::GetFrameBefore(): frame (%d): GetKeyPacketBefore() failed", frameNumber);
-            iFrameBefore = frameNumber - 1;  // fallback
+        int keyPacketNumberBefore = GetKeyPacketNumberBefore(packetNumber - 1);  // if packetNumber is key packet, GetKeyPacketBefore() will return same packet number
+        if (keyPacketNumberBefore < 0) {
+            esyslog("cIndex::GetPacketNumberBefore(): packet (%d): GetKeyPacketBefore() failed", packetNumber);
+            keyPacketNumberBefore = packetNumber - 1;  // fallback
         }
-        return iFrameBefore;
+        return keyPacketNumberBefore;
     }
 }
 

@@ -90,11 +90,11 @@ public:
     int GetPacketNumberAfter(int packetNumber);
 
     /**
-     * get frame number before frame number
-     * @param frameNumber number of frame
-     * @return if fullDecode frame number direct before frameNumber, else i-frame number before
+     * get packet number before packet number
+     * @param packetNumber number of packet
+     * @return if fullDecode packet number direct before packetNumber, else key packet number before
      */
-    int GetFrameBefore(int frameNumber);
+    int GetPacketNumberBefore(int packetNumber);
 
     /**
      * get key packet before frameNumber
