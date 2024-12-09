@@ -2588,13 +2588,19 @@ void cMarkAdStandalone::CheckStart() {
         free(indexToHMSFStart);
     }
     DebugMarks();     //  only for debugging
+    sAspectRatio *aspectRatioFrame = decoder->GetFrameAspectRatio();  // aspect ratio of last read packet in start part
 
     // set initial mark criteria
-    if (marks.Count(MT_HBORDERSTART) == 0) criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);  // if we have no hborder start, broadcast can not have hborder
-    else if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);  // if we have a vborder start and no vboder stop
+    // if we have no hborder start, broadcast can not have hborder
+    if (marks.Count(MT_HBORDERSTART) == 0) criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
+    else if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);
 
-    if (marks.Count(MT_VBORDERSTART) == 0) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);  // if we have no vborder start, broadcast can not have vborder
-    else if ((marks.Count(MT_VBORDERSTART) == 1) && (marks.Count(MT_VBORDERSTOP) == 0)) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);  // if we have a vborder start and no vboder stop
+    // if we have no vborder start, broadcast can not have vborder
+    if (marks.Count(MT_VBORDERSTART) == 0) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
+    else if ((marks.Count(MT_VBORDERSTART) == 1) && (marks.Count(MT_VBORDERSTOP) == 0)) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);
+
+    // if we have no aspect change an 16:9 video, we have no aspect ratio marks
+    if ((marks.Count(MT_ASPECTCHANGE, 0xF0) == 0) && aspectRatioFrame && (aspectRatioFrame->num == 16) && (aspectRatioFrame->den == 9))criteria->SetMarkTypeState(MT_ASPECTCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
 
 // recording start
     cMark *begin = marks.GetAround(startA, 1, MT_RECORDINGSTART);  // do we have an incomplete recording ?
@@ -2616,7 +2622,6 @@ void cMarkAdStandalone::CheckStart() {
 
 // check if aspect ratio from VDR info file is valid
     bool checkedAspectRatio = false;
-    sAspectRatio *aspectRatioFrame = decoder->GetFrameAspectRatio();
     // end of start part can not be 4:3 if broadcast is 16:9
     if (aspectRatioFrame && (macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9) && (aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) {
         dsyslog("cMarkAdStandalone::CheckStart(): broadcast at end of start part is 4:3, VDR info tells 16:9, info file is wrong");
@@ -2681,7 +2686,7 @@ void cMarkAdStandalone::CheckStart() {
 
 
 // aspect ratio start
-    if (!begin) {
+    if (!begin && (criteria->GetMarkTypeState(MT_ASPECTCHANGE) > CRITERIA_UNAVAILABLE)) {
         dsyslog("cMarkAdStandalone::CheckStart(): search for aspect ratio start mark");
         // search for aspect ratio start mark
         cMark *aStart = marks.GetAround(480 * decoder->GetVideoFrameRate(), startA, MT_ASPECTSTART);

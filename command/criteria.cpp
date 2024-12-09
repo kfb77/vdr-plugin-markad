@@ -341,7 +341,8 @@ void cCriteria::SetMarkTypeState(const int type, const int state, const bool ful
         break;
     case MT_ASPECTCHANGE:
         aspectratio = state;
-        if (aspectratio == CRITERIA_USED) {
+        switch (aspectratio) {
+        case CRITERIA_USED:
             if (fullDecode) SetDetectionState(MT_SCENECHANGE, true);   // aspect ratio changes are not frame exact, use scene change to optimize
             SetDetectionState(MT_SOUNDCHANGE,   false);
             SetDetectionState(MT_BLACKCHANGE,    true);   // aspect ratio changes are not frame exact, use black screen to optimize
@@ -349,6 +350,12 @@ void cCriteria::SetMarkTypeState(const int type, const int state, const bool ful
             SetDetectionState(MT_VBORDERCHANGE, false);
             SetDetectionState(MT_HBORDERCHANGE, false);
             SetDetectionState(MT_CHANNELCHANGE, false);
+            break;
+        case CRITERIA_UNAVAILABLE:
+            SetDetectionState(MT_ASPECTCHANGE,  false);
+            break;
+        default:
+            break;
         }
         break;
     case MT_CHANNELCHANGE:
