@@ -111,17 +111,12 @@ void cAudio::ChannelChange() {
 
 sMarkAdMarks *cAudio::Detect() {
     ResetMarks();
-
     // do audio based checks
     if (criteria->GetDetectionState(MT_CHANNELCHANGE)) ChannelChange();
     if (criteria->GetDetectionState(MT_SOUNDCHANGE))   Silence();
-
     // return list of new marks
     if (audioMarks.Count > 0) {
         return &audioMarks;
     }
-    else {
-        return nullptr;
-    }
-
+    return nullptr;
 }
