@@ -6383,6 +6383,10 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     if (config->before) sleep(10);
 
     char *tmpDir = strdup(directory);
+    if (!tmpDir) {
+        esyslog("cMarkAdStandalone::cMarkAdStandalone(): memory allocation for tmpDir failed");
+        exit(EXIT_FAILURE);
+    }
 #ifdef DEBUG_MEM
     ALLOC(strlen(tmpDir)+1, "tmpDir");
     int memsize_tmpDir = strlen(directory) + 1;
