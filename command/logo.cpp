@@ -2163,8 +2163,14 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
                     }
                 }
             }
-            if ((isHBorder == HBORDER_VISIBLE) || (isVBorder == VBORDER_VISIBLE)) {
-                dsyslog("cExtractLogo::SearchLogo(): border frame detected, abort logo search");
+            if (isHBorder == HBORDER_VISIBLE) {
+                if (hBorderPacketNumber >= 0) dsyslog("cExtractLogo::SearchLogo(): hborder start (%d) detected, abort logo search", hBorderPacketNumber);
+                else dsyslog("cExtractLogo::SearchLogo(): hborder still activ, abort logo search");
+                break;
+            }
+            if (isVBorder == VBORDER_VISIBLE) {
+                if (vBorderPacketNumber >= 0) dsyslog("cExtractLogo::SearchLogo(): vborder start (%d) detected, abort logo search", vBorderPacketNumber);
+                else dsyslog("cExtractLogo::SearchLogo(): vborder still activ, abort logo search");
                 break;
             }
         }
