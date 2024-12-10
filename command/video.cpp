@@ -386,8 +386,9 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
             return false; //  nothing we can work with
         }
         break;
-    case LOGO_RESTART:  // prevent to detect false logo stop after restart logo detection
-    case LOGO_VISIBLE:  // prevent to detect false logo stop
+    case LOGO_UNINITIALIZED: // // prevent to detect false logo stop from bright recording start
+    case LOGO_RESTART:       // prevent to detect false logo stop after restart logo detection
+    case LOGO_VISIBLE:       // prevent to detect false logo stop
         if (((contrastLogo  ==  0) &&                          (brightnessLogo > 235)) ||
                 ((contrastLogo  >   0) && (contrastLogo <=   3) && (brightnessLogo > 221)) ||
                 ((contrastLogo  >   3) && (contrastLogo <=  10) && (brightnessLogo > 202)) ||
@@ -405,10 +406,9 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
             return false; //  nothing we can work with
         }
         break;
-    default:          // try anything to get a valid start state
-#ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): area state %d, contrast/brightness in logo area is invalid for brightness reduction", area.status, decoder->GetPacketNumber());
-#endif
+    default:
+        dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): area state %d, unexpected area state",  decoder->GetPacketNumber(), area.status);
+        return false;
         break;
     }
 
