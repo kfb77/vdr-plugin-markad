@@ -5958,8 +5958,8 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
         if (startPos < 0) startPos = 0;  // consider late start of recording
         int endpos = extractLogo->SearchLogo(startPos, false);
         for (int retry = 2; retry <= 8; retry++) {  // do not reduce, we will not get some logos
-            startPos = endpos;          // next try after end of try before
-            if (endpos > LOGO_SEARCH_FOUND) {  // no logo found, endpos is last frame of search
+            startPos = endpos + 10 * frameRate;     // next try 10s after end of try before, maybe false border detection in dark scene
+            if (endpos > LOGO_SEARCH_FOUND) {       // no logo found, endpos is last frame of search
                 dsyslog("cMarkAdStandalone::CheckLogo(): no logo found in recording, retry in %ind part of the recording at frame (%d)", retry, startPos);
                 endpos = extractLogo->SearchLogo(startPos, false);
             }
