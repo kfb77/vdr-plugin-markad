@@ -6303,7 +6303,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     directory        = directoryParam;
     inBroadCast      = false;
     iStopinBroadCast = false;
-    indexFile        = nullptr;
     video            = nullptr;
     audio            = nullptr;
     osd              = nullptr;
@@ -6557,7 +6556,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         delete detectLogoStopStart;
     }
     if (indexFile) {
-        FREE(strlen(indexFile)+1, "indexFile");
+        FREE(strlen(indexFile) + 1, "indexFile");
         free(indexFile);
     }
     if (video) {
