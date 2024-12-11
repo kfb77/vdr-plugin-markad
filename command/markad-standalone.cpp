@@ -1783,6 +1783,7 @@ bool cMarkAdStandalone::MoveLastStopAfterClosingCredits(cMark *stopMark) {
 // have to be done before end mark selection to prevent to select wrong end mark
 //
 void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
+    if (abortNow) return;
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): start detect and remove logo stop/start marks from special logo");
 
