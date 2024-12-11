@@ -5801,6 +5801,7 @@ void cMarkAdStandalone::Recording() {
         if (abortNow) return;
 
         if (!ProcessFrame()) {   // no error, false if stopA reached
+            if (abortNow) return;  // false from abort request
             break;
         }
         CheckIndexGrowing();  // check if we have a running recording and have to wait to get new frame
