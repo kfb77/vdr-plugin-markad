@@ -7364,7 +7364,7 @@ int main(int argc, char *argv[]) {
 
         if (config.logoExtraction == -1) {
             // performance test
-            if (config.perftest) {
+            if (!abortNow && config.perftest) {
                 cTest *test = new cTest(config.recDir, config.fullDecode, config.hwaccel);
                 test->Perf();
                 delete test;
@@ -7372,26 +7372,26 @@ int main(int argc, char *argv[]) {
             else {
 
                 // detect marks
-                cmasta->Recording();
+                if (!abortNow) cmasta->Recording();
 
                 // logo mark optimization
-                cmasta->LogoMarkOptimization();      // logo mark optimization
+                if (!abortNow) cmasta->LogoMarkOptimization();      // logo mark optimization
 
                 // overlap detection
-                cmasta->ProcessOverlap();            // overlap and closing credits detection
+                if (!abortNow) cmasta->ProcessOverlap();            // overlap and closing credits detection
 
                 // minor mark position optimization
-                cmasta->BlackScreenOptimization();   // mark optimization with black scene
-                cmasta->SilenceOptimization();       // mark optimization with mute scene
-                cmasta->LowerBorderOptimization();   // mark optimization with lower border
-                cmasta->SceneChangeOptimization();   // final optimization with scene changes (if we habe nothing else, try this as last resort)
+                if (!abortNow) cmasta->BlackScreenOptimization();   // mark optimization with black scene
+                if (!abortNow) cmasta->SilenceOptimization();       // mark optimization with mute scene
+                if (!abortNow) cmasta->LowerBorderOptimization();   // mark optimization with lower border
+                if (!abortNow) cmasta->SceneChangeOptimization();   // final optimization with scene changes (if we habe nothing else, try this as last resort)
 
                 // video cut
-                if (config.MarkadCut) cmasta->MarkadCut();
+                if (!abortNow) if (config.MarkadCut) cmasta->MarkadCut();
 
                 // write debug mark pictures
 #ifdef DEBUG_MARK_FRAMES
-                cmasta->DebugMarkFrames(); // write frames picture of marks to recording directory
+                if (!abortNow) cmasta->DebugMarkFrames(); // write frames picture of marks to recording directory
 #endif
 
             }
