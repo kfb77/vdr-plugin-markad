@@ -2833,6 +2833,10 @@ void cMarkAdStandalone::CheckStart() {
 
 
     // now we have the final start mark, do fine tuning
+    if (!begin) {  // can only be happen after abort
+        esyslog("cMarkAdStandalone::CheckStart(): no start mark found");
+        return;
+    }
     marks.DelTill(begin->position, true);    // delete all marks till start mark
     const char *indexToHMSF = marks.GetTime(begin);
     char *typeName    = marks.TypeToText(begin->type);
