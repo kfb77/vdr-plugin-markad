@@ -6546,11 +6546,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
 cMarkAdStandalone::~cMarkAdStandalone() {
     dsyslog("cMarkAdStandalone::~cMarkAdStandalone(): delete object");
-    if (abortNow) return;
-    marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, true);
+    if (!abortNow) marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, true);
 
-
-    // cleanup used objects
+    // cleanup all objects
     if (detectLogoStopStart) {
         FREE(sizeof(*detectLogoStopStart), "detectLogoStopStart");
         delete detectLogoStopStart;
