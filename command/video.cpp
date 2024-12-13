@@ -1070,7 +1070,7 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
     int diffQuote = 1000 * difference / (picture->height * picture->width * 2);
 #ifdef DEBUG_SCENE_CHANGE
     LogSeparator();
-    dsyslog("cSceneChangeDetect::Process(): packet (%7d) / (%7d): status %2d, changePacketNumber (%5d), blendCount %2d, blendPacketNumber %7d, difference %7ld, diffQute %4d", prevPacketNumber, packetNumber, sceneStatus, *changePacketNumber, blendCount, blendPacketNumber, difference, diffQuote);
+    dsyslog("cSceneChangeDetect::Process(): packet (%7d) / (%7d): status %2d, changePacketNumber (%5d), blendCount %2d, blendPacketNumber %7d, difference %7ld, diffQute %4d", prevPacketNumber, decoder->GetPacketNumber(), sceneStatus, *changePacketNumber, blendCount, blendPacketNumber, difference, diffQuote);
 #endif
     FREE(sizeof(*prevHistogram), "SceneChangeHistogramm");
     free(prevHistogram);
@@ -1201,7 +1201,7 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
         if (sceneStatus == SCENE_START) dsyslog("cSceneChangeDetect::Process(): new mark: MT_SCENESTART at frame (%7d)", *changePacketNumber);
         if (sceneStatus == SCENE_STOP)  dsyslog("cSceneChangeDetect::Process(): new mark: MT_SCENESTOP  at frame (%7d)", *changePacketNumber);
     }
-    dsyslog("cSceneChangeDetect::Process(): packet (%7d) / (%7d): status %2d, changePacketNumber (%5d), blendCount %2d, blendPacketNumber %7d", prevPacketNumber, packetNumber, sceneStatus, *changePacketNumber, blendCount, blendPacketNumber);
+    dsyslog("cSceneChangeDetect::Process(): packet (%7d) / (%7d): status %2d, changePacketNumber (%5d), blendCount %2d, blendPacketNumber %7d", prevPacketNumber, decoder->GetPacketNumber(), sceneStatus, *changePacketNumber, blendCount, blendPacketNumber);
     LogSeparator();
 #endif
 
