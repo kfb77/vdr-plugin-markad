@@ -39,7 +39,7 @@ public:
 
     /**
      * set decoder to use in this object
-     * @param decoder    pointer to current decoder to use in this object
+     * @param decoderParam    pointer to current decoder to use in this object
      */
     void SetDecoder(cDecoder *decoderParam);
 
@@ -57,7 +57,6 @@ public:
     /**
      * check if logo stop/start pair can have ad in frame before/after
      * @param         marks             object with all marks
-     * @param         blackMarks        object with all black screen marks
      * @param[in,out] logoStopStartPair structure of logo/stop start pair, result is stored here, isClosingCredits is set to -1 if the part is no logo change
      */
     void IsAdInFrame(cMarks *marks, sLogoStopStartPair *logoStopStartPair);
