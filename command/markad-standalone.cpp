@@ -1977,8 +1977,27 @@ void cMarkAdStandalone::SwapAspectRatio() {
 cMark *cMarkAdStandalone::Check_CHANNELSTART() {
     dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): search for channel start mark");
 
-    // delete very early first mark, if channels send ad with 6 channels, this can be wrong
+    // cleanup very short channel start/stop pairs, they are from stream error
     cMark *channelStart = marks.GetNext(-1, MT_CHANNELSTART);
+    while (channelStart) {
+        cMark *channelStop = marks.GetNext(channelStart->position, MT_CHANNELSTOP);
+        if (channelStop) {
+            int diff = 1000 * (channelStop->position - channelStart->position) / decoder->GetVideoFrameRate();
+            dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): channel start (%d), channel stop (%d), length broadcast %dms", channelStart->position, channelStop->position, diff);
+            if (diff < 200) {
+                dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): broadcast too short, delete invalid marks");
+                cMark *channelStartNext = marks.GetNext(channelStart->position, MT_CHANNELSTART);
+                marks.Del(channelStart->position);
+                marks.Del(channelStop->position);
+                channelStart = channelStartNext;
+                continue;
+            }
+        }
+        channelStart = marks.GetNext(channelStart->position, MT_CHANNELSTART);
+    }
+
+    // delete very early first mark, if channels send ad with 6 channels, this can be wrong
+    channelStart = marks.GetNext(-1, MT_CHANNELSTART);
     if (channelStart) {
         criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);  // there is a 6 channel audio in broadcast, may we can use it later
         if (channelStart->position < IGNORE_AT_START) marks.Del(channelStart->position);
