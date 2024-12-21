@@ -2406,8 +2406,13 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     }
     else { // we found no valid hborder start mark
         // check if we have a hborder double episode from recording start
-        cMark *firstBorderStart = marks.GetNext(-1, MT_HBORDERSTART);
-        if (firstBorderStart && (firstBorderStart->position <= IGNORE_AT_START) && (marks.Count(MT_HBORDERSTART) > marks.Count(MT_HBORDERSTOP))) {
+        cMark *firstBorderStart  = marks.GetNext(-1, MT_HBORDERSTART);
+        cMark *lastBorderStop    = marks.GetPrev(INT_MAX, MT_HBORDERSTOP);
+        int diffBorderStopStartA = 0;
+        if (lastBorderStop)  diffBorderStopStartA = (lastBorderStop->position - startA) /  decoder->GetVideoFrameRate();
+        if (firstBorderStart && (firstBorderStart->position <= IGNORE_AT_START) &&
+                ((marks.Count(MT_HBORDERSTART) > marks.Count(MT_HBORDERSTOP) || // we end start part with hborder start
+                  (diffBorderStopStartA >= MAX_ASSUMED)))) {                    // we have a hborder stop, but not in start part
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start mark at recording start found, we have a double episode");
             criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
         }
@@ -2415,7 +2420,6 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): no horizontal border start mark found, disable horizontal border detection and cleanup marks");
             criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_DISABLED, macontext.Config->fullDecode);
             // keep last hborder stop, maybe can use it as start mark
-            const cMark *lastBorderStop = marks.GetPrev(INT_MAX, MT_HBORDERSTOP);
             if (lastBorderStop) { // delete all marks before hborder stop, they can not be a valid start mark
                 // if there is a logo start short before hborder stop, we have a delayed hborder stop from dark opening credits, keep logo start mark
                 int delPos = lastBorderStop->position - 1;
