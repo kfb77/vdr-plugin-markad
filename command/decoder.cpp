@@ -1014,10 +1014,10 @@ bool cDecoder::DecodeNextFrame(const bool audioDecode) {
         switch (decoderSendState) {
         case -EIO:
             dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: avcodec_send_packet EIO, try next packet", packetNumber, avpkt.stream_index);
-        case AVERROR_INVALIDDATA:
-            dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: avcodec_send_packet AVERROR_INVALIDDATA, try next packet", packetNumber, avpkt.stream_index);
+        case AVERROR_INVALIDDATA:  // double check state because of case fall through
+            if (decoderSendState == AVERROR_INVALIDDATA) dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: avcodec_send_packet AVERROR_INVALIDDATA, try next packet", packetNumber, avpkt.stream_index);
         case AAC_AC3_PARSE_ERROR_SYNC:
-            dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: avcodec_send_packet AAC_AC3_PARSE_ERROR_SYNC, try next packet", packetNumber, avpkt.stream_index);
+            if (decoderSendState == AAC_AC3_PARSE_ERROR_SYNC) dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d), stream %d: avcodec_send_packet AAC_AC3_PARSE_ERROR_SYNC, try next packet", packetNumber, avpkt.stream_index);
         case AVERROR(EINVAL):
             dsyslog("cDecoder::DecodeNextFrame(): packet     (%5d): invalid packet (EINVAL), try next packet", packetNumber);
         case 0:  // we had successful send last packet and we can send next packet
