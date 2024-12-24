@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2024-12-24: Version 4.2.8
+- cleanup pid file after abort
+- fix crash after abort
+- some minor bug fixes and optimizations, see git
+
 2024-11-30: Version 4.2.7
 - prevent double check of closing credits
 - improve performance of logo extraction from recording
