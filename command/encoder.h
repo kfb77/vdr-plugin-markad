@@ -369,7 +369,7 @@ private:
 #ifdef DEBUG_CUT_WRITE
     int64_t outputKeyPacketPTSbefore[MAXSTREAMS] = {-1};
 #endif
-#ifdef DEBUG_ENCODER
+#if defined(DEBUG_ENCODER) || defined(DEBUG_PTS_DTS_CUT)
     int64_t lastPacketOutDTS[MAXSTREAMS]         = {-1};      //!< DTS of last output packet from encoder
 #endif
 #ifdef DEBUG_PTS_DTS_CUT

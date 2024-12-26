@@ -1390,7 +1390,7 @@ bool cEncoder::CutFullReEncode(cMark *startMark, cMark *stopMark) {
         if (abortNow) return false;
 
 #ifdef DEBUG_CUT  // first picures after start mark after
-        if (decoder->IsVideoFrame() && ((abs(decoder->GetPacketNumber() - startPos) <= DEBUG_CUT) || (abs(decoder->GetPacketNumber() - stopPos) <= DEBUG_CUT))) {
+        if (decoder->IsVideoFrame() && ((abs(decoder->GetFramePTS() - startMark->pts) <= (DEBUG_CUT * cutInfo.videoPacketDuration)) || (abs(decoder->GetFramePTS() - stopMark->pts) <= (DEBUG_CUT * cutInfo.videoPacketDuration)))) {
             char *fileName = nullptr;
             if (asprintf(&fileName,"%s/F__%07d_CUT.pgm", recDir, decoder->GetPacketNumber()) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
@@ -1582,6 +1582,7 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
         while (decoder->GetPacketNumber() < keyPacketNumberAfterStart) {
             if (abortNow) return false;
             if (decoder->IsVideoPacket()) {  // re-encode video packet
+
 #ifdef DEBUG_PTS_DTS_CUT
                 dsyslog("cEncoder::CutSmart(): packet (%5d), stream %d, PTS %ld, DTS %ld, flags %d, duration %ld: re-encode video packet in start part", decoder->GetPacketNumber(), avpkt->stream_index, avpkt->pts, avpkt->dts, avpkt->flags, avpkt->duration);
 #endif
@@ -1595,6 +1596,21 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
                 }
                 cutInfo.videoPacketDuration = avpkt->duration;
                 if (decoder->DecodePacket()) {
+
+#ifdef DEBUG_CUT  // debug all picures before and after start mark
+                    char suffix[16] = "";
+                    if (decoder->GetFramePTS() == startMark->pts) strcpy(suffix, "START");
+                    else if (decoder->GetFramePTS() < startMark->pts) strcpy(suffix, "START_BEFORE");
+                    else if (decoder->GetFramePTS() > startMark->pts) strcpy(suffix, "START_AFTER");
+                    char *fileName = nullptr;
+                    if (asprintf(&fileName,"%s/F__%07d_%10ld_%s_CUT.pgm", recDir, decoder->GetPacketNumber(), decoder->GetFramePTS(), suffix) >= 1) {
+                        ALLOC(strlen(fileName)+1, "fileName");
+                        SaveVideoPlane0(fileName, decoder->GetVideoPicture());
+                        FREE(strlen(fileName)+1, "fileName");
+                        free(fileName);
+                    }
+#endif
+
                     if (decoder->GetFramePTS() >= startMark->pts) {
 #ifdef DEBUG_PTS_DTS_CUT
                         dsyslog("cEncoder::CutSmart(): frame from decoder, send to encoder: PTS %" PRId64, decoder->GetFramePTS());
