@@ -209,10 +209,11 @@ private:
 
     /**
      * drain decoder and encoder queue
+     * @param startPTS PTS of start mark
      * @param stopPTS  PTS of stop mark
      * @return true if successful, false otherwise
      */
-    bool DrainVideoReEncode(const int64_t stopPTS);
+    bool DrainVideoReEncode(const int64_t startPTS, const int64_t stopPTS);
 
     /**
      * calculate and set encoder queue PTS/DTS offset for smart re-encode

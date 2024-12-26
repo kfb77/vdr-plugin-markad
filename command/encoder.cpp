@@ -1221,13 +1221,13 @@ int cEncoder::GetPSliceKeyPacketNumberAfterPTS(int64_t pts, int64_t *pSlicePTS, 
 }
 
 
-bool cEncoder::DrainVideoReEncode(const int64_t stopPTS) {
+bool cEncoder::DrainVideoReEncode(const int64_t startPTS, const int64_t stopPTS) {
     // flush decoder queue
     dsyslog("cEncoder::DrainVideoReEncode(): drain decoder queue");
     decoder->FlushDecoder(videoInputStreamIndex);
     while (decoder->ReceiveFrameFromDecoder() == 0) {
         if (abortNow) return false;
-        if (decoder->GetFramePTS() <= stopPTS) {
+        if ((decoder->GetFramePTS() >= startPTS) && (decoder->GetFramePTS() <= stopPTS)) {
             dsyslog("cEncoder::DrainVideoReEncode(): frame decoder -> encoder: PTS %" PRId64 ", DTS %" PRId64, decoder->GetFramePTS(), decoder->GetFrameDTS());
             if (!EncodeVideoFrame()) {
                 esyslog("cEncoder::DrainVideoReEncode(): decoder packet (%d): EncodeVideoFrame() failed during re-encoding", decoder->GetPacketNumber());
@@ -1235,7 +1235,7 @@ bool cEncoder::DrainVideoReEncode(const int64_t stopPTS) {
             }
         }
         else {
-            dsyslog("cEncoder::DrainVideoReEncode(): drop video input frame with PTS %" PRId64 " after stop mark PTS %" PRId64, decoder->GetFramePTS(), stopPTS);
+            dsyslog("cEncoder::DrainVideoReEncode(): drop video input frame with PTS %" PRId64 "  not after start mark PTS or before stop mark PTS %" PRId64, decoder->GetFramePTS(), stopPTS);
             decoder->DropFrame();
         }
     }
@@ -1639,7 +1639,7 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
             if (!decoder->ReadNextPacket()) return false;
             avpkt = decoder->GetPacket();
         }
-        if (!DrainVideoReEncode(INT64_MAX)) return false;
+        if (!DrainVideoReEncode(startMark->pts, stopMark->pts)) return false;
         // re-adjust offset, last packet was a video packet, fist key frame to copy is in decoder
         cutInfo.offsetPTSReEncode = 0;
         cutInfo.offsetDTSReEncode = 0;
@@ -1756,7 +1756,7 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
             if (!decoder->ReadNextPacket()) return false;
             avpkt = decoder->GetPacket();
         }
-        if (!DrainVideoReEncode(stopMark->pts)) return false;
+        if (!DrainVideoReEncode(startMark->pts, stopMark->pts)) return false;
         cutInfo.offsetPTSReEncode = 0;
         cutInfo.offsetDTSReEncode = 0;
     }
