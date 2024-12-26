@@ -5217,6 +5217,7 @@ void cMarkAdStandalone::SilenceOptimization() {
             bool moved = false;
             int diffBefore   = INT_MAX;
             int diffAfter    = INT_MAX;
+            int lengthBefore = 0;
             int lengthAfter  = 0;
             bool blackAfter  = false;
             cMark *soundStartBefore = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTART);
@@ -5227,11 +5228,11 @@ void cMarkAdStandalone::SilenceOptimization() {
                 diffBefore = 1000 * (mark->position - soundStartBefore->position) / decoder->GetVideoFrameRate();
                 soundStopBefore = silenceMarks.GetPrev(soundStartBefore->position, MT_SOUNDSTOP);
                 if (soundStopBefore) {
-                    int lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / decoder->GetVideoFrameRate();
+                    lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / decoder->GetVideoFrameRate();
                     const cMark *black = blackMarks.GetAround(decoder->GetVideoFrameRate(), soundStopBefore->position, MT_BLACKCHANGE, 0xF0);
                     bool blackBefore = false;
                     if (black) blackBefore = true;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %" PRId64 " to (%6d) %" PRId64 ", %8dms before, length %4dms, black %d", mark->position, soundStopBefore->position, soundStopBefore->pts, soundStartBefore->position, soundStartBefore->pts, diffBefore, lengthBefore, blackBefore);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %10" PRId64 " to (%6d) %10" PRId64 ", %8dms before, length %4dms, black %d", mark->position, soundStopBefore->position, soundStopBefore->pts, soundStartBefore->position, soundStartBefore->pts, diffBefore, lengthBefore, blackBefore);
                 }
             }
             if (soundStartAfter) {
@@ -5241,7 +5242,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / decoder->GetVideoFrameRate();
                     const cMark *black = blackMarks.GetAround(decoder->GetVideoFrameRate(), soundStopAfter->position, MT_BLACKCHANGE, 0xF0);
                     if (black) blackAfter = true;
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %" PRId64 " to (%6d) %" PRId64 ", %8dms after,  length %4dms, black %d", mark->position, soundStopAfter->position, soundStopAfter->pts, soundStartAfter->position, soundStartAfter->pts, diffAfter, lengthAfter, blackAfter);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %10" PRId64 " to (%6d) %10" PRId64 ", %8dms after,  length %4dms, black %d", mark->position, soundStopAfter->position, soundStopAfter->pts, soundStartAfter->position, soundStartAfter->pts, diffAfter, lengthAfter, blackAfter);
                 }
             }
             // try silence before start position
@@ -5258,8 +5259,11 @@ void cMarkAdStandalone::SilenceOptimization() {
                     // rule 1: logo start is in ad, silence before and after ad
                     if ((diffBefore >=  3140) && (diffAfter <=  3740)) diffBefore = INT_MAX;
 
-                    if (criteria->LogoFadeInOut() & FADE_IN) maxBefore = 7040;
-                    else                                     maxBefore = 2480;
+                    if (criteria->LogoFadeInOut() & FADE_IN) {
+                        if (lengthBefore > 120) maxBefore = 5399;
+                        else                    maxBefore = 3799;
+                    }
+                    else                        maxBefore = 2480;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
@@ -5268,7 +5272,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                         if ((diffAfter <= 231440) && (lengthAfter > 80)) diffBefore = INT_MAX;
 
                         if (criteria->GoodVPS()) maxBefore =  29479;
-                        else                     maxBefore = 171080;
+                        else                     maxBefore = 136559;
                         break;
                     case MT_INTRODUCTIONSTART:
                         maxBefore = 2040;
@@ -5306,10 +5310,10 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if (criteria->GoodVPS())   maxAfter = 116959;
-                        else if (blackAfter)       maxAfter = 233440;
-                        else if (lengthAfter > 80) maxAfter = 231440;
-                        else                       maxAfter =  17019;
+                        if (criteria->GoodVPS())    maxAfter = 116959;
+                        else if (blackAfter)        maxAfter = 233440;
+                        else if (lengthAfter > 120) maxAfter = 231440;
+                        else                        maxAfter =  17019;
                         break;
                     default:
                         maxAfter = 0;
@@ -5341,19 +5345,22 @@ void cMarkAdStandalone::SilenceOptimization() {
                 diffBefore = 1000 * (mark->position - soundStopBefore->position) / decoder->GetVideoFrameRate();
                 soundStartBefore = silenceMarks.GetNext(soundStopBefore->position, MT_SOUNDSTART);
                 if (soundStartBefore) {
+                    bool blackBefore = false;
+                    const cMark *black = blackMarks.GetAround(decoder->GetVideoFrameRate(), soundStopBefore->position, MT_BLACKCHANGE, 0xF0);
+                    if (black) blackBefore = true;
                     lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%6d) to (%6d) %8ldms before, length %4dms", mark->position, soundStopBefore->position, soundStartBefore->position, diffBefore, lengthBefore);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%6d) %10" PRId64 " to (%6d) %10" PRId64 ", %8ldms before, length %4dms, black %d", mark->position, soundStopBefore->position, soundStopBefore->pts, soundStartBefore->position, soundStartBefore->pts, diffBefore, lengthBefore, blackBefore);
                 }
             }
             if (soundStopAfter) {
                 diffAfter = 1000 * (soundStopAfter->position - mark->position) / decoder->GetVideoFrameRate();
                 soundStartAfter = silenceMarks.GetNext(soundStopAfter->position, MT_SOUNDSTART);
                 if (soundStartAfter) {
-                    bool blackAfter       = false;
+                    bool blackAfter = false;
                     const cMark *black = blackMarks.GetAround(decoder->GetVideoFrameRate(), soundStopAfter->position, MT_BLACKCHANGE, 0xF0);
                     if (black) blackAfter = true;
                     lengthAfter = 1000 * (soundStartAfter->position - soundStopAfter->position) / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%6d) to (%6d) %8dms after,  length %4dms, black %d", mark->position, soundStopAfter->position, soundStartAfter->position, diffAfter, lengthAfter, blackAfter);
+                    dsyslog("cMarkAdStandalone::SilenceOptimization(): stop  mark (%6d): silence from (%6d) %10" PRId64 " to (%6d) %10" PRId64 ", %8dms after,  length %4dms, black %d", mark->position, soundStopAfter->position, soundStopAfter->pts, soundStartAfter->position, soundStartAfter->pts, diffAfter, lengthAfter, blackAfter);
                 }
             }
             // try silence after stop mark
@@ -5364,10 +5371,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     maxAfter = 135719;  // silence in next broadcast after 135720ms
                     break;
                 case MT_LOGOSTOP:
-                    // rule 1: second silence is after preview
-                    if ((diffBefore <= 11680) && (diffAfter >= 1040) && (diffAfter <= 6640)) diffAfter = INT_MAX;
-
-                    if (criteria->LogoFadeInOut() & FADE_OUT) maxAfter = 4719;
+                    if (criteria->LogoFadeInOut() & FADE_OUT) maxAfter = 2360;
                     else                                      maxAfter = 1079;
                     break;
                 case MT_VBORDERSTOP:
@@ -5376,10 +5380,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        // rule 1: prefer silence before
-                        if (diffBefore <= 57280) diffAfter = INT_MAX;
-
-                        if (criteria->GoodVPS())      maxAfter = 31479;
+                        if (criteria->GoodVPS())      maxAfter = 24359;
                         else if (lengthAfter >= 3000) maxAfter = 81920;
                         else                          maxAfter = 66999;
                         break;
