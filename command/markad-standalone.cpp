@@ -4671,7 +4671,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                             if (lengthBefore      >= 160) maxBefore = 6639;
                             else if (lengthBefore >=  40) maxBefore = 5519;
                         }
-                        else if (lengthBefore < 9720) maxBefore = 5360;
+                        else if (lengthBefore < 2960) maxBefore = 5360;  // long blackscreen is from closing credits of previous broadcast
                     }
                     else maxBefore = 2999;
                     break;
@@ -4693,8 +4693,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         // rule 2: blackscreen with silence before VPS start (preview) and black screen with silence after VPS start (broadcast start)
                         else if (silenceBefore && silenceAfter && (diffBefore >= 26660) && (diffAfter <= 44100)) diffBefore = INT_MAX;
 
-                        // rule 3: not so far blackscreen after is start of broadcast, no silence around
-                        else if (!silenceBefore && !silenceAfter && (diffBefore >= 54200) && (diffAfter <= 20960)) diffBefore = INT_MAX;
+                        // rule 3: not so far blackscreen after is start of broadcast, far before is from closing credits, no silence around
+                        else if (!silenceBefore && !silenceAfter && (diffBefore >= 49920) && (diffAfter <= 20960)) diffBefore = INT_MAX;
 
                         if (criteria->GoodVPS())      maxBefore =  7419;
                         else if (silenceBefore)       maxBefore = 81800;
@@ -4725,7 +4725,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 int maxAfter = -1;
                 switch (mark->type) {
                 case MT_ASSUMEDSTART:
-                    maxAfter = 64519;
+                    if (lengthAfter > 40) maxAfter = 64519;
+                    else maxAfter = 34159;
                     break;
                 case MT_LOGOSTART:
                     if (criteria->LogoFadeInOut() & FADE_IN) maxAfter = 1440;
@@ -4753,7 +4754,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     case MT_VPSSTART:
                         if (criteria->GoodVPS())        maxAfter =   7020;
                         else if (silenceAfter)          maxAfter = 139480;
-                        else if (lengthAfter > 40)      maxAfter =  20960;
+                        else if (lengthAfter >= 3160)   maxAfter = 105520;
+                        else if (lengthAfter >    40)   maxAfter =  20960;
                         else                            maxAfter =      0;  // very short blackscreen are in broadcast
                         break;
                     case MT_INTRODUCTIONSTART:
@@ -4834,8 +4836,11 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     else if ((!(criteria->LogoFadeInOut() & FADE_OUT)) &&
                              (diffBefore <= 4580) && (lengthBefore >= 600) && (diffAfter <= 3240) && (lengthAfter <= 520)) diffAfter = INT_MAX;
 
-                    if ((criteria->LogoFadeInOut() & FADE_OUT) )  maxAfter = 4960;
-                    else                                          maxAfter = 1399;
+                    if (criteria->LogoFadeInOut() & FADE_OUT) {
+                        if (lengthAfter > 40) maxAfter = 4960;
+                        else                  maxAfter = 3039;
+                    }
+                    else                      maxAfter = 1399;
                     break;
                 case MT_HBORDERSTOP:
                     // rule 1: black screen short before hborder stop is end of closing credits
