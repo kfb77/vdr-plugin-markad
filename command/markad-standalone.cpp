@@ -1424,8 +1424,9 @@ cMark *cMarkAdStandalone::Check_ASPECTSTOP() {
         if (aspectStop) {
             const cMark *aspectStart = marks.GetPrev(aspectStop->position, MT_ASPECTSTOP);
             if (!aspectStart) {
+                // do not use this aspect stop mark, broadcast stop can be before aspect stop if there is an ad between
                 dsyslog("cMarkAdStandalone::Check_ASPECTSTOP(): we have 16:9 bradcast and MT_ASPECTSTOP at frame (%d) without MT_ASPECTSTART before, this is start of next broadcast", aspectStop->position);
-                marks.DelAfterFromToEnd(aspectStop->position);
+                marks.DelAfterFromToEnd(aspectStop->position);  // keep aspect stop mark, can be a valid end mark if there is no ad
                 return nullptr;
             }
         }
@@ -1606,9 +1607,16 @@ void cMarkAdStandalone::CheckStop() {
     }
 
 // no end mark found, try if we can use a start mark of next bradcast as end mark
+    // no valid stop mark found, use MT_ASPECTSTOP (broadcast must be 16:9, start of next broadcast with 4:3)
+    if (!end && (criteria->GetMarkTypeState(MT_ASPECTCHANGE) != CRITERIA_USED)) { // not possible is we use aspect marks in this broadcast
+        cMark *aspectStop = marks.GetNext(stopA, MT_ASPECTSTOP);
+        if (aspectStop) {
+            dsyslog("cMarkAdStandalone::CheckStop(): use aspect stop mark (%d) from start of next 4:3 broadcast as end mark", aspectStop->position);
+            end = aspectStop;
+        }
+    }
     // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
-    if (!end && (criteria->GetMarkTypeState(MT_CHANNELCHANGE) != CRITERIA_USED)) {
-        // not possible is we use channel mark in this broadcast
+    if (!end && (criteria->GetMarkTypeState(MT_CHANNELCHANGE) != CRITERIA_USED)) { // not possible is we use channel mark in this broadcast
         cMark *channelStart = marks.GetNext(stopA, MT_CHANNELSTART);
         if (channelStart) {
             dsyslog("cMarkAdStandalone::CheckStop(): use channel start mark (%d) from next broadcast as end mark", channelStart->position);
