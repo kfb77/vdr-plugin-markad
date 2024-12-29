@@ -106,7 +106,7 @@ public:
      * @param stopPosition  frame number of the logo stop mark
      * @param state new state
      */
-    void SetIsAdInFrame(const int stopPosition, const int state);
+    void SetIsAdInFrameAroundStop(const int stopPosition, const int state);
 
     /**
      * set info logo status to STATUS_YES

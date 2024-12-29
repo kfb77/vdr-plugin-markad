@@ -589,15 +589,15 @@ int cEvaluateLogoStopStartPair::GetIsAdInFrame(const int stopPosition, const int
 }
 
 
-void cEvaluateLogoStopStartPair::SetIsAdInFrame(const int stopPosition, const int state) {
+void cEvaluateLogoStopStartPair::SetIsAdInFrameAroundStop(const int stopPosition, const int state) {
     std::vector<sLogoStopStartPair>::iterator found = std::find_if(logoPairVector.begin(), logoPairVector.end(), [stopPosition](sLogoStopStartPair const &value) ->bool { if (value.stopPosition == stopPosition) return true; else return false; });
 
     if (found != logoPairVector.end()) {
-        dsyslog("cEvaluateLogoStopStartPair::SetIsAdInFrame(): set isAdInFrameBeforeStop for stop (%d) to %d", found->stopPosition, state);
+        dsyslog("cEvaluateLogoStopStartPair::SetIsAdInFrameAroundStop(): set isAdInFrameBeforeStop for stop (%d) to %d", found->stopPosition, state);
         found->isAdInFrameBeforeStop = state;
         return;
     }
-    dsyslog("cEvaluateLogoStopStartPair::SetIsAdInFrame(): stop (%d) not found, add in list with state %d", stopPosition, state);
+    dsyslog("cEvaluateLogoStopStartPair::SetIsAdInFrameAroundStop(): stop (%d) not found, add in list with state %d", stopPosition, state);
     sLogoStopStartPair newPair;
     newPair.stopPosition = stopPosition;
     newPair.isAdInFrameBeforeStop  = state;
