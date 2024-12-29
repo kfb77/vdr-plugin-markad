@@ -1913,7 +1913,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
                     }
                 }
             }
-            if (doInfoCheck && (logoStopStartPair.isInfoLogo >= STATUS_UNKNOWN) && detectLogoStopStart->IsInfoLogo(logoStopStartPair.stopPosition, logoStopStartPair.startPosition, logoStopStartPair.hasBorder)) {
+            if (doInfoCheck && (logoStopStartPair.isInfoLogo >= STATUS_UNKNOWN) && detectLogoStopStart->IsInfoLogo(logoStopStartPair.stopPosition, logoStopStartPair.startPosition, logoStopStartPair.hasBorderAroundStart)) {
                 // found info logo part
                 if (indexToHMSFStop && indexToHMSFStart) {
                     dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): info logo found between frame (%i) at %s and (%i) at %s, deleting marks between this positions", logoStopStartPair.stopPosition, indexToHMSFStop, logoStopStartPair.startPosition, indexToHMSFStart);

@@ -158,7 +158,7 @@ typedef struct sLogoStopStartPair {
     //!<
     int startPosition                = -1;              //!< frame number of logo start mark
     //!<
-    bool hasBorder                   = false;           //!< true if there is vborder or hborder between stopPosition and startPosition
+    bool hasBorderAroundStart        = false;           //!< true if there is vborder or hborder between stopPosition and startPosition
     //!<
     int isLogoChange                 = STATUS_UNKNOWN;  //!< status of logo change, value #eEvaluateStatus
     //!<

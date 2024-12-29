@@ -158,7 +158,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
     }
     for (std::vector<sLogoStopStartPair>::iterator logoPairIterator = logoPairVector.begin(); logoPairIterator != logoPairVector.end(); ++logoPairIterator) {
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): add stop (%d) start (%d) pair:", logoPairIterator->stopPosition, logoPairIterator->startPosition);
-        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  hasBorder              %2d", logoPairIterator->hasBorder);
+        dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  hasBorderAroundStart   %2d", logoPairIterator->hasBorderAroundStart);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isLogoChange           %2d", logoPairIterator->isLogoChange);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isAdInFrameAfterStart  %2d", logoPairIterator->isAdInFrameAfterStart);
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs():                  isAdInFrameBeforeStop  %2d", logoPairIterator->isAdInFrameBeforeStop);
@@ -185,12 +185,12 @@ void cEvaluateLogoStopStartPair::IsAdInFrame(cMarks *marks, sLogoStopStartPair *
 
         logoStopStartPair->isAdInFrameBeforeStop = STATUS_NO;
     }
-    // check if there is a hborder aktiv after logo start mark (can be from documentations)
+    // check if there is a hborder aktiv after logo start mark (can be from opening credits or documentations)
     // in this case we can not (and need not) check for frame after start mark
     cMark *hBorderStartBefore = marks->GetPrev(logoStopStartPair->startPosition, MT_HBORDERSTART);
     if (hBorderStartBefore) {
         cMark *hBorderStopAfter = marks->GetNext(hBorderStartBefore->position, MT_HBORDERSTOP);
-        if (hBorderStopAfter && (hBorderStopAfter->position >= (logoStopStartPair->startPosition + (MAX_AD_IN_FRAME * frameRate)))) {
+        if (hBorderStopAfter && (hBorderStopAfter->position > logoStopStartPair->startPosition )) {
             dsyslog("cEvaluateLogoStopStartPair::IsAdInFrame():          ----- stop (%d) start (%d) pair: active hborder from (%d) to (%d) after start found", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, hBorderStartBefore->position, hBorderStopAfter->position);
             logoStopStartPair->isAdInFrameAfterStart = STATUS_NO;
         }
@@ -539,7 +539,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
         cMark *hBorderStopAfter = marks->GetNext(hBorderStartBefore->position, MT_HBORDERSTOP);
         if (hBorderStopAfter && (hBorderStopAfter->position >= logoStopStartPair->startPosition)) {
             dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: active hborder from (%d) to (%d) found", logoStopStartPair->stopPosition, logoStopStartPair->startPosition, hBorderStartBefore->position, hBorderStopAfter->position);
-            logoStopStartPair->hasBorder = true;
+            logoStopStartPair->hasBorderAroundStart = true;
         }
     }
     return;
@@ -557,7 +557,7 @@ bool cEvaluateLogoStopStartPair::GetNextPair(sLogoStopStartPair *logoStopStartPa
     }
     logoStopStartPair->stopPosition           = nextLogoPairIterator->stopPosition;
     logoStopStartPair->startPosition          = nextLogoPairIterator->startPosition;
-    logoStopStartPair->hasBorder              = nextLogoPairIterator->hasBorder;
+    logoStopStartPair->hasBorderAroundStart   = nextLogoPairIterator->hasBorderAroundStart;
     logoStopStartPair->isLogoChange           = nextLogoPairIterator->isLogoChange;
     logoStopStartPair->isInfoLogo             = nextLogoPairIterator->isInfoLogo;
     logoStopStartPair->isAdInFrameAfterStart  = nextLogoPairIterator->isAdInFrameAfterStart;
