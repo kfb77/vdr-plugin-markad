@@ -2435,7 +2435,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                 if (logoStart) {
                     int diff = (lastBorderStop->position - logoStart->position) / decoder->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): logo start (%d) %ds before hborder stop (%d) found", logoStart->position, diff, lastBorderStop->position);
-                    if (diff <= 4) {
+                    if (diff <= 18) {  // valid logo start mark can be some seconds before hborder stop if there are dark opening credits
                         delPos = logoStart->position - 1;
                         marks.Del(lastBorderStop->position);  // we do not need hborder stop as fallback, we have a near logo start mark
                     }
