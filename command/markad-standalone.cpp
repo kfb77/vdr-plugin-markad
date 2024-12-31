@@ -2243,7 +2243,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
         if (lStop) {  // there is a next stop mark in the start range
             int distanceStartStop = (lStop->position - lStart->position) / decoder->GetVideoFrameRate();
-            if (distanceStartStop < 17) {  // change from 20 to 17 because of very short stop/start from logo change 17s after start mark
+            if (distanceStartStop < 8) {  // change from 17 to 8 because of very short stop/start from logo change 8s after start mark
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): next logo stop mark found very short after start mark on position (%d), distance %ds", lStop->position, distanceStartStop);
                 cMark *lNextStart = marks.GetNext(lStop->position, MT_LOGOSTART); // get next logo start mark
                 if (lNextStart) {  // now we have logo start/stop/start, this can be a preview before broadcast start
