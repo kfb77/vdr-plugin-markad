@@ -2317,6 +2317,13 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     if (hStart) { // we found a hborder start mark
         cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);
         if (hStop) { // we have a hborder stop mark in start area, check if hborder marks are valid
+            // check if hbrder start/stop is end part of previous broadcast
+            if (hStop->position < startA) {
+                dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start (%d) and stop (%d) mark before assumed start (%d), hborder marks are from previous broadcast", hStart->position, hStop->position, startA);
+                marks.Del(hStart->position); // keep hborder stop as end of previous broadcast, may we can use it as fallback
+                return nullptr;
+            }
+
             int lengthBroadcast  = (hStop->position - hStart->position) / decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start (%d) and stop (%d) mark, length of first broadcast %ds", hStart->position, hStop->position, lengthBroadcast);
             // very short broadcast without next hborder start is invalid
