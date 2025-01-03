@@ -2833,16 +2833,22 @@ void cMarkAdStandalone::CheckStart() {
     if (!begin) { // try hborder stop mark as start mark
         cMark *hborderStop  = marks.GetNext(0, MT_HBORDERSTOP);
         if (hborderStop) {
-            int diffStartA = (hborderStop->position - startA) /  decoder->GetVideoFrameRate();
-            if (diffStartA <= MAX_ASSUMED) {
-                cMark *hborderStart = marks.GetNext(hborderStop->position, MT_HBORDERSTART);
-                if (!hborderStart) { // if there is a hborder start mark after, hborder stop is not an end mark of previous broadcast
-                    dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_HBORDERSTOP (%d) from previous recoring as start mark", hborderStop->position);
-                    begin = marks.ChangeType(hborderStop, MT_START);
-                    marks.DelTill(begin->position);
-                }
+            cMark *vborderStop = marks.GetAround(decoder->GetVideoFrameRate(), hborderStop->position, MT_VBORDERSTOP);  // closing credit or documentation in frame can end with both stop types, use later
+            if (vborderStop && (vborderStop->position > hborderStop->position)) {
+                dsyslog("cMarkAdStandalone::CheckStart(): vborder stop (%d) short after hborder stop (%d), use vborder stop", vborderStop->position, hborderStop->position);
             }
-            else dsyslog("cMarkAdStandalone::CheckStart(): MT_HBORDERSTOP (%d) invalid, %ds after assumed start", hborderStop->position, diffStartA);
+            else {
+                int diffStartA = (hborderStop->position - startA) /  decoder->GetVideoFrameRate();
+                if (diffStartA <= MAX_ASSUMED) {
+                    cMark *hborderStart = marks.GetNext(hborderStop->position, MT_HBORDERSTART);
+                    if (!hborderStart) { // if there is a hborder start mark after, hborder stop is not an end mark of previous broadcast
+                        dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_HBORDERSTOP (%d) from previous recoring as start mark", hborderStop->position);
+                        begin = marks.ChangeType(hborderStop, MT_START);
+                        marks.DelTill(begin->position);
+                    }
+                }
+                else dsyslog("cMarkAdStandalone::CheckStart(): MT_HBORDERSTOP (%d) invalid, %ds after assumed start", hborderStop->position, diffStartA);
+            }
         }
     }
 
