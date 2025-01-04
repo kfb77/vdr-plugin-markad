@@ -2081,7 +2081,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             bool delMark = false;
             // remove very early logo start marks, this can be delayed logo start detection
             int startOffset = index->GetTimeOffsetFromPTS(lStart->pts) / 1000;  // in seconds
-            if (startOffset <= 11) {  // changed from 10 to 11
+            if (startOffset <= 14) {  // changed from 11 to 14
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start (%5d) %ds after recording start too early", lStart->position, startOffset);
                 delMark = true;
             }
