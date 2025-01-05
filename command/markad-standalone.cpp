@@ -4928,7 +4928,21 @@ void cMarkAdStandalone::LowerBorderOptimization() {
             int diffBefore     = INT_MAX;
             cMark *stopBefore  = nullptr;
             cMark *startBefore = blackMarks.GetPrev(mark->position + 1, MT_NOLOWERBORDERSTOP);  // start of lower border before logo start mark
-            if (startBefore) {
+            while (startBefore) {
+                stopBefore = blackMarks.GetNext(startBefore->position, MT_NOLOWERBORDERSTART);
+                if (!stopBefore) break;
+                diffBefore = 1000 * (mark->position - startBefore->position) / decoder->GetVideoFrameRate();
+                lengthBefore = 1000 * (stopBefore->position - startBefore->position) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::LowerBorderOptimization(): start mark (%6d): lower border from (%6d) to (%6d), %7dms before -> length %5dms", mark->position, startBefore->position, stopBefore->position, diffBefore, lengthBefore);
+                if ((lengthBefore >= MIN_LOWER_BORDER) && (lengthBefore <= MAX_LOWER_BORDER)) break;
+                startBefore = blackMarks.GetPrev(startBefore->position, MT_NOLOWERBORDERSTOP);  // previous start of lower border
+            }
+            if ((lengthBefore < MIN_LOWER_BORDER) || (lengthBefore > MAX_LOWER_BORDER)) { // we got no valid result
+                diffBefore  = INT_MAX;
+                startBefore = nullptr;
+                stopBefore  = nullptr;
+            }
+            if (startBefore && stopBefore) {   // we found valid lower border start/stop
                 stopBefore = blackMarks.GetNext(startBefore->position, MT_NOLOWERBORDERSTART);  // end   of lower border before logo start mark
                 if (stopBefore) {
                     diffBefore = 1000 * (mark->position - startBefore->position) / decoder->GetVideoFrameRate();
