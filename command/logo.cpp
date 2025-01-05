@@ -397,6 +397,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.corner    = TOP_LEFT;   // "neue Folge" has same size as logo
         }
 
+//   1 HGTV                    16:9  720W  576H:->  110W  78H TOP_LEFT
+        if (CompareChannelName(channelName, "HGTV", IGNORE_NOTHING)) {
+            logo.widthMin  = 100;
+            logo.widthMax  = 120;
+            logo.heightMin =  68;
+            logo.heightMax =  88;
+        }
+
         //  K-TV                    16:9  720W  576H:->  122W  78H TOP_RIGHT
         if (CompareChannelName(channelName, "K-TV", IGNORE_NOTHING)) {
             logo.widthMin  =  122;
@@ -485,18 +493,24 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax =  74;
         }
 
-        if ((CompareChannelName(channelName, "n-tv", IGNORE_COUNTRY)) ||                //  n-tv                    16:9  720W  576H:->  224W  58H BOTTOM_RIGHT
-                (CompareChannelName(channelName, "ntv", IGNORE_COUNTRY))) {             //  ntv                     16:9  720W  576H:->  226W  60H BOTTOM_LEFT
+//   1 ntv                     16:9  720W  576H:->  234W  60H BOTTOM_LEFT
+//   1 ntv                     16:9  720W  576H:->  234W  90H BOTTOM_LEFT
+        if (    (CompareChannelName(channelName, "n-tv", IGNORE_COUNTRY)) ||
+                (CompareChannelName(channelName, "ntv",  IGNORE_COUNTRY))) {
             logo.widthMax  = INT_MAX;  // news ticker
-            logo.heightMin =  58;
+            logo.heightMin =  50;
+            logo.heightMax = 100;
             logo.corner    = BOTTOM_LEFT;
         }
 
-        // ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
-        // ProSieben               16:9  720W  576H:->   86W  66H TOP_RIGHT
+//   1 ProSieben               16:9  720W  576H:->   80W  62H TOP_RIGHT
+// 166 ProSieben               16:9  720W  576H:->   80W  64H TOP_RIGHT
+//  35 ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
         if (CompareChannelName(channelName, "ProSieben", IGNORE_NOTHING)) {
-            logo.heightMax =  66;
-            logo.widthMax  =  86;
+            logo.widthMin  =  70;
+            logo.widthMax  =  94;
+            logo.heightMin =  52;
+            logo.heightMax =  76;
         }
 
 //  87 Pro7_MAXX               16:9  720W  576H:->  112W  64H TOP_RIGHT
@@ -819,12 +833,12 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 105;   // prevent to accept "heute Xpress" as logo
         }
 
-        //   1 ZDFinfo_HD              16:9 1280W  720H:->  160W  86H TOP_LEFT
-        //   1 ZDFinfo_HD              16:9 1280W  720H:->  196W  86H TOP_LEFT
+//   1 ZDFinfo_HD              16:9 1280W  720H:->  156W  82H TOP_LEFT  -> false logo, only "info"
+//   1 ZDFinfo_HD              16:9 1280W  720H:->  160W  86H TOP_LEFT
         if (CompareChannelName(channelName, "ZDFinfo_HD", IGNORE_NOTHING)) {
             logo.widthMin  = 150;
-            logo.widthMax  = 206;
-            logo.heightMin =  76;
+            logo.widthMax  = 170;
+            logo.heightMin =  83;
             logo.heightMax =  96;
         }
 
