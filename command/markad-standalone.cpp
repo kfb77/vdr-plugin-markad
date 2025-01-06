@@ -2344,7 +2344,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                     int diffLogoStarthBorderStart  = (hStart->position        - logoStartBefore->position) / decoder->GetVideoFrameRate();
                     int diffBorderStarthBorderStop = (hStop->position         - hStart->position)          / decoder->GetVideoFrameRate();
                     int diffhBorderStopLogoStop    = (logoStopAfter->position - hStop->position)           / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): check for false detected hborder from opening credits");
+                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): check for false detected hborder from opening credits or documentation");
                     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): MT_LOGOSTART (%6d) -> %3ds -> MT_HBORDERSTART (%6d) -> %3ds -> MT_HBORDERSTOP (%6d) -> %4ds -> MT_LOGOSTOP (%6d) -> %s", logoStartBefore->position, diffLogoStarthBorderStart, hStart->position, diffBorderStarthBorderStop, hStop->position, diffhBorderStopLogoStop, logoStopAfter->position, macontext.Info.ChannelName);
                     // exampe false detected hborder from opening credits
                     // MT_LOGOSTART ( 15994) ->   3s -> MT_HBORDERSTART ( 16074) ->  82s -> MT_HBORDERSTOP ( 18131) -> 1460s -> MT_LOGOSTOP ( 52588)
@@ -2363,8 +2363,9 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                     }
                     // some dokus have one hborder parts at the beginning of the broadcast
                     // example of one hborder part in broadcast
-                    // MT_LOGOSTART (21731) -> 189s -> MT_HBORDERSTART (31188) -> 141s -> MT_HBORDERSTOP (38279) -> 2210s -> MT_LOGOSTOP (148817)
-                    if ((diffLogoStarthBorderStart <= 189) && (diffBorderStarthBorderStop <= 141) && (diffhBorderStopLogoStop >= 2210)) {
+                    // MT_LOGOSTART ( 21731) -> 189s -> MT_HBORDERSTART ( 31188) -> 141s -> MT_HBORDERSTOP ( 38279) -> 2210s -> MT_LOGOSTOP (148817)
+                    // MT_LOGOSTART ( 23761) -> 159s -> MT_HBORDERSTART ( 31756) -> 178s -> MT_HBORDERSTOP ( 40669) -> 2242s -> MT_LOGOSTOP (152787) -> zdf_neo_HD
+                    if ((diffLogoStarthBorderStart <= 189) && (diffBorderStarthBorderStop <= 178) && (diffhBorderStopLogoStop >= 2210)) {
                         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): invalid hborder marks from hborder scene in broadcast, delete hborder marks");
                         marks.Del(hStart->position);
                         marks.Del(hStop->position);
