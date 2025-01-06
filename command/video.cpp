@@ -627,7 +627,7 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
         dsyslog("cLogoDetect::LogoColourChange:   frame (%6d): logo visible in plane 1 and plane 2", decoder->GetPacketNumber());
 #endif
         *rPixel = logo_vmark;   // change result to logo visible
-        return true;           // we found colored logo
+        return true;            // we found colored logo
     }
     return false;
 }
@@ -800,7 +800,14 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 
         // check if we have a valid logo visible/invisible result
 #define MAX_AREA_INTENSITY  56    // limit to reduce brightness
-        if ((area.intensity <= MAX_AREA_INTENSITY) && (rPixel <= logo_imark)) logoStatus = true; // we have no bright picture so we have a valid logo invisible result
+
+        // we have no bright picture so we have a valid logo invisible result, but not if we expect a color change logo
+        if ((area.intensity <= MAX_AREA_INTENSITY) && (rPixel <= logo_imark)) {
+            if (criteria->LogoColorChange()) LogoColourChange(&rPixel, logo_vmark);  // check logo color change, if colored logo visible, rPixel is set to logo_vmark
+            logoStatus = true;  // in any case, we have a valid result
+        }
+
+        // trust logo visible even on bright background
         if (rPixel >= logo_vmark) logoStatus = true;                                             // trust logo visible even on bright background
 
         // if we have still no valid match, try to copy colour planes into grey planes
