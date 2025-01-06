@@ -1526,7 +1526,7 @@ void cMarkAdStandalone::CheckStop() {
         aStart = marks.GetNext(aStart->position, MT_ASPECTSTART);
     }
     // remove logo change marks
-    if (criteria->GetMarkTypeState(MT_CHANNELCHANGE) >= CRITERIA_UNKNOWN) RemoveLogoChangeMarks(false);
+    RemoveLogoChangeMarks(false);
 
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::CheckStop(): marks after first cleanup:");
