@@ -5561,7 +5561,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_SOUNDSTART:
-                        maxAfter = 7120;
+                        maxAfter = 4619;
                         break;
                     case MT_NOLOWERBORDERSTART:
                         maxAfter = 5000;
@@ -5650,10 +5650,13 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxAfter = 360;
                         break;
                     case MT_VPSSTOP:
-                        // rule 1: scene change short before
+                        // rule 1: use nearest scene change for channel with good VPS
+                        if (criteria->GoodVPS() && (diffBefore < diffAfter))  diffAfter = INT_MAX;
+
+                        // rule 2: scene change short before
                         if ((diffBefore >= 160) && (diffBefore <= 480) && (diffAfter >= 680) && (diffAfter <= 3840)) diffAfter = INT_MAX;
 
-                        // rule 2: long opening scene from next broadcast
+                        // rule 3: long opening scene from next broadcast
                         else if ((diffBefore <= 80) && (diffAfter >= 6720)) diffAfter = INT_MAX;   // long opening scene from next broadcast
 
                         maxAfter = 17480;  // changed from 11200 to 17480
