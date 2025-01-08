@@ -36,6 +36,7 @@ bool cCriteria::GoodVPS() {
     if (CompareChannelName(channelName, "tagesschau24", IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "WDR",          IGNORE_HD | IGNORE_CITY)) return true;
     if (CompareChannelName(channelName, "ZDF",          IGNORE_HD))               return true;
+    if (CompareChannelName(channelName, "ZDFinfo",      IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "zdf_neo",      IGNORE_HD))               return true;
 
     return false;
