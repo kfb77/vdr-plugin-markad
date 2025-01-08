@@ -3250,7 +3250,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                             (prevLogoStart_Stop     >= 1120) && (prevLogoStart_Stop     <=    8440) &&
                             (stop_nextLogoStart     >=  280) && (stop_nextLogoStart     <=    1120) &&
                             (nextLogoStart_nextStop >=  560) && (nextLogoStart_nextStop <= 1303560)) {
-                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from logo change, deleting", mark->position, nextLogoStart->position);
+                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from undetected logo change, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
                         marks.Del(mark);
@@ -3259,15 +3259,33 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     }
 // invalid stop/start pair from short logo interruption channel, delete pair
 // delete more aggressiv
-// example of logo stop/start pair from logo interruption
+// detect from long broadcast before (logo interuption at end of part) or long broadcast after (logo interuption at start of part
+// example of invalid logo stop/start pair from logo interruption
+// MT_LOGOSTART ( 33854) ->   17800ms -> MT_LOGOSTOP ( 34299) ->     800ms -> MT_LOGOSTART ( 34319) ->  272280ms -> MT_STOP ( 41126) -> Comedy_Central
 // MT_LOGOSTART ( 42010) ->   17800ms -> MT_LOGOSTOP ( 42455) ->     840ms -> MT_LOGOSTART ( 42476) ->  543960ms -> MT_STOP ( 56075) -> Comedy_Central
+// MT_LOGOSTART ( 40019) ->   35080ms -> MT_LOGOSTOP ( 40896) ->     960ms -> MT_LOGOSTART ( 40920) ->  668720ms -> MT_STOP ( 57638) -> Comedy_Central
+// MT_LOGOSTART ( 20580) ->   43920ms -> MT_LOGOSTOP ( 21678) ->    1120ms -> MT_LOGOSTART ( 21706) ->  499320ms -> MT_STOP ( 34189) -> Comedy_Central
+//
 // MT_LOGOSTART ( 10503) ->  158960ms -> MT_LOGOSTOP ( 14477) ->     520ms -> MT_LOGOSTART ( 14490) ->   11600ms -> MT_STOP ( 14780) -> Comedy_Central
+// MT_LOGOSTART (  9887) ->  441480ms -> MT_LOGOSTOP ( 20924) ->     520ms -> MT_LOGOSTART ( 20937) ->   23840ms -> MT_STOP ( 21533) -> Comedy_Central
 // MT_LOGOSTART ( 10503) ->  575520ms -> MT_LOGOSTOP ( 24891) ->     520ms -> MT_LOGOSTART ( 24904) ->   11760ms -> MT_STOP ( 25198) -> Comedy_Central
+// MT_LOGOSTART (  8634) ->  500760ms -> MT_LOGOSTOP ( 21153) ->     520ms -> MT_LOGOSTART ( 21166) ->   23840ms -> MT_STOP ( 21762) -> Comedy_Central
+// MT_LOGOSTART (  9887) ->  700920ms -> MT_LOGOSTOP ( 27410) ->     520ms -> MT_LOGOSTART ( 27423) ->   17760ms -> MT_STOP ( 27867) -> Comedy_Central
+//
+// example of valid logo stop/start pair
+// MT_LOGOSTART ( 15153) ->  507960ms -> MT_LOGOSTOP ( 27852) ->     680ms -> MT_LOGOSTART ( 27869) ->   25800ms -> MT_STOP ( 28514) -> Comedy_Central
+// MT_LOGOSTART ( 25628) ->  507960ms -> MT_LOGOSTOP ( 38327) ->     720ms -> MT_LOGOSTART ( 38345) ->   25600ms -> MT_STOP ( 38985) -> Comedy_Central
+// MT_LOGOSTART (  7059) ->  496800ms -> MT_LOGOSTOP ( 19479) ->     720ms -> MT_LOGOSTART ( 19497) ->   18160ms -> MT_STOP ( 19951) -> Comedy_Central
+// MT_LOGOSTART ( 13488) ->  213960ms -> MT_LOGOSTOP ( 18837) ->     680ms -> MT_LOGOSTART ( 18854) ->   25800ms -> MT_STOP ( 19499) -> Comedy_Central
                     if (criteria->IsLogoInterruptionChannel() &&
-                            (prevLogoStart_Stop     >= 17800) && (prevLogoStart_Stop     <= 575520) &&
-                            (stop_nextLogoStart     >=   520) && (stop_nextLogoStart     <=    840) &&
-                            (nextLogoStart_nextStop >= 11600) && (nextLogoStart_nextStop <= 543960)) {
-                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from logo change, deleting", mark->position, nextLogoStart->position);
+                            ((prevLogoStart_Stop     >=  17800) && (prevLogoStart_Stop     <=  43920) &&    // short broadcast before, long after
+                             (stop_nextLogoStart     >=    800) && (stop_nextLogoStart     <=   1120) &&
+                             (nextLogoStart_nextStop >= 272280) && (nextLogoStart_nextStop <= 668720)) ||
+
+                            ((prevLogoStart_Stop     >= 158960) && (prevLogoStart_Stop     <= 700920) &&    // long broadcast before, short after
+                             (stop_nextLogoStart     >=    520) && (stop_nextLogoStart     <=    521) &&
+                             (nextLogoStart_nextStop >=  11600) && (nextLogoStart_nextStop <=  23840))) {
+                        dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from logo change channel, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
                         marks.Del(mark);
