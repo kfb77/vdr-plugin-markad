@@ -81,7 +81,7 @@ bool cLogoDetect::LoadLogo() {
         esyslog("recording directory not set");
         return false;
     }
-    Clear(false);   // reset area
+    Clear( (area.status == LOGO_RESTART) );   // keep restart state
     bool foundLogo = false;
 
     // logo name
@@ -138,7 +138,6 @@ bool cLogoDetect::LoadLogo() {
 
     FREE(strlen(logoName) + 1, "logoName");
     free(logoName);
-
     return foundLogo;
 }
 
