@@ -2867,7 +2867,7 @@ void cMarkAdStandalone::CheckStart() {
     if (!begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, assume start time at pre recording time");
         cMark *nextMark = marks.GetNext(startA, MT_ALL);
-        if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP)) {  // do not insert black screen start before other start mark
+        if (!nextMark || ((nextMark->type & 0x0F) == MT_STOP) || (nextMark->position > (startA + MAX_ASSUMED))) {
             marks.DelTill(startA);
             sMarkAdMark mark = {};
             mark.position    = index->GetKeyPacketNumberAfter(startA, &mark.framePTS);  // set to next key packet
@@ -2881,7 +2881,6 @@ void cMarkAdStandalone::CheckStart() {
         }
     }
 
-
     // now we have the final start mark, do fine tuning
     if (!begin) {  // can only be happen after abort
         esyslog("cMarkAdStandalone::CheckStart(): no start mark found");
@@ -2889,7 +2888,7 @@ void cMarkAdStandalone::CheckStart() {
     }
     marks.DelTill(begin->position, true);    // delete all marks till start mark
     const char *indexToHMSF = marks.GetTime(begin);
-    char *typeName    = marks.TypeToText(begin->type);
+    char *typeName = marks.TypeToText(begin->type);
     if (indexToHMSF && typeName) isyslog("using %s start mark on position (%d) at %s as broadcast start", typeName, begin->position, indexToHMSF);
     if (typeName) {
         FREE(strlen(typeName)+1, "text");
