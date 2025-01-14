@@ -2299,6 +2299,13 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         criteria->SetDetectionState(MT_HBORDERCHANGE, false);
         criteria->SetDetectionState(MT_VBORDERCHANGE, false);
     }
+    else {  // delete delayed vborder stop from previous broadcast and black opening credits in this boaddcast
+        cMark *vborderStop = marks.GetAround(30 * decoder->GetVideoFrameRate(), begin->position, MT_VBORDERSTOP);  // trust late hborder start mark
+        if (vborderStop) {
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): delete vborder stop (%d) from previous broadcast", vborderStop->position);  // avoid false detection of border
+            marks.Del(vborderStop->position);
+        }
+    }
     return begin;
 }
 
