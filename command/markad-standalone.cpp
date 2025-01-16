@@ -3620,8 +3620,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
                 moreMarks = true;
-                break;
             }
+            break;
         case MT_MOVEDSTOP:
             // example of invalid logo stop mark sequence (too short last broadcase)
             // MT_START ( 19164) -> 1565s -> MT_STOP ( 97440) |-247s| ->  57s -> MT_START (100294) ->  26s -> MT_STOP (101638) |-163s|  (VPS stop)
