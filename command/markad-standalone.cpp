@@ -3205,7 +3205,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                         continue;
                     }
 
-// delete very short stop/start pair from introduction logo
+// delete very short stop/start pair from undetected introduction logo
+// short after valid logo start -> short logo interruption -> long broadcast after
 // valid short stop/start, do not delete
 // MT_LOGOSTART ( 48867) ->    4880ms -> MT_LOGOSTOP ( 48989) ->     760ms -> MT_LOGOSTART ( 49008) ->  795000ms -> MT_STOP (68883)
 // MT_LOGOSTART ( 51224) ->   29800ms -> MT_LOGOSTOP ( 51969) ->     920ms -> MT_LOGOSTART ( 51992) ->  622840ms -> MT_STOP (67563)
@@ -3218,10 +3219,11 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART ( 41139) ->    7760ms -> MT_LOGOSTOP ( 41333) ->    1080ms -> MT_LOGOSTART ( 41360) ->  872280ms -> MT_STOP ( 63167) -> introdution logo change (kabel eins)
 // MT_LOGOSTART ( 74781) ->    7800ms -> MT_LOGOSTOP ( 74976) ->    1040ms -> MT_LOGOSTART ( 75002) ->  416280ms -> MT_STOP ( 85409) -> introdution logo change (kabel eins)
 // MT_LOGOSTART ( 63508) ->    7920ms -> MT_LOGOSTOP ( 63706) ->     880ms -> MT_LOGOSTART ( 63728) -> 1204960ms -> MT_STOP ( 93852) -> introdution logo change (kabel eins)
+// MT_LOGOSTART (172892) ->    6240ms -> MT_LOGOSTOP (173048) ->     840ms -> MT_LOGOSTART (173069) ->  156480ms -> MT_STOP (176981) -> kabel_eins
                     if (criteria->IsIntroductionLogoChannel() &&
-                            (prevLogoStart_Stop     >    1400) && (prevLogoStart_Stop <= 7920) &&
-                            (stop_nextLogoStart     <=   1120) &&
-                            (nextLogoStart_nextStop >= 416280)) {
+                            (prevLogoStart_Stop     >=   6240) && (prevLogoStart_Stop <= 7920) &&
+                            (stop_nextLogoStart     >=    840) && (stop_nextLogoStart <= 1120) &&
+                            (nextLogoStart_nextStop >= 156480)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from introduction logo, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
