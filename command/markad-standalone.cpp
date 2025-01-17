@@ -343,7 +343,9 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
             if (hBorderLast && (hBorderLast->type == MT_HBORDERSTOP)) {
                 int diffAssumed = (stopA - hBorderLast->position) / decoder->GetVideoFrameRate();
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): last hboder mark (%d) is stop mark, %ds before assumed stop (%d)", hBorderLast->position, diffAssumed, stopA);
-                if (diffAssumed <= 600) {
+                // if we use MT_HBORDERCHANGE and last mark is MT_HBORDERSTOP, this is broadcast end
+                // even it is far before assumed stop, maybe recording length is wrong
+                if (diffAssumed <= (6 * MAX_ASSUMED)) {
                     dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): last hboder mark stop (%d) selected as end mark", hBorderLast->position);
                     end = hBorderLast;
                 }
