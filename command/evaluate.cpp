@@ -1283,7 +1283,9 @@ bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos, const bool hasBo
     if (found && !hasBorder) {
         infoLogo.matchRestCornerCountFinal /= 3;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): count matches greater than limit of %d: %d logo corner, avg rest corners %d", INFO_LOGO_MACTH_MIN, infoLogo.matchLogoCornerCountFinal, infoLogo.matchRestCornerCountFinal);
-        if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 9)) {  // changed from 3 to 9, part time static separator picture with blends (kabel eins)
+        // need 9 for part time static separator picture with blends (kabel eins), but too many false postiv
+        // changed from 9 to 3 because of scene in frame (kabel eins)
+        if (infoLogo.matchLogoCornerCountFinal <= (infoLogo.matchRestCornerCountFinal + 3)) {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): too much similar corners, this must be a static ad or preview picture");
             found = false;
         }
