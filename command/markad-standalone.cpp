@@ -1396,12 +1396,13 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
 // MT_LOGOSTOP (170880) ->  720ms -> MT_LOGOSTART (170898) -> 8360ms -> MT_LOGOSTOP (171107) ->  840ms -> MT_LOGOSTART (171128) ->  8080ms -> MT_LOGOSTOP (171330)
 // MT_LOGOSTOP (68131) ->   920ms -> MT_LOGOSTART (68154) ->  6400ms -> MT_LOGOSTOP ( 68314) ->  720ms -> MT_LOGOSTART ( 68332) -> 10000ms -> MT_LOGOSTOP ( 68582)
 // MT_LOGOSTOP (162049) -> 1040ms -> MT_LOGOSTART (162075) -> 8880ms -> MT_LOGOSTOP (162297) ->  840ms -> MT_LOGOSTART (162318) ->  6360ms -> MT_LOGOSTOP (162477)
+// MT_LOGOSTOP (201203) ->  880ms -> MT_LOGOSTART (201225) -> 6360ms -> MT_LOGOSTOP (201384) ->  840ms -> MT_LOGOSTART (201405) -> 14360ms -> MT_LOGOSTOP (201764) -> kabel_eins
 //
 // invalid example
 // MT_LOGOSTART ( 3833) -> 480ms -> MT_LOGOSTOP ( 3845) -> 480ms -> MT_LOGOSTART ( 3857)
-        if ((diffStop2Start2 >= 720) && (diffStop2Start2 <=  1120)   &&  // change from logo to closing logo
-                (diffStart2Stop1 >= 6400) && (diffStart2Stop1 <= 8880) &&  // closing logo deteted as logo
-                (diffStop1Start1 >=  720) && (diffStop1Start1 <= 1160) &&  // change from closing logo to logo
+        if (    (diffStop2Start2 >=  720) && (diffStop2Start2 <=  1120) &&  // change from logo to closing logo
+                (diffStart2Stop1 >= 6360) && (diffStart2Stop1 <=  8880) &&  // closing logo deteted as logo
+                (diffStop1Start1 >=  720) && (diffStop1Start1 <=  1160) &&  // change from closing logo to logo
                 (diffStart1Mark  >= 6360) && (diffStart1Mark  <= 18880)) { // end part between closing logo and broadcast end
             dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): found closing info logo sequence");
             // cleanup invalid logo marks
