@@ -2933,6 +2933,7 @@ void cMarkAdStandalone::CheckStart() {
     CalculateCheckPositions(marks.GetFirst()->position);
     marks.Save(directory, macontext.Info.isRunningRecording, macontext.Config->pts, false);
     doneCheckStart = true;
+    restartLogoDetectionDone = false;  // in case of we call CheckStart() after end part in very short recordings
 
     // debugging infos
     DebugMarks();
