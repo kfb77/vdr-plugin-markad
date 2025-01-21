@@ -233,7 +233,7 @@ private:
      * @param minFrame  minimum framenumber we need
      * @return          true if we have enough frames, false otherwise
      */
-    bool WaitForFrames(cDecoder *decoder, const int minFrame);
+    bool WaitForFrames(const cDecoder *decoder, const int minFrame);
 
     /**
      * get first frame number of stored logos

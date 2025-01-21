@@ -1811,7 +1811,7 @@ int cExtractLogo::CountFrames() {
 }
 
 
-bool cExtractLogo::WaitForFrames(cDecoder *decoder, const int minFrame = 0) {
+bool cExtractLogo::WaitForFrames(const cDecoder *decoder, const int minFrame = 0) {
     if (!decoder) return false;
 
     if ((recordingFrameCount > (decoder->GetPacketNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
