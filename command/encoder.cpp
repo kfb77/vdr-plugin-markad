@@ -1329,7 +1329,7 @@ void cEncoder::SetSmartReEncodeOffset(AVPacket *avpkt) {
 }
 
 
-bool cEncoder::CutFullReEncode(cMark *startMark, cMark *stopMark) {
+bool cEncoder::CutFullReEncode(const cMark *startMark, const cMark *stopMark) {
     int keyPacketNumberBeforeStart = index->GetKeyPacketNumberBeforePTS(startMark->pts);
     keyPacketNumberBeforeStart     = index->GetKeyPacketNumberBefore(keyPacketNumberBeforeStart - 1); // start decode 2 key frames before start PTS
     if (keyPacketNumberBeforeStart < 0) {

@@ -128,7 +128,7 @@ private:
      * @param stopMark  stop mark
      * @return true if successful, false otherwise
      */
-    bool CutFullReEncode(cMark *startMark, cMark *stopMark);
+    bool CutFullReEncode(const cMark *startMark, const cMark *stopMark);
 
     /** smart cut video from start PTS to stop PTS of mark
      * @param startMark start mark
