@@ -2112,7 +2112,7 @@ int cExtractLogo::SearchLogo(int startPacket, const bool force) {
     decoder->DecodeNextFrame(false);   // decode one video frame to get current aspect ratio
     sAspectRatio logoAspectRatio = requestedLogoAspectRatio;
     if ((logoAspectRatio.num == 0) || (logoAspectRatio.den == 0))  {
-        sAspectRatio *aspectRatio = nullptr;
+        const sAspectRatio *aspectRatio = nullptr;
         while (!aspectRatio) {   // read and decode until we got a valid frame
             if (abortNow) return LOGO_SEARCH_ERROR;
             if (!decoder->DecodeNextFrame(false)) break;

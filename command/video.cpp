@@ -1804,7 +1804,7 @@ sMarkAdMarks *cVideo::Process() {
     // aspect ratio change detection
     if (criteria->GetDetectionState(MT_ASPECTCHANGE)) {
         // get aspect ratio from frame
-        sAspectRatio *aspectRatioFrame = decoder->GetFrameAspectRatio();
+        const sAspectRatio *aspectRatioFrame = decoder->GetFrameAspectRatio();
         if (aspectRatioFrame) {
             if (aspectRatioFrameBefore != *aspectRatioFrame) {     // change of aspect ratio
                 // 4:3 broadcast

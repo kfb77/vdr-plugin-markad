@@ -75,7 +75,7 @@ void cVPS::LogMatch(char *channel, cMarks *marks) const {
 
     int startVPS = GetStart();
     if (startVPS >= 0) {
-        cMark *start = marks->GetFirst();
+        const cMark *start = marks->GetFirst();
         if (start && ((start->type & 0x0F) == MT_START) && (start->type != MT_VPSSTART) && (start->oldType != MT_VPSSTART)) {
             int startMark = start->GetTimeSeconds();
             if (startMark >= 0) {
@@ -86,7 +86,7 @@ void cVPS::LogMatch(char *channel, cMarks *marks) const {
     }
     int stopVPS = GetStop();
     if (stopVPS >= 0) {
-        cMark *stop = marks->GetLast();
+        const cMark *stop = marks->GetLast();
         if (stop && ((stop->type & 0x0F) == MT_STOP) && (stop->type != MT_VPSSTOP) && (stop->oldType != MT_VPSSTOP)) {
             int stopMark = stop->GetTimeSeconds();
             if (stopMark >= 0) {
