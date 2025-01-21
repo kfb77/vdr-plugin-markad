@@ -142,7 +142,7 @@ private:
      * @param stopMark  stop mark
      * @return true if successful, false otherwise
      */
-    bool CutKeyPacket(cMark *startMark, cMark *stopMark);
+    bool CutKeyPacket(const cMark *startMark, cMark *stopMark);
 
     /** check if input file changed an set new decoder context
      */

@@ -1765,7 +1765,7 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
 
 
 // cut without decoding, only copy all packets from key packet after start mark to key packet before stop mark
-bool cEncoder::CutKeyPacket(cMark *startMark, cMark *stopMark) {
+bool cEncoder::CutKeyPacket(const cMark *startMark, cMark *stopMark) {
     // get start position
     int startPos  = -1;
     if (startMark->pts >= 0) startPos = index->GetKeyPacketNumberAfterPTS(startMark->pts);
