@@ -217,7 +217,7 @@ private:
      * load logo with new aspect ratio, try to extract from recording if not found
      * @return true on success, false otherwise
      */
-    bool ChangeLogoAspectRatio(sAspectRatio *aspectRatio);
+    bool ChangeLogoAspectRatio(const sAspectRatio *aspectRatio);
 
     /**
      * load logo from file in directory

@@ -990,7 +990,7 @@ void cLogoDetect::ReducePlanes() {
 }
 
 
-bool cLogoDetect::ChangeLogoAspectRatio(sAspectRatio *aspectRatio) {
+bool cLogoDetect::ChangeLogoAspectRatio(const sAspectRatio *aspectRatio) {
     if (LoadLogo()) return true;
     // no logo in cache or recording directory, try to extract from recording
     dsyslog("cLogoDetect::ChangeLogoAspectRatio(): no logo found in recording directory or logo cache, try to extract from recording");
