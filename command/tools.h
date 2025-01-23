@@ -66,7 +66,7 @@ private:
     /**
     * list of cities in channel name to ignore
     */
-    const char* cities[20] = {
+    const char* cities[21] = {
         "_BERLIN",
         "_BRANDENBURG",
         "_HH",
@@ -83,6 +83,7 @@ private:
         "_ESSEN",
         "_MüNSTER",
         "_SACHSEN",
+        "_S-ANHALT",
         "_SIEGEN",
         "_WUPPERTAG",
         "_SüD",
