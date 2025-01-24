@@ -119,6 +119,7 @@ bool cCriteria::LogoInNewsTicker() {
 bool cCriteria::InfoInBorder() {   // info logo or closing banner in one of the border
     if (!channelName) return false;
     if (CompareChannelName(channelName, "Disney_Channel",   IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "N24_DOKU",         IGNORE_HD))      return true;  // closing credits in border
     if (CompareChannelName(channelName, "NITRO",            IGNORE_HD))      return true;  // closing credits banner in lower border
     if (CompareChannelName(channelName, "RTLZWEI",          IGNORE_HD))      return true;
 //  if (CompareChannelName(channelName, "SUPER_RTL",        IGNORE_HD)) return true;  // channel has black framed ad
@@ -134,12 +135,12 @@ bool cCriteria::InfoInBorder() {   // info logo or closing banner in one of the 
 
 bool cCriteria::LogoColorChange() {
     if (!channelName) return false;
-    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD))      return true;
-    if (CompareChannelName(channelName, "DMAX",           IGNORE_HD))      return true;
-    if (CompareChannelName(channelName, "FOX_Channel",    IGNORE_HD))      return true;   // changes from white to red at recording start
-    if (CompareChannelName(channelName, "kabel_eins",     IGNORE_HD))      return true;
-    if (CompareChannelName(channelName, "NRJ12",          IGNORE_NOTHING)) return true;
-    if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD))      return true;
+    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD))                  return true;
+    if (CompareChannelName(channelName, "DMAX",           IGNORE_HD | IGNORE_COUNTRY)) return true;
+    if (CompareChannelName(channelName, "FOX_Channel",    IGNORE_HD))                  return true;   // changes from white to red at recording start
+    if (CompareChannelName(channelName, "kabel_eins",     IGNORE_HD))                  return true;
+    if (CompareChannelName(channelName, "NRJ12",          IGNORE_NOTHING))             return true;
+    if (CompareChannelName(channelName, "TELE_5",         IGNORE_HD))                  return true;
     return false;
 }
 
