@@ -2476,9 +2476,9 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         cMark *vMark = vStart;
         while (vMark) {
             cMark *logoMark = marks.GetAround(35 * decoder->GetVideoFrameRate(), vMark->position, vMark->type - MT_VBORDERCHANGE + MT_LOGOCHANGE); // changed from 30 to 35, preview with logo direct to broacast start
-            if (logoMark) dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder mark (%d): found logo mark (%d)", vMark->position, logoMark->position);
+            if (logoMark) dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder mark (%d): channel has logo in border ans we found logo mark (%d)", vMark->position, logoMark->position);
             else {
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder mark (%d): no logo mark around found, vborder marks are invalid", vMark->position);
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder mark (%d): channel has logo in border but no logo mark around found, vborder marks are invalid", vMark->position);
                 criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_DISABLED, macontext.Config->fullDecode);
                 marks.DelType(MT_VBORDERCHANGE, 0xF0);
                 return nullptr;
@@ -2597,7 +2597,9 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         if (logoStart) {
             int diffStart = (logoStart->position - vStart->position) / decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): found logo start (%d) %ds after vborder start (%d)", logoStart->position, diffStart, vStart->position);
-            if ((diffStart >= 10) && (diffStart < 12)) {  // near logo start is fade in logo, undetected info logo start mark 12s after valid vborder start
+            // near logo start is fade in logo, undetected info logo start mark 12s after valid vborder start
+            // changed from 10 to 5
+            if ((diffStart >= 5) && (diffStart < 12)) {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder start mark position (%d) includes previous closing credits, use logo start (%d) instead", vStart->position, logoStart->position);
                 marks.Del(vStart->position);
                 return logoStart;
