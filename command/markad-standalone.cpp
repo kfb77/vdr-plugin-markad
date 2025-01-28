@@ -5032,7 +5032,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                     case MT_VPSSTART:
                         if ((lengthBefore >= MIN_LOWER_BORDER) && (lengthBefore <= MAX_LOWER_BORDER)) {
                             if (criteria->GoodVPS()) maxBefore =   7859;
-                            else                     maxBefore = 254920;
+                            else                     maxBefore = 230039;
                         }
                         break;
                     default:
