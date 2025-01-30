@@ -3259,10 +3259,11 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART ( 49262) ->    8160ms -> MT_LOGOSTOP ( 49466) ->     640ms -> MT_LOGOSTART ( 49482) -> 1196440ms -> MT_STOP ( 79393) -> second of double logo change (TELE 5)
 // MT_LOGOSTART ( 49474) ->    8200ms -> MT_LOGOSTOP ( 49679) ->     640ms -> MT_LOGOSTART ( 49695) -> 1163720ms -> MT_STOP ( 78788) -> second of double logo change (TELE 5)
 // MT_LOGOSTART ( 82486) ->    8440ms -> MT_LOGOSTOP ( 82697) ->     400ms -> MT_LOGOSTART ( 82707) ->  462880ms -> MT_STOP ( 94279) -> second of double logo change (TELE 5)
+// MT_LOGOSTART ( 85792) ->    4320ms -> MT_LOGOSTOP ( 85900) ->     280ms -> MT_LOGOSTART ( 85907) -> 1428200ms -> MT_STOP (121612) -> TELE_5
                     if (criteria->IsLogoChangeChannel() &&
                             (prevLogoStart_Stop     >= 1120) && (prevLogoStart_Stop     <=    8440) &&
                             (stop_nextLogoStart     >=  280) && (stop_nextLogoStart     <=    1120) &&
-                            (nextLogoStart_nextStop >=  560) && (nextLogoStart_nextStop <= 1303560)) {
+                            (nextLogoStart_nextStop >=  560) && (nextLogoStart_nextStop <= 1428200)) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from undetected logo change, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
