@@ -416,15 +416,6 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMin =  72;
         }
 
-//   1 MDR_Sachsen_HD          16:9 1280W  720H:->  160W  68H TOP_LEFT
-//   1 MDR_Sachsen_HD          16:9 1280W  720H:->  162W  68H TOP_LEFT
-        if (CompareChannelName(channelName, "MDR_HD", IGNORE_CITY)) {
-            logo.widthMin  = 150;
-            logo.widthMax  = 172;
-            logo.heightMin =  58;
-            logo.heightMax =  78;
-        }
-
         // kabel_eins_Doku         16:9  720W  576H:->  132W  64H TOP_RIGHT
         if (CompareChannelName(channelName, "kabel_eins_Doku", IGNORE_NOTHING)) {
             logo.widthMin  = 130;
@@ -503,13 +494,16 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.corner    = BOTTOM_LEFT;
         }
 
+//   1 ProSieben               16:9  720W  576H:->   92W  60H TOP_RIGHT    -> logo from ad
+//
 //   1 ProSieben               16:9  720W  576H:->   80W  62H TOP_RIGHT
 // 166 ProSieben               16:9  720W  576H:->   80W  64H TOP_RIGHT
 //  35 ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
+//   1 ProSieben                4:3  720W  576H:->   94W  64H TOP_RIGHT
         if (CompareChannelName(channelName, "ProSieben", IGNORE_NOTHING)) {
             logo.widthMin  =  70;
             logo.widthMax  =  94;
-            logo.heightMin =  52;
+            logo.heightMin =  61;
             logo.heightMax =  76;
         }
 
@@ -745,16 +739,16 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 100;
         }
 
-//  28 KiKA_HD                 16:9 1280W  720H:->  228W  96H TOP_LEFT
-//   2 KiKA_HD                 16:9 1280W  720H:->  230W 112H TOP_LEFT
-//  61 KiKA_HD                 16:9 1280W  720H:->  230W  96H TOP_LEFT
-//   6 KiKA_HD                 16:9 1280W  720H:->  254W  96H TOP_LEFT
-//  10 KiKA_HD                 16:9 1280W  720H:->  256W  96H TOP_LEFT
+//  13 KiKA_HD                 16:9 1280W  720H:->  228W  96H TOP_LEFT
+//  17 KiKA_HD                 16:9 1280W  720H:->  230W  96H TOP_LEFT
+//   4 KiKA_HD                 16:9 1280W  720H:->  230W  98H TOP_LEFT
+//   1 KiKA_HD                 16:9 1280W  720H:->  298W 122H TOP_LEFT    -> special logo with rabbit left of logo
+
         if (CompareChannelName(channelName, "KiKA_HD", IGNORE_NOTHING)) {
             logo.widthMin  = 218;
-            logo.widthMax  = 266;
+            logo.widthMax  = 308;
             logo.heightMin =  86;
-            logo.heightMax = 122;
+            logo.heightMax = 132;
         }
 
         if (CompareChannelName(channelName, "MDR_HD", IGNORE_CITY)) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
@@ -780,6 +774,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax =  90;
         }
 
+//   1 ORF_2_EUROPE_HD         16:9 1280W  720H:->  172W  64H TOP_RIGHT
+        if (CompareChannelName(channelName, "ORF_2_EUROPE_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 162;
+            logo.widthMax  = 182;
+            logo.heightMin =  54;
+            logo.heightMax =  74;
+        }
+
         // ORF2W_HD                16:9 1280W  720H:->  198W  80H TOP_RIGHT
         if (CompareChannelName(channelName, "ORF2W_HD", IGNORE_NOTHING)) {
             logo.widthMin  = 188;
@@ -791,6 +793,15 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         // phoenix_HD              16:9 1280W  720H:->  168W  72H TOP_LEFT
         if (CompareChannelName(channelName, "phoenix_HD", IGNORE_NOTHING)) {
             logo.widthMax =  168;
+        }
+
+//   1 MDR_Sachsen_HD          16:9 1280W  720H:->  160W  68H TOP_LEFT
+//   1 MDR_Sachsen_HD          16:9 1280W  720H:->  162W  68H TOP_LEFT
+        if (CompareChannelName(channelName, "MDR_HD", IGNORE_CITY)) {
+            logo.widthMin  = 150;
+            logo.widthMax  = 172;
+            logo.heightMin =  58;
+            logo.heightMax =  78;
         }
 
         // rbb_Berlin_HD           16:9 1280W  720H:->  178W  92H TOP_RIGHT
@@ -859,7 +870,7 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         // default values
         if (logo.widthMin  == 0) logo.widthMin  =   88; // arte_HD (vertical)      16:9 1280W  720H:->   88W 134H TOP_LEFT
         if (logo.widthMax  == 0) logo.widthMax  =  334; // EinsPlus_HD             16:9 1280W  720H:->  334W  86H TOP_RIGHT
-        if (logo.heightMin == 0) logo.heightMin =   66; // SRF_zwei_HD             16:9 1280W  720H:->  172W  66H TOP_RIGHT
+        if (logo.heightMin == 0) logo.heightMin =   64; // ORF_2_EUROPE_HD         16:9 1280W  720H:->  172W  64H TOP_RIGHT
         if (logo.heightMax == 0) logo.heightMax =  172; // ANIXE+                  16:9 1280W 1080H:->  294W 172H TOP_LEFT
         break;
 
