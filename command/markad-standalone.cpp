@@ -5317,7 +5317,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     case MT_VPSSTART:
                         if (criteria->GoodVPS())    maxAfter = 116959;
                         else if (blackAfter)        maxAfter = 233440;
-                        else if (lengthAfter > 120) maxAfter = 231440;
+                        else if (lengthAfter > 120) maxAfter = 141839;
                         else                        maxAfter =  17019;
                         break;
                     default:
@@ -5387,7 +5387,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                     case MT_VPSSTOP:
                         if (criteria->GoodVPS())      maxAfter = 24359;
                         else if (lengthAfter >= 3000) maxAfter = 81920;
-                        else                          maxAfter = 66999;
+                        else                          maxAfter = 49959;
                         break;
                     default:
                         maxAfter = 0;
