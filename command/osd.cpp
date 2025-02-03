@@ -149,14 +149,17 @@ void *cOSDMessage::SendMessage(void *posd) {
 
 int cOSDMessage::Send(const char *format, ...) {
     if (tid) pthread_join(tid, nullptr);
-    if (msg) free(msg);
+    if (msg) {
+        FREE(strlen(msg) + 1, "msg");
+        free(msg);
+    }
     va_list ap;
     va_start(ap, format);
     if (vasprintf(&msg, format, ap) == -1) {
         va_end(ap);
         return -1;
     }
-    ALLOC(strlen(msg)+1, "msg");
+    ALLOC(strlen(msg) + 1, "msg");
     va_end(ap);
 
     if (pthread_create(&tid, nullptr, reinterpret_cast<void *(*) (void *)>(&SendMessage), reinterpret_cast<void *>(this)) != 0 ) return -1;

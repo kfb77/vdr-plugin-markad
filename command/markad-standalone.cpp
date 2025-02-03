@@ -6642,9 +6642,11 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     if (config->osd) {
         osd = new cOSDMessage(config->svdrphost, config->svdrpport);
-        if (osd) osd->Send("%s '%s'", tr("starting markad for"), ptitle);
+        if (osd) {
+            ALLOC(sizeof(*osd), "osd");
+            osd->Send("%s '%s'", tr("starting markad for"), ptitle);
+        }
     }
-    else osd = nullptr;
 
     if (config->markFileName[0]) marks.SetFileName(config->markFileName);
 
@@ -6687,15 +6689,19 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         delete audio;
         audio = nullptr;
     }
+
     if (osd) {
-        osd->Send("%s '%s'", tr("markad finished for"), ptitle);
+        if (!duplicate) {
+            if (abortNow) osd->Send("%s '%s'", tr("markad aborted for"), ptitle);
+            else osd->Send("%s '%s'", tr("markad finished for"), ptitle);
+        }
         FREE(sizeof(*osd), "osd");
         delete osd;
         osd = nullptr;
     }
-    if (decoder) {
-        if (decoder->GetErrorCount() > 0) isyslog("decoding errors: %d", decoder->GetErrorCount());
-    }
+
+    if (decoder && decoder->GetErrorCount() > 0) isyslog("decoding errors: %d", decoder->GetErrorCount());
+
     if (evaluateLogoStopStartPair) {
         FREE(sizeof(*evaluateLogoStopStartPair), "evaluateLogoStopStartPair");
         delete evaluateLogoStopStartPair;
@@ -6764,14 +6770,6 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         dsyslog("----------------------------------------------------------------------------------------------");
     }
 
-    if ((osd) && (!duplicate)) {
-        if (abortNow) {
-            osd->Send("%s '%s'", tr("markad aborted for"), ptitle);
-        }
-        else {
-            osd->Send("%s '%s'", tr("markad finished for"), ptitle);
-        }
-    }
 
 // cleanup objects used in statistics
     FREE(sizeof(*decoder), "decoder");
