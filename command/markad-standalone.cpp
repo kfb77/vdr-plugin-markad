@@ -6637,20 +6637,14 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     if (length) isyslog("broadcast length: %2d:%02d:%02dh", length / 60 / 60, ( length / 60) % 60,  length % 60 );
 
-    if (title[0]) {
-        ptitle = title;
-    }
-    else {
-        ptitle = const_cast<char *>(directory);
-    }
+    if (title[0]) ptitle = title;
+    else ptitle = const_cast<char *>(directory);
 
     if (config->osd) {
-        osd= new cOSDMessage(config->svdrphost, config->svdrpport);
+        osd = new cOSDMessage(config->svdrphost, config->svdrpport);
         if (osd) osd->Send("%s '%s'", tr("starting markad for"), ptitle);
     }
-    else {
-        osd = nullptr;
-    }
+    else osd = nullptr;
 
     if (config->markFileName[0]) marks.SetFileName(config->markFileName);
 
@@ -6694,6 +6688,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         audio = nullptr;
     }
     if (osd) {
+        osd->Send("%s '%s'", tr("markad finished for"), ptitle);
         FREE(sizeof(*osd), "osd");
         delete osd;
         osd = nullptr;
