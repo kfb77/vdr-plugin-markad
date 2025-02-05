@@ -2109,7 +2109,9 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     }
 
     // search for logo start mark around assumed start
-    cMark *lStartAssumed = marks.GetAround(startA + (MAX_ASSUMED * decoder->GetVideoFrameRate()), startA, MT_LOGOSTART);
+    int maxAssumed = MAX_ASSUMED;
+    if (macontext.Info.startVPS && criteria->GoodVPS()) maxAssumed /= 2;  // if we use a valid VPS event based start time do only near search
+    cMark *lStartAssumed = marks.GetAround(startA + (maxAssumed * decoder->GetVideoFrameRate()), startA, MT_LOGOSTART);
     if (!lStartAssumed) {
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): no logo start mark found");
         return nullptr;
@@ -2128,7 +2130,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d) based on closing credits after assumed start", lStart->position);
             int status = evaluateLogoStopStartPair->GetIsClosingCreditsBefore(lStart->position);
             int diffAssumed = (lStart->position - startA) / decoder->GetVideoFrameRate();
-            if ((diffAssumed < -MAX_ASSUMED) || (diffAssumed > MAX_ASSUMED)) break;
+            if ((diffAssumed < -maxAssumed) || (diffAssumed > maxAssumed)) break;
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d): %ds after assumed start (%d), closing credits status %d", lStart->position, diffAssumed, startA, status);
             if (status == STATUS_YES) {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has closing credits in frame before, valid start mark found", lStart->position);
@@ -2147,7 +2149,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             int status = evaluateLogoStopStartPair->GetIsClosingCreditsBefore(lStart->position);
             int diffAssumed = (startA - lStart->position) / decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d): %ds before assumed start (%d), closing credits status %d", lStart->position, diffAssumed, startA, status);
-            if (diffAssumed > MAX_ASSUMED) break;
+            if (diffAssumed > maxAssumed) break;
             if (status == STATUS_YES) {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has closing credits in frame before, valid start mark found", lStart->position);
                 begin = lStart;
@@ -2166,14 +2168,14 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         lStart = marks.GetNext(lStart->position, MT_LOGOSTART);
         if (!lStart) break;
         int diffAssumed = (lStart->position - startA) / decoder->GetVideoFrameRate();
-        if ((diffAssumed < -MAX_ASSUMED) || (diffAssumed > MAX_ASSUMED)) break;
+        if ((diffAssumed < -maxAssumed) || (diffAssumed > maxAssumed)) break;
     }
     lStart = lStartAssumed;
     while (!begin) {  // search from nearest logo start mark to recording start
         lStart = marks.GetPrev(lStart->position, MT_LOGOSTART);
         if (!lStart) break;
         int diffAssumed = (lStart->position - startA) / decoder->GetVideoFrameRate();
-        if ((diffAssumed < -MAX_ASSUMED) || (diffAssumed > MAX_ASSUMED)) break;
+        if ((diffAssumed < -maxAssumed) || (diffAssumed > maxAssumed)) break;
         if (HaveLowerBorder(lStart)) {
             begin = lStart;
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): start mark (%d) has lower border before, valid start mark found", lStart->position);
@@ -2188,7 +2190,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         int diffAssumed = (lStart->position - startA) / decoder->GetVideoFrameRate();
         LogSeparator();
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d), %ds after assumed start", lStart->position, diffAssumed);
-        if (diffAssumed > MAX_ASSUMED) {
+        if (diffAssumed > maxAssumed) {
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) too late for valid broadcast start", lStart->position);
             break;
         }
@@ -2206,7 +2208,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         lStart = marks.GetPrev(lStart->position, MT_LOGOSTART);
         if (!lStart) break;
         int diffAssumed = (startA - lStart->position) / decoder->GetVideoFrameRate();
-        if (diffAssumed > MAX_ASSUMED) break;
+        if (diffAssumed > maxAssumed) break;
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check logo start mark (%d) %ds before assumed start", lStart->position, diffAssumed);
         if (HaveBlackSeparator(lStart) || HaveSilenceSeparator(lStart) || HaveInfoLogoSequence(lStart)) {
@@ -2225,7 +2227,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         // check for too early, can be start of last part from previous broadcast
         int diffAssumed = (startA - lStart->position) / decoder->GetVideoFrameRate();
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d), %ds before assumed start (%d)", lStart->position, diffAssumed, startA);
-        if (diffAssumed >= MAX_ASSUMED) { // do not accept start mark if it is more than 5 min before assumed start
+        if (diffAssumed >= maxAssumed) { // do not accept start mark if it is more than 5 min before assumed start
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds before assumed start too early", lStart->position, diffAssumed);
             cMark *lNext = marks.GetNext(lStart->position, MT_LOGOSTART);  // get next logo start mark
             marks.Del(lStart);
@@ -2233,7 +2235,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             continue;
         }
         // check for too late logo start, can be of first ad
-        if (diffAssumed < -MAX_ASSUMED) {  // do not accept start mark if it is more than 5 min after assumed start
+        if (diffAssumed < -maxAssumed) {  // do not accept start mark if it is more than 5 min after assumed start
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds after assumed start too late", lStart->position, -diffAssumed);
             break;
         }
@@ -6264,7 +6266,8 @@ void cMarkAdStandalone::LoadInfo() {
                 dsyslog("cMarkAdStandalone::LoadInfo(): VPS   start at offset:               %5ds -> %d:%02d:%02dh", startVPS, startVPS / 3600, (startVPS % 3600) / 60, startVPS % 60);
                 if ((macontext.Info.ChannelName && criteria->GoodVPS()) || (abs(startVPS - startEvent) <= 10 * 60)) {
                     dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event seems to be valid");
-                    macontext.Info.tStart = startVPS;
+                    macontext.Info.tStart   = startVPS;
+                    macontext.Info.startVPS = true;
                 }
                 else dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event seems to be invalid, %ds away from boadcast start event", abs(startVPS - startEvent));
             }
