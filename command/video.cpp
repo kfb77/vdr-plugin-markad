@@ -1245,9 +1245,9 @@ int cBlackScreenDetect::Process() {
         return BLACKSCREEN_ERROR;
     }
     bool detectLowerBorder = criteria->GetDetectionState(MT_LOWERBORDERCHANGE);
-    int maxBrightnessAll;
-    int maxBrightnessLower;   // for detetion of black lower border
-    int minBrightnessLower;   // for detetion of white lower border
+    int maxBrightnessAll   = 0;
+    int maxBrightnessLower = 0;         // for detetion of black lower border
+    int minBrightnessLower = INT_MAX;   // for detetion of white lower border
     int pictureHeight = picture->height;
     if (criteria->LogoInNewsTicker()) pictureHeight *= 0.85;  // news ticker is always visible in black screen
 
