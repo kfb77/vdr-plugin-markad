@@ -1619,9 +1619,10 @@ void cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, sMarkPos *end
         // best quote 493, all quote 326
         //
         // example of no closing credits
-        // best quote 643, all quote 321  -> long static separator picture (conflict)
+        // best quote 643, all quote 321  -> long static separator picture
         // best quote 403, all quote 465  -> long static ad picture
-        if ((framePortionQuote < 493) && (allPortionQuote < 326)) {
+        // best quote 601, all quote 244  -> static preview
+        if ((framePortionQuote < 493) || (allPortionQuote < 326)) {
             dsyslog("cDetectLogoStopStart::ClosingCredit(): not enough frame pixel found, closing credits not valid");
             // no valid closing credits
             endClosingCredits->position = -1;
