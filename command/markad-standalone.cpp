@@ -2335,11 +2335,14 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                 return nullptr;
             }
 
-            int lengthBroadcast  = (hStop->position - hStart->position) / decoder->GetVideoFrameRate();
-            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start (%d) and stop (%d) mark, length of first broadcast %ds", hStart->position, hStop->position, lengthBroadcast);
+            int lengthBroadcast   = (hStop->position - hStart->position) / decoder->GetVideoFrameRate();
+            int hBorderStopStartA = (hStop->position - startA)           / decoder->GetVideoFrameRate();
+            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start (%d) and stop (%d) mark, length of first broadcast %ds, ends %ds after assumed start (%d)", hStart->position, hStop->position, lengthBroadcast, hBorderStopStartA, startA);
             // very short broadcast without next hborder start is invalid
             const cMark *hStartNext = marks.GetNext(hStop->position, MT_HBORDERSTART);
-            if (!hStartNext && lengthBroadcast <= 142) {  // changed from 94 to 142
+            if (!hStartNext &&
+                    ((lengthBroadcast <= 142) ||  // very short broadcast can be from preview or hborder part in documentation, changed from 94 to 142
+                     ((lengthBroadcast <= 350) && (hBorderStopStartA <= 194)))) {  // very early hborder part can be last part of previous broadcast
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): first broadcast too short, no next hborder start, delete hborder marks");
                 marks.Del(hStart->position);
                 marks.Del(hStop->position);
@@ -2384,7 +2387,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                     }
                 }
             }
-            // some dokus have more thean one hborder parts
+            // some dokus have more than one hborder parts
             // check hborder sequence MT_HBORDERSTART -> MT_HBORDERSTOP -> MT_HBORDERSTART
             cMark *hNextStart = marks.GetNext(hStop->position, MT_HBORDERSTART);
             if (hNextStart) {
