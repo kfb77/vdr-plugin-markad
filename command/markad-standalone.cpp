@@ -5623,6 +5623,9 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     // very near scene change can be valid from very short fade out logo
                     if (!(criteria->LogoFadeInOut() & FADE_OUT) && ((diffBefore <= 1720) || (diffAfter >= 760))) diffAfter = INT_MAX;
 
+                    // rule 2: very short scene change before logo stop is valid
+                    if (diffBefore <= 40) diffAfter = INT_MAX;
+
                     maxAfter = 4800;
                     break;
                 case MT_HBORDERSTOP:
@@ -5630,7 +5633,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     maxAfter = 799;
                     break;
                 case MT_VBORDERSTOP:
-                    maxAfter = 20720;
+                    if (diffBefore > 20) maxAfter = 20720;
                     break;
                 case MT_CHANNELSTOP:
                     // rule 1:
@@ -5713,7 +5716,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxBefore = 160;
                         break;
                     case MT_SOUNDSTOP:
-                        maxBefore = 1679;
+                        maxBefore = 1619;
                         break;
                     case MT_VPSSTOP:
                         maxBefore = 8440;   // chaned from 1320 to 1440 to 8440
