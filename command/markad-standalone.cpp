@@ -1360,17 +1360,18 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
         int diffMarkStop1After          = 1000 * (stop1After->position  - mark->position)        / decoder->GetVideoFrameRate();
         int diffStop1AfterStart2After   = 1000 * (start2After->position - stop1After->position)  / decoder->GetVideoFrameRate();
         int diffStStart2AfterStop2After = 1000 * (endPart1Pos            - start2After->position) / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %4dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d) -> %6ds -> MT_LOGOSTOP (%5d) -> %s", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position, diffStStart2AfterStop2After, endPart1Pos, macontext.Info.ChannelName);
+        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %4dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d) -> %7ds -> MT_LOGOSTOP (%5d) -> %s", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position, diffStStart2AfterStop2After, endPart1Pos, macontext.Info.ChannelName);
         // valid logo start mark example
         // MT_LOGOSTART ( 8374) -> 6240ms -> MT_LOGOSTOP ( 8530) ->  840ms -> MT_LOGOSTART ( 8551) -> 1992840s -> MT_LOGOSTOP (58372) -> kabel_eins
         // MT_LOGOSTART ( 8610) -> 6320ms -> MT_LOGOSTOP ( 8768) ->  760ms -> MT_LOGOSTART ( 8787) -> 1149640s -> MT_LOGOSTOP (37528) -> kabel_eins
+        // MT_LOGOSTART ( 8378) -> 6200ms -> MT_LOGOSTOP ( 8533) ->  880ms -> MT_LOGOSTART ( 8555) ->   16440s -> MT_LOGOSTOP ( 8966) -> kabel_eins
         //
         // invald logo start mark example
         // MT_LOGOSTART ( 3459) -> 5880ms -> MT_LOGOSTOP ( 3606) -> 1160ms -> MT_LOGOSTART ( 3635) ->   20800s -> MT_LOGOSTOP ( 4155) -> kabel eins, end sequence of broadcast before
         // MT_LOGOSTART ( 3744) -> 6040ms -> MT_LOGOSTOP ( 3895) -> 1160ms -> MT_LOGOSTART ( 3924) ->   20960s -> MT_LOGOSTOP ( 4448) -> kabel eins, end sequence of broadcast before
-        if (    (diffMarkStop1After          >= 4480) && (diffMarkStop1After        <= 7840) &&
-                (diffStop1AfterStart2After   >=  760) && (diffStop1AfterStart2After <= 2200) &&
-                (diffStStart2AfterStop2After > 20960)) {
+        if (    (diffMarkStop1After          >=  6200) && (diffMarkStop1After        <= 6320) &&
+                (diffStop1AfterStart2After   >=   760) && (diffStop1AfterStart2After <=  880) &&
+                (diffStStart2AfterStop2After >= 16440)) {
             dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): opening info logo sequence is valid");
             return true;
         }
@@ -1398,10 +1399,11 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
 // MT_LOGOSTOP (68131) ->   920ms -> MT_LOGOSTART (68154) ->  6400ms -> MT_LOGOSTOP ( 68314) ->  720ms -> MT_LOGOSTART ( 68332) -> 10000ms -> MT_LOGOSTOP ( 68582)
 // MT_LOGOSTOP (162049) -> 1040ms -> MT_LOGOSTART (162075) -> 8880ms -> MT_LOGOSTOP (162297) ->  840ms -> MT_LOGOSTART (162318) ->  6360ms -> MT_LOGOSTOP (162477)
 // MT_LOGOSTOP (201203) ->  880ms -> MT_LOGOSTART (201225) -> 6360ms -> MT_LOGOSTOP (201384) ->  840ms -> MT_LOGOSTART (201405) -> 14360ms -> MT_LOGOSTOP (201764) -> kabel_eins
+// MT_LOGOSTOP (201503) ->  600ms -> MT_LOGOSTART (201518) -> 6360ms -> MT_LOGOSTOP (201677) ->  840ms -> MT_LOGOSTART (201698) -> 14360ms -> MT_LOGOSTOP (202057) -> kabel_eins
 //
 // invalid example
 // MT_LOGOSTART ( 3833) -> 480ms -> MT_LOGOSTOP ( 3845) -> 480ms -> MT_LOGOSTART ( 3857)
-        if (    (diffStop2Start2 >=  720) && (diffStop2Start2 <=  1120) &&  // change from logo to closing logo
+        if (    (diffStop2Start2 >=  600) && (diffStop2Start2 <=  1120) &&  // change from logo to closing logo
                 (diffStart2Stop1 >= 6360) && (diffStart2Stop1 <=  8880) &&  // closing logo deteted as logo
                 (diffStop1Start1 >=  720) && (diffStop1Start1 <=  1160) &&  // change from closing logo to logo
                 (diffStart1Mark  >= 6360) && (diffStart1Mark  <= 18880)) { // end part between closing logo and broadcast end
