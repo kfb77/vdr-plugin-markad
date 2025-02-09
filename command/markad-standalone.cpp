@@ -680,6 +680,11 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
                 criteria->SetClosingCreditsState(end->position, CRITERIA_UNAVAILABLE);
             }
         }
+        // if we use logo stop in recording with a channel mark double episode, no ad in frame can be before end mark because we found no channel stop mark
+        if (criteria->GetMarkTypeState(MT_CHANNELCHANGE) == CRITERIA_USED) {
+            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): channel mark double episode, no ad in frame before end mark (%d)", end->position);
+            evaluateLogoStopStartPair->SetIsAdInFrameAroundStop(end->position, STATUS_DISABLED);  // prevent to false detect ad in frame
+        }
     }
     else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): no MT_LOGOSTOP mark found");
     return end;
