@@ -162,6 +162,7 @@ void cMarkAdStandalone::CalculateCheckPositions(int startFrame) {
         isyslog("recording started too late, set start mark to start of recording");
         sMarkAdMark mark = {};
         mark.position    = 1;  // do not use position 0 because this will later be deleted
+        mark.framePTS    = index->GetStartPTS();
         mark.type        = MT_RECORDINGSTART;
         AddMark(&mark);
         startFrame = decoder->GetVideoFrameRate() * 6 * 60;  // give 6 minutes to get best mark type for this recording
