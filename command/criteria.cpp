@@ -129,6 +129,7 @@ bool cCriteria::InfoInBorder() {   // info logo or closing banner in one of the 
     if (CompareChannelName(channelName, "TF1_Séries_Films", IGNORE_NOTHING)) return true;  // closing banner in border
     if (CompareChannelName(channelName, "TV5MONDE_EUROPE",  IGNORE_HD))      return true;  // blue/white banner in border
     if (CompareChannelName(channelName, "VOX",              IGNORE_HD))      return true;  // closing credits banner in lower border
+    if (CompareChannelName(channelName, "zdf_neo",          IGNORE_HD))      return true;
     return false;
 }
 
