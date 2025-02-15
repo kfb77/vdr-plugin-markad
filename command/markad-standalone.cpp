@@ -2665,7 +2665,7 @@ void cMarkAdStandalone::CheckStart() {
     if (marks.Count(MT_VBORDERSTART) == 0) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
     else if ((marks.Count(MT_VBORDERSTART) == 1) && (marks.Count(MT_VBORDERSTOP) == 0)) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);
 
-    // if we have no aspect change an 16:9 video, we have no aspect ratio marks
+    // if we have no aspect change in 16:9 video, we have no aspect ratio marks
     if ((marks.Count(MT_ASPECTCHANGE, 0xF0) == 0) && aspectRatioFrame && (aspectRatioFrame->num == 16) && (aspectRatioFrame->den == 9))criteria->SetMarkTypeState(MT_ASPECTCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
 
     // if we have no channel change and 2 channel audio, we have no channel marks (GetAC3ChannelCount will return 0 if there is no AC3 stream)
@@ -2691,6 +2691,7 @@ void cMarkAdStandalone::CheckStart() {
 
 // check if aspect ratio from VDR info file is valid
     bool checkedAspectRatio = false;
+    dsyslog("cMarkAdStandalone::CheckStart(): aspect ratio from VDR info: %d:%d", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
     // end of start part can not be 4:3 if broadcast is 16:9
     if (aspectRatioFrame && (macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9) && (aspectRatioFrame->num == 4) && (aspectRatioFrame->den == 3)) {
         dsyslog("cMarkAdStandalone::CheckStart(): broadcast at end of start part is 4:3, VDR info tells 16:9, info file is wrong");
@@ -2714,37 +2715,21 @@ void cMarkAdStandalone::CheckStart() {
             }
         }
     }
-    // if broadcast is 16:9, check aspect ratio from info file
-    //
-    // valid sequence for 16:9 video:
-    // MT_ASPECTSTOP (start of prev broadcast) -> MT_LOGOSTART (4:3 logo) ->  MT_LOGOSTOP (4:3 logo)            -> MT_ASPECTSTART (start of 16:9 ad) -> MT_LOGOSTART (16:9 broadcast)
-    // MT_ASPECTSTOP (start of prev broadcast) -> MT_LOGOSTART (4:3 logo) ->  MT_ASPECTSTART (start of 16:9 ad) -> MT_LOGOSTOP (4:3 logo)            -> MT_LOGOSTART (16:9 broadcast)
-    //
-    // found invalid sequence, info is 16:9 but broadcast is 4:3
-    // MT_ASPECTSTOP (start of prev broadcast) ->  MT_LOGOSTART (4:3 logo) -> MT_ASPECTSTART (start of 16:9 ad)  (continuous double episode)
+    // if aspect ratio from VDR info file is 16:9 and we have aspect ratio marks, check if sequence is valid
+    // invalid sequence (all aspect change marks):
+    // MT_ASPECTSTOP (start of broadcast, near startA) -> long broadcast -> MT_ASPECTSTOP (start of ad)
+    // startA (7600) -> 318s -> MT_ASPECTSTOP (8808) -> 270s -> MT_ASPECTSTART (15565)
     if (!checkedAspectRatio && (macontext.Info.AspectRatio.num == 16) && (macontext.Info.AspectRatio.den == 9)) {
         cMark *aspectStop = marks.GetNext(-1, MT_ASPECTCHANGE, 0xF0);
         if (aspectStop && aspectStop->type == MT_ASPECTSTOP) {  // with aspect mark must be MT_ASPECTSTOP
-            cMark *logoStart = marks.GetNext(aspectStop->position, MT_LOGOSTART);   // next mark must be 4:3 logo start
-            if (logoStart) {
-                cMark *aspectStart = marks.GetNext(logoStart->position, MT_ASPECTSTART);
-                if (aspectStart) {
-                    const cMark *nextMark = marks.GetNext(aspectStart->position, MT_ALL);  // check if no next mark in start part
-                    if (!nextMark) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): sequence MT_ASPECTSTOP (%d) -> MT_LOGOSTART (%d) -> MT_ASPECTSTART (%d) is invalid for 16:9 video", aspectStop->position, logoStart->position, aspectStart->position);
-                        SwapAspectRatio();
-                    }
-                }
-            }
-            else {   // we have no valid logo start (detection fault or border)
-                const cMark *aspectStart = marks.GetNext(aspectStop->position, MT_ASPECTSTART);
-                if (aspectStart) {
-                    int lengthAd = (aspectStart - aspectStop) /  decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::CheckStart(): length of first ad %ds", length);
-                    if (lengthAd > 10) {
-                        dsyslog("cMarkAdStandalone::CheckStart(): length of ad is invalid, must be length of broadcast");
-                        SwapAspectRatio();
-                    }
+            cMark *aspectStart = marks.GetNext(aspectStop->position, MT_ASPECTSTART);
+            if (aspectStart) {
+                int aspectStopAfterStartA      = (aspectStart->position - startA)               / decoder->GetVideoFrameRate();
+                int aspectStartAfterAspectStop = (aspectStart->position - aspectStop->position) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::CheckStart(): startA (%d) -> %ds -> MT_ASPECTSTOP (%d) -> %ds -> MT_ASPECTSTART (%d)", startA, aspectStopAfterStartA, aspectStop->position, aspectStartAfterAspectStop, aspectStart->position);
+                if ((aspectStopAfterStartA >= 318) && (aspectStartAfterAspectStop >= 270)) {
+                    dsyslog("cMarkAdStandalone::CheckStart(): sequence is invalid for 16:9 broadcast, fix to 4:3");
+                    SwapAspectRatio();
                 }
             }
         }
