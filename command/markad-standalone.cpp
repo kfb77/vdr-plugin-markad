@@ -1897,7 +1897,7 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
         }
         // only closing credits check have to be done, limit search range
         if ((logoStopStartPair.isInfoLogo <= STATUS_NO) && (logoStopStartPair.isLogoChange <= STATUS_NO)) {
-            if ((logoStopStartPair.stopPosition + logoStopStartPair.startPosition) / decoder->GetVideoFrameRate() > MAX_CLOSING_CREDITS_SEARCH) {
+            if ((logoStopStartPair.startPosition - logoStopStartPair.stopPosition) / decoder->GetVideoFrameRate() > MAX_CLOSING_CREDITS_SEARCH) {
                 // set new search range
                 logoStopStartPair.startPosition = logoStopStartPair.stopPosition + (MAX_CLOSING_CREDITS_SEARCH * decoder->GetVideoFrameRate());
                 dsyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): search range too big for only closing credits search, reduce search range from stop mark (%d) to (%d)", logoStopStartPair.stopPosition,  logoStopStartPair.startPosition);
