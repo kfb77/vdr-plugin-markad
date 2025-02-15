@@ -1043,17 +1043,18 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
                     int diffLogoStopBlackStart  = 1000 * (blackStart->position - stopBefore->position) / decoder->GetVideoFrameRate();
                     int diffBlackStartBlackStop = 1000 * (blackStop->position  - blackStart->position) / decoder->GetVideoFrameRate();
                     int diffBlackStopLogoStart  = 1000 * (mark->position       - blackStop->position)  / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP(%5d)->%6dms->MT_NOBLACKSTOP(%5d)->%4dms->MT_NOBLACKSTART(%5d)->%4dms->MT_LOGOSTART(%5d)->%10dms->MT_LOGOSTOP(%10d)", stopBefore->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, mark->position, diffLogoStartLogoStop, stopAfterPosition);
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_LOGOSTOP(%5d)->%6dms->MT_NOBLACKSTOP(%5d)->%4dms->MT_NOBLACKSTART(%5d)->%5dms->MT_LOGOSTART(%5d)->%10dms->MT_LOGOSTOP(%10d)", stopBefore->position, diffLogoStopBlackStart, blackStart->position, diffBlackStartBlackStop, blackStop->position, diffBlackStopLogoStart, mark->position, diffLogoStartLogoStop, stopAfterPosition);
 // black screen short after end mark of previous broadcast
 // valid example
 //
 // invalid example
-// MT_LOGOSTOP(11443)->   40ms->MT_NOBLACKSTOP(11444)-> 120ms->MT_NOBLACKSTART(11447)-> 8440ms->MT_LOGOSTART(11658)->  9760ms->MT_LOGOSTOP(11902)
-// MT_LOGOSTOP( 1908)->  560ms->MT_NOBLACKSTOP( 1922)-> 640sm->MT_NOBLACKSTART( 1938)-> 5000ms->MT_LOGOSTART( 2063)->192200ms->MT_LOGOSTOP( 6868)
-// MT_LOGOSTOP(  445)->  520ms->MT_NOBLACKSTOP(  458)-> 640ms->MT_NOBLACKSTART(  474)->24160ms->MT_LOGOSTART( 1078)->231720ms->MT_LOGOSTOP( 6871)
+// MT_LOGOSTOP(11443)->    40ms->MT_NOBLACKSTOP(11444)-> 120ms->MT_NOBLACKSTART(11447)-> 8440ms->MT_LOGOSTART(11658)->      9760ms->MT_LOGOSTOP(     11902)
+// MT_LOGOSTOP( 1908)->   560ms->MT_NOBLACKSTOP( 1922)-> 640sm->MT_NOBLACKSTART( 1938)-> 5000ms->MT_LOGOSTART( 2063)->    192200ms->MT_LOGOSTOP(      6868)
+// MT_LOGOSTOP(  445)->   520ms->MT_NOBLACKSTOP(  458)-> 640ms->MT_NOBLACKSTART(  474)->24160ms->MT_LOGOSTART( 1078)->    231720ms->MT_LOGOSTOP(      6871)
+// MT_LOGOSTOP( 8166)->  2160ms->MT_NOBLACKSTOP( 8220)-> 160ms->MT_NOBLACKSTART( 8224)-> 5800ms->MT_LOGOSTART( 8369)->2147483647ms->MT_LOGOSTOP(2147483647)
 
-                    if ((diffLogoStopBlackStart <= 7040) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 38720) && (diffLogoStartLogoStop > 231720)) {
-                        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence after previous stop is valid");
+                    if ((diffLogoStopBlackStart <= 2159) && (diffBlackStartBlackStop >= 40) && (diffBlackStopLogoStart <= 38720) && (diffLogoStartLogoStop > 231720)) {
+                        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): black screen sequence short after previous stop is valid");
                         return true;
                     }
 // black screen short before start mark of broadcast
