@@ -1505,13 +1505,24 @@ bool cEncoder::CutSmart(cMark *startMark, cMark *stopMark) {
 
     case MARKAD_PIDTYPE_VIDEO_H264:
         // calculate key packet before start position
-        keyPacketNumberBeforeStart = index->GetKeyPacketNumberBeforePTS(startMark->pts);
-        keyPacketNumberBeforeStart = index->GetKeyPacketNumberBefore(keyPacketNumberBeforeStart - 1);  // for H.264 start one GOP before because of B frame references before i-frame
-        if (keyPacketNumberBeforeStart < 0) {
-            esyslog("cEncoder::CutSmart(): H.264: get key packet number before start PTS %" PRId64 " failed", startMark->pts);
-            return false;
+        if (startMark->pts == index->GetStartPTS()) {
+            dsyslog("cEncoder::CutSmart(): H.264: cut from first key packet after recording start");
+            // PTS start can be key packet, we can not use this, because we have to read first GOP to init hardware decoder
+            keyPacketNumberBeforeStart = index->GetKeyPacketNumberAfterPTS(startMark->pts + 1, &ptsKeyPacketBeforeStart, false);
+            if (keyPacketNumberBeforeStart < 0) {
+                esyslog("cEncoder::CutSmart(): H.264: get key packet number after recording start PTS %" PRId64 " failed", startMark->pts);
+                return false;
+            }
         }
-        ptsKeyPacketBeforeStart = index->GetPTSFromKeyPacketNumber(keyPacketNumberBeforeStart);
+        else {
+            keyPacketNumberBeforeStart = index->GetKeyPacketNumberBeforePTS(startMark->pts);
+            keyPacketNumberBeforeStart = index->GetKeyPacketNumberBefore(keyPacketNumberBeforeStart - 1);  // for H.264 start one GOP before because of B frame references before i-frame
+            if (keyPacketNumberBeforeStart < 0) {
+                esyslog("cEncoder::CutSmart(): H.264: get key packet number before start PTS %" PRId64 " failed", startMark->pts);
+                return false;
+            }
+            ptsKeyPacketBeforeStart = index->GetPTSFromKeyPacketNumber(keyPacketNumberBeforeStart);
+        }
         // calculate key packet before end position
         keyPacketNumberBeforeStop = index->GetKeyPacketNumberBeforePTS(stopMark->pts - 1);  // one GOP back because of negativ PTS offset
         if (keyPacketNumberBeforeStop < 0) {
