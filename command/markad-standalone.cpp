@@ -6580,6 +6580,9 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     }
     int frameRate = decoderTest->GetVideoFrameRate();   // store frameRate for logo extraction and start mark if markad runs during recording
     marks.SetFrameRate(frameRate);  // register framerate to calculate VDR timestamps
+    sceneMarks.SetFrameRate(frameRate);
+    silenceMarks.SetFrameRate(frameRate);
+    blackMarks.SetFrameRate(frameRate);
     dsyslog("cMarkAdStandalone::cMarkAdStandalone(): video characteristics: %s, frame rate %d, type %d, pixel format %d", (decoderTest->IsInterlacedFrame()) ? "interlaced" : "progressive", frameRate, decoderTest->GetVideoType(), decoderTest->GetVideoPixelFormat());
 
     // FFmpeg version dependent restriction
