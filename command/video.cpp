@@ -573,7 +573,7 @@ void cLogoDetect::LogoGreyToColour() {
 }
 
 
-bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
+bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark, const int backgroundPatternQuote) {
     int rPixelColour = 0;
     int mPixelColour = 0;
 
@@ -597,10 +597,10 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
         area.valid[plane] = false; // reset state for next normal detection
     }
     int logo_vmarkColour = LOGO_VMARK * mPixelColour;
+    rPixelColour = rPixelColour * (100 - backgroundPatternQuote) / 100;   // remove pixel matches from background pattern
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
     dsyslog("cLogoDetect::LogoColourChange(): frame (%6d): maybe colour change, try plane 1 and plan 2", decoder->GetPacketNumber());
-    int logo_imarkColour = LOGO_IMARK * mPixelColour;
     for (int plane = 0; plane < PLANES; plane++) {
         // reset all planes
         if ((decoder->GetPacketNumber() > DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE) && (decoder->GetPacketNumber() < DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) {
@@ -614,8 +614,12 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark) {
             }
         }
     }
-    int iPixelColour = 0;   // not used, only for same formatted output
-    char detectStatus[] = "o";
+#endif
+
+#ifdef DEBUG_LOGO_DETECTION
+    int iPixelColour     = 0;   // not used, only for same formatted output
+    int logo_imarkColour = LOGO_IMARK * mPixelColour;
+    char detectStatus[]  = "o";
     if (rPixelColour >= logo_vmarkColour) strcpy(detectStatus, "+");
     if (rPixelColour <= logo_imarkColour) strcpy(detectStatus, "-");
     dsyslog("cLogoDetect::LogoColourChange    frame (%6d): rp=%5d | ip=%5d | mp=%5d | mpV=%5d | mpI=%5d | i=%3d | c=%d | s=%d | p=%d | v=%s", decoder->GetPacketNumber(), rPixelColour, iPixelColour, mPixelColour, logo_vmarkColour, logo_imarkColour, area.intensity, area.counter, area.status, 2, detectStatus);
@@ -768,12 +772,13 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         }
 
         // background pattern can mess up soble transformation result, double check logo state changes
+        int quoteInverse = 0;
         if (((area.status == LOGO_INVISIBLE) && (rPixel >= logo_vmark)) || // logo state was invisible, new logo state visible
                 // prevent to detect background pattern as new logo start
                 // logo state was visible, new state unclear result
                 // ignore very bright pictures, we can have low logo result even on pattern background, better do brighntness reduction before to get a clear result
                 ((area.status == LOGO_VISIBLE) && (rPixel > logo_imark) && area.intensity <= 141)) {
-            int quoteInverse  = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);  // quote of pixel from background
+            quoteInverse  = 100 * iPixel / ((area.logoSize.height * area.logoSize.width) - mPixel);  // quote of pixel from background
             int rPixelWithout = rPixel * (100 - quoteInverse) / 100;
 
 #ifdef DEBUG_LOGO_DETECTION
@@ -802,7 +807,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 
         // we have no bright picture so we have a valid logo invisible result, but not if we expect a color change logo
         if ((area.intensity <= MAX_AREA_INTENSITY) && (rPixel <= logo_imark)) {
-            if (criteria->LogoColorChange()) LogoColourChange(&rPixel, logo_vmark);  // check logo color change, if colored logo visible, rPixel is set to logo_vmark
+            if (criteria->LogoColorChange()) LogoColourChange(&rPixel, logo_vmark, quoteInverse);  // check logo color change, if colored logo visible, rPixel is set to logo_vmark
             logoStatus = true;  // in any case, we have a valid result
         }
 
@@ -812,7 +817,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         // if we have still no valid match, try to copy colour planes into grey planes
         // some channel use coloured logo at broadcast start
         // for performance reason we do this only for the known channel
-        if (!logoStatus && criteria->LogoColorChange()) logoStatus = LogoColourChange(&rPixel, logo_vmark);
+        if (!logoStatus && criteria->LogoColorChange()) logoStatus = LogoColourChange(&rPixel, logo_vmark, quoteInverse);
 
         // try to reduce brightness and increase contrast
         // check area intensitiy

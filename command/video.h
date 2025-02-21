@@ -230,9 +230,12 @@ private:
 
     /**
      * check if logo is visible in coloured plane if changel changed logo colour
-     * return true if we found a visible logo in coloured plane, false otherwise
+     * @param  rPixel           result pixel count
+     * @logo_vmark              pixel for logo visable
+     * @backgroundPatternQuote  quote of background patten
+     * @return true if we found a visible logo in coloured plane, false otherwise
      */
-    bool LogoColourChange(int *rPixel, const int logo_vmark);
+    bool LogoColourChange(int *rPixel, const int logo_vmark, const int backgroundPatternQuote);
 
     /**
      * copy all black pixels from logo pane 0 into plan 1 and plane 2,
