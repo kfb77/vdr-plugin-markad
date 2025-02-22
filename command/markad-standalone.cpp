@@ -2120,7 +2120,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 
     // search for logo start mark around assumed start
     int maxAssumed = MAX_ASSUMED;
-    if (macontext.Info.startVPS && criteria->GoodVPS()) maxAssumed /= 2;  // if we use a valid VPS event based start time do only near search
+    if (macontext.Info.startVPS && criteria->GoodVPS()) maxAssumed /= 10;  // if we use a valid VPS event based start time do only near search, 30s max.
     cMark *lStartAssumed = marks.GetAround(startA + (maxAssumed * decoder->GetVideoFrameRate()), startA, MT_LOGOSTART);
     if (!lStartAssumed) {
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): no logo start mark found");
