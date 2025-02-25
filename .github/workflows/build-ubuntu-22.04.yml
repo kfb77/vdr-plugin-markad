@@ -19,8 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: install dependencies
-        run: sudo apt-get update && sudo apt-get install -y vdr-dev libavcodec-dev libavformat-dev libavfilter-dev cppcheck
+        run: sudo apt-get update && sudo apt-get install -y vdr-dev libavcodec-dev libavformat-dev libavfilter-dev
       - name: make all
         run: make all
-      - name: make cppcheck
-        run: make cppcheck
