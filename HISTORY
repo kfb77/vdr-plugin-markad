@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2025-02-25: Version 4.2.10
+- fix missing markad finished OSD message (thx to utiltiy@www.vdr-portal.de for reporting)
+- some minor bug fixes and optimizations, see git
+
 2025-02-03: Version 4.2.9
 - fix not accurate start position with --cut in rare cases
 - some minor bug fixes and optimizations, see git
