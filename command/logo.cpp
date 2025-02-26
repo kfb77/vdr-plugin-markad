@@ -500,7 +500,7 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
 // 166 ProSieben               16:9  720W  576H:->   80W  64H TOP_RIGHT
 //  35 ProSieben               16:9  720W  576H:->   84W  66H TOP_RIGHT
 //   1 ProSieben                4:3  720W  576H:->   94W  64H TOP_RIGHT
-        if (CompareChannelName(channelName, "ProSieben", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "ProSieben", IGNORE_COUNTRY)) {
             logo.widthMin  =  70;
             logo.widthMax  =  94;
             logo.heightMin =  61;
@@ -577,7 +577,7 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
 //   5 SAT_1_Gold              16:9  720W  576H:->  128W  74H TOP_RIGHT
 //   6 SAT_1_Gold              16:9  720W  576H:->  130W  74H TOP_RIGHT
 //   1 SAT_1_Gold              16:9  720W  576H:->  130W  76H TOP_RIGHT
-        if (CompareChannelName(channelName, "SAT_1_Gold", IGNORE_NOTHING)) {
+        if (CompareChannelName(channelName, "SAT_1_Gold", IGNORE_COUNTRY)) {
             logo.widthMin  = 104;
             logo.widthMax  = 140;
             logo.heightMin =  52;
@@ -699,10 +699,11 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.widthMax  = 206;
         }
 
-        // arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
+//   1 arte_HD                 16:9 1280W  720H:->  180W 134H TOP_LEFT    arte Thema logo
+//   1 arte_HD                 16:9 1280W  720H:->   88W 134H TOP_LEFT
         if (CompareChannelName(channelName, "arte_HD", IGNORE_NOTHING)) {
             logo.widthMin  =  78;
-            logo.widthMax  =  98;
+            logo.widthMax  = 190;
             logo.heightMin = 124;
             logo.heightMax = 144;
         }
