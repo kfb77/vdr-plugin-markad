@@ -1309,7 +1309,7 @@ int cBlackScreenDetect::Process() {
 
     if (detectLowerBorder) {
         // now lower black/white border visible, only report lower black/white border if we have no full black screen
-        if ((((valLower <= maxBrightnessLower) && (valAll >= 3 * maxBrightnessAll)) || // only report lower black border if we have no dark picture, changed from 2 to 3
+        if ((((valLower <= maxBrightnessLower) && (valAll >= 2.6 * maxBrightnessAll)) || // only report lower black border if we have no dark picture, changed from 3 to 2.6
                 (valLower >= minBrightnessLower)) &&
                 (lowerBorderStatus != LOWER_BORDER_VISIBLE) && (blackScreenStatus != BLACKSCREEN_VISIBLE)) {
             int ret = LOWER_BORDER_VISIBLE;

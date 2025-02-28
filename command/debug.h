@@ -72,7 +72,7 @@
 // debug scene change detection
 // #define DEBUG_SCENE_CHANGE
 
-// debug blackscreen detection
+// debug blackscreen and lower border detection
 // #define DEBUG_BLACKSCREEN
 
 // debug volume detection
