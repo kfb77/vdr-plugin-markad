@@ -57,8 +57,9 @@ private:
     /**
     * list of states and counties in channel name to ignore
     */
-    const char* countries[2] = {
+    const char* countries[3] = {
         "_AUSTRIA",
+        "_ÖSTERREICH",
         "_BAYERN"
     };
 
