@@ -5558,7 +5558,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                     else                                     maxAfter =  80; // some channels starts logo short before broadcast
                     break;
                 case MT_ASPECTSTART:
-                    maxAfter =  320;
+                    maxAfter = 400;
                     break;
                 case MT_CHANNELSTART:
                     maxAfter = 1800;
