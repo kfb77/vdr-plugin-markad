@@ -3004,6 +3004,7 @@ bool cMarkAdStandalone::CheckStartMark() {
 // MT_LOGOSTART ( 4725) |   9s| -> 216s -> MT_LOGOSTOP (10145) ->    6s ->  MT_LOGOSTART (10303) | 232s| ->  501s -> MT_LOGOSTOP ( 22838) -> Comedy Central: info logo
 // MT_LOGOSTART ( 7733) |   8s| -> 130s -> MT_LOGOSTOP (10984) ->    0s ->  MT_LOGOSTART (10994) | 138s| ->  501s -> MT_LOGOSTOP ( 23533) -> Comedy Central: info logo
 // MT_LOGOSTART ( 7486) |   0s| ->  94s -> MT_LOGOSTOP ( 9858) ->    0s ->  MT_LOGOSTART ( 9868) |  94s| ->  472s -> MT_LOGOSTOP ( 21678) -> Comedy Central: info logo
+// MT_LOGOSTART ( 5831) | -65s| -> 179s -> MT_LOGOSTOP (10322) ->    9s ->  MT_LOGOSTART (10559) | 123s| -> 1249s -> MT_LOGOSTOP ( 41785) -> Disney_Channel, preview in frame
 //
 // example of invalid logo start mark, delete first start/stop pair
 // MT_LOGOSTART ( 6059)         -> 181s -> MT_LOGOSTOP (15142) ->   35s ->  MT_LOGOSTART (16925)         -> 5342s -> MT_LOGOSTOP (284034) -> Das Erste HD, first part is Tagesschau
@@ -3012,7 +3013,7 @@ bool cMarkAdStandalone::CheckStartMark() {
 // MT_LOGOSTART ( 4194) |-216s| -> 600s -> MT_LOGOSTOP (34217) ->   64s ->  MT_LOGOSTART (37442) | 448s| -> 2034s -> MT_LOGOSTOP (139176) -> Das_Erste_HD
                         else if ((logoStartAssumed1 <= 0) && (logoStartAssumed2 <= 448) && // should be near event start
                                  (lengthBroadcast1 <= 600) &&
-                                 (lengthAd >= 6) && (lengthAd <= 64) &&                    // very short ad can be undeteced info logo
+                                 (lengthAd > 9) && (lengthAd <= 64) &&                    // very short ad can be undeteced info logo
                                  (lengthBroadcast2 >= 143)) {
                             dsyslog("cMarkAdStandalone::CheckStartMark(): too short first ad, delete start (%d) and stop (%d) mark", startMark->position, logoStop1->position);
                             marks.Del(startMark->position);
