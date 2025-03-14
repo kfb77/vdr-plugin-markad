@@ -5293,10 +5293,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        // rule 1: refer silence after VPS start event
-                        if ((diffAfter <= 231440) && (lengthAfter > 80)) diffBefore = INT_MAX;
-
-                        if (criteria->GoodVPS()) maxBefore =  29479;
+                        if (criteria->GoodVPS()) maxBefore =  24399;
                         else                     maxBefore = 136559;
                         break;
                     case MT_INTRODUCTIONSTART:
@@ -5405,9 +5402,9 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (criteria->GoodVPS())      maxAfter = 24359;
+                        if (criteria->GoodVPS())      maxAfter = 13479;
                         else if (lengthAfter >= 3000) maxAfter = 81920;
-                        else                          maxAfter = 49959;
+                        else if (lengthAfter >    40) maxAfter = 49959;   // ignore very short silence
                         break;
                     default:
                         maxAfter = 0;
