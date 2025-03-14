@@ -2807,7 +2807,9 @@ void cMarkAdStandalone::CheckStart() {
     if (!begin) {
         dsyslog("cMarkAdStandalone::CheckStart(): search for any start mark");
         marks.DelTill(IGNORE_AT_START);    // we do not want to have a initial mark from previous recording as a start mark
-        begin = marks.GetAround(160 * decoder->GetVideoFrameRate(), startA, MT_START, 0x0F);  // not too big search range, changed from 240 to 160
+        int maxAssumed = 160; // not too big search range, changed from 240 to 160
+        if (macontext.Info.startVPS && criteria->GoodVPS()) maxAssumed = 70;  // if we use a valid VPS event based start time do only near search
+        begin = marks.GetAround(maxAssumed * decoder->GetVideoFrameRate(), startA, MT_START, 0x0F);
         if (begin) {
             dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) type 0x%X after search for any type", begin->position, begin->type);
             if ((begin->type == MT_ASSUMEDSTART) || (begin->inBroadCast) || !criteria->GetDetectionState(MT_LOGOCHANGE)) { // test on inBroadCast because we have to take care of black screen marks in an ad, MT_ASSUMEDSTART is from converted channel stop of previous broadcast
