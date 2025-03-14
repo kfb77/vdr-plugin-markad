@@ -129,12 +129,11 @@ cDecoder::~cDecoder() {
 #endif
         if (av_buffer_get_ref_count(hw_device_ctx) > 1) {
             isyslog("cDecoder::~cDecoder(): to much buffer references %d", av_buffer_get_ref_count(hw_device_ctx));
-            isyslog("cDecoder::~cDecoder(): FFmpeg memory leak introduced with commit 9db68ed042a9043362d57c79945f6a8d936f9dba (FFmpeg >= 7.1)");
+            isyslog("cDecoder::~cDecoder(): FFmpeg memory leak introduced with commit 9db68ed042a9043362d57c79945f6a8d936f9dba (only FFmpeg 7.1.x)");
         }
         FREE(sizeof(*hw_device_ctx), "hw_device_ctx");
         av_buffer_unref(&hw_device_ctx);  // have to unref both to reduce ref-counter
     }
-
     if (recordingDir) {
         FREE(strlen(recordingDir), "recordingDir");
         free(recordingDir);
@@ -262,6 +261,8 @@ bool cDecoder::ReadNextFile() {
             ret = InitDecoder(filename);
         }
         if (!ret) {
+            FREE(strlen(filename), "filename");
+            free(filename);
             esyslog("cDecoder:::ReadNextFile(): init decoder failed");
             return false;
         }
@@ -269,6 +270,8 @@ bool cDecoder::ReadNextFile() {
     else {
         dsyslog("cDecoder:::ReadNextFile(): next file %s does not exists", filename);
         if (fileNumber <= 1) {
+            FREE(strlen(filename), "filename");
+            free(filename);
             esyslog("cDecoder:::ReadNextFile(): file 00001.ts does not exists");
             exit(EXIT_FAILURE);
         }
