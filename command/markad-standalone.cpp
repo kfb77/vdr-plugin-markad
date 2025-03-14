@@ -2855,8 +2855,8 @@ void cMarkAdStandalone::CheckStart() {
                 int diffStartA = (hborderStop->position - startA) /  decoder->GetVideoFrameRate();
                 dsyslog("cMarkAdStandalone::CheckStart(): MT_HBORDERSTOP (%d) found, %ds after assumed start", hborderStop->position, diffStartA);
                 int maxAssumed = MAX_ASSUMED;
-                if (macontext.Info.startVPS && criteria->GoodVPS()) maxAssumed = 58;  // if we use a valid VPS event based start time do only near search, 30s max.
-                if (abs(diffStartA) < maxAssumed) {
+                if (macontext.Info.startVPS && criteria->GoodVPS()) maxAssumed = 22;  // if we use a valid VPS event based start time do only near search, changed from 58 to 22
+                if (abs(diffStartA) <= maxAssumed) {
                     const cMark *hborderStart = marks.GetNext(hborderStop->position, MT_HBORDERSTART);
                     if (!hborderStart) { // if there is a hborder start mark after, hborder stop is not an end mark of previous broadcast
                         dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_HBORDERSTOP (%d) from previous recoring as start mark", hborderStop->position);
