@@ -1169,7 +1169,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
             int countWhite = bottomWhiteLine - topWhiteLine + 1;
             int textHeight = logoSizeFinal->height - bottomWhiteLine - 1;
 #ifdef DEBUG_LOGO_RESIZE
-            dsyslog("cExtractLogo::Resize(): repeat %d, top logo:: found white from line %d -> %d, height %d, text below from line %d -> %d, height %d", repeat, topWhiteLine, bottomWhiteLine, countWhite, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight);
+            dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found white from line %d -> %d, height %d, text below from line %d -> %d, height %d", repeat, topWhiteLine, bottomWhiteLine, countWhite, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight);
 #endif
             if ((countWhite <= 22) && (textHeight < logoSizeFinal->height)) {    // too much white is not possible for text under logo, changed from 11 to 22
                 // get width of text
@@ -1390,7 +1390,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
 #ifdef DEBUG_LOGO_RESIZE
                         // save plane 0 of logo
                         char *fileName = nullptr;
-                        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutLeftText.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
+                        if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dAfterCutLeftText.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
                             ALLOC(strlen(fileName)+1, "fileName");
                             sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                             FREE(strlen(fileName)+1, "fileName");
@@ -1427,7 +1427,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
 #ifdef DEBUG_LOGO_RESIZE
                 // save plane 0 of logo
                 char *fileName = nullptr;
-                if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutRight.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
+                if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dAfterCutRightWhite.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
                     ALLOC(strlen(fileName)+1, "fileName");
                     sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
                     FREE(strlen(fileName)+1, "fileName");
@@ -1460,38 +1460,45 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                         countWhite++;
                     }
                     else {
-                        countWhite = 0;
                         if (cutColumn > 0) break;
+                        countWhite = 0;
                     }
-                    if (countWhite >= 3) {  // need at least 3 white column to detect as separator
-                        cutColumn = column;
+                    if (countWhite >= 3) {   // need at least 3 white column to detect as separator
+                        cutColumn = column;  // cutColumn is last left white column searched from right
                     }
                 }
-                // check width of text
-                int textWidth = logoSizeFinal->width - cutColumn;
+                // check position and width of logo and text
+                int logoStart   = 0;
+                int logoEnd     = cutColumn - 1;
+                int logoWidth   = logoEnd - logoStart + 1;
+                int whiteStart  = cutColumn;
+                int whiteEnd    = cutColumn + countWhite - 1;
+                int whiteWidth  = whiteEnd - whiteStart + 1;
+                int textStart   = cutColumn + countWhite;
+                int textEnd     = logoSizeFinal->width - 1;
+                int textWidth   = textEnd - textStart + 1;
                 int textPortion = 1000 * textWidth / decoder->GetVideoWidth();  // we can not work with pixel, depends on resolution
-                dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text right of logo, column %d to %d, width %dp, portion %d", repeat, cutColumn, logoSizeFinal->width, textWidth, textPortion);
-                // example (+) valid text, (-) invalid text
-                // (-) column 313 to 350, width 37p, portion 28 -> alpha"HD"
-                if (textPortion > 28) {
-                    if (cutColumn > static_cast<int>((logoSizeFinal->width * 0.5))) {  // do not cut too much, could be a space in the logo (e.g. VOXup)
-                        // check hight of text
-                        if ((bottomBlackPixel - topBlackPixel) <= 35) {  // chnaged from 24 (ZDF HD "tivi") to 35 (phoenix HD "plus")
-                            dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text right of logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
-                            if ((logoSizeFinal->width - cutColumn) > 0) {
-                                CutOut(bestLogoInfo, 0, logoSizeFinal->width - cutColumn, logoSizeFinal, bestLogoCorner);
+                dsyslog("cExtractLogo::Resize(): repeat %d, left logo: text right of logo, logo %d->%d (%dp), white %d->%d (%dp), text %d->%d (%dp), portion %d", repeat, logoStart, logoEnd, logoWidth, whiteStart, whiteEnd, whiteWidth, textStart, textEnd, textWidth, textPortion);
+                // example:
+                // (+) text to remove right of logo, (-) no text right of logo, do not remove
+                // (+) logo 0->68 (69p), white 69->76 (8p), text 77->219 (143p), portion 198 (MTV "name of episode")
+                if (textPortion > 28) {  // keep very short text as part of logo (eg. "HD") or space in logo (eg. VOXup)
+                    // check hight of text
+                    if ((bottomBlackPixel - topBlackPixel) <= 35) {  // changed from 24 (ZDF HD "tivi") to 35 (phoenix HD "plus")
+                        dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text right of logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
+                        if ((logoSizeFinal->width - cutColumn) > 0) {
+                            CutOut(bestLogoInfo, 0, logoSizeFinal->width - cutColumn, logoSizeFinal, bestLogoCorner);
 #ifdef DEBUG_LOGO_RESIZE
-                                // save plane 0 of logo
-                                char *fileName = nullptr;
-                                if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutRightText.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
-                                    ALLOC(strlen(fileName)+1, "fileName");
-                                    sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
-                                    FREE(strlen(fileName)+1, "fileName");
-                                    free(fileName);
-                                    cutStep++;
-                                }
-#endif
+                            // save plane 0 of logo
+                            char *fileName = nullptr;
+                            if (asprintf(&fileName,"%s/F__%07d-P0-C%1d_LogoResize_Repeat%d_%dCutRightText.pgm", recDir, bestLogoInfo->frameNumber, bestLogoCorner, repeat, cutStep) >= 1) {
+                                ALLOC(strlen(fileName)+1, "fileName");
+                                sobel->SaveSobelPlane(fileName, bestLogoInfo->sobel[0], logoSizeFinal->width, logoSizeFinal->height);
+                                FREE(strlen(fileName)+1, "fileName");
+                                free(fileName);
+                                cutStep++;
                             }
+#endif
                         }
                     }
                 }
