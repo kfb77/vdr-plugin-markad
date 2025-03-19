@@ -3320,12 +3320,12 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 
 // delete short START STOP logo marks because they are previews in the advertisement
 // preview detection chain:
-// logo start -> logo stop:  broadcast before advertisement or previous preview
+// logo start -> logo stop:  long broadcast is before advertisement or short broadcast is previous preview
 // logo stop  -> logo start: advertisement
 // logo start -> logo stop:  preview  (this start mark is the current mark in the loop)
 //                           first start mark and last stop mark could not be part of a preview
 // logo stop  -> logo start: advertisement
-// logo start -> logo stop:  broadcast after advertisement or next preview
+// logo start -> logo stop:  long broadcast is after advertisement or short broadcast is next preview
     LogSeparator();
     dsyslog("cMarkAdStandalone::CheckMarks(): detect previews in advertisement");
     DebugMarks();     //  only for debugging
@@ -3366,15 +3366,26 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         int lengthPreview         = 1000 * (stopMark->position   - mark->position)        / decoder->GetVideoFrameRate();
         int lengthBroadcastBefore = 1000 * (stopBefore->position - startBefore->position) / decoder->GetVideoFrameRate();
         int lengthBroadcastAfter  = 1000 * (stopAfter->position  - startAfter->position)  / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%d) -> %ds -> MT_LOGOSTOP (%d) -> %ds -> [MT_LOGOSTART (%d) -> %dms -> MT_LOGOSTOP (%d)] -> %dms -> MT_LOGOSTART (%d) -> %dms -> MT_STOP (%d)", startBefore->position, lengthBroadcastBefore, stopBefore->position, lengthAdBefore, mark->position, lengthPreview, stopMark->position, lengthAdAfter, startAfter->position, lengthBroadcastAfter, stopAfter->position);
+        dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART(%6d)->%7dms->MT_LOGOSTOP(%6d)->%dms->[MT_LOGOSTART(%6d)->%dms->MT_LOGOSTOP(%6d)]->%dms->MT_LOGOSTART(%6d)->%dms->MT_STOP(%6d)", startBefore->position, lengthBroadcastBefore, stopBefore->position, lengthAdBefore, mark->position, lengthPreview, stopMark->position, lengthAdAfter, startAfter->position, lengthBroadcastAfter, stopAfter->position);
 // preview example
 // tbd
-// no preview example
-//                         broadcast before                  ad before                           broadcast                          short ad                           broadcast after
-// MT_LOGOSTART (40485) -> 940800s -> MT_LOGOSTOP (64005) -> 612600s -> [MT_LOGOSTART (79320) -> 79800ms -> MT_LOGOSTOP (81315)] -> 12000ms -> MT_LOGOSTART (81615) -> 1365600ms -> MT_STOP (115755)
 //
-//                          broadcast                           short ad                            broadcast                            short logo interruption           ad in frame with logo
-// MT_LOGOSTART (149051) -> 1899920s -> MT_LOGOSTOP (196549) -> 11440s -> [MT_LOGOSTART (196835) -> 132360ms -> MT_LOGOSTOP (200144)] -> 200ms -> MT_LOGOSTART (200149) -> 19960ms -> MT_LOGOSTOP (200648)
+// no preview example
+//            |- broadcast before --|         |---- ad before ----|           |---- broadcast ---|         |----- short ad ----|          |-- broadcast after -|
+// MT_LOGOSTART( 40485)-> 940800ms->MT_LOGOSTOP( 64005)->612600ms->[MT_LOGOSTART(79320)->79800ms->MT_LOGOSTOP(81315)]->12000ms->MT_LOGOSTART(81615)->1365600ms->MT_STOP(115755)
+//
+//            |---- broadcast -----|          |----- short ad ------|         |----- broadcast ----|      |- short logo interruption -|    |- ad in frame with logo -|
+// MT_LOGOSTART(149051)->1899920ms->MT_LOGOSTOP(196549)->11440ms->[MT_LOGOSTART(196835)->132360ms->MT_LOGOSTOP(200144)]->200ms->MT_LOGOSTART(200149)->19960ms->MT_LOGOSTOP(200648)
+//
+//            |---- broadcast ----|         |- logo detection error -|   |--- broadcast --|          |- logo detection error -|    |---- broadcast -----|
+// MT_LOGOSTART(13928)->785120ms->MT_LOGOSTOP(53184)->500ms->[MT_LOGOSTART(53209)->9860ms->MT_LOGOSTOP(53702)]->2840ms->MT_LOGOSTART(53844)->1835720ms->MT_STOP(145630)
+
+        // check if we have long broadcast before, a long broadcast after and only very short ads in sequence,
+        // in this case it could not be a preview, it is a double logo detection error
+        if ((lengthBroadcastBefore >= 785120) && (lengthBroadcastAfter >= 1835720) && (lengthAdBefore <= 500) && (lengthAdAfter <= 2840)) { // ignore double logo detection error
+            dsyslog("cMarkAdStandalone::CheckMarks(): double logo detection failure");
+            continue;
+        }
 
         if ((lengthAdBefore >= 800) || (lengthAdAfter >= 360)) {  // check if we have ad before or after preview. if not it is a logo detection failure
             if (((lengthAdBefore >= 120) && (lengthAdBefore <= 585000) && (lengthAdAfter >= 200))) { // if advertising before is long this is the next start mark
