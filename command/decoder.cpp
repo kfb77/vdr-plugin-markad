@@ -736,7 +736,8 @@ bool cDecoder::ReadPacket() {
 
     frameValid = false;
     av_packet_unref(&avpkt);
-    if (av_read_frame(avctx, &avpkt) == 0 ) {
+    int av_read_rc = av_read_frame(avctx, &avpkt);
+    if (av_read_rc == 0) {
         // check packet DTS and PTS
         if (avpkt.pts == AV_NOPTS_VALUE) {
             dsyslog("cDecoder::ReadPacket(): packet (%5d), stream %d, duration %" PRId64 ": PTS not set", packetNumber, avpkt.stream_index, avpkt.duration);
@@ -825,6 +826,7 @@ bool cDecoder::ReadPacket() {
         }
         return true;
     }
+    dsyslog("cDecoder::ReadPacket(): av_read_rc = %d", av_read_rc);
 // end of file reached
     dsyslog("cDecoder::ReadPacket(): packet (%d): end of of filenumber %d ", packetNumber, fileNumber);
     if (decodeErrorFrame == packetNumber) decodeErrorCount--; // ignore malformed last frame of a file
