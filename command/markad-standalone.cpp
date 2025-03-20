@@ -2299,7 +2299,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         marks.DelFromTo(begin->position + 1, INT_MAX, MT_LOGOCHANGE, 0xF0);
     }
     else {
-        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo marks set for detection, cleanup late hborder and vborder stop marks from previous broadcast");
+        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo marks set for detection, cleanup late or false hborder and vborder stop marks from previous broadcast");
         const cMark *delMark = marks.GetAround(10 * decoder->GetVideoFrameRate(), begin->position, MT_VBORDERSTOP, 0xFF);
         if (delMark) marks.Del(delMark->position);
         delMark = marks.GetAround(10 * decoder->GetVideoFrameRate(), begin->position, MT_HBORDERSTOP, 0xFF);
@@ -2456,25 +2456,23 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start mark at recording start found, we have a double episode");
             criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
         }
-        else { // currect broadcast has no hborder
+        else { // broadcast has no valid hborder
             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): no horizontal border start mark found, disable horizontal border detection and cleanup marks");
             criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_DISABLED, macontext.Config->fullDecode);
             // keep last hborder stop, maybe can use it as start mark
             if (lastBorderStop) { // delete all marks before hborder stop, they can not be a valid start mark
-                // if there is a logo start short before hborder stop, we have a delayed hborder stop from dark opening credits, keep logo start mark
-                int delPos = lastBorderStop->position - 1;
+                // delete all invalid hborder marks before last MT_HBORDERSTOP, they are invalid (detection error or from previous broadcast)
+                marks.DelFromTo(0, lastBorderStop->position - 1, MT_HBORDERCHANGE, 0xF0);
                 cMark *logoStart = marks.GetPrev(lastBorderStop->position);
+                // if there is a logo start short before hborder stop, we have a delayed hborder stop from dark opening credits, keep logo start mark
                 if (logoStart) {
                     int diff = (lastBorderStop->position - logoStart->position) / decoder->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): logo start (%d) %ds before hborder stop (%d) found", logoStart->position, diff, lastBorderStop->position);
-                    if (diff <= 18) {  // valid logo start mark can be some seconds before hborder stop if there are dark opening credits
-                        delPos = logoStart->position - 1;
-                        marks.Del(lastBorderStop->position);  // we do not need hborder stop as fallback, we have a near logo start mark
-                    }
+                    // valid logo start mark can be some seconds before hborder stop if there are dark opening credits
+                    if (diff <= 18) marks.Del(lastBorderStop->position);  // we do not need hborder stop as fallback, we have a near logo start mark
                 }
-                marks.DelFromTo(0, delPos, MT_ALL, 0xFF);
             }
-            else marks.DelType(MT_HBORDERCHANGE, 0xF0);  // maybe the is a late invalid hborder start marks, exists sometimes with old vborder recordings
+            else marks.DelType(MT_HBORDERCHANGE, 0xF0);  // maybe the is a late invalid hborder start mark, exists sometimes together with old vborder recordings
         }
         return nullptr;
     }
