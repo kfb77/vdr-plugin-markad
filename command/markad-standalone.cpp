@@ -2291,6 +2291,11 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     // valid logo start mark found
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): found logo start mark (%d)", begin->position);
     marks.DelWeakFromTo(0, INT_MAX, MT_LOGOCHANGE);   // maybe the is a assumed start from converted channel stop
+    // invalid hborder/vborder stop marks can left over from border stop as fallback start mark
+    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): delete invalid hborder and vborder marks from previous broadcast or detection error");
+    if (criteria->GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_DISABLED) marks.DelType(MT_HBORDERCHANGE, 0xF0);
+    if (criteria->GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_DISABLED) marks.DelType(MT_VBORDERCHANGE, 0xF0);
+
     if ((criteria->GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_USED) ||
             (criteria->GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_USED) ||
             (criteria->GetMarkTypeState(MT_ASPECTCHANGE)  == CRITERIA_USED) ||
@@ -2299,7 +2304,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         marks.DelFromTo(begin->position + 1, INT_MAX, MT_LOGOCHANGE, 0xF0);
     }
     else {
-        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo marks set for detection, cleanup late or false hborder and vborder stop marks from previous broadcast");
+        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo marks set for detection, cleanup late hborder and vborder stop marks from previous broadcast");
         const cMark *delMark = marks.GetAround(10 * decoder->GetVideoFrameRate(), begin->position, MT_VBORDERSTOP, 0xFF);
         if (delMark) marks.Del(delMark->position);
         delMark = marks.GetAround(10 * decoder->GetVideoFrameRate(), begin->position, MT_HBORDERSTOP, 0xFF);
