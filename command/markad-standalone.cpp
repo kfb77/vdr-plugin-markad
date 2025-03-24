@@ -4885,7 +4885,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
 
                         if (criteria->GoodVPS())    maxAfter = 12779;
                         else if (silenceAfter)      maxAfter = 82920;
-                        else if (lengthAfter >= 80) maxAfter = 92360;
+                        else if (lengthAfter >= 80) maxAfter = 54600;
                         else                        maxAfter = 11560;
                         break;
                     case MT_CLOSINGCREDITSSTOP:
