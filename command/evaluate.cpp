@@ -1671,6 +1671,7 @@ void cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, sMarkPos 
         int frameCountFinal               =  0;
         int sumFramePortion[CORNERS]      = {0};
         int sumFramePortionFinal[CORNERS] = {0};
+        int framePortionQuote[CORNERS]    = {0};
     } AdInFrame;
 
     struct sStillImage {
@@ -1845,11 +1846,12 @@ void cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, sMarkPos 
         return;
     }
 
-    // check if we have a frame
+    // check if we have a valid frame
     int allSumFramePortion    =  0;
     for (int corner = 0; corner < CORNERS; corner++) {
-        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of frame portion from corner %-12s: %7d, avg %d", aCorner[corner], AdInFrame.sumFramePortionFinal[corner], AdInFrame.sumFramePortionFinal[corner] / AdInFrame.frameCountFinal);
         allSumFramePortion += AdInFrame.sumFramePortionFinal[corner];
+        AdInFrame.framePortionQuote[corner] = AdInFrame.sumFramePortionFinal[corner] / AdInFrame.frameCountFinal;
+        dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): sum of frame portion from corner %-12s: %7d, avg %d", aCorner[corner], AdInFrame.sumFramePortionFinal[corner], AdInFrame.framePortionQuote[corner]);
     }
 
     if (AdInFrame.frameCountFinal > 0) {
@@ -1865,6 +1867,14 @@ void cDetectLogoStopStart::AdInFrameWithLogo(int startPos, int endPos, sMarkPos 
         //
         if (allFramePortionQuote <= 447) {
             dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): not enough frame pixel found on best corner found, advertising in frame not valid");
+            return;
+        }
+        // check if we have a dark header area (eg. ProSieben), hight matches in top corner, low matches in bottom corner)
+        // example in dark head area (frame portion quote of corner):
+        // 921 / 917 / 300 / 125
+        if ((AdInFrame.framePortionQuote[TOP_LEFT] >= 921) && (AdInFrame.framePortionQuote[TOP_RIGHT] >= 917) &&
+                (AdInFrame.framePortionQuote[BOTTOM_LEFT] <= 300) && (AdInFrame.framePortionQuote[BOTTOM_RIGHT] <= 125)) {
+            dsyslog("cDetectLogoStopStart::AdInFrameWithLogo(): dark header area detected, this is no frame");
             return;
         }
     }
