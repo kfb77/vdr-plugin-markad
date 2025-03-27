@@ -3039,8 +3039,9 @@ bool cMarkAdStandalone::CheckStartMark() {
             dsyslog("cMarkAdStandalone::CheckStartMark(): check for final start mark (%d)", startMark->position);
             cMark *markStop = marks.GetNext(startMark->position, MT_STOP, 0x0F);
             if (markStop) {
-                int minFirstBroadcast = 60;                              // more trust strong marks
-                if (startMark->type < MT_LOGOSTART) minFirstBroadcast = 106;  // changed from 77 to 80 to 106
+                int minFirstBroadcast = 60;                                        // more trust strong marks
+                if (startMark->type == MT_CHANNELSTART)  minFirstBroadcast =  29;  // found very short first broadcast with channel marks (ProSieben)
+                else if (startMark->type < MT_LOGOSTART) minFirstBroadcast = 106;  // changed from 77 to 80 to 106
                 int lengthFirstBroadcast = (markStop->position - startMark->position) / decoder->GetVideoFrameRate(); // length of the first broadcast part
                 dsyslog("cMarkAdStandalone::CheckStartMark(): first broadcast length %ds from (%d) to (%d) (expect <=%ds)", lengthFirstBroadcast, startMark->position, markStop->position, minFirstBroadcast);
                 cMark *markStart = marks.GetNext(markStop->position, MT_START, 0x0F);
