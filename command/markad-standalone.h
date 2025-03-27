@@ -430,9 +430,8 @@ private:
      * add or replace marks by VPS events if we have not found stronger marks than black screen marks
      * @param offset  recording start offset of the VPS event
      * @param type    MT_START or MT_STOP
-     * @param isPause true if event is VPS pause, false otherwise
      */
-    void AddMarkVPS(const int offset, const int type, const bool isPause);
+    void AddMarkVPS(const int offset, const int type);
 
     /**
      * check if the index is more advanced than our framecounter <br>

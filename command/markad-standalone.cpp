@@ -3476,7 +3476,8 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
     CheckStartMark();
 
 
-// if we have a VPS events, move start and stop mark to VPS event
+// if we have a VPS events, move start and end mark of weak marks to VPS event
+// do not use pause events, detected marks are usually better
     LogSeparator();
     if (macontext.Config->useVPS) {
         LogSeparator();
@@ -3485,32 +3486,14 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         int vpsOffset = vps->GetStart(); // VPS start mark
         if (vpsOffset >= 0) {
             isyslog("VPS start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-            AddMarkVPS(vpsOffset, MT_START, false);
+            AddMarkVPS(vpsOffset, MT_START);
         }
         else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS start event found");
-
-        /*  do not use pause events, detected marks are usually better
-         *
-                vpsOffset = vps->GetPauseStart();     // VPS pause start mark = stop mark
-                if (vpsOffset >= 0) {
-                    isyslog("VPS pause start event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-                    AddMarkVPS(vpsOffset, MT_STOP, true);
-                }
-                else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause start event found");
-
-                vpsOffset = vps->GetPauseStop();     // VPS pause stop mark = start mark
-                if (vpsOffset >= 0) {
-                    isyslog("VPS pause stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-                    AddMarkVPS(vpsOffset, MT_START, true);
-                }
-                else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS pause stop event found");
-         *
-         */
 
         vpsOffset = vps->GetStop();     // VPS stop mark
         if (vpsOffset >= 0) {
             isyslog("VPS stop  event at %d:%02d:%02d", vpsOffset / 60 / 60,  (vpsOffset / 60 ) % 60, vpsOffset % 60);
-            AddMarkVPS(vpsOffset, MT_STOP, false);
+            AddMarkVPS(vpsOffset, MT_STOP);
         }
         else dsyslog("cMarkAdStandalone::CheckMarks(): no VPS stop event found");
 
@@ -3764,52 +3747,93 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 }
 
 
-void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool isPause) {
+void cMarkAdStandalone::AddMarkVPS(const int offset, const int type) {
     if (!decoder) return;
-    int delta = decoder->GetVideoFrameRate() * 120;
+    if (!index)   return;
     int vpsFrame = index->GetFrameFromOffset(offset * 1000);
     if (vpsFrame < 0) {
-        dsyslog("cMarkAdStandalone::AddMarkVPS(): failed to get frame from offset %d", offset);
+        esyslog("cMarkAdStandalone::AddMarkVPS(): failed to get frame from offset %d", offset);
+        return;
     }
-    cMark *mark = nullptr;
-    char *comment = nullptr;
-    char *timeText = nullptr;
-    if (!isPause) {
-        char *indexToHMSF = marks.IndexToHMSF(vpsFrame, AV_NOPTS_VALUE, false);
-        if (indexToHMSF) {
-            ALLOC(strlen(indexToHMSF) + 1, "indexToHMSF");
-        }
-        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d) at %s", (type == MT_START) ? "start" : "stop", vpsFrame, (indexToHMSF) ? indexToHMSF : "unknown");
-        if (indexToHMSF) {
-            FREE(strlen(indexToHMSF) + 1, "indexToHMSF");
-            free(indexToHMSF);
-        }
-        mark = ((type == MT_START)) ? marks.GetNext(0, MT_START, 0x0F) : marks.GetPrev(INT_MAX, MT_STOP, 0x0F);
-    }
-    else {
-        char *indexToHMSF = marks.IndexToHMSF(vpsFrame, AV_NOPTS_VALUE, false);
-        if (indexToHMSF) {
-            ALLOC(strlen(indexToHMSF)+1, "indexToHMSF");
-        }
-        dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d) at %s", (type == MT_START) ? "pause start" : "pause stop", vpsFrame, (indexToHMSF) ? indexToHMSF : "unknown");
-        if (indexToHMSF) {
-            FREE(strlen(indexToHMSF)+1, "indexToHMSF");
-            free(indexToHMSF);
-        }
-        mark = ((type == MT_START)) ? marks.GetAround(delta, vpsFrame, MT_START, 0x0F) :  marks.GetAround(delta, vpsFrame, MT_STOP, 0x0F);
-    }
-    if (!mark) {
-        if (isPause) {
-            dsyslog("cMarkAdStandalone::AddMarkVPS(): no mark found to replace with pause mark, add new mark");
-            if (asprintf(&comment,"VPS %s (%d)%s", (type == MT_START) ? "pause start" : "pause stop", vpsFrame, (type == MT_START) ? "*" : "") == -1) comment = nullptr;
-            if (comment) {
-                ALLOC(strlen(comment)+1, "comment");
-            }
-            marks.Add((type == MT_START) ? MT_VPSSTART : MT_VPSSTOP, MT_UNDEFINED, MT_UNDEFINED, vpsFrame, -1, comment);  // frame number unknown
-            FREE(strlen(comment)+1,"comment");
-            free(comment);
+    // get current start / end mark and nearest mark with same type
+    cMark *mark     = nullptr;
+    cMark *nearMark = nullptr;  // nearest mark with same type, must be same as start / end mark
+    switch (type) {
+    case MT_START: {
+        mark = marks.GetFirst();
+        if (!mark) {
+            esyslog("cMarkAdStandalone::AddMarkVPS(): no marks found");
             return;
         }
+        nearMark = marks.GetAround(INT_MAX, vpsFrame, MT_START, 0x0F);
+        if (!nearMark) {
+            esyslog("cMarkAdStandalone::AddMarkVPS(): no near mark with same type found");
+            return;
+        }
+        char *nearMarkType = marks.TypeToText(nearMark->type);
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): start mark (%d), VPS start event (%d), nearest start mark: (%d) %s start", mark->position, vpsFrame, nearMark->position, nearMarkType);
+        FREE(strlen(nearMarkType) + 1, "text");
+        free(nearMarkType);
+        // only use VPS start event for weak marks
+        if (mark->type != MT_ASSUMEDSTART) {
+            char *markType = marks.TypeToText(mark->type);
+            dsyslog("cMarkAdStandalone::AddMarkVPS(): keep strong start %s (%d) as start mark", markType, mark->position);
+            FREE(strlen(markType) + 1, "text");
+            free(markType);
+            return;
+        }
+        break;
+    }
+    case MT_STOP: {
+        mark = marks.GetLast();
+        if (!mark) {
+            esyslog("cMarkAdStandalone::AddMarkVPS(): no marks found");
+            return;
+        }
+        nearMark = marks.GetAround(INT_MAX, vpsFrame, MT_STOP, 0x0F);
+        if (!nearMark) {
+            esyslog("cMarkAdStandalone::AddMarkVPS(): no near mark with same type found");
+            return;
+        }
+        int diff = abs(vpsFrame - nearMark->position) / decoder->GetVideoFrameRate();
+        char *nearMarkType = marks.TypeToText(nearMark->type);
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): end mark (%d), VPS stop event (%d), nearest stop mark: (%d) stop %s, distance to VPS %ds", mark->position, vpsFrame, nearMark->position, nearMarkType, diff);
+        FREE(strlen(nearMarkType) + 1, "text");
+        free(nearMarkType);
+        // keep strong end marks, they are better than VPS marks
+        if ((mark->type != MT_ASSUMEDSTOP) ||
+                ((mark->type == MT_TYPECHANGESTOP) && !criteria->GoodVPS())) {
+            char *markType = marks.TypeToText(mark->type);
+            dsyslog("cMarkAdStandalone::AddMarkVPS(): keep strong stop %s (%d) as end mark", markType, mark->position);
+            FREE(strlen(markType) + 1, "text");
+            free(markType);
+            return;
+        }
+        // use near strong and reliable stop mark as end mark
+        if ((diff <= 49) && (nearMark->type >= MT_CHANNELSTOP)) {
+            dsyslog("cMarkAdStandalone::AddMarkVPS(): assumed end mayby wrong, use reliable stop mark (%d) near VPS event (%d) as end mark", nearMark->position, vpsFrame);
+            marks.DelFromTo(nearMark->position + 1, INT_MAX, MT_ALL, 0xFF);
+            return;
+        }
+        break;
+    }
+    default:
+        esyslog("cMarkAdStandalone::AddMarkVPS(): invalid mark type %d", type);
+        return;
+    }
+
+    char *timeText = nullptr;
+    char *indexToHMSF = marks.IndexToHMSF(vpsFrame, AV_NOPTS_VALUE, false);
+    if (indexToHMSF) {
+        ALLOC(strlen(indexToHMSF) + 1, "indexToHMSF");
+    }
+    dsyslog("cMarkAdStandalone::AddMarkVPS(): found VPS %s at frame (%d) at %s", (type == MT_START) ? "start" : "stop", vpsFrame, (indexToHMSF) ? indexToHMSF : "unknown");
+    if (indexToHMSF) {
+        FREE(strlen(indexToHMSF) + 1, "indexToHMSF");
+        free(indexToHMSF);
+    }
+    mark = ((type == MT_START)) ? marks.GetNext(0, MT_START, 0x0F) : marks.GetPrev(INT_MAX, MT_STOP, 0x0F);
+    if (!mark) {
         dsyslog("cMarkAdStandalone::AddMarkVPS(): found no mark found to replace");
         return;
     }
@@ -3817,36 +3841,30 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type, const bool 
 
     timeText = marks.GetTime(mark);
     if (timeText) {
-        if ((((mark->type & 0xF0) >= MT_LOGOCHANGE) || (mark->type == MT_RECORDINGSTART)) &&  // keep strong marks, they are better than VPS marks
-                ((mark->type != MT_TYPECHANGESTOP) || !criteria->GoodVPS())) { // keep broadcast start from next recording if no VPS event expected
-            dsyslog("cMarkAdStandalone::AddMarkVPS(): keep mark at frame (%d) type 0x%X at %s", mark->position, mark->type, timeText);
-        }
-        else { // replace weak marks
-            int diff = abs(mark->position - vpsFrame) / decoder->GetVideoFrameRate();
-            dsyslog("cMarkAdStandalone::AddMarkVPS(): mark to replace at frame (%d) type 0x%X at %s, %ds after mark", mark->position, mark->type, timeText, diff);
-            if (abs(diff) < 1225) {  // do not replace very far marks, there can be an invalid VPS events
-                dsyslog("cMarkAdStandalone::AddMarkVPS(): move mark on position (%d) to VPS event position (%d)", mark->position, vpsFrame);
-                // remove marks witch will become invalid after applying VPS event
-                switch (type) {
-                case MT_START:
-                    marks.DelFromTo(0, mark->position - 1, MT_ALL, 0xFF);
-                    break;
-                case MT_STOP: {  // delete all marks between stop mark before VPS stop event (included) and current end mark (not included)
-                    int delStart = vpsFrame;
-                    const cMark *prevMark = marks.GetPrev(vpsFrame);
-                    if (prevMark && ((prevMark->type & 0x0F) == MT_STOP)) delStart = prevMark->position;
-                    marks.DelFromTo(delStart, mark->position - 1, MT_ALL, 0xFF);
-                }
+        int diff = abs(mark->position - vpsFrame) / decoder->GetVideoFrameRate();
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): mark to replace at frame (%d) type 0x%X at %s, %ds after mark", mark->position, mark->type, timeText, diff);
+        if (abs(diff) < 1225) {  // do not replace very far marks, there can be an invalid VPS events
+            dsyslog("cMarkAdStandalone::AddMarkVPS(): move mark on position (%d) to VPS event position (%d)", mark->position, vpsFrame);
+            // remove marks witch will become invalid after applying VPS event
+            switch (type) {
+            case MT_START:
+                marks.DelFromTo(0, mark->position - 1, MT_ALL, 0xFF);
                 break;
-                default:
-                    esyslog("cMarkAdStandalone::AddMarkVPS(): invalid type 0x%X", type);
-                }
-                dsyslog("cMarkAdStandalone::AddMarkVPS(): marks after cleanup:");
-                DebugMarks();     //  only for debugging
-                marks.Move(mark, vpsFrame, index->GetPTSAfterKeyPacketNumber(vpsFrame), (type == MT_START) ? MT_VPSSTART : MT_VPSSTOP);
+            case MT_STOP: {  // delete all marks between stop mark before VPS stop event (included) and current end mark (not included)
+                int delStart = vpsFrame;
+                const cMark *prevMark = marks.GetPrev(vpsFrame);
+                if (prevMark && ((prevMark->type & 0x0F) == MT_STOP)) delStart = prevMark->position;
+                marks.DelFromTo(delStart, mark->position - 1, MT_ALL, 0xFF);
             }
-            else dsyslog("cMarkAdStandalone::AddMarkVPS(): VPS event too far from mark, ignoring");
+            break;
+            default:
+                esyslog("cMarkAdStandalone::AddMarkVPS(): invalid type 0x%X", type);
+            }
+            dsyslog("cMarkAdStandalone::AddMarkVPS(): marks after cleanup:");
+            DebugMarks();     //  only for debugging
+            marks.Move(mark, vpsFrame, index->GetPTSAfterKeyPacketNumber(vpsFrame), (type == MT_START) ? MT_VPSSTART : MT_VPSSTOP);
         }
+        else dsyslog("cMarkAdStandalone::AddMarkVPS(): VPS event too far from mark, ignoring");
     }
 }
 
