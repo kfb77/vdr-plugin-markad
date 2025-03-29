@@ -1516,36 +1516,38 @@ int cVertBorderDetect::GetFirstBorderFrame() const {
 
 int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePTS) {
     if (!vBorderPacketNumber) {
-        dsyslog("cVertBorderDetect::Process(): packet (%d): vBorderPacketNumber not valid", decoder->GetPacketNumber());
+        esyslog("cVertBorderDetect::Process(): packet (%d): vBorderPacketNumber not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
     if (!vBorderFramePTS) {
-        dsyslog("cVertBorderDetect::Process(): packet (%d): vBorderFramePTS not valid", decoder->GetPacketNumber());
+        esyslog("cVertBorderDetect::Process(): packet (%d): vBorderFramePTS not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
-#define CHECKWIDTH 10           // do not reduce, very small vborder are unreliable to detect, better use logo in this case
-#define BRIGHTNESS_V_SURE   27  // changed from 33 to 27, some channels has dark separator before vborder start
-#define BRIGHTNESS_V_MAYBE 101  // some channel have logo or infos in one border, so we must accept a higher value, changed from 100 to 101
-
-    const sVideoPicture *picture = decoder->GetVideoPicture();
-    if (!picture) {   // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
-        dsyslog("cVertBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
-        return VBORDER_ERROR;
-    }
+    *vBorderPacketNumber = -1;
+    *vBorderFramePTS     = -1;
+    // no vertical border detection with 4:3 broadcast
+    // some 4:3 broadcasts has additional a very small vborder with result in false flapping vborder detection
+    sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
+    if ((aspectRatio->num == 4) && (aspectRatio->den == 3)) return HBORDER_INVISIBLE;
 
     if (frameRate == 0) {
         dsyslog("cVertBorderDetect::Process(): packet (%d): video frames per second  not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
-
+    const sVideoPicture *picture = decoder->GetVideoPicture();
+    if (!picture) {   // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
+        dsyslog("cVertBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
+        return VBORDER_ERROR;
+    }
+#define CHECKWIDTH 10           // do not reduce, very small vborder are unreliable to detect, better use logo in this case
+#define BRIGHTNESS_V_SURE   27  // changed from 33 to 27, some channels has dark separator before vborder start
+#define BRIGHTNESS_V_MAYBE 101  // some channel have logo or infos in one border, so we must accept a higher value, changed from 100 to 101
     // set limits
     int brightnessSure  = BRIGHTNESS_V_SURE;
     if (logoInBorder) brightnessSure = BRIGHTNESS_V_SURE + 1;  // for pixel from logo
     int brightnessMaybe = BRIGHTNESS_V_SURE;
     if (infoInBorder) brightnessMaybe = BRIGHTNESS_V_MAYBE;    // for pixel from info in border
 
-    *vBorderPacketNumber = -1;
-    *vBorderFramePTS     = -1;
     int valLeft          =  0;
     int valRight         =  0;
     int cnt              =  0;
