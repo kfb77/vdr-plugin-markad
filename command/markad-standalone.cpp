@@ -1518,25 +1518,18 @@ void cMarkAdStandalone::CheckStop() {
 
     // cleanup invalid marks
     //
-    // cleanup very short logo stop/start after aspect ratio start, they are from a fading in logo
-    cMark *aStart = marks.GetNext(0, MT_ASPECTSTART);
-    while (true) {
-        if (!aStart) break;
-        cMark *lStop = marks.GetNext(aStart->position, MT_LOGOSTOP);
-        if (lStop) {
-            cMark *lStart = marks.GetNext(lStop->position, MT_LOGOSTART);
-            if (lStart) {
-                int diffStop  = 1000 * (lStop->position  - aStart->position) / decoder->GetVideoFrameRate();
-                int diffStart = 1000 * (lStart->position - aStart->position) / decoder->GetVideoFrameRate();
-                if ((diffStop < 1000) && (diffStart < 1000)) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) and logo start mark (%d) very near after aspect ratio start mark (%d), this is a fading in logo, delete marks", aStart->position, lStop->position, lStart->position);
-                    marks.Del(lStop->position);
-                    marks.Del(lStart->position);
-                }
-            }
+    // cleanup near logo stop and start marks around aspect ratio marks, they are from a fading in/out logo
+    cMark *aspectMark = marks.GetNext(0, MT_ASPECTCHANGE, 0xF0);
+    while (aspectMark) {
+        cMark *logoMark = marks.GetAround(5 * decoder->GetVideoFrameRate(), aspectMark->position, MT_LOGOCHANGE, 0xF0);
+        while (logoMark) {
+            dsyslog("cMarkAdStandalone::CheckStop(): logo mark (%d) near aspect ratio mark (%d) found, this is a fading in/out logo, delete", logoMark->position, aspectMark->position);
+            marks.Del(logoMark->position);
+            logoMark = marks.GetAround(5 * decoder->GetVideoFrameRate(), aspectMark->position, MT_LOGOCHANGE, 0xF0);
         }
-        aStart = marks.GetNext(aStart->position, MT_ASPECTSTART);
+        aspectMark = marks.GetNext(aspectMark->position, MT_ASPECTCHANGE, 0xF0);
     }
+
     // remove logo change marks
     RemoveLogoChangeMarks(false);
 
