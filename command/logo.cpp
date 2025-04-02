@@ -714,14 +714,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax =  85;
         }
 
-        // Das_Erste_HD            16:9 1280W  720H:->  146W 114H TOP_RIGHT
-        // Das_Erste_HD            16:9 1280W  720H:->  148W 114H TOP_RIGHT
-        // Das_Erste_HD            16:9 1280W  720H:->  148W 128H TOP_RIGHT
-        // Das_Erste_HD            16:9 1280W  720H:->  244W 114H TOP_RIGHT    <- check eins Kinderprogramm Logo
+//  21 Das_Erste_HD            16:9 1280W  720H:->  146W 114H TOP_RIGHT
+//   1 Das_Erste_HD            16:9 1280W  720H:->  146W  96H TOP_RIGHT   <- new logo without "HD"
+//  14 Das_Erste_HD            16:9 1280W  720H:->  148W 114H TOP_RIGHT
+//  17 Das_Erste_HD            16:9 1280W  720H:->  242W 114H TOP_RIGHT   <- check eins Kinderprogramm Logo
         if (CompareChannelName(channelName, "Das_Erste_HD", IGNORE_NOTHING)) {
             logo.widthMin  = 146;
             logo.widthMax  = 244;
-            logo.heightMin = 114;
+            logo.heightMin =  86;
             logo.heightMax = 128;
             logo.corner    = TOP_RIGHT;   // too much same size info logos in other corner
         }
@@ -767,9 +767,11 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax =  98;
         }
 
-        // ONE_HD                  16:9 1280W  720H:->  232W  80H TOP_RIGHT
+//   1 ONE_HD                  16:9 1280W  720H:->  180W  80H TOP_RIGHT   -> new logo without "HD"
+//   6 ONE_HD                  16:9 1280W  720H:->  230W  80H TOP_RIGHT
+//   9 ONE_HD                  16:9 1280W  720H:->  232W  80H TOP_RIGHT
         if (CompareChannelName(channelName, "ONE_HD", IGNORE_NOTHING)) {
-            logo.widthMin  = 222;
+            logo.widthMin  = 170;
             logo.widthMax  = 242;
             logo.heightMin =  70;
             logo.heightMax =  90;
@@ -819,13 +821,13 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax =  76;
         }
 
-        //   1 SWR_BW_HD               16:9 1280W  720H:->  228W  74H TOP_LEFT
-        //   2 SWR_BW_HD               16:9 1280W  720H:->  228W  76H TOP_LEFT
+//   1 SWR_BW_HD               16:9 1280W  720H:->  188W  82H TOP_LEFT     // new logo without "HD"
+//   1 SWR_BW_HD               16:9 1280W  720H:->  228W  76H TOP_LEFT
         if (CompareChannelName(channelName, "SWR_HD", IGNORE_CITY)) {
-            logo.widthMin  = 218;
+            logo.widthMin  = 178;
             logo.widthMax  = 238;
             logo.heightMin =  64;
-            logo.heightMax =  86;
+            logo.heightMax =  92;
         }
 
         if (CompareChannelName(channelName, "WDR_HD", IGNORE_CITY)) {         // WDR_HD_Köln             16:9 1280W  720H:->  224W  80H TOP_RIGHT
