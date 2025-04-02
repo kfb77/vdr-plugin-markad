@@ -58,7 +58,7 @@ extern "C" {
 
 // deprecated markad FFmpeg versions without full features and with limited support
 //
-//  #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100) FFmpeg 4.2.7  (Ubuntu 20.04, End of Standard Support: April 2025), same libavcodec version as 4.2.10
+//  #if LIBAVCODEC_VERSION_INT >= ((58<<16)+( 54<<8)+100) FFmpeg 4.2.7  (Ubuntu 20.04, End of Standard Support: 31.05.2025), same libavcodec version as 4.2.10
 //                                                                      issues found with V4.2.7 (not recommended to use with hwaccel):
 //                                                                      very low hwaccel decoding performance
 //                                                                      memory leak in av_hwframe_transfer_data(), fixed in 4.2.10
