@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2025-04-03: Version 4.2.12
+- fix logo size check for some channels now without "HD" in logo
+- some minor bug fixes and optimizations, see git
+
 2025-03-29: Version 4.2.11
 - some minor bug fixes and optimizations, see git
 
