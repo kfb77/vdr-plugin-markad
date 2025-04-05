@@ -54,6 +54,7 @@ int cCriteria::LogoFadeInOut() {
     if (CompareChannelName(channelName, "FOX_Channel",    IGNORE_HD))                  return FADE_IN;
     if (CompareChannelName(channelName, "kabel_eins",     IGNORE_HD))                  return FADE_IN;
     if (CompareChannelName(channelName, "KiKA",           IGNORE_HD))                  return FADE_IN | FADE_OUT;
+    if (CompareChannelName(channelName, "NDR_FS",         IGNORE_HD | IGNORE_CITY))    return FADE_OUT;
     if (CompareChannelName(channelName, "N24_DOKU",       IGNORE_HD))                  return FADE_IN;
     if (CompareChannelName(channelName, "Nickelodeon",    IGNORE_HD))                  return FADE_IN | FADE_OUT;
     if (CompareChannelName(channelName, "NICK_MTV+",      IGNORE_HD))                  return FADE_IN | FADE_OUT;
