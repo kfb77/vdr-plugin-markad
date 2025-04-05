@@ -836,7 +836,7 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                         dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence before logo start is valid", mark->position);
                         return true;
                     }
-                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence before logo startis invalid", mark->position);
+                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence before logo start is invalid", mark->position);
                 }
             }
         }
