@@ -2232,8 +2232,8 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     while (!begin && lStart) {
         // check for too early, can be start of last part from previous broadcast
         int diffAssumed = (startA - lStart->position) / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) near to assumed start, %ds before assumed start (%d)", lStart->position, diffAssumed, startA);
-        if (diffAssumed >= maxAssumed) { // do not accept start mark if it is more than 5 min before assumed start
+        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) near to assumed start, %ds before assumed start (%d), max %ds", lStart->position, diffAssumed, startA, maxAssumed);
+        if (diffAssumed >= maxAssumed) { // do not accept start mark if it is more than maxAssumed min before assumed start
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds before assumed start too early", lStart->position, diffAssumed);
             cMark *lNext = marks.GetNext(lStart->position, MT_LOGOSTART);  // get next logo start mark
             marks.Del(lStart);
@@ -2241,9 +2241,25 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             continue;
         }
         // check for too late logo start, can be of first ad
-        if (diffAssumed < -maxAssumed) {  // do not accept start mark if it is more than 5 min after assumed start
-            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds after assumed start too late", lStart->position, -diffAssumed);
-            break;
+        if (diffAssumed < -maxAssumed) {  // do not accept start mark if it is more than maxAssumed min after assumed start
+            // if logo start mark is after a long part without logo, it should be valid, maybe too late broadcast start
+            cMark *logoStopBefore = marks.GetPrev(lStart->position, MT_LOGOSTOP);
+            if (!logoStopBefore) {
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds after assumed start is valid, first logo start mark", lStart->position, -diffAssumed);
+                begin = lStart;  // start with nearest start mark to assumed start
+            }
+            else {
+                int adLength = (lStart->position - logoStopBefore->position) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds after assumed start, length ad before %d ", lStart->position, -diffAssumed, adLength);
+                if (adLength >= 114) { // changed from 137 to 114
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) after long ad should be valid", lStart->position);
+                    begin = lStart;  // start with nearest start mark to assumed start
+                }
+            }
+            if (!begin) {
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds after assumed start too late", lStart->position, -diffAssumed);
+                break;
+            }
         }
         else {
             begin = lStart;  // start with nearest start mark to assumed start
