@@ -172,7 +172,7 @@ bool cCriteria::IsInfoLogoChannel() {
     if (!channelName) return false;
     // for performance reason only known and tested channels
     if (CompareChannelName(channelName, "C8",              IGNORE_NOTHING))             return true;
-    if (CompareChannelName(channelName, "Comedy_Central",  IGNORE_HD))                  return true;
+//    if (CompareChannelName(channelName, "Comedy_Central",  IGNORE_HD))                  return true; // false info logo detection from short logo interuption
     if (CompareChannelName(channelName, "DMAX",            IGNORE_HD | IGNORE_COUNTRY)) return true;
     if (CompareChannelName(channelName, "kabel_eins",      IGNORE_HD))                  return true;   // only for info (e.g. Teletext)
     if (CompareChannelName(channelName, "Kabel_1_Austria", IGNORE_HD | IGNORE_COUNTRY)) return true;   // only for info (e.g. Teletext)
