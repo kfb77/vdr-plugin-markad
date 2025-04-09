@@ -3237,7 +3237,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
                     int prevLogoStart_Stop      = 1000 * (mark->position          - prevLogoStart->position) /  decoder->GetVideoFrameRate();
                     long int stop_nextLogoStart = 1000 * (nextLogoStart->position - mark->position)          /  decoder->GetVideoFrameRate();
                     int nextLogoStart_nextStop  = 1000 * (nextStop->position      - nextLogoStart->position) /  decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%6d) -> %7dms -> MT_LOGOSTOP (%6d) -> %7ldms -> MT_LOGOSTART (%6d) -> %7dms -> MT_STOP (%6d) -> %s", prevLogoStart->position, prevLogoStart_Stop, mark->position, stop_nextLogoStart, nextLogoStart->position, nextLogoStart_nextStop, nextStop->position, macontext.Info.ChannelName);
+                    dsyslog("cMarkAdStandalone::CheckMarks(): MT_LOGOSTART (%6d) -> %7dms -> [MT_LOGOSTOP (%6d) -> %7ldms -> MT_LOGOSTART (%6d)] -> %7dms -> MT_STOP (%6d) -> %s", prevLogoStart->position, prevLogoStart_Stop, mark->position, stop_nextLogoStart, nextLogoStart->position, nextLogoStart_nextStop, nextStop->position, macontext.Info.ChannelName);
 
 // cleanup logo detection failure
 // delete sequence long broadcast -> very short stop/start -> long broadcast
@@ -3321,11 +3321,19 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // delete more aggressiv
 // detect from long broadcast before (logo interuption at end of part) or long broadcast after (logo interuption at start of part
 // example of invalid logo stop/start pair from logo interruption
-// MT_LOGOSTART ( 33854) ->   17800ms -> MT_LOGOSTOP ( 34299) ->     800ms -> MT_LOGOSTART ( 34319) ->  272280ms -> MT_STOP ( 41126) -> Comedy_Central
-// MT_LOGOSTART ( 42010) ->   17800ms -> MT_LOGOSTOP ( 42455) ->     840ms -> MT_LOGOSTART ( 42476) ->  543960ms -> MT_STOP ( 56075) -> Comedy_Central
-// MT_LOGOSTART ( 40019) ->   35080ms -> MT_LOGOSTOP ( 40896) ->     960ms -> MT_LOGOSTART ( 40920) ->  668720ms -> MT_STOP ( 57638) -> Comedy_Central
-// MT_LOGOSTART ( 20580) ->   43920ms -> MT_LOGOSTOP ( 21678) ->    1120ms -> MT_LOGOSTART ( 21706) ->  499320ms -> MT_STOP ( 34189) -> Comedy_Central
+// near after valid logo start
+// MT_LOGOSTART ( 33854) ->   17800ms -> [MT_LOGOSTOP ( 34299) ->     800ms -> MT_LOGOSTART ( 34319)] ->  272280ms -> MT_STOP ( 41126) -> Comedy_Central
+// MT_LOGOSTART ( 42010) ->   17800ms -> [MT_LOGOSTOP ( 42455) ->     840ms -> MT_LOGOSTART ( 42476)] ->  543960ms -> MT_STOP ( 56075) -> Comedy_Central
+// MT_LOGOSTART ( 40019) ->   35080ms -> [MT_LOGOSTOP ( 40896) ->     960ms -> MT_LOGOSTART ( 40920)] ->  668720ms -> MT_STOP ( 57638) -> Comedy_Central
+// MT_LOGOSTART ( 20580) ->   43920ms -> [MT_LOGOSTOP ( 21678) ->    1120ms -> MT_LOGOSTART ( 21706)] ->  499320ms -> MT_STOP ( 34189) -> Comedy_Central
+// MT_LOGOSTART ( 27011) ->   11960ms -> [MT_LOGOSTOP ( 27310) ->     720ms -> MT_LOGOSTART ( 27328)] ->  551920ms -> MT_STOP ( 41126) -> Comedy_Central
+// MT_LOGOSTART ( 24262) ->   11720ms -> [MT_LOGOSTOP ( 24555) ->     960ms -> MT_LOGOSTART ( 24579)] ->  314000ms -> MT_STOP ( 32429) -> Comedy_Central
+// MT_LOGOSTART ( 41408) ->   17960ms -> [MT_LOGOSTOP ( 41857) ->     640ms -> MT_LOGOSTART ( 41873)] ->  393360ms -> MT_STOP ( 51707) -> Comedy_Central
 //
+// double logo interruption near after valid logo start
+// MT_LOGOSTART ( 32649) ->   11640ms -> [MT_LOGOSTOP ( 32940) ->    1040ms -> MT_LOGOSTART ( 32966)] ->    5120ms -> MT_STOP ( 33094) -> Comedy_Central
+//
+// near before valid logo stop
 // MT_LOGOSTART ( 10503) ->  158960ms -> MT_LOGOSTOP ( 14477) ->     520ms -> MT_LOGOSTART ( 14490) ->   11600ms -> MT_STOP ( 14780) -> Comedy_Central
 // MT_LOGOSTART (  9887) ->  441480ms -> MT_LOGOSTOP ( 20924) ->     520ms -> MT_LOGOSTART ( 20937) ->   23840ms -> MT_STOP ( 21533) -> Comedy_Central
 // MT_LOGOSTART ( 10503) ->  575520ms -> MT_LOGOSTOP ( 24891) ->     520ms -> MT_LOGOSTART ( 24904) ->   11760ms -> MT_STOP ( 25198) -> Comedy_Central
@@ -3338,9 +3346,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 // MT_LOGOSTART (  7059) ->  496800ms -> MT_LOGOSTOP ( 19479) ->     720ms -> MT_LOGOSTART ( 19497) ->   18160ms -> MT_STOP ( 19951) -> Comedy_Central
 // MT_LOGOSTART ( 13488) ->  213960ms -> MT_LOGOSTOP ( 18837) ->     680ms -> MT_LOGOSTART ( 18854) ->   25800ms -> MT_STOP ( 19499) -> Comedy_Central
                     if (criteria->IsLogoInterruptionChannel() &&
-                            ((prevLogoStart_Stop     >=  17800) && (prevLogoStart_Stop     <=  43920) &&    // short broadcast before, long after
-                             (stop_nextLogoStart     >=    800) && (stop_nextLogoStart     <=   1120) &&
+                            ((prevLogoStart_Stop     >=  11720) && (prevLogoStart_Stop     <=  43920) &&    // short broadcast before, long after
+                             (stop_nextLogoStart     >=    640) && (stop_nextLogoStart     <=   1120) &&
                              (nextLogoStart_nextStop >= 272280) && (nextLogoStart_nextStop <= 668720)) ||
+
+                            ((prevLogoStart_Stop     >= 11640) && (prevLogoStart_Stop     <=  11641) &&    // short broadcast before, very short after
+                             (stop_nextLogoStart     >=  1040) && (stop_nextLogoStart     <=   1041) &&
+                             (nextLogoStart_nextStop >=  5120) && (nextLogoStart_nextStop <=   5121)) ||
 
                             ((prevLogoStart_Stop     >= 158960) && (prevLogoStart_Stop     <= 700920) &&    // long broadcast before, short after
                              (stop_nextLogoStart     >=    520) && (stop_nextLogoStart     <=    521) &&
