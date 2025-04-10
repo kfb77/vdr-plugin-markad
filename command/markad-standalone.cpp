@@ -5327,6 +5327,7 @@ void cMarkAdStandalone::SilenceOptimization() {
             int diffAfter    = INT_MAX;
             int lengthBefore = 0;
             int lengthAfter  = 0;
+            bool blackBefore = false;
             bool blackAfter  = false;
             cMark *soundStartBefore = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTART);
             cMark *soundStopBefore  = nullptr;
@@ -5338,7 +5339,6 @@ void cMarkAdStandalone::SilenceOptimization() {
                 if (soundStopBefore) {
                     lengthBefore = 1000 * (soundStartBefore->position - soundStopBefore->position) / decoder->GetVideoFrameRate();
                     const cMark *black = blackMarks.GetAround(decoder->GetVideoFrameRate(), soundStopBefore->position, MT_BLACKCHANGE, 0xF0);
-                    bool blackBefore = false;
                     if (black) blackBefore = true;
                     dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %10" PRId64 " to (%6d) %10" PRId64 ", %8dms before, length %4dms, black %d", mark->position, soundStopBefore->position, soundStopBefore->pts, soundStartBefore->position, soundStartBefore->pts, diffBefore, lengthBefore, blackBefore);
                 }
@@ -5378,10 +5378,11 @@ void cMarkAdStandalone::SilenceOptimization() {
                     if ((diffBefore >=  3140) && (diffAfter <=  3740)) diffBefore = INT_MAX;
 
                     if (criteria->LogoFadeInOut() & FADE_IN) {
-                        if (lengthBefore > 120) maxBefore = 5399;
-                        else                    maxBefore = 3799;
+                        if ((lengthBefore >= 880) && blackBefore) maxBefore = 10720;
+                        else if (lengthBefore > 120)              maxBefore =  5399;
+                        else                                      maxBefore =  3799;
                     }
-                    else                        maxBefore = 2480;
+                    else                                          maxBefore =  2480;
                     break;
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
