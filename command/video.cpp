@@ -855,7 +855,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         if ((rPixel == 0) && (area.intensity < 216) && !criteria->LogoColorChange()) logoStatus = true;
 
         // maybe coloured logo on same colored background, check planes separated, all planes must be under invisible limit
-        if (!logoStatus && (rPixel <= logo_imark) && (area.intensity <= 132)) {  // do not trust logo invisible detection on bright background
+        if (!logoStatus && (rPixel <= logo_imark) && (area.intensity <= 175)) {  // do not trust logo invisible detection on bright background, changed from 132 to 175
             bool planeStatus = true;
             for (int i = 0; i < PLANES; i++) {
                 if (area.mPixel[i] == 0) continue;   // plane has no logo
