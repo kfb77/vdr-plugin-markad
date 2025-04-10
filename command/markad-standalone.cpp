@@ -2079,39 +2079,62 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
     }
     else evaluateLogoStopStartPair->SetDecoder(decoder);
 
-    // cleanup invalid logo start marks
-    cMark *lStart = marks.GetFirst();
+    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): cleanup invalid logo marks");
+    // remove very early logo start marks, this can be delayed logo start detection
+    cMark *lStart = marks.GetNext(-1, MT_LOGOSTART);  // get first logo start mark
     while (lStart) {
-        if (lStart->type == MT_LOGOSTART) {
-            bool delMark = false;
-            // remove very early logo start marks, this can be delayed logo start detection
-            int startOffset = index->GetTimeOffsetFromPTS(lStart->pts) / 1000;  // in seconds
-            if (startOffset <= 14) {  // changed from 11 to 14
-                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start (%5d) %ds after recording start too early", lStart->position, startOffset);
-                delMark = true;
-            }
-            else {
-                // remove very short logo start/stop pairs, this, is a false positive logo detection
-                cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);
-                if (lStop) {
-                    int diff = 1000 * (lStop->position - lStart->position) / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start (%5d) logo stop (%5d), distance %dms", lStart->position, lStop->position, diff);
-                    if (diff <= 60) {
-                        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): distance too short, deleting marks");
-                        delMark = true;
-                    }
-                }
-            }
-            if (delMark) {
-                cMark *tmpMark = lStart->Next();
+        int startOffset = index->GetTimeOffsetFromPTS(lStart->pts) / 1000;  // in seconds
+        if (startOffset <= 14) {  // changed from 11 to 14
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start (%5d) %ds after recording start too early", lStart->position, startOffset);
+            cMark *tmpMark = marks.GetNext(lStart->position, MT_LOGOSTART);  // there can be more than one early logo start
+            marks.Del(lStart->position);
+            lStart = tmpMark;
+            continue;
+        }
+        else break;
+        lStart = marks.GetNext(lStart->position, MT_LOGOSTART);
+    }
+    // remove very short logo start/stop pairs, this, is a false positive logo detection
+    lStart = marks.GetNext(-1, MT_LOGOSTART);  // get first logo start mark
+    while (lStart) {
+        cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);
+        if (lStop) {
+            int diff = 1000 * (lStop->position - lStart->position) / decoder->GetVideoFrameRate();
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start (%5d) logo stop  (%5d), distance %5dms", lStart->position, lStop->position, diff);
+            if (diff <= 60) {  // in ms
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): distance too short, deleting marks");
+                cMark *tmpMark = marks.GetNext(lStart->position, MT_LOGOSTART);  // there can be more than one early logo start
+                marks.Del(lStop->position);
                 marks.Del(lStart->position);
                 lStart = tmpMark;
+                continue;
             }
         }
-        if (lStart) lStart = lStart->Next();
+        lStart = marks.GetNext(lStart->position, MT_LOGOSTART);
+    }
+    // remove very short logo stop/start pairs for channel with logo interuption, these are no valid start marks
+    if (criteria->IsLogoInterruptionChannel()) {
+        dsyslog("cMarkAdStandalone::Check_LOGOSTART():remove very short logo stop/start pairs for channel with logo interuption");
+        cMark *lStop = marks.GetNext(-1, MT_LOGOSTOP);  // get first logo stop mark
+        while (lStop) {
+            lStart = marks.GetNext(lStop->position, MT_LOGOSTART);
+            if (lStart) {
+                int diff = 1000 * (lStart->position - lStop->position) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo stop  (%5d) logo start (%5d), distance %6dms", lStop->position, lStart->position, diff);
+                if (diff <= 1000) {  // changed from 480 to 1000
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): distance too short, deleting marks");
+                    cMark *tmpMark = marks.GetNext(lStop->position, MT_LOGOSTOP);  // there can be more than one early logo start
+                    marks.Del(lStart->position);
+                    marks.Del(lStop->position);
+                    lStop = tmpMark;
+                    continue;
+                }
+            }
+            lStop = marks.GetNext(lStop->position, MT_LOGOSTOP);
+        }
     }
 
-    // search for logo start mark around assumed start
+// search for logo start mark around assumed start
     int maxAssumed = MAX_ASSUMED;
     if (macontext.Info.startVPS && criteria->GoodVPS()) {
         maxAssumed = 56;  // if we use a valid VPS event based start time do only near search, found preview 57s before broadcast
@@ -2123,10 +2146,10 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         return nullptr;
     }
 
-    // try to select best logo start mark based on closing credits follow
+// try to select best logo start mark based on closing credits follow
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check for logo start mark based on closing credits from previous broadcast");
-    // prevent to detect ad in frame from previous broadcast as closing credits
+// prevent to detect ad in frame from previous broadcast as closing credits
     if (!criteria->IsAdInFrameWithLogoChannel() &&
             criteria->IsClosingCreditsChannel()) {
         // search from nearest logo start mark to end, first mark can be before startA
@@ -2163,7 +2186,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         }
     }
 
-    // try to select best logo start mark based on lower border
+// try to select best logo start mark based on lower border
     lStart = lStartAssumed;
     while (!begin) { // search from nearest logo start mark to end, first mark can be before startA
         if (HaveLowerBorder(lStart)) {
@@ -2188,7 +2211,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         }
     }
 
-    // try to select best logo start mark based on black screen, silence or info logo sequence
+// try to select best logo start mark based on black screen, silence or info logo sequence
     LogSeparator(true);
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): check for logo start mark with black screen or silence separator");
     lStart = lStartAssumed;
@@ -2208,7 +2231,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) has no separator", lStart->position);
         lStart = marks.GetNext(lStart->position, MT_LOGOSTART);
     }
-    // search from nearest logo start mark to recording start
+// search from nearest logo start mark to recording start
     lStart = lStartAssumed;
     while (!begin) {
         lStart = marks.GetPrev(lStart->position, MT_LOGOSTART);
@@ -2300,10 +2323,10 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         return nullptr;
     }
 
-    // valid logo start mark found
+// valid logo start mark found
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): found logo start mark (%d)", begin->position);
     marks.DelWeakFromTo(0, INT_MAX, MT_LOGOCHANGE);   // maybe the is a assumed start from converted channel stop
-    // invalid hborder/vborder stop marks can left over from border stop as fallback start mark
+// invalid hborder/vborder stop marks can left over from border stop as fallback start mark
     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): delete invalid hborder and vborder marks from previous broadcast or detection error");
     if (criteria->GetMarkTypeState(MT_HBORDERCHANGE) == CRITERIA_DISABLED) marks.DelType(MT_HBORDERCHANGE, 0xF0);
     if (criteria->GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_DISABLED) marks.DelType(MT_VBORDERCHANGE, 0xF0);
