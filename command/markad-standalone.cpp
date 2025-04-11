@@ -1578,7 +1578,7 @@ void cMarkAdStandalone::CheckStop() {
 
     // cleanup all marks after vborder start from next broadcast
     if (!end && (criteria->GetMarkTypeState(MT_VBORDERCHANGE) <= CRITERIA_UNKNOWN)) {
-        cMark *vBorderStart = marks.GetNext(stopA - (60 * decoder->GetVideoFrameRate()), MT_VBORDERSTART);
+        cMark *vBorderStart = marks.GetNext(stopA - (MAX_ASSUMED * decoder->GetVideoFrameRate()), MT_VBORDERSTART); // changed from 60 to MAX_ASSUMED
         if (vBorderStart) {
             // use logo stop mark short after vborder as end mark
             cMark *logoStop = marks.GetNext(vBorderStart->position, MT_LOGOSTOP);
