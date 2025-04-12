@@ -5810,7 +5810,7 @@ void cMarkAdStandalone::SceneChangeOptimization() {
                         maxBefore = 160;
                         break;
                     case MT_SOUNDSTOP:
-                        maxBefore = 1619;
+                        maxBefore = 579;
                         break;
                     case MT_VPSSTOP:
                         maxBefore = 8440;   // chaned from 1320 to 1440 to 8440
