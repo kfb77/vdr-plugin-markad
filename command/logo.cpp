@@ -331,11 +331,22 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
     switch (decoder->GetVideoWidth()) {
 
     case 544:
+//     DMAX_Austria            16:9  544W  576H:->   96W  76H TOP_RIGHT   -> invalid "neue Folge"
+//
+//   1 DMAX_Austria            16:9  544W  576H:->   96W  88H TOP_LEFT
+
+        if (CompareChannelName(channelName, "DMAX_Austria", IGNORE_NOTHING)) {
+            logo.widthMin  =  86;
+            logo.widthMax  = 106;
+            logo.heightMin =  78;
+            logo.heightMax =  98;
+        }
+
         // default values
         if (logo.widthMin  == 0) logo.widthMin  =  72; // TLC_Austria             16:9  544W  576H:->   72W  60H TOP_LEFT
-        if (logo.widthMax  == 0) logo.widthMax  =  98; // DMAX_Austria            16:9  544W  576H:->   98W  90H TOP_LEFT
+        if (logo.widthMax  == 0) logo.widthMax  =  98;
         if (logo.heightMin == 0) logo.heightMin =  60; // TLC_Austria             16:9  544W  576H:->   72W  60H TOP_LEFT
-        if (logo.heightMax == 0) logo.heightMax =  91; // DMAX_Austria            16:9  544W  576H:->   98W  90H TOP_LEFT
+        if (logo.heightMax == 0) logo.heightMax =  91;
         break;
 
     case 720:
