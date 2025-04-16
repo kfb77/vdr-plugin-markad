@@ -2137,7 +2137,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 // search for logo start mark around assumed start
     int maxAssumed = MAX_ASSUMED;
     if (macontext.Info.startVPS && criteria->GoodVPS()) {
-        maxAssumed = 56;  // if we use a valid VPS event based start time do only near search, found preview 57s before broadcast
+        maxAssumed = 30;  // if we use a valid VPS event based start time do only near search, found preview with logo 31s before broadcast, changed from 56 to 30
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): channel with good VPS, max distance from VPS start event %ds", maxAssumed);
     }
     cMark *lStartAssumed = marks.GetAround(startA + (maxAssumed * decoder->GetVideoFrameRate()), startA, MT_LOGOSTART);
@@ -2292,7 +2292,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         cMark *lStop = marks.GetNext(lStart->position, MT_LOGOSTOP);  // get next logo stop mark
         if (lStop) {  // there is a next stop mark in the start range
             int distanceStartStop = (lStop->position - lStart->position) / decoder->GetVideoFrameRate();
-            if (distanceStartStop < 8) {  // change from 17 to 8 because of very short stop/start from logo change 8s after start mark
+            if (distanceStartStop < 6) {  // change from 8 to 6 because of very short stop/start from logo change 6s after start mark
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): next logo stop mark found very short after start mark on position (%d), distance %ds", lStop->position, distanceStartStop);
                 cMark *lNextStart = marks.GetNext(lStop->position, MT_LOGOSTART); // get next logo start mark
                 if (lNextStart) {  // now we have logo start/stop/start, this can be a preview before broadcast start
