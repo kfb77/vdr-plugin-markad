@@ -237,6 +237,13 @@ int cStatusMarkAd::Get_EIT_EventID(const sRecording *recording, const cEvent *ev
             }
         }
         else {
+            if (stopTimeEIT <= recording->eventStartTime) {
+                if (recording->epgEventLog && (asprintf(&eventLog, "EIT eventID %u stop time not after VDR eventID %u start time, ignoring", eitEventID, recording->eventID) != -1)) {
+                    ALLOC(strlen(eventLog) + 1, "eventLog");
+                    recording->epgEventLog->LogEvent(VPS_DEBUG, recording->title, eventLog);
+                }
+                return 0;
+            }
             if (recording->epgEventLog && (asprintf(&eventLog, "received EIT event for VDR current event -> start: %s, stop: %s, eitEventID: %7u, channelID: %s", timerStartEIT, timerStopEIT, eitEventID, *schedule->ChannelID().ToString()) != -1)) {
                 ALLOC(strlen(eventLog) + 1, "eventLog");
                 recording->epgEventLog->LogEvent(VPS_DEBUG, recording->title, eventLog);
