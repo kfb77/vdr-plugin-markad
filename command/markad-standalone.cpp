@@ -5346,7 +5346,17 @@ void cMarkAdStandalone::SilenceOptimization() {
                     dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence from (%6d) %10" PRId64 " to (%6d) %10" PRId64 ", %8dms after,  length %4dms, black %d", mark->position, soundStopAfter->position, soundStopAfter->pts, soundStartAfter->position, soundStartAfter->pts, diffAfter, lengthAfter, blackAfter);
                 }
             }
-            // try silence before start position
+            // check if new position can be valid
+            if (soundStartAfter) {
+                cMark *nextStop = marks.GetNext(soundStartAfter->position, MT_STOP, 0x0F);
+                if (nextStop) {
+                    int diff = (nextStop->position - soundStartAfter->position) / decoder->GetVideoFrameRate();
+                    if (diff < 60) { // min length broadcast after move to silence
+                        dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence after (%d) is only %ds before next stop mark (%d), ignore invalid", mark->position, soundStartAfter->position, diff, nextStop->position);
+                        soundStartAfter = nullptr;
+                    }
+                }
+            }
             if (soundStartBefore && (soundStartBefore->position != mark->position)) { // do not move to same frame
                 int maxBefore = 0;
                 switch (mark->type) {
