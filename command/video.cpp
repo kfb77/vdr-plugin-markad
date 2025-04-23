@@ -1092,7 +1092,7 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
 #define DIFF_SCENE_CHANGE      165   // do not increase, will loss real scene changes
 #define DIFF_SCENE_BLEND_START  70
 #define DIFF_SCENE_BLEND_STOP   50   // changed from 60 to 50 for long soft scene blend at start mark
-#define SCENE_BLEND_FRAMES       3   // changed from 5 to 3 for fast scene blend
+#define SCENE_BLEND_COUNTER       6
 
     switch (sceneStatus) {
     case SCENE_ERROR:
@@ -1103,8 +1103,9 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
         break;
 
     case SCENE_START:
-        if (diffQuote >= DIFF_SCENE_CHANGE) {   // new scene end one packet after scene start
-            blendCount = 1;  // also store it as first scene blend start position
+        if (diffQuote >= DIFF_SCENE_CHANGE) {       // new scene end one packet after scene start
+            // some channel does blends with scene change every second frame, count up with 2, but down with one
+            blendCount          = 2;                // also store it as first scene blend start position
             blendPacketNumber   = prevPacketNumber;
             blendFramePTS       = prevFramePTS;
             *changePacketNumber = prevPacketNumber; // frame before is end of scene
@@ -1116,7 +1117,8 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
         }
         else {
             if (diffQuote <= DIFF_SCENE_BLEND_STOP) {
-                blendCount        =  0;
+                blendCount--;
+                if (blendCount < 0) blendCount = 0;
                 blendPacketNumber = -1;
                 blendFramePTS     = -1;
             }
@@ -1138,7 +1140,7 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
     case SCENE_NOCHANGE:
         // new end of scene during activ blend
         if (diffQuote >= DIFF_SCENE_CHANGE) {
-            blendCount = 1;  // also store it as first scene blend start position
+            blendCount          = 2;                // also store it as first scene blend start position
             blendPacketNumber   = prevPacketNumber;
             blendFramePTS       = prevFramePTS;
             *changePacketNumber = prevPacketNumber; // frame before is end of scene
@@ -1150,7 +1152,7 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
         }
         // new scene blend start
         else if (diffQuote >= DIFF_SCENE_BLEND_START) {
-            blendCount        = 1;  // also store it as first scene blend start position
+            blendCount        = 2;                  // also store it as first scene blend start position
             blendPacketNumber = prevPacketNumber;
             blendFramePTS     = prevFramePTS;
             sceneStatus       = SCENE_BLEND;
@@ -1176,7 +1178,7 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
         }
         else {
             if (diffQuote <= DIFF_SCENE_BLEND_STOP) {  // end of scene blend
-                if (blendCount >= SCENE_BLEND_FRAMES) {   // scene blend was long enough activ, use it as scene stop
+                if (blendCount >= SCENE_BLEND_COUNTER) {   // scene blend was long enough activ, use it as scene stop
                     *changePacketNumber = blendPacketNumber;
                     *changeFramePTS     = blendFramePTS;
                     sceneStatus         = SCENE_STOP;
@@ -1184,15 +1186,18 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
                     dsyslog("cSceneChangeDetect::Process(): packet (%7d) end of scene blend", prevPacketNumber);
 #endif
                 }
-                else {  // too short scene blend, reset state
-                    blendPacketNumber = -1;
-                    *changeFramePTS   = -1;
-                    blendCount        =  0;
-                    sceneStatus       = SCENE_NOCHANGE;
+                else {
+                    blendCount--;
+                    if (blendCount <= 0) {
+                        blendCount        =  0;
+                        blendPacketNumber = -1;
+                        *changeFramePTS   = -1;
+                        sceneStatus       = SCENE_NOCHANGE;
+                    }
                 }
             }
             else {
-                blendCount++;
+                blendCount+= 2;
 #ifdef DEBUG_SCENE_CHANGE
                 dsyslog("cSceneChangeDetect::Process(): packet (%7d) scene blend continue from packet (%d)", prevPacketNumber, blendPacketNumber);
 #endif
