@@ -3858,8 +3858,8 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type) {
         FREE(strlen(nearMarkType) + 1, "text");
         free(nearMarkType);
         // keep strong end marks, they are better than VPS marks
-        if ((mark->type != MT_ASSUMEDSTOP) ||
-                ((mark->type == MT_TYPECHANGESTOP) && !criteria->GoodVPS())) {
+        if ((mark->type != MT_ASSUMEDSTOP) &&
+                ((mark->type != MT_TYPECHANGESTOP) || !criteria->GoodVPS())) {
             char *markType = marks.TypeToText(mark->type);
             dsyslog("cMarkAdStandalone::AddMarkVPS(): keep strong stop %s mark (%d) as end mark", markType, mark->position);
             FREE(strlen(markType) + 1, "text");
