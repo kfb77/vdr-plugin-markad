@@ -2525,25 +2525,28 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
 
 cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): search for vborder start mark");
-    cMark *vStart = marks.GetAround(240 * decoder->GetVideoFrameRate() + startA, startA, MT_VBORDERSTART);
-    // check if we have marks from an unreliable small vborder
-    if (vStart && criteria->LogoInBorder()) {
-        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): check if vborder marks are valid");
-        // we have logo in border, all vborder marks should have a same type logo mark around
-        cMark *vMark = vStart;
-        while (vMark) {
-            cMark *logoMark = marks.GetAround(35 * decoder->GetVideoFrameRate(), vMark->position, vMark->type - MT_VBORDERCHANGE + MT_LOGOCHANGE); // changed from 30 to 35, preview with logo direct to broacast start
-            if (logoMark) dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder mark (%d): channel has logo in border ans we found logo mark (%d)", vMark->position, logoMark->position);
-            else {
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder mark (%d): channel has logo in border but no logo mark around found, vborder marks are invalid", vMark->position);
-                criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_DISABLED, macontext.Config->fullDecode);
-                marks.DelType(MT_VBORDERCHANGE, 0xF0);
-                return nullptr;
+    // check if we have short vbroder start/stop marks from an unreliable small vborder
+    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): check if vborder marks are valid");
+    cMark *vStart = marks.GetNext(-1, MT_VBORDERSTART);
+    while (vStart) {
+        cMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);
+        if (vStop) {
+            int diff = (vStop->position - vStart->position) /  decoder->GetVideoFrameRate();
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_VBORDERSTART (%5d) -> %3ds -> MT_VBORDERSTOP (%5d)", vStart->position, diff, vStop->position);
+            if (diff <= 90) {
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): too short vborder start/stop, delete marks");
+                cMark *tmpMark = marks.GetNext(vStart->position, MT_VBORDERSTART);
+                marks.Del(vStart->position);
+                marks.Del(vStop->position);
+                vStart = tmpMark;
+                continue;
             }
-            vMark = marks.GetNext(vMark->position, MT_VBORDERCHANGE, 0xF0);
         }
-
+        vStart = marks.GetNext(vStart->position, MT_VBORDERSTART);
     }
+
+    // search vborder start mark
+    vStart = marks.GetAround(240 * decoder->GetVideoFrameRate() + startA, startA, MT_VBORDERSTART);
     if (!vStart) {
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no vertical border at start found, ignore vertical border detection");
         criteria->SetDetectionState(MT_VBORDERCHANGE, false);
