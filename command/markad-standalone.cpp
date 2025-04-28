@@ -4972,7 +4972,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                         else                        maxAfter = 11560;
                         break;
                     case MT_CLOSINGCREDITSSTOP:
-                        maxAfter = 11040;
+                        if (lengthAfter < 6240) maxAfter = 11040;  // long blackscreen after closing credits are opening credits from next broadcast
                         break;
                     case MT_NOADINFRAMESTOP:
                         maxAfter = 3439;
