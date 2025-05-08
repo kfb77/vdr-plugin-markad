@@ -2106,7 +2106,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             int diff = 1000 * (lStop->position - lStart->position) / decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start (%5d) logo stop  (%5d), distance %5dms", lStart->position, lStop->position, diff);
             if (diff <= 60) {  // in ms
-                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): distance too short, deleting marks");
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): false positiv logo detection: distance too short, deleting marks");
                 cMark *tmpMark = marks.GetNext(lStart->position, MT_LOGOSTART);  // there can be more than one early logo start
                 marks.Del(lStop->position);
                 marks.Del(lStart->position);
@@ -2124,9 +2124,10 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
             lStart = marks.GetNext(lStop->position, MT_LOGOSTART);
             if (lStart) {
                 int diff = 1000 * (lStart->position - lStop->position) / decoder->GetVideoFrameRate();
-                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo stop  (%5d) logo start (%5d), distance %6dms", lStop->position, lStart->position, diff);
-                if (diff <= 1000) {  // changed from 480 to 1000
-                    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): distance too short, deleting marks");
+                int startAdiff = (lStop->position - startA) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo stop  (%5d) logo start (%5d), distance %6dms, %ds after assumed start (%d)", lStop->position, lStart->position, diff, startAdiff, startA);
+                if ((diff <= 1000) && (startAdiff < 453)) {  // changed from 480 to 1000, do not delete late logo stop, this can be a valid stop mark of first part
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo interuption channel: distance too short, deleting marks");
                     cMark *tmpMark = marks.GetNext(lStop->position, MT_LOGOSTOP);  // there can be more than one early logo start
                     marks.Del(lStart->position);
                     marks.Del(lStop->position);
