@@ -2534,7 +2534,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         if (vStop) {
             int diff = (vStop->position - vStart->position) /  decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_VBORDERSTART (%5d) -> %3ds -> MT_VBORDERSTOP (%5d)", vStart->position, diff, vStop->position);
-            if (diff <= 90) {
+            if (diff < 82) { // changed from 90 to 82, short first valid part found
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): too short vborder start/stop, delete marks");
                 cMark *tmpMark = marks.GetNext(vStart->position, MT_VBORDERSTART);
                 marks.Del(vStart->position);
