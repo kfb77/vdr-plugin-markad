@@ -3342,31 +3342,40 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 //
 // double logo interruption near after valid logo start
 // MT_LOGOSTART ( 32649) ->   11640ms -> [MT_LOGOSTOP ( 32940) ->    1040ms -> MT_LOGOSTART ( 32966)] ->    5120ms -> MT_STOP ( 33094) -> Comedy_Central
+// MT_LOGOSTART ( 30526) ->   11640ms -> [MT_LOGOSTOP ( 30817) ->    1080ms -> MT_LOGOSTART ( 30844)] ->    5080ms -> MT_STOP ( 30971) -> Comedy_Central
+// MT_LOGOSTART ( 21647) ->   11720ms -> [MT_LOGOSTOP ( 21940) ->    1000ms -> MT_LOGOSTART ( 21965)] ->    5040ms -> MT_STOP ( 22091) -> Comedy_Central
+//
+// double logo interruption near before valid logo stop
+// MT_LOGOSTART ( 32162) ->  556560ms -> [MT_LOGOSTOP ( 46076) ->     880ms -> MT_LOGOSTART ( 46098)] ->    5160ms -> MT_STOP ( 46227) -> Comedy_Central
 //
 // near before valid logo stop
-// MT_LOGOSTART ( 10503) ->  158960ms -> MT_LOGOSTOP ( 14477) ->     520ms -> MT_LOGOSTART ( 14490) ->   11600ms -> MT_STOP ( 14780) -> Comedy_Central
-// MT_LOGOSTART (  9887) ->  441480ms -> MT_LOGOSTOP ( 20924) ->     520ms -> MT_LOGOSTART ( 20937) ->   23840ms -> MT_STOP ( 21533) -> Comedy_Central
-// MT_LOGOSTART ( 10503) ->  575520ms -> MT_LOGOSTOP ( 24891) ->     520ms -> MT_LOGOSTART ( 24904) ->   11760ms -> MT_STOP ( 25198) -> Comedy_Central
-// MT_LOGOSTART (  8634) ->  500760ms -> MT_LOGOSTOP ( 21153) ->     520ms -> MT_LOGOSTART ( 21166) ->   23840ms -> MT_STOP ( 21762) -> Comedy_Central
-// MT_LOGOSTART (  9887) ->  700920ms -> MT_LOGOSTOP ( 27410) ->     520ms -> MT_LOGOSTART ( 27423) ->   17760ms -> MT_STOP ( 27867) -> Comedy_Central
+// MT_LOGOSTART ( 10503) ->  158960ms -> [MT_LOGOSTOP ( 14477) ->     520ms -> MT_LOGOSTART ( 14490)] ->   11600ms -> MT_STOP ( 14780) -> Comedy_Central
+// MT_LOGOSTART (  9887) ->  441480ms -> [MT_LOGOSTOP ( 20924) ->     520ms -> MT_LOGOSTART ( 20937)] ->   23840ms -> MT_STOP ( 21533) -> Comedy_Central
+// MT_LOGOSTART ( 10503) ->  575520ms -> [MT_LOGOSTOP ( 24891) ->     520ms -> MT_LOGOSTART ( 24904)] ->   11760ms -> MT_STOP ( 25198) -> Comedy_Central
+// MT_LOGOSTART (  8634) ->  500760ms -> [MT_LOGOSTOP ( 21153) ->     520ms -> MT_LOGOSTART ( 21166)] ->   23840ms -> MT_STOP ( 21762) -> Comedy_Central
+// MT_LOGOSTART (  9887) ->  700920ms -> [MT_LOGOSTOP ( 27410) ->     520ms -> MT_LOGOSTART ( 27423)] ->   17760ms -> MT_STOP ( 27867) -> Comedy_Central
+// MT_LOGOSTART ( 32162) ->  562600ms -> [MT_LOGOSTOP ( 46227) ->     720ms -> MT_LOGOSTART ( 46245)] ->   31800ms -> MT_STOP ( 47040) -> Comedy_Central (conflict)
 //
 // example of valid logo stop/start pair
-// MT_LOGOSTART ( 15153) ->  507960ms -> MT_LOGOSTOP ( 27852) ->     680ms -> MT_LOGOSTART ( 27869) ->   25800ms -> MT_STOP ( 28514) -> Comedy_Central
-// MT_LOGOSTART ( 25628) ->  507960ms -> MT_LOGOSTOP ( 38327) ->     720ms -> MT_LOGOSTART ( 38345) ->   25600ms -> MT_STOP ( 38985) -> Comedy_Central
-// MT_LOGOSTART (  7059) ->  496800ms -> MT_LOGOSTOP ( 19479) ->     720ms -> MT_LOGOSTART ( 19497) ->   18160ms -> MT_STOP ( 19951) -> Comedy_Central
-// MT_LOGOSTART ( 13488) ->  213960ms -> MT_LOGOSTOP ( 18837) ->     680ms -> MT_LOGOSTART ( 18854) ->   25800ms -> MT_STOP ( 19499) -> Comedy_Central
+// MT_LOGOSTART ( 25628) ->  507960ms -> [MT_LOGOSTOP ( 38327) ->     720ms -> MT_LOGOSTART ( 38345)] ->   25600ms -> MT_STOP ( 38985) -> Comedy_Central
+// MT_LOGOSTART (  8004) ->  634320ms -> [MT_LOGOSTOP ( 23862) ->     680ms -> MT_LOGOSTART ( 23879)] ->   18160ms -> MT_STOP ( 24333) -> Comedy_Central
+// MT_LOGOSTART ( 32071) ->  307720ms -> [MT_LOGOSTOP ( 39764) ->     600ms -> MT_LOGOSTART ( 39779)] ->   25120ms -> MT_STOP ( 40407) -> Comedy_Central
                     if (criteria->IsLogoInterruptionChannel() &&
                             ((prevLogoStart_Stop     >=  11720) && (prevLogoStart_Stop     <=  43920) &&    // short broadcast before, long after
                              (stop_nextLogoStart     >=    640) && (stop_nextLogoStart     <=   1120) &&
                              (nextLogoStart_nextStop >= 272280) && (nextLogoStart_nextStop <= 668720)) ||
 
-                            ((prevLogoStart_Stop     >= 11640) && (prevLogoStart_Stop     <=  11641) &&    // short broadcast before, very short after
-                             (stop_nextLogoStart     >=  1040) && (stop_nextLogoStart     <=   1041) &&
-                             (nextLogoStart_nextStop >=  5120) && (nextLogoStart_nextStop <=   5121)) ||
+                            ((prevLogoStart_Stop     >=  11640) && (prevLogoStart_Stop     <=  11720) &&    // short broadcast before, very short after
+                             (stop_nextLogoStart     >=   1000) && (stop_nextLogoStart     <=   1080) &&
+                             (nextLogoStart_nextStop >=   5040) && (nextLogoStart_nextStop <=   5120)) ||
+
+                            ((prevLogoStart_Stop     >= 556560) && (prevLogoStart_Stop     <=  556561) &&    // long broadcast before, very short after
+                             (stop_nextLogoStart     >=    880) && (stop_nextLogoStart     <=     881) &&
+                             (nextLogoStart_nextStop >=   5160) && (nextLogoStart_nextStop <=    5161)) ||
 
                             ((prevLogoStart_Stop     >= 158960) && (prevLogoStart_Stop     <= 700920) &&    // long broadcast before, short after
-                             (stop_nextLogoStart     >=    520) && (stop_nextLogoStart     <=    521) &&
-                             (nextLogoStart_nextStop >=  11600) && (nextLogoStart_nextStop <=  23840))) {
+                             (stop_nextLogoStart     >=    520) && (stop_nextLogoStart     <     680) &&
+                             (nextLogoStart_nextStop >=  11600) && (nextLogoStart_nextStop <   25120))) {
                         dsyslog("cMarkAdStandalone::CheckMarks(): logo stop (%5d) and logo start (%5d) pair from logo change channel, deleting", mark->position, nextLogoStart->position);
                         cMark *tmp = nextStop;
                         marks.Del(nextLogoStart);
