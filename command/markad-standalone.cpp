@@ -2126,7 +2126,10 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
                 int diff = 1000 * (lStart->position - lStop->position) / decoder->GetVideoFrameRate();
                 int startAdiff = (lStop->position - startA) / decoder->GetVideoFrameRate();
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo stop  (%5d) logo start (%5d), distance %6dms, %ds after assumed start (%d)", lStop->position, lStart->position, diff, startAdiff, startA);
-                if ((diff <= 1000) && (startAdiff < 453)) {  // changed from 480 to 1000, do not delete late logo stop, this can be a valid stop mark of first part
+                // valid logo stop/start pair
+                // do not delete late logo stop, this can be a valid stop mark of first part
+                // logo stop  (18837) logo start (18854), distance    680ms, 452s after assumed start (7525)
+                if ((diff <= 1000) && (startAdiff < 452)) {  // changed from 480 to 1000, do not delete late logo stop, this can be a valid stop mark of first part
                     dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo interuption channel: distance too short, deleting marks");
                     cMark *tmpMark = marks.GetNext(lStop->position, MT_LOGOSTOP);  // there can be more than one early logo start
                     marks.Del(lStart->position);
