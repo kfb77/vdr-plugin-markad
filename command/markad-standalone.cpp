@@ -1371,19 +1371,22 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
         int diffMarkStop1After          = 1000 * (stop1After->position  - mark->position)        / decoder->GetVideoFrameRate();
         int diffStop1AfterStart2After   = 1000 * (start2After->position - stop1After->position)  / decoder->GetVideoFrameRate();
         int diffStStart2AfterStop2After = 1000 * (endPart1Pos            - start2After->position) / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %5dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d) -> %7ds -> MT_LOGOSTOP (%5d) -> %s", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position, diffStStart2AfterStop2After, endPart1Pos, macontext.Info.ChannelName);
+        dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): MT_LOGOSTART (%5d) -> %5dms -> MT_LOGOSTOP (%5d) -> %4dms -> MT_LOGOSTART (%5d) -> %7ds -> MT_LOGOSTOP (%6d) -> %s", mark->position, diffMarkStop1After, stop1After->position, diffStop1AfterStart2After, start2After->position, diffStStart2AfterStop2After, endPart1Pos, macontext.Info.ChannelName);
         // valid logo start mark example
-        // MT_LOGOSTART ( 8374) ->  6240ms -> MT_LOGOSTOP ( 8530) ->  840ms -> MT_LOGOSTART ( 8551) -> 1992840s -> MT_LOGOSTOP (58372) -> kabel_eins
-        // MT_LOGOSTART ( 8610) ->  6320ms -> MT_LOGOSTOP ( 8768) ->  760ms -> MT_LOGOSTART ( 8787) -> 1149640s -> MT_LOGOSTOP (37528) -> kabel_eins
-        // MT_LOGOSTART ( 8378) ->  6200ms -> MT_LOGOSTOP ( 8533) ->  880ms -> MT_LOGOSTART ( 8555) ->   16440s -> MT_LOGOSTOP ( 8966) -> kabel_eins
+        // MT_LOGOSTART ( 8374) ->  6240ms -> MT_LOGOSTOP ( 8530) ->  840ms -> MT_LOGOSTART ( 8551) -> 1992840s -> MT_LOGOSTOP ( 58372) -> kabel_eins
+        // MT_LOGOSTART ( 8610) ->  6320ms -> MT_LOGOSTOP ( 8768) ->  760ms -> MT_LOGOSTART ( 8787) -> 1149640s -> MT_LOGOSTOP ( 37528) -> kabel_eins
         // MT_LOGOSTART ( 8441) -> 33640ms -> MT_LOGOSTOP ( 9282) ->  680ms -> MT_LOGOSTART ( 9299) -> 7709040s -> MT_LOGOSTOP (202025) -> kabel_eins
+        // MT_LOGOSTART ( 8348) ->  6040ms -> MT_LOGOSTOP ( 8499) -> 1040ms -> MT_LOGOSTART ( 8525) ->   26280s -> MT_LOGOSTOP (  9182) -> kabel_eins
+        // MT_LOGOSTART ( 8973) ->  6040ms -> MT_LOGOSTOP ( 9124) -> 1080ms -> MT_LOGOSTART ( 9151) ->   26240s -> MT_LOGOSTOP (  9807) -> kabel_eins
+        // MT_LOGOSTART ( 9043) ->  6000ms -> MT_LOGOSTOP ( 9193) -> 1080ms -> MT_LOGOSTART ( 9220) ->   26200s -> MT_LOGOSTOP (  9875) -> kabel_eins
         //
         // invald logo start mark example
-        // MT_LOGOSTART ( 3459) -> 5880ms -> MT_LOGOSTOP ( 3606) -> 1160ms -> MT_LOGOSTART ( 3635) ->   20800s -> MT_LOGOSTOP ( 4155) -> kabel eins, end sequence of broadcast before
-        // MT_LOGOSTART ( 3744) -> 6040ms -> MT_LOGOSTOP ( 3895) -> 1160ms -> MT_LOGOSTART ( 3924) ->   20960s -> MT_LOGOSTOP ( 4448) -> kabel eins, end sequence of broadcast before
-        if (    (diffMarkStop1After          >=  6200) && (diffMarkStop1After        <= 33640) &&
-                (diffStop1AfterStart2After   >=   760) && (diffStop1AfterStart2After <=   880) &&
-                (diffStStart2AfterStop2After >= 16440)) {
+        // MT_LOGOSTART ( 3459) ->  5880ms -> MT_LOGOSTOP ( 3606) -> 1160ms -> MT_LOGOSTART ( 3635) ->   20800s -> MT_LOGOSTOP ( 4155) -> kabel eins, end sequence of broadcast before
+        // MT_LOGOSTART ( 3744) ->  6040ms -> MT_LOGOSTOP ( 3895) -> 1160ms -> MT_LOGOSTART ( 3924) ->   20960s -> MT_LOGOSTOP ( 4448) -> kabel eins, end sequence of broadcast before
+        // MT_LOGOSTART ( 3704) ->  8360ms -> MT_LOGOSTOP ( 3913) ->  760ms -> MT_LOGOSTART ( 3932) ->   18960s -> MT_LOGOSTOP ( 4406) -> kabel_eins, end sequence of broadcast before
+        if (    (diffMarkStop1After          >=  6000) && (diffMarkStop1After        <= 33640) &&
+                (diffStop1AfterStart2After   >=   760) && (diffStop1AfterStart2After <=  1080) &&
+                (diffStStart2AfterStop2After >  20960)) {
             dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): opening info logo sequence is valid");
             return true;
         }
