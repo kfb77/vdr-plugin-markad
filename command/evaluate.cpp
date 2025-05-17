@@ -82,7 +82,7 @@ void cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(cMarks *marks, cMarks *
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): -----------------------------------------------------------------------------------------");
         dsyslog("cEvaluateLogoStopStartPair::CheckLogoStopStartPairs(): stop (%d) start (%d) pair", logoPairIterator->stopPosition, logoPairIterator->startPosition);
         // check for info logo section
-        if (criteria->IsInfoLogoChannel()) IsInfoLogo(marks, blackMarks, &(*logoPairIterator), iStopA);
+        if (criteria->IsInfoLogoChannel()) IsInfoLogo(marks, blackMarks, &(*logoPairIterator), iStart, iStopA);
         else logoPairIterator->isInfoLogo = STATUS_DISABLED;
 
         // check for logo change section
@@ -327,7 +327,7 @@ void cEvaluateLogoStopStartPair::IsLogoChange(cMarks *marks, sLogoStopStartPair 
 
 // check if stop/start pair could be a info logo
 //
-void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int iStopA) {
+void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int startA, const int iStopA) {
     int frameRate = decoder->GetVideoFrameRate();
     if (frameRate <= 0) {
         esyslog("cEvaluateLogoStopStartPair::IsInfoLogo(): invalid video frame rate %d", frameRate);
@@ -349,7 +349,7 @@ void cEvaluateLogoStopStartPair::IsInfoLogo(cMarks *marks, cMarks *blackMarks, s
 #define LOGO_INFO_NEXT_STOP_MIN                    1760  // changed from 2120 to 1760
 
     int maxNextStop = 6360;  // changed from 5920 to 6360
-    if (logoStopStartPair->stopPosition > iStopA) maxNextStop = 4560; // avoid merge info logo with logo end mark
+    if ((logoStopStartPair->stopPosition > iStopA) || (logoStopStartPair->stopPosition < startA)) maxNextStop = 4560; // avoid merge info logo with logo end mark
     // check length
     int length = 1000 * (logoStopStartPair->startPosition - logoStopStartPair->stopPosition) / frameRate;
     dsyslog("cEvaluateLogoStopStartPair::IsInfoLogo():           ????? stop (%d) start (%d) pair: length %dms (expect >=%dms and <=%dms)",

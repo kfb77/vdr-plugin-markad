@@ -82,9 +82,10 @@ public:
      * @param marks             object with all marks
      * @param blackMarks        object with all black screen marks
      * @param logoStopStartPair structure of logo/stop start pair, result is stored here
+     * @param startA            assumed stop frame number
      * @param iStopA            assumed stop frame number
      */
-    void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int iStopA);
+    void IsInfoLogo(cMarks *marks, cMarks *blackMarks, sLogoStopStartPair *logoStopStartPair, const int startA, const int iStopA);
 
     /**
      * get next logo stop/start pair
