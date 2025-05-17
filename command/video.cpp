@@ -138,6 +138,12 @@ bool cLogoDetect::LoadLogo() {
 
     FREE(strlen(logoName) + 1, "logoName");
     free(logoName);
+    // set missing mpixel for logo change check
+    if (foundLogo && criteria->LogoColorChange()) {
+        for (int plane = 1; plane < PLANES; plane++) {
+            if (area.mPixel[plane] == 0) area.mPixel[plane] = area.mPixel[0] / 4;
+        }
+    }
     return foundLogo;
 }
 
@@ -592,6 +598,9 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark, const int 
     for (int plane = 1; plane < PLANES; plane++) {
         area.valid[plane] = true;  // only for next sobel transformation
         sobel->SobelPlane(picture, &area, plane);
+#ifdef DEBUG_LOGO_DETECTION
+        dsyslog("cLogoDetect::LogoColourChange(): frame (%6d): plane %d, area.rPixel %d, area.mPixel %d", decoder->GetPacketNumber(), plane, area.rPixel[plane], area.mPixel[plane]);
+#endif
         rPixelColour += area.rPixel[plane];
         mPixelColour += area.mPixel[plane];
         area.valid[plane] = false; // reset state for next normal detection
@@ -627,7 +636,7 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark, const int 
 
     if (rPixelColour >= logo_vmarkColour) {
 #ifdef DEBUG_LOGO_DETECTION
-        dsyslog("cLogoDetect::LogoColourChange:   frame (%6d): logo visible in plane 1 and plane 2", decoder->GetPacketNumber());
+        dsyslog("cLogoDetect::LogoColourChange:   frame (%6d): rPixelColour %d, logo_vmarkColour %d: logo visible in plane 1 and plane 2", rPixelColour, logo_vmarkColour, decoder->GetPacketNumber());
 #endif
         *rPixel = logo_vmark;   // change result to logo visible
         return true;            // we found colored logo
@@ -988,10 +997,10 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
 
 // disable colored planes
 void cLogoDetect::ReducePlanes() {
+    dsyslog("cLogoDetect::ReducePlanes():");
     for (int plane = 1; plane < PLANES; plane++) {
         area.valid[plane]  = false;
         area.rPixel[plane] = 0;
-        area.mPixel[plane] = 0;
         area.iPixel[plane] = 0;
     }
 }
