@@ -453,6 +453,9 @@ class CheckPath:
             if actFile == "encoder.temp": continue
             if actFile == "encoder.mbtree": continue
             if actFile == "encoder.mbtree.temp": continue
+            if actFile == "fanart.jpg": continue # from tvscraper
+            if actFile == "poster.jpg": continue # from tvscraper
+            if actFile == "tvscraper.json": continue # from tvscraper
             if actFile == "info":
                 isInfoFound = True
                 continue
