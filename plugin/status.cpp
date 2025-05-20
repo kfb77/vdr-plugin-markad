@@ -701,7 +701,7 @@ void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSE
 bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool direct, sRecording *recording) {
     if ((direct) && (Get(FileName) != -1)) return false;
 
-    // prepare sutoLogo Option
+    // prepare autoLogo Option
     char *autoLogoOption = nullptr;
     if (setup->autoLogoConf >= 0) {
         if(!asprintf(&autoLogoOption," --autologo=%i ", setup->autoLogoConf)) {
@@ -959,7 +959,10 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         GetEventID(Device, Name, &recording);
         SaveVPSTimer(FileName, recording.timerVPS);
 
-        if ((setup->ProcessDuring == PROCESS_NEVER) && setup->useVPS) {  // markad start disabled per config menu, add recording for VPS detection
+        // recording is usually added in recording list by markad start
+        // if markad start is disabled per config menu, add recording in list for VPS detection here
+        // if we start no marad and don't use VPS detection, no need to track recording
+        if ((setup->ProcessDuring == PROCESS_NEVER) && setup->useVPS) {
             int pos = Add(Name, FileName, &recording);
             if (pos >= 0) dsyslog("markad: cStatusMarkAd::Recording(): added recording <%s> channelID %s, event ID %u, eventNextID %u at index %i only for VPS detection", Name, *recording.eventChannelID.ToString(), recording.eventID, recording.eventNextID, pos);
             return;
@@ -1028,7 +1031,11 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
                 }
             }
         }
-        else esyslog("markad: cStatusMarkAd::Recording(): unknown recording %s stopped", FileName);
+        else {
+            // no error message if recording is not tracked
+            if ((setup->ProcessDuring == PROCESS_NEVER) && !setup->useVPS) dsyslog("markad: cStatusMarkAd::Recording(): recording %s stopped: not found in recording list", FileName);
+            else esyslog("markad: cStatusMarkAd::Recording(): recording %s stopped: not found in recording list", FileName);
+        }
     }
 }
 
@@ -1234,7 +1241,10 @@ bool cStatusMarkAd::MarkAdRunning() {
 
 
 int cStatusMarkAd::Get(const char *FileName, const char *Name) {
+//    dsyslog("markad: cStatusMarkAd::Get(): search FileName: %s, Name: %s", FileName, Name);
     for (int i = 0; i < (MAXDEVICES * MAXRECEIVERS); i++) {
+//        dsyslog("markad: cStatusMarkAd::Get(): index %d: title: %s", i, recs[i].title);
+//        dsyslog("markad: cStatusMarkAd::Get(): index %d: fileName: %s", i, recs[i].fileName);
         if (Name && recs[i].title && !strcmp(recs[i].title, Name)) return i;
         if (FileName && recs[i].fileName && !strcmp(recs[i].fileName, FileName)) return i;
     }
