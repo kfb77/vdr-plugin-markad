@@ -394,8 +394,9 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
     case LOGO_UNINITIALIZED: // // prevent to detect false logo stop from bright recording start
     case LOGO_RESTART:       // prevent to detect false logo stop after restart logo detection
     case LOGO_VISIBLE:       // prevent to detect false logo stop
-        if (((contrastLogo  ==  0) &&                          (brightnessLogo > 235)) ||
-                ((contrastLogo  >   0) && (contrastLogo <=   3) && (brightnessLogo > 221)) ||
+        if (    ((contrastLogo  ==  0) &&                          (brightnessLogo > 235)) ||
+                // (-) contrast   1, brightness 206   -> logo on bright sky
+                ((contrastLogo  >   0) && (contrastLogo <=   3) && (brightnessLogo > 205)) ||
                 ((contrastLogo  >   3) && (contrastLogo <=  10) && (brightnessLogo > 202)) ||
                 ((contrastLogo  >  10) && (contrastLogo <=  20) && (brightnessLogo > 197)) ||
                 // (-) contrast  31, brightness 187   -> logo on bright sky
