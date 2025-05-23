@@ -4828,7 +4828,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxBefore = -1;
                 }
                 if (diffBefore <= maxBefore) {  // move even to same position to prevent scene change do a move
-                    if ((mark->position == marks.First()->position) && (lengthBefore < 9720)) // start broadcast with some black picture, prevent to use closing credits before
+                    // start broadcast with some black picture, prevent to use closing credits before, changed from 9720 to 7100
+                    if ((mark->position == marks.First()->position) && (lengthBefore < 7100))
                         mark = marks.Move(mark, startBlackBefore->position, startBlackBefore->pts, MT_NOBLACKSTART);
                     else mark = marks.Move(mark, stopBlackBefore->position,  stopBlackBefore->pts,  MT_NOBLACKSTART);
                     if (mark) {
@@ -4872,7 +4873,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     case MT_VPSSTART:
                         if (criteria->GoodVPS())        maxAfter =   7020;
                         else if (silenceAfter)          maxAfter = 149880;
-                        else if (lengthAfter >= 3160)   maxAfter = 105520;
+                        else if (lengthAfter >= 3160)   maxAfter = 139240;  // black screen from separator or opening credits
                         else if (lengthAfter >    40)   maxAfter =  20960;
                         else                            maxAfter =      0;  // very short blackscreen are in broadcast
                         break;
