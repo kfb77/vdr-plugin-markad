@@ -4869,7 +4869,7 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     switch (mark->newType) {
                     case MT_VPSSTART:
                         if (criteria->GoodVPS())        maxAfter =   7020;
-                        else if (silenceAfter)          maxAfter = 139480;
+                        else if (silenceAfter)          maxAfter = 149880;
                         else if (lengthAfter >= 3160)   maxAfter = 105520;
                         else if (lengthAfter >    40)   maxAfter =  20960;
                         else                            maxAfter =      0;  // very short blackscreen are in broadcast
