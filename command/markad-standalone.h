@@ -132,7 +132,9 @@ typedef struct sMarkAdContext {
         //!<
         int tStart                     = -1;       //!< offset of timer start to recording start (pre timer)
         //!<
-        bool startVPS                  = false;    //!< tStart is from VPS start event
+        bool startFromVPS              = false;    //!< tStart is from VPS start event
+        //!<
+        bool lengthFromVPS             = false;    //!< recording length is from "VPS stop event - VPS start" event
         //!<
         sAspectRatio AspectRatio       = {0};      //!< set from info file and checked after chkSTART, valid for the broadcast
         //!<

@@ -1615,62 +1615,64 @@ void cMarkAdStandalone::CheckStop() {
         }
     }
 
-// no end mark found, try if we can use a start mark of next bradcast as end mark
-    // no valid stop mark found, use MT_ASPECTSTOP (broadcast must be 16:9, start of next broadcast with 4:3)
-    if (!end && (criteria->GetMarkTypeState(MT_ASPECTCHANGE) != CRITERIA_USED)) { // not possible is we use aspect marks in this broadcast
-        cMark *aspectStop = marks.GetNext(stopA, MT_ASPECTSTOP);
-        if (aspectStop) {
-            dsyslog("cMarkAdStandalone::CheckStop(): use aspect stop mark (%d) from start of next 4:3 broadcast as end mark", aspectStop->position);
-            end = aspectStop;
-        }
-    }
-    // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
-    if (!end && (criteria->GetMarkTypeState(MT_CHANNELCHANGE) != CRITERIA_USED)) { // not possible is we use channel mark in this broadcast
-        cMark *channelStart = marks.GetNext(stopA, MT_CHANNELSTART);
-        if (channelStart) {
-            dsyslog("cMarkAdStandalone::CheckStop(): use channel start mark (%d) from next broadcast as end mark", channelStart->position);
-            marks.ChangeType(channelStart, MT_STOP);
-            end = channelStart;
-        }
-    }
-    // try to get hborder start mark from next broadcast as stop mark
-    if (!end && (criteria->GetMarkTypeState(MT_HBORDERCHANGE) != CRITERIA_USED)) {
-        cMark *hBorderStart = marks.GetNext((stopA - (240 *  decoder->GetVideoFrameRate())), MT_HBORDERSTART);  // accept max 4 min before stopA
-        if (hBorderStart) {
-            cMark *hBorderStop = marks.GetNext(hBorderStart->position, MT_HBORDERSTOP);
-            if (hBorderStop) { // check length of hborder
-                int diff = (hBorderStop->position - hBorderStart->position) / decoder->GetVideoFrameRate();
-                dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTART (%ds) -> %ds -> MT_HBORDERSTOP (%d)", hBorderStart->position, diff, hBorderStop->position);
-                // example of hborder from closing credits
-                //  MT_HBORDERSTART (284293s) -> 81s -> MT_HBORDERSTOP (288356)
-                if (diff <= 81) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): hborder too short, maybe from closing credists, delete marks");
-                    marks.Del(hBorderStart);
-                    marks.Del(hBorderStop);
-                    hBorderStart = nullptr;
-                }
+// no end mark found, try if we can use a start mark of next bradcast as end mark, but not for channel with good VPS and length is from VPS event
+    if (!macontext.Info.lengthFromVPS || !criteria->GoodVPS()) {
+        // no valid stop mark found, use MT_ASPECTSTOP (broadcast must be 16:9, start of next broadcast with 4:3)
+        if (!end && (criteria->GetMarkTypeState(MT_ASPECTCHANGE) != CRITERIA_USED)) { // not possible is we use aspect marks in this broadcast
+            cMark *aspectStop = marks.GetNext(stopA, MT_ASPECTSTOP);
+            if (aspectStop) {
+                dsyslog("cMarkAdStandalone::CheckStop(): use aspect stop mark (%d) from start of next 4:3 broadcast as end mark", aspectStop->position);
+                end = aspectStop;
             }
-            if (hBorderStart) {  // can be deleted above
-                dsyslog("cMarkAdStandalone::CheckStop(): found hborder start mark (%d) from next broadcast at end of recording", hBorderStart->position);
-                cMark *prevMark = marks.GetPrev(hBorderStart->position, MT_ALL);
-                if ((prevMark->type & 0x0F) == MT_START) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): start mark (%d) before found, use hborder start mark (%d) from next broadcast as end mark", prevMark->position, hBorderStart->position);
-                    if (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_USED) {  // if we use logo marks, there must be a valid logo stop mark before hborder start
-                        cMark *lStop = marks.GetPrev(hBorderStart->position, MT_LOGOSTOP);  // try to find a early logo stop, maybe too long broadcast from info fileA
-                        if (lStop) {
-                            int diffAssumed = (stopA - lStop->position) / decoder->GetVideoFrameRate();
-                            dsyslog("cMarkAdStandalone::CheckStop(): logo stop (%d) %ds before hborder start (%d)", lStop->position, diffAssumed, hBorderStart->position);
-                            if (diffAssumed <= 251) end = lStop;
+        }
+        // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
+        if (!end && (criteria->GetMarkTypeState(MT_CHANNELCHANGE) != CRITERIA_USED)) { // not possible is we use channel mark in this broadcast
+            cMark *channelStart = marks.GetNext(stopA, MT_CHANNELSTART);
+            if (channelStart) {
+                dsyslog("cMarkAdStandalone::CheckStop(): use channel start mark (%d) from next broadcast as end mark", channelStart->position);
+                marks.ChangeType(channelStart, MT_STOP);
+                end = channelStart;
+            }
+        }
+        // try to get hborder start mark from next broadcast as stop mark
+        if (!end && (criteria->GetMarkTypeState(MT_HBORDERCHANGE) != CRITERIA_USED)) {
+            cMark *hBorderStart = marks.GetNext((stopA - (240 *  decoder->GetVideoFrameRate())), MT_HBORDERSTART);  // accept max 4 min before stopA
+            if (hBorderStart) {
+                cMark *hBorderStop = marks.GetNext(hBorderStart->position, MT_HBORDERSTOP);
+                if (hBorderStop) { // check length of hborder
+                    int diff = (hBorderStop->position - hBorderStart->position) / decoder->GetVideoFrameRate();
+                    dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTART (%ds) -> %ds -> MT_HBORDERSTOP (%d)", hBorderStart->position, diff, hBorderStop->position);
+                    // example of hborder from closing credits
+                    //  MT_HBORDERSTART (284293s) -> 81s -> MT_HBORDERSTOP (288356)
+                    if (diff <= 81) {
+                        dsyslog("cMarkAdStandalone::CheckStop(): hborder too short, maybe from closing credists, delete marks");
+                        marks.Del(hBorderStart);
+                        marks.Del(hBorderStop);
+                        hBorderStart = nullptr;
+                    }
+                }
+                if (hBorderStart) {  // can be deleted above
+                    dsyslog("cMarkAdStandalone::CheckStop(): found hborder start mark (%d) from next broadcast at end of recording", hBorderStart->position);
+                    cMark *prevMark = marks.GetPrev(hBorderStart->position, MT_ALL);
+                    if ((prevMark->type & 0x0F) == MT_START) {
+                        dsyslog("cMarkAdStandalone::CheckStop(): start mark (%d) before found, use hborder start mark (%d) from next broadcast as end mark", prevMark->position, hBorderStart->position);
+                        if (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_USED) {  // if we use logo marks, there must be a valid logo stop mark before hborder start
+                            cMark *lStop = marks.GetPrev(hBorderStart->position, MT_LOGOSTOP);  // try to find a early logo stop, maybe too long broadcast from info fileA
+                            if (lStop) {
+                                int diffAssumed = (stopA - lStop->position) / decoder->GetVideoFrameRate();
+                                dsyslog("cMarkAdStandalone::CheckStop(): logo stop (%d) %ds before hborder start (%d)", lStop->position, diffAssumed, hBorderStart->position);
+                                if (diffAssumed <= 251) end = lStop;
+                            }
+                        }
+                        if (!end) {
+                            end = marks.ChangeType(hBorderStart, MT_STOP);
+                            if (end) end = marks.Move(end, end->position, end->pts, MT_TYPECHANGESTOP);  // one frame before hborder start is end mark
                         }
                     }
-                    if (!end) {
-                        end = marks.ChangeType(hBorderStart, MT_STOP);
-                        if (end) end = marks.Move(end, end->position, end->pts, MT_TYPECHANGESTOP);  // one frame before hborder start is end mark
+                    else {
+                        dsyslog("cMarkAdStandalone::CheckStop(): use stop mark (%d) before hborder start mark (%d) ", prevMark->position, hBorderStart->position);
+                        end = prevMark;
                     }
-                }
-                else {
-                    dsyslog("cMarkAdStandalone::CheckStop(): use stop mark (%d) before hborder start mark (%d) ", prevMark->position, hBorderStart->position);
-                    end = prevMark;
                 }
             }
         }
@@ -2144,7 +2146,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 
 // search for logo start mark around assumed start
     int maxAssumed = MAX_ASSUMED;
-    if (macontext.Info.startVPS && criteria->GoodVPS()) {
+    if (macontext.Info.startFromVPS && criteria->GoodVPS()) {
         maxAssumed = 30;  // if we use a valid VPS event based start time do only near search, found preview with logo 31s before broadcast, changed from 56 to 30
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): channel with good VPS, max distance from VPS start event %ds", maxAssumed);
     }
@@ -2857,7 +2859,7 @@ void cMarkAdStandalone::CheckStart() {
         dsyslog("cMarkAdStandalone::CheckStart(): search for any start mark");
         marks.DelTill(IGNORE_AT_START);    // we do not want to have a initial mark from previous recording as a start mark
         int maxAssumed = 160; // not too big search range, changed from 240 to 160
-        if (macontext.Info.startVPS && criteria->GoodVPS()) maxAssumed = 70;  // if we use a valid VPS event based start time do only near search
+        if (macontext.Info.startFromVPS && criteria->GoodVPS()) maxAssumed = 70;  // if we use a valid VPS event based start time do only near search
         begin = marks.GetAround(maxAssumed * decoder->GetVideoFrameRate(), startA, MT_START, 0x0F);
         if (begin) {
             dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) type 0x%X after search for any type", begin->position, begin->type);
@@ -2904,7 +2906,7 @@ void cMarkAdStandalone::CheckStart() {
                 int diffStartA = (hborderStop->position - startA) /  decoder->GetVideoFrameRate();
                 dsyslog("cMarkAdStandalone::CheckStart(): MT_HBORDERSTOP (%d) found, %ds after assumed start", hborderStop->position, diffStartA);
                 int maxAssumed = MAX_ASSUMED;
-                if (macontext.Info.startVPS && criteria->GoodVPS()) maxAssumed = 22;  // if we use a valid VPS event based start time do only near search, changed from 58 to 22
+                if (macontext.Info.startFromVPS && criteria->GoodVPS()) maxAssumed = 22;  // if we use a valid VPS event based start time do only near search, changed from 58 to 22
                 if (abs(diffStartA) <= maxAssumed) {
                     const cMark *hborderStart = marks.GetNext(hborderStop->position, MT_HBORDERSTART);
                     if (!hborderStart) { // if there is a hborder start mark after, hborder stop is not an end mark of previous broadcast
@@ -6392,7 +6394,7 @@ void cMarkAdStandalone::LoadInfo() {
                 if ((macontext.Info.ChannelName && criteria->GoodVPS()) || (abs(startVPS - startEvent) <= 10 * 60)) {
                     dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event seems to be valid");
                     macontext.Info.tStart   = startVPS;
-                    macontext.Info.startVPS = true;
+                    macontext.Info.startFromVPS = true;
                 }
                 else dsyslog("cMarkAdStandalone::LoadInfo(): VPS start event seems to be invalid, %ds away from boadcast start event", abs(startVPS - startEvent));
             }
@@ -6419,6 +6421,7 @@ void cMarkAdStandalone::LoadInfo() {
                     else {
                         dsyslog("cMarkAdStandalone::LoadInfo(): VPS events seems to be valid, use length from VPS events");
                         length = lengthVPS;
+                        macontext.Info.lengthFromVPS = true;
                     }
                 }
             }
