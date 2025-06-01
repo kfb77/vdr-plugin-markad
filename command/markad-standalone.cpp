@@ -6860,7 +6860,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
         int lengthSec    = lengthFrames / decoder->GetVideoFrameRate();
         dsyslog("broadcast length without advertisement: %6d frames, %6ds -> %d:%02d:%02dh", marks.Length(), lengthSec, lengthSec / 3600, (lengthSec % 3600) / 60,  lengthSec % 60);
 
-        // recording length from VPS eventsA
+        // recording length from VPS events
         int vpsLength = vps->Length();
         if (vpsLength > 0) {
             dsyslog("recording length from VPS events:                      %6ds -> %d:%02d:%02dh", vpsLength, vpsLength / 3600, (vpsLength % 3600) / 60,  vpsLength % 60);
