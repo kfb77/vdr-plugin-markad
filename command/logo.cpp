@@ -150,7 +150,7 @@ bool cExtractLogo::IsLogoColourChange(const sLogoSize *logoSizeFinal, const int 
     }
     if (count > 0) {
         dsyslog("cExtractLogo::isLogoColourChange(): %4d valid frames in corner %d, plane %d: %3d are white, ratio %3d%%", count, corner, plane, countWhite, countWhite * 100 / count);
-        if ((100 * countWhite / count) >= 20) return true;  // changed from 27 to 20, prevent to get colour planes for transparent logo
+        if ((100 * countWhite / count) >= 19) return true;  // changed from 20 to 19, prevent to get colour planes for transparent logo
     }
     return false;
 }
