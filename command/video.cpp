@@ -1281,8 +1281,8 @@ int cBlackScreenDetect::Process() {
     // lower border limits
     if (detectLowerBorder) {
         // limit for black lower border
-        if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) maxBrightnessLower = BLACKNESS * picture->width * PIXEL_COUNT_LOWER;
-        else maxBrightnessLower = (BLACKNESS + 1) * picture->width * PIXEL_COUNT_LOWER;
+        if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) maxBrightnessLower = (BLACKNESS + 1) * picture->width * PIXEL_COUNT_LOWER;
+        else maxBrightnessLower = (BLACKNESS + 2) * picture->width * PIXEL_COUNT_LOWER;
         // limit for white lower border
         if (lowerBorderStatus == LOWER_BORDER_INVISIBLE) minBrightnessLower = WHITE_LOWER * picture->width * PIXEL_COUNT_LOWER;
         else minBrightnessLower = (WHITE_LOWER - 1) * picture->width * PIXEL_COUNT_LOWER;
@@ -1303,10 +1303,14 @@ int cBlackScreenDetect::Process() {
         if (!detectLowerBorder && (valAll > maxBrightnessGrey)) break;  // we have a clear result, there is no black picture
     }
 
+#ifdef DEBUG_LOWERBORDER
+    int debugValLower = valLower / (picture->width * PIXEL_COUNT_LOWER);
+    dsyslog("cBlackScreenDetect::Process(): packet (%d): lowerBorderStatus %d, lower %d , valLower %d (limit black %d)", decoder->GetPacketNumber(), lowerBorderStatus, debugValLower, valLower, maxBrightnessLower);
+#endif
+
 #ifdef DEBUG_BLACKSCREEN
     int debugValAll   = valAll   / (picture->width * decoder->GetVideoHeight());
-    int debugValLower = valLower / (picture->width * PIXEL_COUNT_LOWER);
-    dsyslog("cBlackScreenDetect::Process(): packet (%d): blackScreenStatus %d, blackness %3d (expect <%d for start, >%d for end), lowerBorderStatus %d, lower %3d", decoder->GetPacketNumber(), blackScreenStatus, debugValAll, BLACKNESS, BLACKNESS, lowerBorderStatus, debugValLower);
+    dsyslog("cBlackScreenDetect::Process(): packet (%d): blackScreenStatus %d, blackness %3d (expect <%d for start, >%d for end), lowerBorderStatus %d", decoder->GetPacketNumber(), blackScreenStatus, debugValAll, BLACKNESS, BLACKNESS, lowerBorderStatus);
 #endif
 
     // full blackscreen now visible
