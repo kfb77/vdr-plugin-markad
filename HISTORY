@@ -1,6 +1,10 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2025-06-03: Version 4.2.14
+- remove useless error message "unknown recording" if markad start disabled
+- some minor bug fixes and optimizations, see git
+
 2025-05-07: Version 4.2.13
 - some minor bug fixes and optimizations, see git
 
