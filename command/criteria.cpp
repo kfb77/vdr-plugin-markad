@@ -25,7 +25,6 @@ const char *cCriteria::GetChannelName() const {
 
 bool cCriteria::GoodVPS() {
     if (!channelName) return false;
-
 //    if (CompareChannelName(channelName, "arte",         IGNORE_HD))               return true;    // VPS start event before preview
     if (CompareChannelName(channelName, "Das_Erste",    IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "hr-fernsehen", IGNORE_HD))               return true;
@@ -34,7 +33,7 @@ bool cCriteria::GoodVPS() {
     if (CompareChannelName(channelName, "NDR_FS",       IGNORE_HD | IGNORE_CITY)) return true;
     if (CompareChannelName(channelName, "rbb",          IGNORE_HD | IGNORE_CITY)) return true;
     if (CompareChannelName(channelName, "SR_Fernsehen", IGNORE_HD))               return true;
-    if (CompareChannelName(channelName, "tagesschau24", IGNORE_HD))               return true;
+//    if (CompareChannelName(channelName, "tagesschau24", IGNORE_HD))               return true;   // no good VPS events
     if (CompareChannelName(channelName, "WDR",          IGNORE_HD | IGNORE_CITY)) return true;
     if (CompareChannelName(channelName, "ZDF",          IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "ZDFinfo",      IGNORE_HD))               return true;
