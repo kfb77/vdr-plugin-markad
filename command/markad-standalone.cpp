@@ -861,22 +861,26 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                     int logoStopSilenceStart  = 1000 * (silenceStart->position - logoStop->position)     / decoder->GetVideoFrameRate();
                     int silenceStartLogoStart = 1000 * (mark->position         - silenceStart->position) / decoder->GetVideoFrameRate();
                     int logoStartSilenceStop  = 1000 * (silenceStop->position  - mark->position)         / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%6d) -> %5dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_LOGOSTART (%6d) -> %4dms -> MT_SOUNDSTART (%6d)", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartLogoStart, mark->position, logoStartSilenceStop, silenceStop->position);
+                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTOP (%6d) -> %5dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_LOGOSTART (%6d) -> %4dms -> MT_SOUNDSTART (%6d) -> %s", logoStop->position, logoStopSilenceStart, silenceStart->position, silenceStartLogoStart, mark->position, logoStartSilenceStop, silenceStop->position, macontext.Info.ChannelName);
 // valid example
 // MT_LOGOSTOP (  6556) -> 42040ms -> MT_SOUNDSTOP (  7607) ->  360ms -> MT_LOGOSTART (  7616) ->   40ms -> MT_SOUNDSTART (  7617) -> RTL Television
 // MT_LOGOSTOP (  6774) -> 36560ms -> MT_SOUNDSTOP (  7688) ->  360ms -> MT_LOGOSTART (  7697) ->    0ms -> MT_SOUNDSTART (  7697) -> RTL Television
 // MT_LOGOSTOP ( 13138) -> 13520ms -> MT_SOUNDSTOP ( 13476) ->  480ms -> MT_LOGOSTART ( 13488) ->   80ms -> MT_SOUNDSTART ( 13490) -> Comedy Central
 // MT_LOGOSTOP (  9990) -> 13800ms -> MT_SOUNDSTOP ( 10335) ->  200ms -> MT_LOGOSTART ( 10340) ->   80ms -> MT_SOUNDSTART ( 10342) -> Comedy Central
+// MT_LOGOSTOP ( 13676) ->  5760ms -> MT_SOUNDSTOP ( 13820) ->   40ms -> MT_LOGOSTART ( 13821) ->   40ms -> MT_SOUNDSTART ( 13822) -> Comedy_Central
 //
 // invalid example
 // MT_LOGOSTOP (  1358) ->   920ms -> MT_SOUNDSTOP (  1381) ->  280ms -> MT_LOGOSTART (  1388) ->    0ms -> MT_SOUNDSTART (  1388) -> RTL Television preview start
 // MT_LOGOSTOP (   181) ->  4760ms -> MT_SOUNDSTOP (   300) ->  200ms -> MT_LOGOSTART (   305) ->    0ms -> MT_SOUNDSTART (   305) -> RTL Television preview start
-                    if ((logoStopSilenceStart > 4760) && (logoStopSilenceStart <= 42040) &&
-                            (silenceStartLogoStart <= 480) && (logoStartSilenceStop <= 80)) {
-                        dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence sequence is valid", mark->position);
+// MT_LOGOSTOP (   277) -> 26920ms -> MT_SOUNDSTOP (   950) ->  160ms -> MT_LOGOSTART (   954) ->   40ms -> MT_SOUNDSTART (   955) -> RTL Television preview start (conflict)
+
+                    if (    (logoStopSilenceStart  >= 5760) && (logoStopSilenceStart  <= 42040) &&
+                            (silenceStartLogoStart >=   40) && (silenceStartLogoStart <=   480) &&
+                            (logoStartSilenceStop  <=   80)) {
+                        dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence around logo start mark is valid", mark->position);
                         return true;
                     }
-                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence sequence is invalid", mark->position);
+                    dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence around logo start mark is invalid", mark->position);
                 }
             }
         }
@@ -914,6 +918,7 @@ bool cMarkAdStandalone::HaveSilenceSeparator(const cMark *mark) {
                 dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): MT_LOGOSTART (%6d) -> %4dms -> MT_SOUNDSTOP (%6d) -> %4dms -> MT_SOUNDSTART (%6d)", mark->position, diffLogoStartSilenceStart, silenceStart->position, diffSilenceStartSilenceStop, silenceStop->position);
                 // valid example
                 // MT_LOGOSTART (  8632) ->  400ms -> MT_SOUNDSTOP (  8642) -> 5720ms -> MT_SOUNDSTART (  8785)
+
                 if ((diffLogoStartSilenceStart <= 400) && (diffSilenceStartSilenceStop >= 5720)) {
                     dsyslog("cMarkAdStandalone::HaveSilenceSeparator(): logo start mark (%d): silence sequence is valid", mark->position);
                     return true;
