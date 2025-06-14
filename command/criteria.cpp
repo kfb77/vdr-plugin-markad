@@ -25,6 +25,7 @@ const char *cCriteria::GetChannelName() const {
 
 bool cCriteria::GoodVPS() {
     if (!channelName) return false;
+    if (CompareChannelName(channelName, "ARD_alpha",    IGNORE_HD))               return true;
 //    if (CompareChannelName(channelName, "arte",         IGNORE_HD))               return true;    // VPS start event before preview
     if (CompareChannelName(channelName, "Das_Erste",    IGNORE_HD))               return true;
     if (CompareChannelName(channelName, "hr-fernsehen", IGNORE_HD))               return true;
