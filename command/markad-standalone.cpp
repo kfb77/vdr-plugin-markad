@@ -653,25 +653,35 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
     }
 
     // now we have a logo end mark
-    if (end) {
-        // check previous logo stop mark against VPS stop event, if any
-        if (criteria->GoodVPS()) {
-            cMark *prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
-            if (prevLogoStop) {
-                int vpsOffset = vps->GetStop(); // get VPS stop mark
-                if (vpsOffset >= 0) {
-                    int vpsStopFrame = index->GetFrameFromOffset(vpsOffset * 1000);
-                    if (vpsStopFrame >= 0) {
-                        int diffAfterVPS = (prevLogoStop->position - vpsStopFrame) / decoder->GetVideoFrameRate();
-                        if (diffAfterVPS >= 0) {
-                            dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): VPS stop event at (%d) is %ds after previous logo stop (%d), use this as end mark", vpsStopFrame, diffAfterVPS, prevLogoStop->position);
-                            end = prevLogoStop;
-                        }
+    if (end && criteria->GoodVPS()) { // check previous logo stop mark against VPS stop event, if any
+        int vpsOffset = vps->GetStop(); // get VPS stop mark
+        if (vpsOffset >= 0) {
+            int vpsStopFrame = index->GetFrameFromOffset(vpsOffset * 1000);
+            if (vpsStopFrame >= 0) {
+                cMark *prevLogoStop = marks.GetPrev(end->position, MT_LOGOSTOP); // maybe different if deleted above
+                if (prevLogoStop) {
+                    int diffAfterVPS = (prevLogoStop->position - vpsStopFrame) / decoder->GetVideoFrameRate();
+                    if (diffAfterVPS >= 0) {
+                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): VPS stop event at (%d) is %ds after previous logo stop (%d), use this as end mark", vpsStopFrame, diffAfterVPS, prevLogoStop->position);
+                        end = prevLogoStop;
                     }
-                    else esyslog("cMarkAdStandalone::Check_LOGOSTOP(): get frame number to VPS stop offset at %ds failed", vpsOffset);
+                }
+                // final check against good VPS stop event
+                if (macontext.Info.lengthFromVPS) {
+                    int diffAfterVPS = (end->position - vpsStopFrame) / decoder->GetVideoFrameRate();
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo end mark (%d) %ds after VPS stop event (%d)", end->position, diffAfterVPS, vpsStopFrame);
+                    if (diffAfterVPS >= 87) {
+                        dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo end mark too far after VPS stop event, assume preview before logo stop");
+                        end = nullptr;
+                    }
                 }
             }
+            else esyslog("cMarkAdStandalone::Check_LOGOSTOP(): get frame number to VPS stop offset at %ds failed", vpsOffset);
         }
+        else dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): no VPS atop event found");
+    }
+
+    if (end) {
         // check if there could follow closing credits, prevent false detection of closing credits from opening creditis of next broadcast
         cMark *nextLogoStart = marks.GetNext(end->position);
         if (nextLogoStart) {
