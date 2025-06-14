@@ -2389,7 +2389,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 
 cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): search for hborder start mark");
-    cMark *hStart = marks.GetAround(1.3 * MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_HBORDERSTART);  // trust late hborder start mark
+    cMark *hStart = marks.GetAround(1.4 * MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_HBORDERSTART);  // trust late hborder start mark, changed from 1.3 to 1.4
     if (hStart) { // we found a hborder start mark
         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start found at (%d)", hStart->position);
         if (hStart->position <= IGNORE_AT_START) {  // hborder start at recording start is from previous recording
