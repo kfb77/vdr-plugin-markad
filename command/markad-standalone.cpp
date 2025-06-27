@@ -2163,11 +2163,13 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         maxAssumed = 30;  // if we use a valid VPS event based start time do only near search, found preview with logo 31s before broadcast, changed from 56 to 30
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): channel with good VPS, max distance from VPS start event %ds", maxAssumed);
     }
-    cMark *lStartAssumed = marks.GetAround(startA + (maxAssumed * decoder->GetVideoFrameRate()), startA, MT_LOGOSTART);
+    cMark *lStartAssumed = marks.GetAround(maxAssumed * decoder->GetVideoFrameRate(), startA, MT_LOGOSTART);
     if (!lStartAssumed) {
-        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): no logo start mark found");
+        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): no logo start mark found in %ds around assumed start (%d)", maxAssumed, startA);
         return nullptr;
     }
+    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): nearest logo start mark (%d) to assumed start (%d)", lStartAssumed->position, startA);
+
 
 // try to select best logo start mark based on closing credits follow
     LogSeparator(true);
