@@ -642,11 +642,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             }
         }
 
-        // TLC                     16:9  720W  576H:->   94W  60H TOP_LEFT
-        // TLC                     16:9  720W  576H:->   98W  60H TOP_LEFT
+//   1 TLC                     16:9  720W  576H:->   96W  52H TOP_RIGHT  -> not logo "CRIME"
+//  12 TLC                     16:9  720W  576H:->   94W  60H TOP_LEFT
+//   1 TLC                     16:9  720W  576H:->   98W  70H TOP_LEFT   // new logo
         if (CompareChannelName(channelName, "TLC", IGNORE_NOTHING)) {
-            logo.heightMin =  60;
-            logo.heightMax =  65;
+            logo.widthMin  =  84;
+            logo.widthMax  = 108;
+            logo.heightMin =  53;
+            logo.heightMax =  80;
         }
 
         if (CompareChannelName(channelName, "TOGGO_plus", IGNORE_NOTHING)) {            // TOGGO_plus              16:9  720W  576H:->  104W  56H TOP_LEFT
