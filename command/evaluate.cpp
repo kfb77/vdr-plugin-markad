@@ -16,6 +16,7 @@ cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(cDecoder *decoderParam, c
     dsyslog("cEvaluateLogoStopStartPair::cEvaluateLogoStopStartPair(): called");
     decoder  = decoderParam;
     criteria = criteriaParam;
+    nextLogoPairIterator = logoPairVector.end();   // initialize variable
 }
 
 
