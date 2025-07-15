@@ -249,7 +249,7 @@ cMark *cMarkAdStandalone::Check_CHANNELSTOP() {
                 if (movedFirst && (movedFirst->type == MT_MOVEDSTART) && (movedFirst->oldType == MT_CHANNELSTART)) cStartFirst = movedFirst;
                 if (cStartFirst) {
                     int deltaC = (end->position - cStartFirst->position) / decoder->GetVideoFrameRate();
-                    if (deltaC < 244) {  // changed from 287 to 244, found shortest last part, do not reduce
+                    if (deltaC < 183) {  // changed from 244 to 183, found shortest last part, do not reduce
                         dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): first channel start mark (%d) and possible channel end mark (%d) to near %ds, this belongs to the next recording", cStartFirst->position, end->position, deltaC);
                         dsyslog("cMarkAdStandalone::Check_CHANNELSTOP(): delete channel marks at (%d) and (%d)", cStartFirst->position, end->position);
                         marks.Del(cStartFirst->position);
