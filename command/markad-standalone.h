@@ -292,6 +292,13 @@ private:
     void SwapAspectRatio();
 
     /**
+     * check if there is a missing logo sequence at end from TLC
+     * @param mark check this mark
+     * @return true if separator found
+     */
+    bool HaveLogoMissingSequence(const cMark *mark);
+
+    /**
      * check if there is a opening/closing logo sequence from kabel eins
      * @param mark check this mark
      * @return true if separator found

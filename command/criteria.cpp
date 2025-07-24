@@ -101,21 +101,24 @@ bool cCriteria::LogoInBorder() {
 
 bool cCriteria::NoLogo() {   // channel were logo detection is not possible
     if (!channelName) return false;
-
     if (CompareChannelName(channelName, "Sky_Cinema_Special_HD", IGNORE_NOTHING)) return true;  // channel have no continuous logo
     if (CompareChannelName(channelName, "TF1",                   IGNORE_NOTHING)) return true;  // channel have no logo
+    return false;
+}
 
+
+bool cCriteria::LogoMissingAtEndChannel() {   // channel with logo interuption short before broadcast end
+    if (!channelName) return false;
+    if (CompareChannelName(channelName, "TLC", IGNORE_HD)) return true;
     return false;
 }
 
 
 bool cCriteria::LogoInNewsTicker() {
     if (!channelName) return false;
-
     if (CompareChannelName(channelName, "n-tv", IGNORE_HD)) return true;
     if (CompareChannelName(channelName, "ntv", IGNORE_HD))  return true;
     if (CompareChannelName(channelName, "WELT", IGNORE_HD)) return true;
-
     return false;
 }
 

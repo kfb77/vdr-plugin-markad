@@ -70,6 +70,12 @@ public:
     bool NoLogo();
 
     /**
+     * get status of  channel with logo interuption short before broadcast end
+     * @return status
+     */
+    bool LogoMissingAtEndChannel();
+
+    /**
      * get status of channel if logo is part of a news ticker
      * @return status
      */

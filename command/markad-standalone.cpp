@@ -524,7 +524,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
         LogSeparator(false);
         dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): check for separator for logo stop (%d), %ds after assumed end (%d)", lEnd->position, diffAssumed, stopA);
         if (diffAssumed > MAX_ASSUMED || diffAssumed < -MAX_ASSUMED) break;
-        if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveInfoLogoSequence(lEnd)) {
+        if (HaveBlackSeparator(lEnd) || HaveSilenceSeparator(lEnd) || HaveInfoLogoSequence(lEnd) || HaveLogoMissingSequence(lEnd)) {
             end = lEnd;
             break;
         }
@@ -1360,6 +1360,36 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
             }
         }
     }
+    return false;
+}
+
+
+// special case TLC, short sequence without logo at the end of the broadcast
+bool cMarkAdStandalone::HaveLogoMissingSequence(const cMark *mark) {
+    if (!mark) return false;
+    if (!criteria->LogoMissingAtEndChannel()) return false;
+    if (mark->type == MT_LOGOSTART) return false;
+
+    cMark *start1Before = marks.GetPrev(mark->position, MT_LOGOSTART);
+    if (!start1Before) return false;
+    cMark *stop1Before = marks.GetPrev(start1Before->position, MT_LOGOSTOP);
+    if (!stop1Before) return false;
+    cMark *start2Before = marks.GetPrev(stop1Before->position, MT_LOGOSTART);
+    if (!start2Before) return false;
+    int diffStart1Mark  = 1000 * (mark->position         - start1Before->position) / decoder->GetVideoFrameRate();
+    int diffStop1Start1 = 1000 * (start1Before->position - stop1Before->position)  / decoder->GetVideoFrameRate();
+    int diffStart2Stop1 = 1000 * (stop1Before->position  - start2Before->position) / decoder->GetVideoFrameRate();
+    dsyslog("cMarkAdStandalone::HaveLogoMissingSequence(): MT_LOGOSTART (%6d) -> %4dms -> MT_LOGOSTOP (%6d) -> %4dms -> MT_LOGOSTART (%6d) -> %5dms -> MT_LOGOSTOP (%6d) -> %s", start2Before->position, diffStart2Stop1, stop1Before->position, diffStop1Start1, start1Before->position, diffStart1Mark, mark->position, macontext.Info.ChannelName);
+// valid examples
+// MT_LOGOSTART ( 91326) -> 225800ms -> MT_LOGOSTOP ( 96971) -> 17960ms -> MT_LOGOSTART ( 97420) -> 11560ms -> MT_LOGOSTOP ( 97709) -> TLC
+// MT_LOGOSTART ( 71075) -> 987960ms -> MT_LOGOSTOP ( 95774) -> 17920ms -> MT_LOGOSTART ( 96222) -> 11360ms -> MT_LOGOSTOP ( 96506) -> TLC
+    if (    (diffStart2Stop1 >= 225800) && // broadcast
+            (diffStop1Start1 <= 17960) &&  // logo interuption
+            (diffStart1Mark  >= 11360)) {   // last broadcast part
+        dsyslog("cMarkAdStandalone::HaveLogoMissingSequence(): logo stop mark (%d): missing logo sequence is valid", mark->position);
+        return true;
+    }
+    else dsyslog("cMarkAdStandalone::HaveLogoMissingSequence(): logo stop mark (%d): missing logo sequence is invalid", mark->position);
     return false;
 }
 
