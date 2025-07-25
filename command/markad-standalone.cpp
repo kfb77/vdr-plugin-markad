@@ -1419,13 +1419,14 @@ bool cMarkAdStandalone::HaveInfoLogoSequence(const cMark *mark) {
         // MT_LOGOSTART ( 8348) ->  6040ms -> MT_LOGOSTOP ( 8499) -> 1040ms -> MT_LOGOSTART ( 8525) ->   26280s -> MT_LOGOSTOP (  9182) -> kabel_eins
         // MT_LOGOSTART ( 8973) ->  6040ms -> MT_LOGOSTOP ( 9124) -> 1080ms -> MT_LOGOSTART ( 9151) ->   26240s -> MT_LOGOSTOP (  9807) -> kabel_eins
         // MT_LOGOSTART ( 9043) ->  6000ms -> MT_LOGOSTOP ( 9193) -> 1080ms -> MT_LOGOSTART ( 9220) ->   26200s -> MT_LOGOSTOP (  9875) -> kabel_eins
+        // MT_LOGOSTART ( 8462) ->  6240ms -> MT_LOGOSTOP ( 8618) ->  720ms -> MT_LOGOSTART ( 8636) -> 7418560s -> MT_LOGOSTOP (194100) -> kabel_eins
         //
         // invald logo start mark example
         // MT_LOGOSTART ( 3459) ->  5880ms -> MT_LOGOSTOP ( 3606) -> 1160ms -> MT_LOGOSTART ( 3635) ->   20800s -> MT_LOGOSTOP ( 4155) -> kabel eins, end sequence of broadcast before
         // MT_LOGOSTART ( 3744) ->  6040ms -> MT_LOGOSTOP ( 3895) -> 1160ms -> MT_LOGOSTART ( 3924) ->   20960s -> MT_LOGOSTOP ( 4448) -> kabel eins, end sequence of broadcast before
         // MT_LOGOSTART ( 3704) ->  8360ms -> MT_LOGOSTOP ( 3913) ->  760ms -> MT_LOGOSTART ( 3932) ->   18960s -> MT_LOGOSTOP ( 4406) -> kabel_eins, end sequence of broadcast before
         if (    (diffMarkStop1After          >=  6000) && (diffMarkStop1After        <= 33640) &&
-                (diffStop1AfterStart2After   >=   760) && (diffStop1AfterStart2After <=  1080) &&
+                (diffStop1AfterStart2After   >=   720) && (diffStop1AfterStart2After <=  1080) &&
                 (diffStStart2AfterStop2After >  20960)) {
             dsyslog("cMarkAdStandalone::HaveInfoLogoSequence(): opening info logo sequence is valid");
             return true;
