@@ -38,8 +38,8 @@ struct setup {
     bool fulldecode        = false;
     int hwaccel            = 0;
     const char *PluginName = nullptr;
-#define MAX_HWACCEL 5
-    const char *hwaccelTexts[MAX_HWACCEL] = {tr("off"), "vaapi", "vdpau", "vulkan", "cuda"};
+#define MAX_HWACCEL 7
+    const char *hwaccelTexts[MAX_HWACCEL] = {tr("off"), "vaapi", "vdpau", "vulkan", "cuda", "drm", "opencl"};
 };
 
 
