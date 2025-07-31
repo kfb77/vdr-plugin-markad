@@ -19,6 +19,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
+#include <sys/sysinfo.h>
 #include <locale.h>
 #include <libintl.h>
 #include <execinfo.h>
@@ -59,6 +60,8 @@ static inline int ioprio_set(int which, int who, int ioprio) {
 #define __NR_ioprio_set         251
 #elif defined(__arm__)
 #define __NR_ioprio_set         314
+#elif defined(__aarch64__)
+#define __NR_ioprio_set          30
 #elif defined(__ia64__)
 #define __NR_ioprio_set        1274
 #else
@@ -83,6 +86,8 @@ static inline int ioprio_get(int which, int who) {
 #define __NR_ioprio_get         252
 #elif defined(__arm__)
 #define __NR_ioprio_get         315
+#elif defined(__aarch64__)
+#define __NR_ioprio_get          31
 #elif defined(__ia64__)
 #define __NR_ioprio_get        1275
 #else
