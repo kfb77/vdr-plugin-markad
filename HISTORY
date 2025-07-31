@@ -1,6 +1,18 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2025-07-31: Version 4.2.15
+- init threads with number of CPUs
+  workaround for problems with libav CPU count detection on aarch64
+  thx to Joe_D@www.vdr-portal.de for contribution
+- ioprio_set/ioprio_get: add aarch64
+  thx to Joe_D@www.vdr-portal.de for contribution
+- plugin setup: add hwaccel drm and opencl
+  thx to Joe_D@www.vdr-portal.de for contribution
+- cStatusMarkAd::Replaying(): fix debug log message
+  thx to Joe_D@www.vdr-portal.de for contribution
+- some minor bug fixes and optimizations, see git
+
 2025-06-03: Version 4.2.14
 - remove useless error message "unknown recording" if markad start disabled
 - some minor bug fixes and optimizations, see git
