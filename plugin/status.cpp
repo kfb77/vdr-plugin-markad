@@ -679,7 +679,7 @@ bool cStatusMarkAd::Replaying() {
 
 #ifdef DEBUG_PAUSE_CONTINUE
 void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSED(Name), const char *FileName, bool On) {
-    dsyslog("markad: cStatusMarkAd::Replaying(): %s recording %s", On ? "start" : "stop", FileName ? FileName : "<nullptr>");
+    dsyslog("markad: cStatusMarkAd::Replaying(): %s playing %s", On ? "start" : "stop", FileName ? FileName : "<nullptr>");
 #else
 void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSED(Name), const char *UNUSED(FileName), bool On) {
 #endif
