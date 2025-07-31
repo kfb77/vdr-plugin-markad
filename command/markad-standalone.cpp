@@ -149,6 +149,11 @@ void syslog_with_tid(int priority, const char *format, ...) {
     }
 }
 
+int get_number_of_cpus()
+{
+    return get_nprocs();
+}
+
 #endif /* #ifdef POSIX */
 
 // startFrame:
@@ -7163,7 +7168,7 @@ int main(int argc, char *argv[]) {
     config.logoExtraction = -1;
     config.logoWidth      =  0;
     config.logoHeight     =  0;
-    config.threads        = -1;
+    config.threads        = get_number_of_cpus();
     strcpy(config.svdrphost, "127.0.0.1");
     strcpy(config.logoCacheDirectory, "/var/lib/markad");
 
