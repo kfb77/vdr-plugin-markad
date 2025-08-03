@@ -93,6 +93,101 @@ public:
 
     ~cDecoder();
 
+
+    /**
+     * copy constructor
+     */
+    cDecoder(const cDecoder &origin) :
+        hwDeviceType(origin.hwDeviceType),
+        hwPixelFormat(origin.hwPixelFormat),
+        avpkt(origin.avpkt),
+        avFrame(origin.avFrame),
+        avFrameConvert(origin.avFrameConvert),
+        startDecode(origin.startDecode) {
+
+        recordingDir           = origin.recordingDir;
+        index                  = origin.index;
+        threads                = origin.threads;
+        fullDecode             = origin.fullDecode;
+        hwaccel                = origin.hwaccel;
+        forceInterlaced        = origin.forceInterlaced;
+        useHWaccel             = origin.useHWaccel;
+        forceHWaccel           = origin.forceHWaccel;
+        firstHWaccelReceivedOK = origin.firstHWaccelReceivedOK;
+        logHwaccel             = origin.logHwaccel;
+        hw_device_ctx          = origin.hw_device_ctx;
+        swsContext             = origin.swsContext;
+        fileNumber             = origin.fileNumber;
+        maxFileNumber          = origin.maxFileNumber;
+        avctx                  = origin.avctx;
+        frameValid             = origin.frameValid;
+        codecCtxArray          = origin.codecCtxArray;
+        packetNumber           = origin.packetNumber;
+        frameNumber            = origin.frameNumber;
+        videoWidth             = origin.videoWidth;
+        videoHeight            = origin.videoHeight;
+        eof                    = origin.eof;
+        decoderSendState       = origin.decoderSendState;
+        decoderReceiveState    = origin.decoderReceiveState;
+        decoderRestart         = origin.decoderRestart;
+        sumDuration            = origin.sumDuration;
+        firstMP2Index          = origin.firstMP2Index;
+        frameRate              = origin.frameRate;
+        dtsBefore              = origin.dtsBefore;
+        decodeErrorCount       = origin.decodeErrorCount;
+        decodeErrorFrame       = origin.decodeErrorFrame;
+        timeStartCalled        = origin.timeStartCalled;
+        startSlicePTS          = origin.startSlicePTS;
+    }
+
+
+    /**
+     * operator=
+     */
+    cDecoder &operator =(const cDecoder *origin) {
+        hwDeviceType           = origin->hwDeviceType;
+        hwPixelFormat          = origin->hwPixelFormat;
+        avpkt                  = origin->avpkt;
+        avFrame                = origin->avFrame;
+        avFrameConvert         = origin->avFrameConvert;
+        startDecode            = origin->startDecode;
+        recordingDir           = origin->recordingDir;
+        index                  = origin->index;
+        threads                = origin->threads;
+        fullDecode             = origin->fullDecode;
+        hwaccel                = origin->hwaccel;
+        forceInterlaced        = origin->forceInterlaced;
+        useHWaccel             = origin->useHWaccel;
+        forceHWaccel           = origin->forceHWaccel;
+        firstHWaccelReceivedOK = origin->firstHWaccelReceivedOK;
+        logHwaccel             = origin->logHwaccel;
+        hw_device_ctx          = origin->hw_device_ctx;
+        swsContext             = origin->swsContext;
+        fileNumber             = origin->fileNumber;
+        maxFileNumber          = origin->maxFileNumber;
+        avctx                  = origin->avctx;
+        frameValid             = origin->frameValid;
+        codecCtxArray          = origin->codecCtxArray;
+        packetNumber           = origin->packetNumber;
+        frameNumber            = origin->frameNumber;
+        videoWidth             = origin->videoWidth;
+        videoHeight            = origin->videoHeight;
+        eof                    = origin->eof;
+        decoderSendState       = origin->decoderSendState;
+        decoderReceiveState    = origin->decoderReceiveState;
+        decoderRestart         = origin->decoderRestart;
+        sumDuration            = origin->sumDuration;
+        firstMP2Index          = origin->firstMP2Index;
+        frameRate              = origin->frameRate;
+        dtsBefore              = origin->dtsBefore;
+        decodeErrorCount       = origin->decodeErrorCount;
+        decodeErrorFrame       = origin->decodeErrorFrame;
+        timeStartCalled        = origin->timeStartCalled;
+        startSlicePTS          = origin->startSlicePTS;
+        return *this;
+    }
+
+
     /**
     * restart decoder to first frame of first file
     */
@@ -526,7 +621,7 @@ private:
     //!<
     bool forceHWaccel                  = false;                   //!< force use of hardware accelerated video decode and encode for MEPG2
     //!<
-    enum AVHWDeviceType hwDeviceType   = AV_HWDEVICE_TYPE_NONE ;  //!< hardware device type
+    enum AVHWDeviceType hwDeviceType   = AV_HWDEVICE_TYPE_NONE;   //!< hardware device type
     //!<
     bool logHwaccel                    = true;                    //!< true before fist log of hwaccel methode
     //!<
@@ -592,9 +687,9 @@ private:
     //!<
     int64_t startSlicePTS              = -1;                      //!< PTS of slice start
     //!<
-    std::chrono::high_resolution_clock::time_point startDecode;   //!< time stamp of SendPacketToDecoder()
-    //!<
     sAudioAC3Channels audioAC3Channels[MAXSTREAMS] = {};          //!< AC3 audio stream channel count state
+    //!<
+    std::chrono::high_resolution_clock::time_point startDecode;   //!< time stamp of SendPacketToDecoder()
     //!<
 };
 #endif
