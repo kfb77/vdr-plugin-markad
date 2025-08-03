@@ -96,6 +96,83 @@ public:
 
     ~cEncoder();
 
+
+    /**
+     * copy constructor
+     */
+    cEncoder(const cEncoder &origin) :
+        software_pix_fmt(origin.software_pix_fmt) {
+
+        decoder                = origin.decoder;
+        decoderLocal           = origin.decoderLocal;
+        useHWaccel             = origin.useHWaccel;
+        index                  = origin.index;
+        indexLocal             = origin.indexLocal;
+        recDir                 = origin.recDir;
+        cutMode                = origin.cutMode;
+        bestStream             = origin.bestStream;
+        ac3ReEncode            = origin.ac3ReEncode;
+        fileNumber             = origin.fileNumber;
+        forceIFrame            = origin.forceIFrame;
+        avctxIn                = origin.avctxIn;
+        avctxOut               = origin.avctxOut;
+        codecCtxArrayIn        = origin.codecCtxArrayIn;
+        ptsBefore              = origin.ptsBefore;
+        ptsBeforeCut           = origin.ptsBeforeCut;
+        ptsAfterCut            = origin.ptsAfterCut;
+        videoInputStreamIndex  = origin.videoInputStreamIndex;
+        videoOutputStreamIndex = origin.videoOutputStreamIndex;
+        pass                   = origin.pass;
+        rollover               = origin.rollover;
+        firstFrameToEncoder    = origin.firstFrameToEncoder;
+
+        for (int i = 0; i < MAXSTREAMS; i++) {
+            streamMap[i]        = origin.streamMap[i];
+            swrArray[i]         = origin.swrArray[i];
+            codecCtxArrayOut[i] = origin.codecCtxArrayOut[i];
+            volumeFilterAC3[i]  = origin.volumeFilterAC3[i];
+        }
+    }
+
+
+    /**
+     * operator=
+     */
+    cEncoder &operator =(const cEncoder *origin) {
+        decoder                = origin->decoder;
+        decoderLocal           = origin->decoderLocal;
+        useHWaccel             = origin->useHWaccel;
+        index                  = origin->index;
+        indexLocal             = origin->indexLocal;
+        recDir                 = origin->recDir;
+        cutMode                = origin->cutMode;
+        bestStream             = origin->bestStream;
+        ac3ReEncode            = origin->ac3ReEncode;
+        fileNumber             = origin->fileNumber;
+        forceIFrame            = origin->forceIFrame;
+        avctxIn                = origin->avctxIn;
+        avctxOut               = origin->avctxOut;
+        codecCtxArrayIn        = origin->codecCtxArrayIn;
+        ptsBefore              = origin->ptsBefore;
+        ptsBeforeCut           = origin->ptsBeforeCut;
+        ptsAfterCut            = origin->ptsAfterCut;
+        videoInputStreamIndex  = origin->videoInputStreamIndex;
+        videoOutputStreamIndex = origin->videoOutputStreamIndex;
+        pass                   = origin->pass;
+        rollover               = origin->rollover;
+        firstFrameToEncoder    = origin->firstFrameToEncoder;
+        software_pix_fmt       = origin->software_pix_fmt;
+
+        for (int i = 0; i < MAXSTREAMS; i++) {
+            streamMap[i]        = origin->streamMap[i];
+            swrArray[i]         = origin->swrArray[i];
+            codecCtxArrayOut[i] = origin->codecCtxArrayOut[i];
+            volumeFilterAC3[i]  = origin->volumeFilterAC3[i];
+        }
+        return *this;
+    }
+
+
     /**
      * reset encoder state and start write file from begin
      * @param passEncoder 0 for only one pass planed, 1 first pass of 2 pass encoding, 2 second pass of 2 pass encoding)
