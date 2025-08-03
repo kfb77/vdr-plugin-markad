@@ -3697,8 +3697,9 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
         int diffPrevStopAssumed  = (prevStopMark->position  - newStopA)                / decoder->GetVideoFrameRate();
         int diffLastStopAssumed  = (lastStopMark->position  - newStopA)                / decoder->GetVideoFrameRate();
         int lastAd               = (lastStartMark->position - prevStopMark->position)  / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::CheckMarks(): MT_START (%6d) -> %4ds -> MT_STOP (%6d) |%4ds| -> %3ds -> MT_START (%6d) -> %3ds -> MT_STOP (%6d) |%3ds| -> %3s", prevStartMark->position, prevBroadcast, prevStopMark->position, diffPrevStopAssumed, lastAd, lastStartMark->position, lastBroadcast, lastStopMark->position, diffLastStopAssumed, macontext.Info.ChannelName);
+        dsyslog("cMarkAdStandalone::CheckMarks(): MT_START (%6d) -> %4ds -> MT_STOP (%6d) |%4ds| -> %3ds -> MT_START (%6d) -> %3ds -> MT_STOP (%6d) |%4ds| -> %s", prevStartMark->position, prevBroadcast, prevStopMark->position, diffPrevStopAssumed, lastAd, lastStartMark->position, lastBroadcast, lastStopMark->position, diffLastStopAssumed, macontext.Info.ChannelName);
         switch(lastStopMark->type) {
+
         case MT_ASSUMEDSTOP:
             // example of invalid assumed stop mark sequence (short last ad is between two broadcasts)
             // MT_START (103247) -> 1096s -> MT_STOP (158068) |-348s| -> 140s -> MT_START (165090) -> 207s -> MT_STOP (175483) |  0s|
@@ -3708,7 +3709,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             if (    (prevBroadcast >= 264) &&         // last broadcast
                     (diffPrevStopAssumed >= -359) &&  // logo stop before distance to assumed stop
                     (lastAd <= 170) && (lastBroadcast >= 150)) {
-                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last ad too short", prevStopMark->position);
+                dsyslog("cMarkAdStandalone::CheckMarks(): invalid MT_ASSUMEDSTOP, use stop mark (%d) before as end mark, last ad too short", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
                 moreMarks = true;
@@ -3726,12 +3727,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             // MT_START (  7389) -> 1250s -> MT_STOP ( 38659) |-549s| -> 498s -> MT_START ( 51123) ->  50s -> MT_STOP ( 52380) |  0s|
             // MT_START (167649) -> 1163s -> MT_STOP (196735) |-621s| -> 515s -> MT_START (209631) -> 105s -> MT_STOP (212268) |  0s|
             else if ((diffPrevStopAssumed >= -621) && (lastBroadcast <= 218)) {
-                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last broadcast too short", prevStopMark->position);
+                dsyslog("cMarkAdStandalone::CheckMarks(): invalid MT_ASSUMEDSTOP, use stop mark (%d) before as end mark, last broadcast too short", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
                 moreMarks = true;
             }
             break;
+
         case MT_LOGOSTOP:
             // example of invalid logo stop mark sequence (short last ad is between two long broadcasts)
             // MT_START ( 73336) ->  960s -> MT_STOP ( 97358)         ->  18s -> MT_START ( 97817) ->  83s -> MT_STOP ( 99916)
@@ -3744,7 +3746,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             // MT_START ( 36120) ->  675s -> MT_STOP ( 53011) |-140s| ->  21s -> MT_START ( 53536) -> 113s -> MT_STOP ( 56371) | -5s| -> Comedy_Central: length too big
             // MT_START ( 30964) ->  635s -> MT_STOP ( 46844) |-124s| ->  59s -> MT_START ( 48324) ->  95s -> MT_STOP ( 50712) | 30s| -> Comedy_Central: length too big
             if ((diffPrevStopAssumed >= -280) && (lastAd <= 59) && (diffLastStopAssumed >= -74)) {
-                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last ad too short", prevStopMark->position);
+                dsyslog("cMarkAdStandalone::CheckMarks(): invalid MT_LOGOSTOP, use stop mark (%d) before as end mark, last ad too short", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
                 moreMarks = true;
@@ -3759,7 +3761,7 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             // MT_START ( 48141) -> 1050s -> MT_STOP ( 74406) |-644s| -> 468s -> MT_START ( 86116) -> 129s -> MT_STOP ( 89351) | -46s| -> VOXup
             // MT_START ( 51714) ->  955s -> MT_STOP ( 75611) |-638s| -> 436s -> MT_START ( 86513) -> 117s -> MT_STOP ( 89462) |-84s| -> VOXup
             else if (lastBroadcast < 117) {
-                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last broadcast too short", prevStopMark->position);
+                dsyslog("cMarkAdStandalone::CheckMarks(): invalid MT_LOGOSTOP, use stop mark (%d) before as end mark, last broadcast too short", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
                 moreMarks = true;
@@ -3767,18 +3769,30 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
             // example of invalid log stop mark sequence (short last broadcast, late logo stop)
             // MT_START ( 15111) -> 2550s -> MT_STOP (142613) | -31s| ->  71s -> MT_START (146196) -> 147s -> MT_STOP (153589) |187s| -> ZDF_H
             else if ((diffPrevStopAssumed >= -31) && (lastBroadcast <= 147)) {
-                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, last broadcast short and previous logo stop near assumed end", prevStopMark->position);
+                dsyslog("cMarkAdStandalone::CheckMarks(): invalid MT_LOGOSTOP, use stop mark (%d) before as end mark, last broadcast short and previous logo stop near assumed end", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
                 moreMarks = true;
             }
             break;
+
         case MT_MOVEDSTOP:
-            // example of invalid logo stop mark sequence (too short last broadcase)
+            // example of invalid assumed stop mark sequence (short last ad is between two broadcasts)
+            // MT_START (173121) -> 1099s -> MT_STOP (200598) |-374s| ->   3s -> MT_START (200695) ->  73s -> MT_STOP (202530) |-296s| -> RTL_Television
+            //
+            // example of valid end mark
+            // MT_START ( 11716) ->  925s -> MT_STOP ( 57994) |-858s| ->   3s -> MT_START ( 58148) -> 855s -> MT_STOP (100900) |   0s| -> hr-fernsehen_HD
+            if ((lastAd <= 3) && (lastBroadcast <= 73)) {
+                dsyslog("cMarkAdStandalone::CheckMarks(): invalid MT_MOVEDSTOP, use stop mark (%d) before as end mark, last ad too short", prevStopMark->position);
+                marks.Del(lastStopMark->position);
+                marks.Del(lastStartMark->position);
+                moreMarks = true;
+            }
+            // example of invalid logo stop mark sequence (too short last broadcast)
             // MT_START ( 19164) -> 1565s -> MT_STOP ( 97440) |-247s| ->  57s -> MT_START (100294) ->  26s -> MT_STOP (101638) |-163s|  (VPS stop)
             // MT_START ( 18475) -> 1568s -> MT_STOP ( 96899) |-244s| ->  47s -> MT_START ( 99287) ->  47s -> MT_STOP (101638) |-149s|  (VPS stop)
             if (lastBroadcast <= 47) {
-                dsyslog("cMarkAdStandalone::CheckMarks(): use stop mark (%d) before as end mark, too short last broadcast part", prevStopMark->position);
+                dsyslog("cMarkAdStandalone::CheckMarks(): invalid MT_MOVEDSTOP, use stop mark (%d) before as end mark, too short last broadcast part", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
                 moreMarks = true;
