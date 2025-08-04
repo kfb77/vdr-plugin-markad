@@ -290,6 +290,40 @@ public:
     cSceneChangeDetect(cDecoder *decoderParam, cCriteria *criteriaParam);
     ~cSceneChangeDetect();
 
+
+    /**
+     * copy constructor
+     */
+    cSceneChangeDetect(const cSceneChangeDetect &origin) {
+        decoder           = origin.decoder;
+        criteria          = origin.criteria;
+        prevPacketNumber  = origin.prevPacketNumber;
+        prevFramePTS      = origin.prevFramePTS;
+        prevHistogram     = origin.prevHistogram;
+        sceneStatus       = origin.sceneStatus;
+        blendPacketNumber = origin.blendPacketNumber;
+        blendFramePTS     = origin.blendFramePTS;
+        blendCount        = origin.blendCount;
+    }
+
+
+    /**
+     * operator=
+     */
+    cSceneChangeDetect &operator =(const cSceneChangeDetect *origin) {
+        decoder           = origin->decoder;
+        criteria          = origin->criteria;
+        prevPacketNumber  = origin->prevPacketNumber;
+        prevFramePTS      = origin->prevFramePTS;
+        prevHistogram     = origin->prevHistogram;
+        sceneStatus       = origin->sceneStatus;
+        blendPacketNumber = origin->blendPacketNumber;
+        blendFramePTS     = origin->blendFramePTS;
+        blendCount        = origin->blendCount;
+        return *this;
+    }
+
+
     /**
      * process scene change detection
      * @param[out]  changePacketNumber  packet number of scene change
