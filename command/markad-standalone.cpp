@@ -6076,6 +6076,10 @@ bool cMarkAdStandalone::ProcessFrame() {
         video->Clear(true);
         criteria->SetDetectionState(MT_ALL, true);
         if (!macontext.Config->fullDecode) criteria->SetDetectionState(MT_SCENECHANGE, false);  // does not work without full decode
+        if ((criteria->GetMarkTypeState(MT_HBORDERCHANGE) >= CRITERIA_AVAILABLE) && !criteria->LogoInBorder()) {
+            dsyslog("cMarkAdStandalone::ProcessFrame(): disable logo detection because broadcast with hborder and no logo in border");
+            criteria->SetDetectionState(MT_LOGOCHANGE, false);
+        }
         restartLogoDetectionDone = true;
     }
     return true;
