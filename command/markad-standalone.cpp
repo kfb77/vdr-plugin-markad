@@ -2771,9 +2771,14 @@ void cMarkAdStandalone::CheckStart() {
     const sAspectRatio *aspectRatioFrame = decoder->GetFrameAspectRatio();  // aspect ratio of last read packet in start part
 
     // set initial mark criteria
-    // if we have no hborder start, broadcast can not have hborder
-    if (marks.Count(MT_HBORDERSTART) == 0) criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
-    else if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);
+    if (marks.Count(MT_HBORDERSTART) == 0) {
+        dsyslog("cMarkAdStandalone::CheckStart(): no hborder start -> broadcast can not have hborder");
+        criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
+    }
+    if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) {
+        dsyslog("cMarkAdStandalone::CheckStart(): one hborder start, no hborder stop -> broadcast must have hborder");
+        criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);
+    }
 
     // if we have no vborder start, broadcast can not have vborder
     if (marks.Count(MT_VBORDERSTART) == 0) criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
