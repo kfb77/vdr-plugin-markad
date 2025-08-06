@@ -1398,9 +1398,10 @@ bool cMarkAdStandalone::HaveLogoMissingSequence(const cMark *mark) {
 // valid examples
 // MT_LOGOSTART ( 91326) -> 225800ms -> MT_LOGOSTOP ( 96971) -> 17960ms -> MT_LOGOSTART ( 97420) -> 11560ms -> MT_LOGOSTOP ( 97709) -> TLC
 // MT_LOGOSTART ( 71075) -> 987960ms -> MT_LOGOSTOP ( 95774) -> 17920ms -> MT_LOGOSTART ( 96222) -> 11360ms -> MT_LOGOSTOP ( 96506) -> TLC
-    if (    (diffStart2Stop1 >= 225800) && // broadcast
-            (diffStop1Start1 <= 17960) &&  // logo interuption
-            (diffStart1Mark  >= 11360)) {   // last broadcast part
+// MT_LOGOSTART ( 89173) -> 283400ms -> MT_LOGOSTOP ( 96258) -> 18040ms -> MT_LOGOSTART ( 96709) -> 11720ms -> MT_LOGOSTOP ( 97002) -> TLC
+    if (    (diffStart2Stop1 >= 225800) &&  // broadcast
+            (diffStop1Start1 <=  18040) &&  // logo interuption
+            (diffStart1Mark  >=  11360)) {  // last broadcast part
         dsyslog("cMarkAdStandalone::HaveLogoMissingSequence(): logo stop mark (%d): missing logo sequence is valid", mark->position);
         return true;
     }
