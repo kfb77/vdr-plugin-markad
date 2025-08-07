@@ -5549,7 +5549,7 @@ void cMarkAdStandalone::SilenceOptimization() {
 
                     if (criteria->LogoFadeInOut() & FADE_IN) {
                         if ((lengthBefore >= 880) && blackBefore) maxBefore = 10720;
-                        else if (lengthBefore > 120)              maxBefore =  5399;
+                        else if (lengthBefore > 120)              maxBefore =  4159;
                         else                                      maxBefore =  3799;
                     }
                     else                                          maxBefore =  2480;
@@ -5557,7 +5557,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if (criteria->GoodVPS()) maxBefore =  24399;
+                        if (criteria->GoodVPS()) maxBefore =  23319;
                         else                     maxBefore = 136559;
                         break;
                     case MT_INTRODUCTIONSTART:
