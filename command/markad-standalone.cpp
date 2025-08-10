@@ -611,19 +611,25 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
             break;
         }
     }
-    // for broadcast without hborder check border start mark from next bradcast before logo stop
-    // in this case logo stop mark is from next recording, use border start mark as end mark
+    // for broadcast without hborder delete hborder start mark from next broadcast before logo stop
+    // logo in border: logo stop short before hborder start: too early hborder start because of black screen in closing credits
+    // logo not in border: logo stop mark is from next recording, use border start mark as end mark
     bool typeChange = false;
     if (end && (criteria->GetMarkTypeState(MT_HBORDERCHANGE) <= CRITERIA_UNKNOWN)) {
         cMark *hBorderStart = marks.GetPrev(end->position, MT_HBORDERSTART);
         if (hBorderStart) {
             const cMark *hBorderStartPrev = marks.GetPrev(hBorderStart->position, MT_HBORDERSTART);
             if (!hBorderStartPrev) {
-                int deltahBorder = (hBorderStart->position - stopA) / decoder->GetVideoFrameRate();
-                int deltaLogo    = (end->position          - stopA) / decoder->GetVideoFrameRate();
-                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): found MT_HBORDERSTART at (%d) %ds after assumed end (and no other MT_HBORDERSTART before), logo stop mark at (%d) %ds after assumed end", hBorderStart->position, deltahBorder, end->position, deltaLogo);
-                if ((deltaLogo >= 0) && (deltahBorder >= -1)) {
-                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo stop mark at (%d) %ds after assumed end is invalid, use MT_HBORDERSTART (%d) as end mark", end->position, deltaLogo, hBorderStart->position);
+                int hBorderStopLogoStart = (end->position - hBorderStart->position) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): LogoInBorder %d: MT_HBORDERSTART (%d) -> %ds -> MT_LOGOSTOP (%d)", criteria->LogoInBorder(), hBorderStart->position, hBorderStopLogoStart, end->position);
+                // example of invalid MT_HBORDERSTART
+                // LogoInBorder 1: MT_HBORDERSTART (189909) -> 8s -> MT_LOGOSTOP (190117)
+                if (criteria->LogoInBorder() && (hBorderStopLogoStart <= 10)) {
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo in border, MT_HBORDERSTART invalid, dark closing credit");
+                    marks.Del(hBorderStart->position);
+                }
+                if (!criteria->LogoInBorder() && (hBorderStopLogoStart >= 0)) {
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo not in border, MT_LOGOSTOP invalid, delayed invisible detection");
                     marks.ChangeType(hBorderStart, MT_STOP);
                     end = hBorderStart;
                     typeChange = true;
