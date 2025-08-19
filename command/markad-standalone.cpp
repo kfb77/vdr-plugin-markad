@@ -427,14 +427,10 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
 
 // try MT_VBORDERSTOP
 cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
-    cMark *end = marks.GetAround(360 * decoder->GetVideoFrameRate(), stopA, MT_VBORDERSTOP); // 3 minutes
+    cMark *end = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), stopA, MT_VBORDERSTOP); // do not increase, found start of first ad from next broadcast after 306s
     if (end) {
         int deltaStopA = (end->position - stopA) / decoder->GetVideoFrameRate();
         dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP found at frame (%d), %ds after assumed stop", end->position, deltaStopA);
-        if (deltaStopA >= 326) {  // we found start of first ad from next broadcast, changed from 353 to 326
-            dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP too far after assumed stop, ignoring");
-            return nullptr;
-        }
         if (criteria->LogoInBorder()) { // not with random logo interruption
             cMark *logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
             if (logoStop) {
