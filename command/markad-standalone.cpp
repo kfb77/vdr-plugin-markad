@@ -3134,9 +3134,10 @@ bool cMarkAdStandalone::CheckStartMark() {
 // MT_LOGOSTART ( 2945) |-183s| -> 374s -> MT_LOGOSTOP (12312) ->    6s ->  MT_LOGOSTART (12462) | 197s| ->  470s -> MT_LOGOSTOP ( 24223) -> Comedy_Central
 // MT_LOGOSTART ( 6975) | -21s| -> 389s -> MT_LOGOSTOP (16707) ->    3s ->  MT_LOGOSTART (16782) | 371s| ->  703s -> MT_LOGOSTOP ( 34377) -> Comedy_Central
 // MT_LOGOSTART (  596) |-279s| -> 614s -> MT_LOGOSTOP (15954) ->   25s ->  MT_LOGOSTART (16584) | 360s| -> 2360s -> MT_LOGOSTOP ( 75585) -> RTLZWEI
+// MT_LOGOSTART ( 4535) |-110s| -> 315s -> MT_LOGOSTOP (12423) ->    2s ->  MT_LOGOSTART (12475) | 207s| ->  597s -> MT_LOGOSTOP ( 27411) -> Comedy_Central
                         else if ((logoStartAssumed1 <= 0) && (logoStartAssumed2 <= 448) && // should be near event start
                                  (lengthBroadcast1 >= 181) && (lengthBroadcast1 <= 614) &&
-                                 (lengthAd >= 3) && (lengthAd <= 64) &&                    // very short ad can be undeteced info logo
+                                 (lengthAd >= 2) && (lengthAd <= 64) &&                    // very short ad can be undeteced info logo
                                  (lengthBroadcast2 >= 143)) {
                             dsyslog("cMarkAdStandalone::CheckStartMark(): too short first ad, delete start (%d) and stop (%d) mark", startMark->position, logoStop1->position);
                             marks.Del(startMark->position);
