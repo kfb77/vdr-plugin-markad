@@ -429,13 +429,25 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
 cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
     cMark *end = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), stopA, MT_VBORDERSTOP); // do not increase, found start of first ad from next broadcast after 306s
     if (end) {
-        int deltaStopA = (end->position - stopA) / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP found at frame (%d), %ds after assumed stop", end->position, deltaStopA);
-        if (criteria->LogoInBorder()) { // not with random logo interruption
-            cMark *logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
+        int vBorderDelta = (end->position - stopA) / decoder->GetVideoFrameRate();
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP found at frame (%d), %ds after assumed stop", end->position, vBorderDelta);
+        if (criteria->LogoInBorder()) { // no random logo interruption, but reliable logo detection because logo is in black border
+            // check if there is a logo stop near assumed stop, maybe double vborder broadcast with short first part of second broadcast
+            cMark *logoStop = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), stopA, MT_LOGOSTOP);
+            if (logoStop) {
+                int deltaLogoStop = (logoStop->position - stopA) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_LOGOSTOP (%d) %ds after assumed stop", logoStop->position, deltaLogoStop);
+                if ((deltaLogoStop >= -6) && (deltaLogoStop <= 4) && (vBorderDelta >= 174)) { // changed from -4 to -6, from 281 to 174
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): double vborder broadcast with short first part of second broadcast, delete vborder stop");
+                    marks.Del(end);
+                    return nullptr;
+                }
+            }
+            // check logo stop short before vborder stop, maybe delayed vborder stop from dark opening credits of next broascast
+            logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
             if (logoStop) {
                 int deltaLogoStop = 1000 * (end->position - logoStop->position) / decoder->GetVideoFrameRate();
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_LOGOSTOP at (%d) %d before assumed stop found", logoStop->position, deltaLogoStop);
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_LOGOSTOP (%d) %dms before vborder stop", logoStop->position, deltaLogoStop);
                 if (deltaLogoStop <= 2000) {
                     dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): use logo stop mark at (%d) short before vborder stop (%d)", logoStop->position, end->position);
                     end = logoStop;
