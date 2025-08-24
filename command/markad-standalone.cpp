@@ -2209,7 +2209,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 // search for logo start mark around assumed start
     int maxAssumed = MAX_ASSUMED;
     if (macontext.Info.startFromVPS && criteria->GoodVPS()) {
-        maxAssumed = 30;  // if we use a valid VPS event based start time do only near search, found preview with logo 31s before broadcast, changed from 56 to 30
+        maxAssumed = MAX_ASSUMED_VPS;  // if we use a valid VPS event based start time do only near search
         dsyslog("cMarkAdStandalone::Check_LOGOSTART(): channel with good VPS, max distance from VPS start event %ds", maxAssumed);
     }
     cMark *lStartAssumed = marks.GetAround(maxAssumed * decoder->GetVideoFrameRate(), startA, MT_LOGOSTART);
@@ -2929,7 +2929,7 @@ void cMarkAdStandalone::CheckStart() {
         dsyslog("cMarkAdStandalone::CheckStart(): search for any start mark");
         marks.DelTill(IGNORE_AT_START);    // we do not want to have a initial mark from previous recording as a start mark
         int maxAssumed = 160; // not too big search range, changed from 240 to 160
-        if (macontext.Info.startFromVPS && criteria->GoodVPS()) maxAssumed = 70;  // if we use a valid VPS event based start time do only near search
+        if (macontext.Info.startFromVPS && criteria->GoodVPS()) maxAssumed = MAX_ASSUMED_VPS;  // if we use a valid VPS event based start time do only near search
         begin = marks.GetAround(maxAssumed * decoder->GetVideoFrameRate(), startA, MT_START, 0x0F);
         if (begin) {
             dsyslog("cMarkAdStandalone::CheckStart(): found start mark (%d) type 0x%X after search for any type", begin->position, begin->type);
