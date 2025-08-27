@@ -1253,6 +1253,32 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
             }
         }
 
+        // check sequence MT_NOBLACKSTOP -> MT_LOGOSTOP (mark) -> MT_LOGOSTART -> MT_NOBLACKSTART
+        // black screen around end mark and start mark of next broadcast (long dark closing and opening credits)
+        startAfter = marks.GetNext(mark->position, MT_LOGOSTART);
+        if (startAfter) {
+            cMark *blackStart = blackMarks.GetPrev(mark->position + 1, MT_NOBLACKSTOP);     // black screen can start at the same position as logo stop
+            if (blackStart) {
+                cMark *blackStop = blackMarks.GetNext(startAfter->position - 1, MT_NOBLACKSTART); // black screen can start at the same position as logo stop
+                if (blackStop) {
+                    int diffBlackStartLogoStop = 1000 * (mark->position       - blackStart->position) / decoder->GetVideoFrameRate();
+                    int diffLogoStopLogoStart  = 1000 * (startAfter->position - mark->position)       / decoder->GetVideoFrameRate();
+                    int diffLogoStartBlackStop = 1000 * (blackStop->position  - startAfter->position) / decoder->GetVideoFrameRate();
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): MT_NOBLACKSTOP (%6d) -> %4dms -> MT_LOGOSTOP (%6d) -> %5dms -> MT_LOGOSTART (%6d) -> %4dms -> MT_NOBLACKSTART (%6d) -> %s", blackStart->position, diffBlackStartLogoStop, mark->position, diffLogoStopLogoStart, startAfter->position, diffLogoStartBlackStop, blackStop->position, macontext.Info.ChannelName);
+// valid sequence
+// MT_NOBLACKSTOP (101217) ->  360ms -> MT_LOGOSTOP (101226) ->  2800ms -> MT_LOGOSTART (101296) -> 3800ms -> MT_NOBLACKSTART (101391) -> TELE_5
+                    if (    (diffBlackStartLogoStop >=  360) && (diffBlackStartLogoStop <=  361) &&
+                            (diffLogoStopLogoStart  >= 2800) && (diffLogoStopLogoStart  <= 2801) &&
+                            (diffLogoStartBlackStop >= 3800) && (diffLogoStartBlackStop <= 3801)) {
+                        dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence around end mark and start of next broadcast is valid", mark->position);
+                        return true;
+                    }
+                    dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence around end mark and start of next broadcast is invalid", mark->position);
+                }
+            }
+        }
+
+
         // check sequence MT_NOBLACKSTOP -> MT_NOBLACKSTART -> MT_LOGOSTOP
         // blackscreen short before logo stop mark
         cMark *blackStop = blackMarks.GetPrev(mark->position, MT_NOBLACKSTART);
