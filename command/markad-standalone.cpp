@@ -2237,8 +2237,24 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 // search for logo start mark around assumed start
     int maxAssumed = MAX_ASSUMED;
     if (macontext.Info.startFromVPS && criteria->GoodVPS()) {
-        maxAssumed = MAX_ASSUMED_VPS;  // if we use a valid VPS event based start time do only near search
-        dsyslog("cMarkAdStandalone::Check_LOGOSTART(): channel with good VPS, max distance from VPS start event %ds", maxAssumed);
+        // check if VPS start event is invalid, MT_LOGOSTOP -> VPS_START -> MT_LOGOSTART
+        bool validVPS = true;
+        cMark *logoStop = marks.GetPrev(startA, MT_LOGOCHANGE, 0xF0);
+        if (logoStop && (logoStop->type == MT_LOGOSTOP)) {
+            cMark *logoStart = marks.GetNext(startA, MT_LOGOCHANGE, 0xF0);
+            if (logoStart && (logoStart->type == MT_LOGOSTART)) {
+                int diff = (logoStart->position - startA) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::Check_LOGOSTART(): MT_LOGOSTOP (%d) -> VPS_START (%d) -> %ds -> MT_LOGOSTART (%d)", logoStop->position, startA, diff, logoStart->position);
+                if (diff > MAX_ASSUMED_VPS) {
+                    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): VPS start event during long part without logo is invalid");
+                    validVPS = false;
+                }
+            }
+        }
+        if (validVPS) {
+            maxAssumed = MAX_ASSUMED_VPS;  // if we use a valid VPS event based start time do only near search
+            dsyslog("cMarkAdStandalone::Check_LOGOSTART(): channel with good VPS and valid start event, use max distance from VPS start event %ds", maxAssumed);
+        }
     }
     cMark *lStartAssumed = marks.GetAround(maxAssumed * decoder->GetVideoFrameRate(), startA, MT_LOGOSTART);
     if (!lStartAssumed) {
