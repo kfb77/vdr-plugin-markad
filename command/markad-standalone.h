@@ -130,7 +130,9 @@ typedef struct sMarkAdContext {
         bool isRunningRecording        = false;    //!< <b>true:</b> markad is running during recording <br>
         //!< <b>false:</b>  markad is running after recording
         //!<
-        int tStart                     = -1;       //!< offset of timer start to recording start (pre timer)
+        int preTimer                   = -1;       //!< offset in seconds of timer start to recording start (pre timer)
+        //!<
+        int tStart                     = -1;       //!< offset in seconds of timer start to recording start (from pre timer or VPS start event)
         //!<
         bool startFromVPS              = false;    //!< tStart is from VPS start event
         //!<
