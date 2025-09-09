@@ -6552,22 +6552,31 @@ void cMarkAdStandalone::LoadInfo() {
                 int vpsStop = vps->GetStop();
                 if (vpsStop > macontext.Info.tStart) {
                     dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop  event at offset:           %5ds -> %d:%02d:%02dh", vpsStop, vpsStop / 3600, (vpsStop % 3600) / 60, vpsStop % 60);
-                    dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from vdr info file: %5ds -> %d:%02d:%02dh", length, length / 3600, (length % 3600) / 60, length % 60);
-                    int lengthVPS = vpsStop - macontext.Info.tStart;
+                    dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from vdr info file: %5ds -> %d:%02d:%02dh", length,  length  / 3600, (length  % 3600) / 60, length  % 60);
+                    int lengthVPS = vpsStop   - macontext.Info.tStart;
                     int diff      = lengthVPS - length;
                     dsyslog("cMarkAdStandalone::LoadInfo(): broadcast length from VPS events:    %5ds -> %d:%02d:%02dh, %ds longer than length from vdr info file", lengthVPS, lengthVPS / 3600, (lengthVPS % 3600) / 60, lengthVPS % 60, diff);
-                    // invalid examples:
-                    // -615 (accepted invalid VPS sequence, false stop, running after)
-                    // changed from  506 to  298
-                    // changed from -615 to -577  // found invalid length with -577
-                    if ((diff >= 285) || (diff <= -577)) {
-                        dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop event seems to be invalid, use length from vdr info file");
-                        vps->SetStop(-1);  // set VPS stop event to invalid
+
+                    // check if length from VPS events can be valid
+                    bool valid = true;
+                    if (criteria->GoodVPS()) {  // trust good VPS event channel
+                        // invalid examples:
+                        // tbd
+                        if ((diff >= 285) || (diff <= -577)) valid = false;
                     }
                     else {
+                        // invalid examples:
+                        // 280 (too big length from too early VPS start event)
+                        if ((diff >= 280) || (diff <= -577)) valid = false;
+                    }
+                    if (valid) {
                         dsyslog("cMarkAdStandalone::LoadInfo(): VPS events seems to be valid, use length from VPS events");
                         length = lengthVPS;
                         macontext.Info.lengthFromVPS = true;
+                    }
+                    else {
+                        dsyslog("cMarkAdStandalone::LoadInfo(): VPS stop event seems to be invalid, use length from vdr info file");
+                        vps->SetStop(-1);  // set VPS stop event to invalid
                     }
                 }
             }
