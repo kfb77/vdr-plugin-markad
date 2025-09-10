@@ -2681,12 +2681,35 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     }
 
     // search vborder start mark
-    vStart = marks.GetAround(240 * decoder->GetVideoFrameRate() + startA, startA, MT_VBORDERSTART);
+    vStart = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_VBORDERSTART);
     if (!vStart) {
-        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no vertical border at start found, ignore vertical border detection");
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no vertical border at start found");
+        // check for vborder double episode
+        // sequence MT_VBORDERSTART -> startA -> MT_VBORDERSTOP
+        vStart             = marks.GetNext(-1, MT_VBORDERSTART);
+        const cMark *vStop = marks.GetNext( 0, MT_VBORDERSTOP);
+        if (vStart) {
+            if (vStop) {
+                int vStartstartA = (startA          - vStart->position) / decoder->GetVideoFrameRate();
+                int startAvStop  = (vStop->position - startA)           / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_VBORDERSTART (%d) -> %ds -> startA (%d) -> %ds -> MT_VBORDERSTOP (%ds)", vStart->position, vStartstartA, startA, startAvStop, vStop->position);
+                // exampe of double episode
+                // MT_VBORDERSTART (0) -> 467s -> startA (11675) -> 288s -> MT_VBORDERSTOP (18894s)
+                // MT_VBORDERSTART (0) -> 496s -> startA (12400) -> 178s -> MT_VBORDERSTOP (16864s)
+                if ((vStart->position < IGNORE_AT_START) && (startAvStop >= 178)) {
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder double episode detected, vborder stop is from fist ad");
+                    criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
+                    return nullptr;
+                }
+            }
+            else if (vStart->position < IGNORE_AT_START) {
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder double episode detected, continuous activ vborder in start part");
+                criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
+                return nullptr;
+            }
+        }
         criteria->SetDetectionState(MT_VBORDERCHANGE, false);
         marks.DelType(MT_VBORDERSTART, 0xFF);  // maybe we have a vborder start from a preview or in a doku, delete it
-        const cMark *vStop = marks.GetAround(240 * decoder->GetVideoFrameRate() + startA, startA, MT_VBORDERSTOP);
         if (vStop) {
             int pos         = vStop->position;
             int64_t pts     = vStop->pts;
