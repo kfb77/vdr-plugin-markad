@@ -1400,6 +1400,7 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
     if (!hBorderFramePTS)     return HBORDER_ERROR;
 #define CHECKHEIGHT           5  // changed from 8 to 5
 #define NO_HBORDER          200  // internal limit for early loop exit, must be more than BRIGHTNESS_H_MAYBE
+#define IGNORE_EDGE         0.2  // ignore 20% of left and right edge in case of we have vborder
 
     const sVideoPicture *picture = decoder->GetVideoPicture();
     if (!picture) {  // picture->pts, picture->plane[] and picture->planeLineSize[] was checked by GetVideoPicture()
@@ -1415,25 +1416,25 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
     int valBottom        =  0;
 
     // check top border
-    for (int line = 1; line < CHECKHEIGHT ; line++) {  // ignore first line, sometimes the are pixel
-        for (int column = 0; column < picture->width; column++) {
+    for (int line = 1; line < CHECKHEIGHT ; line++) {  // ignore first line, sometimes there are pixel
+        for (int column = picture->width * IGNORE_EDGE; column < picture->width * (1 - IGNORE_EDGE); column++) {  // ignore left and right edge in case of we have vborder
             sumTop += picture->plane[0][(line * picture->planeLineSize[0] + column)];
         }
-        valTop = sumTop / ((CHECKHEIGHT - 1) * picture->width);
+        valTop = sumTop / ((CHECKHEIGHT - 1) * picture->width * (1 - IGNORE_EDGE) * (1 - IGNORE_EDGE));
         if (valTop > brightnessMaybe) break;
     }
-    valTop = sumTop / ((CHECKHEIGHT - 1) * picture->width);
+    valTop = sumTop / ((CHECKHEIGHT - 1) * picture->width * (1 - IGNORE_EDGE) * (1 - IGNORE_EDGE));
 
     // check bottom border
     if (valTop <= brightnessMaybe) {
         for (int line = picture->height - CHECKHEIGHT; line < picture->height; line++) {
-            for (int column = 0; column < picture->width; column++) {
+            for (int column =  picture->width * IGNORE_EDGE; column < picture->width * (1 - IGNORE_EDGE); column++) {  // ignore left and right edge in case of we have vborder
                 sumBottom += picture->plane[0][(line * picture->planeLineSize[0] + column)];
             }
-            valBottom = sumBottom / (CHECKHEIGHT * picture->width);
+            valBottom = sumBottom / (CHECKHEIGHT * picture->width * (1 - IGNORE_EDGE) * (1 - IGNORE_EDGE));
             if (valBottom > brightnessMaybe) break;
         }
-        valBottom = sumBottom / (CHECKHEIGHT * picture->width);
+        valBottom = sumBottom / (CHECKHEIGHT * picture->width * (1 - IGNORE_EDGE) * (1 - IGNORE_EDGE));
     }
     else valBottom = NO_HBORDER;   // we have no top border, so we do not have to calculate bottom border
 
@@ -1445,7 +1446,7 @@ int cHorizBorderDetect::Process(int *hBorderPacketNumber, int64_t *hBorderFrameP
         // check if we have hborder in bright picture
         if (!valid) {
             int pictureBrightness = GetPictureCenterBrightness(picture);
-            if (pictureBrightness > 44) {
+            if (pictureBrightness > 55) { // changed from 44 to 55
 #ifdef DEBUG_HBORDER
                 dsyslog("cHorizBorderDetect::Process(): packet (%7d): first hborder in bright %d picture", picture->packetNumber, pictureBrightness);
 #endif
