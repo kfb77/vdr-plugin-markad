@@ -2518,7 +2518,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
             // very short broadcast without next hborder start is invalid
             const cMark *hStartNext = marks.GetNext(hStop->position, MT_HBORDERSTART);
             if (!hStartNext &&
-                    ((lengthBroadcast <= 142) ||  // very short broadcast can be from preview or hborder part in documentation, changed from 94 to 142
+                    ((lengthBroadcast <= 159) ||  // very short broadcast can be from preview, hborder part in documentation or false positiv of dark scene, changed from 142 to 159
                      ((lengthBroadcast <= 350) && (hBorderStopStartA <= 194)))) {  // very early hborder part can be last part of previous broadcast
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): first broadcast too short, no next hborder start, delete hborder marks");
                 marks.Del(hStart->position);
