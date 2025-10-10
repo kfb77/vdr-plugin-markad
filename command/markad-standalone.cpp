@@ -5422,7 +5422,7 @@ void cMarkAdStandalone::LowerBorderOptimization() {
                 case MT_MOVEDSTOP:
                     switch (mark->newType) {
                     case MT_VPSSTOP:
-                        if (criteria->GoodVPS()) maxAfter =  71519;
+                        if (criteria->GoodVPS()) maxAfter =  20739;
                         else                     maxAfter = 257760;
                         break;
                     default:
