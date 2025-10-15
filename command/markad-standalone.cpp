@@ -5009,9 +5009,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxAfter = 260;
                     break;
                 case MT_VBORDERSTART:
-                    if (lengthAfter >= maxAfter)                   maxAfter =    0;  // prevent to move to end of black screen with text from broadcast start
-                    else if (silenceAfter && (lengthAfter >= 240)) maxAfter = 7440;
-                    else                                           maxAfter = 6120;
+                    if (silenceAfter && (lengthAfter >= 240)) maxAfter = 7440;
+                    else                                      maxAfter = 6120;
                     break;
                 case MT_CHANNELSTART:
                     maxAfter = 4319;   // black sceen after start of broadcast 4320ms (3840)
@@ -5025,7 +5024,8 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 case MT_MOVEDSTART:
                     switch (mark->newType) {
                     case MT_VPSSTART:
-                        if (criteria->GoodVPS())        maxAfter =   7020;
+                        if (lengthAfter >= 28620)       maxAfter =      0;  // long blackscreen from very long before to after VPS start is closing credits from broadcast before
+                        else if (criteria->GoodVPS())   maxAfter =   7020;
                         else if (silenceAfter)          maxAfter = 149880;
                         else if (lengthAfter >= 3160)   maxAfter = 139240;  // black screen from separator or opening credits
                         else if (lengthAfter >    40)   maxAfter =  20960;
