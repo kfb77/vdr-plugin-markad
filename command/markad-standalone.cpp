@@ -323,6 +323,10 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
             }
         }
     }
+    if (criteria->GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_USED) {
+        dsyslog("cMarkAdStandalone::Check_HBORDERSTOP(): broadcast with vborder, ignore hborder marks");
+        return nullptr;
+    }
     // search hborder stop mark around stopA
     end = marks.GetAround(2 * MAX_ASSUMED * decoder->GetVideoFrameRate(), stopA, MT_HBORDERSTOP);  // 10 minutes, more trust for hborder marks
     if (end) {
