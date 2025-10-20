@@ -2495,7 +2495,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     if (hStart) { // we found a hborder start mark
         cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);
         if (hStop) { // we have a hborder stop mark in start area, check if hborder marks are valid
-            // check if hbrder start/stop is end part of previous broadcast
+            // check if hborder start/stop is end part of previous broadcast
             if (hStop->position < startA) {
                 dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start (%d) and stop (%d) mark before assumed start (%d), hborder marks are from previous broadcast", hStart->position, hStop->position, startA);
                 marks.Del(hStart->position); // keep hborder stop as end of previous broadcast, may we can use it as fallback
@@ -2515,6 +2515,25 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                 marks.Del(hStop->position);
                 return nullptr;
             }
+            // check if hborder marks are from long black closing credits
+            // check sequence MT_HBORDERSTART -> MT_LOGOSTOP -> MT_HBORDERSTOP
+            if (criteria->LogoInBorder()) {  // only possible if we have logo marks
+                const cMark *logoStop = marks.GetNext(hStart->position, MT_LOGOSTART);
+                if (logoStop) {
+                    const cMark *hStopNext = marks.GetNext(logoStop->position, MT_HBORDERSTOP);
+                    if (hStopNext) {
+                        int hStartLogoStop     = (logoStop->position  - hStart->position)   / decoder->GetVideoFrameRate();
+                        int logoStopBorderStop = (hStopNext->position - logoStop->position) / decoder->GetVideoFrameRate();
+                        dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): check closing credits: MT_HBORDERSTART (%d) -> %ds -> MT_LOGOSTOP (%d) -> %ds -> MT_HBORDERSTOP (%d)", hStart->position, hStartLogoStop, logoStop->position, logoStopBorderStop, hStopNext->position);
+                        // invalid hborder start from closing credits of previous broadcast
+                        // MT_HBORDERSTART (10678) -> 13s -> MT_LOGOSTOP (11024) -> 72s -> MT_HBORDERSTOP (12840)
+                        if ((hStartLogoStop >= 13) && (logoStopBorderStop <= 72))
+                            dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): invalid hborder start from closing credits of previous broadcast");
+                        return nullptr;
+                    }
+                }
+            }
+
             // check if hborder marks are from long black opening credits
             // false hborder from opening credits or dokus always have logo in border
             cMark *logoStartBefore = marks.GetAround(20 * decoder->GetVideoFrameRate(), hStart->position, MT_LOGOSTART);  // logo start can be short after hborder start (fade in logo)
