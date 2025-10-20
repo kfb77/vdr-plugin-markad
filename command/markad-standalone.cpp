@@ -2694,14 +2694,18 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
                 // MT_VBORDERSTART (0) -> 467s -> startA (11675) -> 288s -> MT_VBORDERSTOP (18894s)
                 // MT_VBORDERSTART (0) -> 496s -> startA (12400) -> 178s -> MT_VBORDERSTOP (16864s)
                 if ((vStart->position < IGNORE_AT_START) && (startAvStop >= 178)) {
-                    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder double episode detected, vborder stop is from fist ad");
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder double episode detected, vborder stop is from first ad");
                     criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete HBORDER marks if any");
+                    marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
                     return nullptr;
                 }
             }
             else if (vStart->position < IGNORE_AT_START) {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder double episode detected, continuous activ vborder in start part");
                 criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete HBORDER marks if any");
+                marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
                 return nullptr;
             }
         }
