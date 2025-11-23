@@ -7038,7 +7038,7 @@ cMarkAdStandalone::~cMarkAdStandalone() {
     delete criteria;
 
 // log statistics
-    if ((!abortNow) && (!duplicate) && (decoder->GetVideoFrameRate() > 0)) {
+    if ((!abortNow) && (!duplicate) && (decoder != NULL) && (decoder->GetVideoFrameRate() > 0)) {
         LogSeparator();
 
         // broadcast length without advertisement
