@@ -6515,9 +6515,10 @@ void cMarkAdStandalone::LoadInfo() {
             }
         }
         if (line[0] == 'F') {
-            int fps, frameWidth, frameHeight;
+            int fps;
+            unsigned int frameWidth, frameHeight;
             char scanTypeCode;
-            int result = sscanf(line, "%*c %3i %u %u %c %u:%u", &fps, &frameWidth, &frameHeight, &scanTypeCode, &aspectRatio_F.num, &aspectRatio_F.den);
+            int result = sscanf(line, "%*c %3i %u %u %c %i:%i", &fps, &frameWidth, &frameHeight, &scanTypeCode, &aspectRatio_F.num, &aspectRatio_F.den);
             if ((result == 0) || (result == EOF)) {
             }
             else {
