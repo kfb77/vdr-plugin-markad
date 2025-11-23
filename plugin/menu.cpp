@@ -52,7 +52,7 @@ cOsdMarkAd::cOsdMarkAd(struct sRecording *Entry) {
 }
 
 
-cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"), 15) {
+cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status")) {
     status = Status;
     int width = 0;
 
@@ -62,7 +62,7 @@ cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status"), 15
     }
     if (!width) width = Setup.OSDWidth;
 
-    int AvgCharWidth = Setup.FontOsdSize * 3 / 5; // see skins.c
+    int AvgCharWidth = Setup.FontOsdSize * 4 / 6; // see skins.c
     if (AvgCharWidth < 1) AvgCharWidth = 1;
     int tab = (width - 10 * AvgCharWidth) / AvgCharWidth;
     SetCols(tab);

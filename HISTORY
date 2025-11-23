@@ -6,6 +6,8 @@ next version:
   thx to FireFly@www.vdr-portal.de for contribution
 - fix crash with parameter --extractlogo
   thx to FireFly@www.vdr-portal.de for contribution
+- fix status screen position
+  thx to FireFly@www.vdr-portal.de for contribution
 
 2025-07-31: Version 4.2.15
 - init threads with number of CPUs
