@@ -6422,6 +6422,8 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
 
 
 void cMarkAdStandalone::LoadInfo() {
+    sAspectRatio aspectRatio_F = {0};
+    sAspectRatio aspectRatio_X = {0};
     char *buf;
     if (asprintf(&buf, "%s/info", directory) == -1) return;
     ALLOC(strlen(buf)+1, "buf");
@@ -6513,11 +6515,17 @@ void cMarkAdStandalone::LoadInfo() {
             }
         }
         if (line[0] == 'F') {
-            int fps;
-            int result = sscanf(line, "%*c %3i", &fps);
+            int fps, frameWidth, frameHeight;
+            char scanTypeCode;
+            int result = sscanf(line, "%*c %3i %u %u %c %u:%u", &fps, &frameWidth, &frameHeight, &scanTypeCode, &aspectRatio_F.num, &aspectRatio_F.den);
             if ((result == 0) || (result == EOF)) {
             }
-            else dsyslog("frame rate %d (from vdr info)", fps);
+            else {
+                dsyslog("frame rate %d (from vdr info)", fps);
+                if (result == 6) {
+                    dsyslog("aspect ratio %u:%u (vdr frame info, line F)", aspectRatio_F.num, aspectRatio_F.den);
+                }
+            }
         }
         if ((line[0] == 'X') && (!bLiveRecording)) {
             int stream = 0, type = 0;
@@ -6527,14 +6535,14 @@ void cMarkAdStandalone::LoadInfo() {
             if ((result != 0) && (result != EOF)) {
                 if ((stream == 1) || (stream == 5)) {
                     if ((type != 1) && (type != 5) && (type != 9) && (type != 13)) {
-                        dsyslog("aspect ratio 16:9 (from vdr info)");
-                        macontext.Info.AspectRatio.num = 16;
-                        macontext.Info.AspectRatio.den = 9;
+                        dsyslog("aspect ratio 16:9 (vdr info, line X)");
+                        aspectRatio_X.num = 16;
+                        aspectRatio_X.den = 9;
                     }
                     else {
-                        dsyslog("aspect ratio 4:3 (from vdr info)");
-                        macontext.Info.AspectRatio.num = 4;
-                        macontext.Info.AspectRatio.den = 3;
+                        dsyslog("aspect ratio 4:3 (vdr info, line X)");
+                        aspectRatio_X.num = 4;
+                        aspectRatio_X.den = 3;
                     }
                 }
 
@@ -6553,6 +6561,25 @@ void cMarkAdStandalone::LoadInfo() {
             }
         }
     }
+    // check aspect ratio info
+    if ((aspectRatio_F.num != 0) && (aspectRatio_F.den != 0) && (aspectRatio_X.num != 0) && (aspectRatio_X.den != 0)) { // aspect ratio from both lines
+        if (aspectRatio_F == aspectRatio_X) {
+            macontext.Info.AspectRatio = aspectRatio_F;
+            dsyslog("use aspect ratio %d:%d (vdr info, line F and X)", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
+        }
+        else {
+            esyslog("different aspect ratio from vdr info file in line F and X is invalid");
+        }
+    }
+    else if ((aspectRatio_F.num != 0) && (aspectRatio_F.den != 0) && (aspectRatio_X.num == 0) && (aspectRatio_X.den == 0)) { // aspect ratio only in F line
+        macontext.Info.AspectRatio = aspectRatio_F;
+        dsyslog("use aspect ratio %d:%d (vdr info, line F)", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
+    }
+    else if ((aspectRatio_F.num == 0) && (aspectRatio_F.den == 0) && (aspectRatio_X.num != 0) && (aspectRatio_X.den != 0)) { // aspect ratio only in X line
+        macontext.Info.AspectRatio = aspectRatio_X;
+        dsyslog("use aspect ratio %d:%d (vdr info, line X)", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
+    }
+
     // create criteria object
     criteria = new cCriteria(macontext.Info.ChannelName);
     ALLOC(sizeof(*criteria), "criteria");
