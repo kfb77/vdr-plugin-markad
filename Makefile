@@ -10,7 +10,7 @@ PKG_CONFIG ?= pkg-config
 
 VERSION = $(shell grep 'static const char \*VERSION *=' version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
 GITTAG  = $(shell git describe --always 2>/dev/null)
-$(shell GITVERSION=`git rev-parse --short HEAD 2> /dev/null`; if [ "$$GITVERSION" ]; then sed "s/\";/ ($$GITVERSION)\";/" version.dist > version.h; else cp version.dist version.h; fi)
+$(shell GITVERSION=`git rev-parse --short HEAD 2> /dev/null`; if [ "$$GITVERSION" ]; then sed "s/\";/ ($$GITVERSION)\";/" version.dist > version.h; else cp -p version.dist version.h; fi)
 
 ### The directory environment:
 
