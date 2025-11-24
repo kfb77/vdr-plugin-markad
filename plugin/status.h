@@ -8,7 +8,6 @@
 #define __status_h_
 
 #include <vdr/status.h>
-// #include <chrono>
 #include "setup.h"
 
 #if __GNUC__ > 3
@@ -16,6 +15,7 @@
 #else
 #define UNUSED(x) x
 #endif
+
 
 enum eVpsLog {
     VPS_ERROR = 0,

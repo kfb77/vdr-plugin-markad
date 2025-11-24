@@ -11,9 +11,8 @@
 #include <cstring>
 #include <vector>
 #include <pthread.h>
-
-#include "debug.h"
 #include <vdr/plugin.h>
+#include "debug.h"
 
 
 int memUseSum = 0;

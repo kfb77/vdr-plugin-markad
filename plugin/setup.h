@@ -23,7 +23,8 @@ struct setup {
     bool whileReplaying    = false;;
     bool OSDMessage        = false;
     int  svdrPort          = 6419;
-    bool Verbose           = false;
+    bool verbosePlugin     = false;
+    bool verboseMarkad     = false;
     bool HideMainMenuEntry = false;
     bool Log2Rec           = false;
     bool LogoOnly          = false;
@@ -61,7 +62,8 @@ private:
     int whilereplaying           = 0;
     int osdmsg                   = 0;
     int svdrPort                 = 6419;
-    int verbose                  = 0;
+    int verbosePlugin            = 0;
+    int verboseMarkad            = 0;
     int hidemainmenuentry        = 0;
     int log2rec                  = 0;
     int logoonly                 = 0;

@@ -37,7 +37,8 @@ cPluginMarkAd::cPluginMarkAd(void) {
     setup.whileRecording    = true;
     setup.whileReplaying    = true;
     setup.OSDMessage        = false;
-    setup.Verbose           = false;
+    setup.verbosePlugin     = false;
+    setup.verboseMarkad     = false;
     setup.HideMainMenuEntry = false;
     setup.Log2Rec           = false;
     setup.LogoOnly          = true;
@@ -166,7 +167,7 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
 
 bool cPluginMarkAd::Initialize(void) {
     // Initialize any background activities the plugin shall perform.
-    dsyslog("markad: cPluginMarkAd::Initialize() called");
+    if (setup.verbosePlugin) dsyslog("markad: cPluginMarkAd::Initialize() called");
     char *path;
     if (asprintf(&path, "%s/markad", bindir) == -1) return false;
     ALLOC(strlen(path)+1, "path");
@@ -182,7 +183,7 @@ bool cPluginMarkAd::Initialize(void) {
     FREE(strlen(path)+1, "path");
     free(path);
 
-    dsyslog("markad: cPluginMarkAd::Initialize(): create status monitor");
+    if (setup.verbosePlugin) dsyslog("markad: cPluginMarkAd::Initialize(): create status monitor");
     statusMonitor = new cStatusMarkAd(bindir, logodir, &setup);
     ALLOC(sizeof(*statusMonitor), "statusMonitor");
     return (statusMonitor!=nullptr);
@@ -191,7 +192,7 @@ bool cPluginMarkAd::Initialize(void) {
 
 bool cPluginMarkAd::Start(void) {
     // Start any background activities the plugin shall perform.
-    dsyslog("markad: cPluginMarkAd::Start() called");
+    if (setup.verbosePlugin) dsyslog("markad: cPluginMarkAd::Start() called");
     lastcheck = 0;
     setup.PluginName = Name();
     if (loglevel) {
@@ -214,7 +215,7 @@ bool cPluginMarkAd::Start(void) {
 
 void cPluginMarkAd::Stop(void) {
     // Stop any background activities the plugin is performing.
-    dsyslog("markad: cPluginMarkAd::Stop() called");
+    if (setup.verbosePlugin) dsyslog("markad: cPluginMarkAd::Stop() called");
 }
 
 
@@ -226,7 +227,7 @@ void cPluginMarkAd::Housekeeping(void) {
 cString cPluginMarkAd::Active(void) {
     // Return a message string if shutdown should be postponed
     if (statusMonitor->MarkAdRunning() && (setup.DeferredShutdown)) {
-        dsyslog("markad: markad still running, shutdown request rejected");
+        if (setup.verbosePlugin) dsyslog("markad: markad still running, shutdown request rejected");
         return tr("markad still running");
     }
     return nullptr;
@@ -260,7 +261,8 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
     else if (!strcasecmp(Name,"whileReplaying"))     setup.whileReplaying    = atoi(Value);
     else if (!strcasecmp(Name,"OSDMessage"))         setup.OSDMessage        = atoi(Value);
     else if (!strcasecmp(Name,"svdrPort"))           setup.svdrPort          = atoi(Value);
-    else if (!strcasecmp(Name,"Verbose"))            setup.Verbose           = atoi(Value);
+    else if (!strcasecmp(Name,"VerbosePlugin"))      setup.verbosePlugin     = atoi(Value);
+    else if (!strcasecmp(Name,"Verbose"))            setup.verboseMarkad     = atoi(Value);
     else if (!strcasecmp(Name,"HideMainMenuEntry"))  setup.HideMainMenuEntry = atoi(Value)?true:false;
     else if (!strcasecmp(Name,"Log2Rec"))            setup.Log2Rec           = atoi(Value);
     else if (!strcasecmp(Name,"LogoOnly"))           setup.LogoOnly          = atoi(Value);

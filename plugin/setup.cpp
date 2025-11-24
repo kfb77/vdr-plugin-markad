@@ -18,7 +18,8 @@ cSetupMarkAd::cSetupMarkAd(struct setup *Setup) {
     whilereplaying    = setup->whileReplaying;
     osdmsg            = setup->OSDMessage;
     svdrPort          = setup->svdrPort;
-    verbose           = setup->Verbose;
+    verbosePlugin     = setup->verbosePlugin;
+    verboseMarkad     = setup->verboseMarkad;
     hidemainmenuentry = setup->HideMainMenuEntry;
     log2rec           = setup->Log2Rec;
     logoonly          = setup->LogoOnly;
@@ -58,7 +59,8 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("deferred shutdown"), &deferredshutdown));
         Add(new cMenuEditBoolItem(tr("OSD message"), &osdmsg));
         Add(new cMenuEditIntItem(tr("SVDR port number"), &svdrPort));
-        Add(new cMenuEditBoolItem(tr("verbose logging"), &verbose));
+        Add(new cMenuEditBoolItem(tr("verbose logging (plugin)"), &verbosePlugin));
+        Add(new cMenuEditBoolItem(tr("verbose logging (markad)"), &verboseMarkad));
         Add(new cMenuEditBoolItem(tr("log to recording directory"), &log2rec));
         Add(new cMenuEditBoolItem(tr("hide mainmenu entry"), &hidemainmenuentry));
         if (setup->autoLogoConf < 0) Add(new cMenuEditStraItem(tr("logo source"), &autologomenu, 3, autoLogoTexts));
@@ -121,7 +123,8 @@ void cSetupMarkAd::Store(void) {
     SetupStore("whileReplaying", whilereplaying);
     SetupStore("OSDMessage", osdmsg);
     SetupStore("svdrPort", svdrPort);
-    SetupStore("Verbose", verbose);
+    SetupStore("VerbosePlugin", verbosePlugin);
+    SetupStore("Verbose", verboseMarkad);
     SetupStore("HideMainMenuEntry", hidemainmenuentry);
     SetupStore("Log2Rec", log2rec);
     SetupStore("LogoOnly", logoonly);
@@ -137,7 +140,8 @@ void cSetupMarkAd::Store(void) {
     setup->whileReplaying    = static_cast<bool>(whilereplaying);
     setup->OSDMessage        = static_cast<bool>(osdmsg);
     setup->svdrPort          = static_cast<int>(svdrPort);
-    setup->Verbose           = static_cast<bool>(verbose);
+    setup->verbosePlugin     = static_cast<bool>(verbosePlugin);
+    setup->verboseMarkad     = static_cast<bool>(verboseMarkad);
     setup->HideMainMenuEntry = static_cast<bool>(hidemainmenuentry);
     setup->DeferredShutdown  = static_cast<bool>(deferredshutdown);
     setup->autoLogoMenu      = static_cast<int>(autologomenu);
