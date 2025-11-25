@@ -3,6 +3,7 @@ VDR Plugin 'markad' Revision History
 
 next version:
 - new feature: add config parameter to quiet plugin logging if VDR runs with debug log level
+- declare paramater --extractlogo as deprecated
 - Makefile: fix timestamp of version.h
   thx to FireFly@www.vdr-portal.de for contribution
 - fix crash with parameter --extractlogo
