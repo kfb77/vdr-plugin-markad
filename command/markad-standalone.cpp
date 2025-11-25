@@ -107,7 +107,6 @@ static inline int ioprio_get(int which, int who) {
 void syslog_with_tid(int priority, const char *format, ...) {
     va_list ap;
     if ((SYSLOG) && (!LOG2REC)) {
-        priority = LOG_ERR;
         char fmt[255];
         snprintf(fmt, sizeof(fmt), "[%d] %s", getpid(), format);
         va_start(ap, format);
