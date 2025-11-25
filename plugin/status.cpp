@@ -1034,7 +1034,9 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         }
         else {
             // no error message if recording is not tracked
-            if (((setup->ProcessDuring == PROCESS_NEVER) && !setup->useVPS) && (setup->verbosePlugin)) dsyslog("markad: cStatusMarkAd::Recording(): recording %s stopped: not found in recording list", FileName);
+            if ((setup->ProcessDuring == PROCESS_NEVER) && !setup->useVPS) {
+                if (setup->verbosePlugin) dsyslog("markad: cStatusMarkAd::Recording(): recording %s stopped: not found in recording list", FileName);
+            }
             else esyslog("markad: cStatusMarkAd::Recording(): recording %s stopped: not found in recording list", FileName);
         }
     }
@@ -1233,8 +1235,10 @@ bool cStatusMarkAd::MarkAdRunning() {
     ResetActPos();
     bool running = false;
     while (GetNextActive(&tmpRecs)) {
-        if ((tmpRecs->title) && (setup->verbosePlugin)) dsyslog("markad: markad is running for recording %s, defere shutdown", tmpRecs->title);
-        else if (setup->verbosePlugin) dsyslog("markad: markad is running for unknown recording, defere shutdown");
+        if (setup->verbosePlugin) {
+            if (tmpRecs->title) dsyslog("markad: markad is running for recording %s, defere shutdown", tmpRecs->title);
+            else                dsyslog("markad: markad is running for unknown recording, defere shutdown");
+        }
         running = true;
     }
     return (running);
