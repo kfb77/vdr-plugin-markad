@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2025-11-24 22:19+0100\n"
+"POT-Creation-Date: 2025-11-25 16:27+0100\n"
 "PO-Revision-Date: 2011-02-12 11:30+0100\n"
 "Last-Translator: Javier Bradineras <jbradi@hotmail.com>\n"
 "Language-Team: Spanish <vdr@linuxtv.org>\n"
@@ -82,6 +82,9 @@ msgstr ""
 msgid "log VPS events"
 msgstr ""
 
+msgid "verbose logging (plugin)"
+msgstr ""
+
 msgid "  during another recording"
 msgstr "  Durante otra grabación"
 
@@ -98,9 +101,6 @@ msgid "OSD message"
 msgstr "Mensaje OSD"
 
 msgid "SVDR port number"
-msgstr ""
-
-msgid "verbose logging (plugin)"
 msgstr ""
 
 msgid "verbose logging (markad)"

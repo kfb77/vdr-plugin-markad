@@ -49,6 +49,7 @@ void cSetupMarkAd::write(void) {
     Add(first);
     if (processduring != PROCESS_DURING) Add(new cMenuEditBoolItem(tr("use VPS"), &usevps));
     if (usevps && (processduring != PROCESS_DURING)) Add(new cMenuEditBoolItem(tr("log VPS events"), &logvps));
+    Add(new cMenuEditBoolItem(tr("verbose logging (plugin)"), &verbosePlugin));
     if (processduring < PROCESS_NEVER) {
         if (!processduring) {
             Add(new cMenuEditBoolItem(tr("  during another recording"), &whilerecording));
@@ -59,7 +60,6 @@ void cSetupMarkAd::write(void) {
         Add(new cMenuEditBoolItem(tr("deferred shutdown"), &deferredshutdown));
         Add(new cMenuEditBoolItem(tr("OSD message"), &osdmsg));
         Add(new cMenuEditIntItem(tr("SVDR port number"), &svdrPort));
-        Add(new cMenuEditBoolItem(tr("verbose logging (plugin)"), &verbosePlugin));
         Add(new cMenuEditBoolItem(tr("verbose logging (markad)"), &verboseMarkad));
         Add(new cMenuEditBoolItem(tr("log to recording directory"), &log2rec));
         Add(new cMenuEditBoolItem(tr("hide mainmenu entry"), &hidemainmenuentry));
