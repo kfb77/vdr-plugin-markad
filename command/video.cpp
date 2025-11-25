@@ -166,9 +166,9 @@ bool cLogoDetect::LoadLogoPlane(const char *path, const char *logoName, const in
     FILE *pFile = nullptr;
     pFile = fopen(logoFileName, "rb");
     FREE(strlen(logoFileName) + 1, "logoFileName");
-    free(logoFileName);
     if (!pFile) {
         dsyslog("cLogoDetect::LoadLogoPlane(): file not found for logo %s plane %d in %s", logoName, plane, path);
+        free(logoFileName);
         return false;
     }
     dsyslog("cLogoDetect::LoadLogoPlane(): file found for logo %s plane %d in %s", logoName, plane, path);
@@ -178,9 +178,11 @@ bool cLogoDetect::LoadLogoPlane(const char *path, const char *logoName, const in
     char c;
     if (fscanf(pFile, "P5\n#%1c%1i %4i\n%3d %3d\n255\n#", &c, &area.logoCorner, &area.mPixel[plane], &width, &height) != 5) {
         fclose(pFile);
-        esyslog("format error in %s", logoFileName);
+        esyslog("logo file format error in %s", logoFileName);
+        free(logoFileName);
         return false;
     }
+    free(logoFileName);
 
     if (height == 255) {
         height = width;

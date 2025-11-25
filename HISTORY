@@ -14,6 +14,8 @@ next version:
   thx to FireFly@www.vdr-portal.de for contribution
 - markad.conf: fix and update documentation
   thx to FireFly@www.vdr-portal.de for reporting
+- cLogoDetect::LoadLogoPlane(): fix use after free
+  thx to FireFly@www.vdr-portal.de for reporting
 
 2025-07-31: Version 4.2.15
 - init threads with number of CPUs
