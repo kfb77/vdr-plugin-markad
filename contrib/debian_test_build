@@ -1,14 +1,14 @@
 #!/bin/bash
 # debian_test_build <path to recording>
 # script to build a test version of markad in /tmp
-# code based on development branch V03
-# no installation will be done !
+# code based on development branch V04
+# no installation will be done, only build dependencies will be installed.
 
 rm -f -r /tmp/vdr-plugin-markad
 sudo apt-get install build-essential git pkgconf vdr-dev libavcodec-dev libavformat-dev libavfilter-dev libswresample-dev
 
 cd /tmp
-sudo git clone -b V03 https://github.com/kfb77/vdr-plugin-markad
+sudo git clone -b V04 https://github.com/kfb77/vdr-plugin-markad
 
 cd vdr-plugin-markad
 sudo make all

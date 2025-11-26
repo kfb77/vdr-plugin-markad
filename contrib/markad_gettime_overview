@@ -1,6 +1,6 @@
 #!/bin/bash
-# get all process times from markad.log
-# parameter $1 video directory
+# show a summary of the processing times of markad
+# parameter $1 video directory (default: "/media/Video/VDR")
 
 if [ -n "$1" ]; then
     VIDEO=$1

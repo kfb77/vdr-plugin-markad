@@ -1,5 +1,5 @@
 #!/bin/bash
-# extract all logo sizes from markad.log
+# show processing times from all recordings in $VIDEO
 
 VIDEO="/media/Video/VDR"
 

@@ -1,7 +1,7 @@
 #!/bin/bash
-# extract all logo sizes from markad.log
+# show processing times of specified pass from all recordings in $VIDEO
 # parameter $1 pass
-# parameter $2 video directory
+# parameter $2 video directory (default: "/media/Video/VDR")
 
 if [ -n "$1" ]; then
     PASS=$1

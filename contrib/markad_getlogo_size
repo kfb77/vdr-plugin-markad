@@ -1,5 +1,5 @@
 #!/bin/bash
-# extract all logo sizes from markad.log
+# get all logo sizes from markad.log in $VIDEO
 
 VIDEO="/media/Video/VDR"
 
