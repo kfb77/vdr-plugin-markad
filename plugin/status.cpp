@@ -483,13 +483,13 @@ void cStatusMarkAd::SaveVPSTimer(const char *FileName, const bool timerVPS) {
 
     char *fileVPS = nullptr;
     if (!asprintf(&fileVPS, "%s/%s", FileName, "markad.vps")) {
-        esyslog("markad: cStatusMarkAd::SaveVPSEvents(): recording <%s> asprintf failed", FileName);
+        esyslog("markad: cStatusMarkAd::SaveVPSTimer(): recording <%s> asprintf failed", FileName);
         return;
     }
     ALLOC(strlen(fileVPS)+1, "fileVPS");
     FILE *pFile = fopen(fileVPS,"w");
     if (!pFile) {
-        esyslog("markad: cStatusMarkAd::SaveVPSEvents(): recording <%s> open file %s failed", FileName, fileVPS);
+        esyslog("markad: cStatusMarkAd::SaveVPSTimer(): recording <%s> open file %s failed", FileName, fileVPS);
         FREE(strlen(fileVPS)+1, "fileVPS");
         free(fileVPS);
         return;
