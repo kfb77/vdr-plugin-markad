@@ -1,7 +1,7 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
-next version:
+2025-11-30: Version 4.2.16
 - new feature: add config parameter to quiet plugin logging if VDR runs with debug log level
 - declare parameter --extractlogo as deprecated
 - fix syslog priority
@@ -17,6 +17,7 @@ next version:
   thx to FireFly@www.vdr-portal.de for reporting
 - cLogoDetect::LoadLogoPlane(): fix use after free
   thx to FireFly@www.vdr-portal.de for reporting
+- some minor bug fixes and optimizations, see git
 
 2025-07-31: Version 4.2.15
 - init threads with number of CPUs
