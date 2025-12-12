@@ -749,15 +749,15 @@ void cMarkAdStandalone::CleanupUndetectedInfoLogo(const cMark *mark) {
             if (!prevLogoStop) return;
             int stopStart = 1000 * (prevLogoStart->position - prevLogoStop->position)  / decoder->GetVideoFrameRate();
             int startEnd  = 1000 * (mark->position          - prevLogoStart->position) / decoder->GetVideoFrameRate();
-            dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo stop (%d) -> %dms -> start (%d) -> %dms -> end mark (%d)", prevLogoStop->position, stopStart, prevLogoStart->position, startEnd, mark->position);
+            dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): MT_LOGOSTOP (%5d) -> %5dms -> MT_LOGOSTART (%5d) -> %5dms -> end mark (%d) -> %s", prevLogoStop->position, stopStart, prevLogoStart->position, startEnd, mark->position, macontext.Info.ChannelName);
             // no info logo sequence, do not delete
             // logo stop (99273) -> 14760ms -> start (99642) -> 9400ms -> end mark (99877)
             //
             // info logo sequence before end mark, delete marks
-            // logo stop (77361) -> 12840ms -> start (77682) -> 71680ms -> end mark (79474)
-            // logo stop (78852) -> 12720ms -> start (79170) -> 75400ms -> end mark (81055)
+            // MT_LOGOSTOP (89090) ->   880ms -> MT_LOGOSTART (89112) ->  7920ms -> end mark (89310) -> kabel_eins
+            // MT_LOGOSTOP (88860) ->   920ms -> MT_LOGOSTART (88883) -> 17080ms -> end mark (89310) -> kabel_eins
             if ((stopStart <= 30000) &&
-                    (startEnd > 9400) && (startEnd <= 75400)) {
+                    (startEnd >= 7920) && (startEnd <= 75400)) {
                 dsyslog("cMarkAdStandalone::CleanupUndetectedInfoLogo(): logo start (%5d) stop (%5d): undetected info logo or text preview over the logo, delete marks", prevLogoStart->position, prevLogoStop->position);
                 marks.Del(prevLogoStart);
                 marks.Del(prevLogoStop);
