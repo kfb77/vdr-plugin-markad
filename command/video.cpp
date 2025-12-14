@@ -382,10 +382,17 @@ bool cLogoDetect::ReduceBrightness(const int logo_vmark, int *logo_imark) {
                 ((contrastLogo  >   3) && (contrastLogo <=  10) && (brightnessLogo > 202)) ||
                 // (+) contrast  41, brightness 199, logo on bright sky background
                 ((contrastLogo  >  10) && (contrastLogo <=  41) && (brightnessLogo > 199)) ||
-                ((contrastLogo  >  41) && (contrastLogo <= 130) && (brightnessLogo > 180)) ||
-                ((contrastLogo  > 130) && (contrastLogo <= 150) && (brightnessLogo > 150)) ||
-                ((contrastLogo  > 150) && (contrastLogo <= 180) && (brightnessLogo > 140)) ||
-                ((contrastLogo  > 180) && (contrastLogo <= 200) && (brightnessLogo > 124)) ||
+                ((contrastLogo  >  41) && (contrastLogo <= 120) && (brightnessLogo > 180)) ||
+                // (-) logo area before reduction: contrast 130, brightness 133
+                // (-) logo area before reduction: contrast 130, brightness 130
+                // (-) logo area before reduction: contrast 131, brightness 131
+                // (-) logo area before reduction: contrast 131, brightness 127
+                // (-) logo area before reduction: contrast 131, brightness 126
+                // (-) logo area before reduction: contrast 139, brightness 132
+                // (-) logo area before reduction: contrast 141, brightness 129
+                ((contrastLogo  > 120) && (contrastLogo <= 180) && (brightnessLogo > 125)) ||
+                // (-) logo area before reduction: contrast 184, brightness 114
+                ((contrastLogo  > 180) && (contrastLogo <= 200) && (brightnessLogo > 113)) ||
                 ((contrastLogo  > 200) &&                          (brightnessLogo > 104))) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cLogoDetect::ReduceBrightness(): frame (%6d): logo invisible, contrast/brightness in logo area is invalid for brightness reduction", decoder->GetPacketNumber());
