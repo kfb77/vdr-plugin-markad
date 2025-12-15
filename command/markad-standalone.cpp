@@ -6099,14 +6099,14 @@ void cMarkAdStandalone::ProcessOverlap() {
 
 
 bool cMarkAdStandalone::ProcessFrame() {
-    int frameNumber = decoder->GetPacketNumber();
+    int packetNumber = decoder->GetPacketNumber();
     if (decoder->IsVideoFrame()) {
 
 #ifdef DEBUG_LOGO_DETECT_FRAME_CORNER
-        if ((frameNumber > (DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) && (frameNumber < (DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE))) {
+        if ((packetNumber > (DEBUG_LOGO_DETECT_FRAME_CORNER - DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE)) && (packetNumber < (DEBUG_LOGO_DETECT_FRAME_CORNER + DEBUG_LOGO_DETECT_FRAME_CORNER_RANGE))) {
 
             char *fileName = nullptr;
-            if (asprintf(&fileName,"%s/F__%07d.pgm", macontext.Config->recDir, frameNumber) >= 1) {
+            if (asprintf(&fileName,"%s/F__%07d.pgm", macontext.Config->recDir, packetNumber) >= 1) {
                 ALLOC(strlen(fileName)+1, "fileName");
                 SaveVideoPlane0(fileName, decoder->GetVideoPicture());
                 FREE(strlen(fileName) + 1, "fileName");
@@ -6115,9 +6115,9 @@ bool cMarkAdStandalone::ProcessFrame() {
         }
 #endif
 #ifdef DEBUG_PICTURE
-        if ((frameNumber > (DEBUG_PICTURE - DEBUG_PICTURE_RANGE)) && (frameNumber < (DEBUG_PICTURE + DEBUG_PICTURE_RANGE))) {
+        if ((packetNumber > (DEBUG_PICTURE - DEBUG_PICTURE_RANGE)) && (packetNumber < (DEBUG_PICTURE + DEBUG_PICTURE_RANGE))) {
             char *baseName = nullptr;
-            if (asprintf(&baseName,"%s/F__%07d", macontext.Config->recDir, frameNumber) >= 1) {
+            if (asprintf(&baseName,"%s/F__%07d", macontext.Config->recDir, packetNumber) >= 1) {
                 ALLOC(strlen(baseName) + 1, "baseName");
                 SaveVideoPicture(baseName, decoder->GetVideoPicture());
                 FREE(strlen(baseName) + 1, "baseName");
@@ -6141,10 +6141,10 @@ bool cMarkAdStandalone::ProcessFrame() {
         }
 
         // check start
-        if (!doneCheckStart && inBroadCast && (frameNumber > packetCheckStart)) CheckStart();
+        if (!doneCheckStart && inBroadCast && (packetNumber > packetCheckStart)) CheckStart();
 
         // check stop
-        if (!doneCheckStop && (frameNumber > packetCheckStop)) {
+        if (!doneCheckStop && (packetNumber > packetCheckStop)) {
             if (!doneCheckStart) {
                 dsyslog("cMarkAdStandalone::ProcessFrame(): assumed end reached but still no CheckStart() called, do it now");
                 CheckStart();
@@ -6166,8 +6166,8 @@ bool cMarkAdStandalone::ProcessFrame() {
     }
 
     // turn on all detection for end part even if we use stronger marks, just in case we will get no strong end mark
-    if (!restartLogoDetectionDone && (frameNumber >= packetEndPart)) {
-        dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d), reset detector status", frameNumber);
+    if (!restartLogoDetectionDone && (packetNumber >= packetEndPart)) {
+        dsyslog("cMarkAdStandalone::ProcessFrame(): enter end part at frame (%d), reset detector status", packetNumber);
         video->Clear(true);
         criteria->SetDetectionState(MT_ALL, true);
         if (!macontext.Config->fullDecode) criteria->SetDetectionState(MT_SCENECHANGE, false);  // does not work without full decode
