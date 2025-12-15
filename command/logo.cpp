@@ -970,6 +970,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.corner    = BOTTOM_RIGHT;
         }
 
+//   1 ProSieben_HD            16:9 1920W 1080H:->  212W 118H TOP_RIGHT
+        if (CompareChannelName(channelName, "ProSieben_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 202;
+            logo.widthMax  = 222;
+            logo.heightMin = 108;
+            logo.heightMax = 128;
+        }
+
         // RTL_HD                  16:9 1920W 1080H:->  332W 110H TOP_LEFT
         if (CompareChannelName(channelName, "RTL_HD", IGNORE_NOTHING)) {
             logo.widthMin  = 322;
