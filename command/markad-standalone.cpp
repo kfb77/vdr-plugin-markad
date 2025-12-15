@@ -2565,11 +2565,12 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                         marks.Del(hStop->position);
                         return nullptr;
                     }
-                    // some dokus have one hborder parts at the beginning of the broadcast
+                    // some dokus or shows have one hborder parts at the beginning of the broadcast
                     // example of one hborder part in broadcast
                     // MT_LOGOSTART ( 21731) -> 189s -> MT_HBORDERSTART ( 31188) -> 141s -> MT_HBORDERSTOP ( 38279) -> 2210s -> MT_LOGOSTOP (148817)
                     // MT_LOGOSTART ( 23761) -> 159s -> MT_HBORDERSTART ( 31756) -> 178s -> MT_HBORDERSTOP ( 40669) -> 2242s -> MT_LOGOSTOP (152787) -> zdf_neo_HD
-                    if ((diffLogoStarthBorderStart <= 189) && (diffBorderStarthBorderStop <= 178) && (diffhBorderStopLogoStop >= 2210)) {
+                    // MT_LOGOSTART ( 14860) ->  43s -> MT_HBORDERSTART ( 17058) -> 224s -> MT_HBORDERSTOP ( 28300) -> 1651s -> MT_LOGOSTOP (110876) -> ProSieben_HD (Live Show)
+                    if ((diffLogoStarthBorderStart <= 189) && (diffBorderStarthBorderStop <= 224) && (diffhBorderStopLogoStop >= 1651)) {
                         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): invalid hborder marks from hborder scene in broadcast, delete hborder marks");
                         marks.Del(hStart->position);
                         marks.Del(hStop->position);
