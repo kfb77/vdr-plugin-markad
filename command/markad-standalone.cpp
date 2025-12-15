@@ -6961,8 +6961,11 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     if ((macontext.Config->hwaccel[0] != 0) && decoderTest->IsInterlacedFrame() && (decoderTest->GetVideoType() == MARKAD_PIDTYPE_VIDEO_H264)) {
         dsyslog("cMarkAdStandalone::cMarkAdStandalone(): inform decoder with hwaccel about H.264 interlaced video and force full decode");
         macontext.Config->forceInterlaced  = true;
-        macontext.Config->fullDecode       = true;
-        macontext.Config->forcedFullDecode = true;
+        // interlaced H.264 needs full decoding with hwaccel
+        if (!macontext.Config->fullDecode) {
+            macontext.Config->fullDecode       = true;
+            macontext.Config->forcedFullDecode = true;
+        }
     }
     FREE(sizeof(*decoderTest), "decoderTest");
     delete decoderTest;
