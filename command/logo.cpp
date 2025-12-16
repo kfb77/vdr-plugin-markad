@@ -978,12 +978,12 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 128;
         }
 
-        // RTL_HD                  16:9 1920W 1080H:->  332W 110H TOP_LEFT
+//   1 RTL_HD                  16:9 1920W 1080H:->  376W 122H TOP_LEFT
         if (CompareChannelName(channelName, "RTL_HD", IGNORE_NOTHING)) {
-            logo.widthMin  = 322;
-            logo.widthMax  = 342;
+            logo.widthMin  = 366;
+            logo.widthMax  = 386;
             logo.heightMin = 100;
-            logo.heightMax = 120;
+            logo.heightMax = 132;
         }
 
 //   1 TMC                     16:9 1920W 1080H:->  270W 116H TOP_RIGHT
