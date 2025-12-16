@@ -1190,12 +1190,15 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                     bottomWhiteLine  = -1;
                 }
             }
+            int logoHeight = logoButtomLine - logoTopLine;
             int countWhite = bottomWhiteLine - topWhiteLine + 1;
             int textHeight = logoSizeFinal->height - bottomWhiteLine - 1;
 #ifdef DEBUG_LOGO_RESIZE
+            dsyslog("cExtractLogo::Resize(): repeat %d, top logo: logo position from line %d to %d, height %d", repeat, logoTopLine, logoButtomLine, logoHeight);
             dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found white from line %d -> %d, height %d, text below from line %d -> %d, height %d", repeat, topWhiteLine, bottomWhiteLine, countWhite, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight);
 #endif
-            if ((countWhite <= 22) && (textHeight < logoSizeFinal->height)) {    // too much white is not possible for text under logo, changed from 11 to 22
+            if ((logoHeight >= 10) &&                                            // false pixel in top area found, not logo
+                    (countWhite <= 22) && (textHeight < logoSizeFinal->height)) {    // too much white is not possible for text under logo, changed from 11 to 22
                 // get width of text
                 int leftColumn  = -1;
                 int rightColumn = -1;
@@ -1460,7 +1463,7 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 }
 #endif
             }
-            // search text right of logo (e.g. "Neue Folge")
+            // search text right of logo (e.g. "Neue Folge", "Live")
             if (!CheckLogoSize(logoSizeFinal, bestLogoCorner)) {
                 dsyslog("cExtractLogo::Resize(): repeat %d, left logo: search for text right of logo", repeat);
                 int countWhite = 0;
@@ -1502,11 +1505,12 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 int textEnd     = logoSizeFinal->width - 1;
                 int textWidth   = textEnd - textStart + 1;
                 int textPortion = 1000 * textWidth / decoder->GetVideoWidth();  // we can not work with pixel, depends on resolution
-                dsyslog("cExtractLogo::Resize(): repeat %d, left logo: text right of logo, logo %d->%d (%dp), white %d->%d (%dp), text %d->%d (%dp), portion %d", repeat, logoStart, logoEnd, logoWidth, whiteStart, whiteEnd, whiteWidth, textStart, textEnd, textWidth, textPortion);
+                dsyslog("cExtractLogo::Resize(): repeat %d, left logo: text right of logo, logo %3d->%3d (%dp), white %3d->%3d (%3dp), text %3d->%3d (%3dp), portion %3d", repeat, logoStart, logoEnd, logoWidth, whiteStart, whiteEnd, whiteWidth, textStart, textEnd, textWidth, textPortion);
                 // example:
                 // (+) text to remove right of logo, (-) no text right of logo, do not remove
-                // (+) logo 0->68 (69p), white 69->76 (8p), text 77->219 (143p), portion 198 (MTV "name of episode")
-                if (textPortion > 28) {  // keep very short text as part of logo (eg. "HD") or space in logo (eg. VOXup)
+                // (+) logo 0-> 68 ( 69p), white  69-> 76 (  8p), text  77->219 (143p), portion 198 (MTV "name of episode")
+                // (+) logo 0->375 (376p), white 376->382 (  7p), text 383->433 ( 51p), portion  26 (RTL HD "Live")
+                if (textPortion >= 26) {  // keep very short text as part of logo (eg. "HD") or space in logo (eg. VOXup)
                     // check hight of text
                     if ((bottomBlackPixel - topBlackPixel) <= 35) {  // changed from 24 (ZDF HD "tivi") to 35 (phoenix HD "plus")
                         dsyslog("cExtractLogo::Resize(): repeat %d, left logo: found text right of logo, cut at column %d, pixel of text: top %d bottom %d, text height %d is valid", repeat, cutColumn, topBlackPixel, bottomBlackPixel, bottomBlackPixel - topBlackPixel);
