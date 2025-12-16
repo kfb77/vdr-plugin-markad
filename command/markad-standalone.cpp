@@ -3219,10 +3219,8 @@ bool cMarkAdStandalone::CheckStartMark() {
 // MT_LOGOSTART (13699) | 246s| -> 172s -> MT_LOGOSTOP (18002) ->    0s ->  MT_LOGOSTART (18011) | 419s| ->  397s -> MT_LOGOSTOP ( 27952) -> Comedy Central: info logo
 // MT_LOGOSTART (11703) | 167s| -> 175s -> MT_LOGOSTOP (16094) ->    0s ->  MT_LOGOSTART (16105) | 343s| ->  425s -> MT_LOGOSTOP ( 26745) -> Comedy Central: info logo
 // MT_LOGOSTART (11919) | 176s| -> 191s -> MT_LOGOSTOP (16717) ->    0s ->  MT_LOGOSTART (16728) | 369s| ->  574s -> MT_LOGOSTOP ( 31092) -> Comedy Central: info logo
-// MT_LOGOSTART ( 4725) |   9s| -> 216s -> MT_LOGOSTOP (10145) ->    6s ->  MT_LOGOSTART (10303) | 232s| ->  501s -> MT_LOGOSTOP ( 22838) -> Comedy Central: info logo
 // MT_LOGOSTART ( 7733) |   8s| -> 130s -> MT_LOGOSTOP (10984) ->    0s ->  MT_LOGOSTART (10994) | 138s| ->  501s -> MT_LOGOSTOP ( 23533) -> Comedy Central: info logo
 // MT_LOGOSTART ( 7486) |   0s| ->  94s -> MT_LOGOSTOP ( 9858) ->    0s ->  MT_LOGOSTART ( 9868) |  94s| ->  472s -> MT_LOGOSTOP ( 21678) -> Comedy Central: info logo
-// MT_LOGOSTART ( 5831) | -65s| -> 179s -> MT_LOGOSTOP (10322) ->    9s ->  MT_LOGOSTART (10559) | 123s| -> 1249s -> MT_LOGOSTOP ( 41785) -> Disney_Channel, preview in frame
 //
 // example of invalid logo start mark, delete first start/stop pair
 // MT_LOGOSTART ( 4194) |-216s| -> 600s -> MT_LOGOSTOP (34217) ->   64s ->  MT_LOGOSTART (37442) | 448s| -> 2034s -> MT_LOGOSTOP (139176) -> Das_Erste_HD
@@ -3230,10 +3228,11 @@ bool cMarkAdStandalone::CheckStartMark() {
 // MT_LOGOSTART ( 6975) | -21s| -> 389s -> MT_LOGOSTOP (16707) ->    3s ->  MT_LOGOSTART (16782) | 371s| ->  703s -> MT_LOGOSTOP ( 34377) -> Comedy_Central
 // MT_LOGOSTART (  596) |-279s| -> 614s -> MT_LOGOSTOP (15954) ->   25s ->  MT_LOGOSTART (16584) | 360s| -> 2360s -> MT_LOGOSTOP ( 75585) -> RTLZWEI
 // MT_LOGOSTART ( 4535) |-110s| -> 315s -> MT_LOGOSTOP (12423) ->    2s ->  MT_LOGOSTART (12475) | 207s| ->  597s -> MT_LOGOSTOP ( 27411) -> Comedy_Central
-                        else if ((logoStartAssumed1 <= 0) && (logoStartAssumed2 <= 448) && // should be near event start
-                                 (lengthBroadcast1 >= 181) && (lengthBroadcast1 <= 614) &&
+// MT_LOGOSTART ( 9426) |  17s| ->  92s -> MT_LOGOSTOP (11733) ->    7s ->  MT_LOGOSTART (11909) | 116s| ->  410s -> MT_LOGOSTOP ( 22162) -> RTL_HD (Wetter)
+                        else if ((logoStartAssumed1 <= 17) && (logoStartAssumed2 <= 448) && // should be near event start
+                                 (lengthBroadcast1  >= 92) && (lengthBroadcast1 <= 614) &&
                                  (lengthAd >= 2) && (lengthAd <= 64) &&                    // very short ad can be undeteced info logo
-                                 (lengthBroadcast2 >= 143)) {
+                                 (lengthBroadcast2 >= 410)) {
                             dsyslog("cMarkAdStandalone::CheckStartMark(): too short first ad, delete start (%d) and stop (%d) mark", startMark->position, logoStop1->position);
                             marks.Del(startMark->position);
                             marks.Del(logoStop1->position);
