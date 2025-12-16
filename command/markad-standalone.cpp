@@ -1237,7 +1237,8 @@ bool cMarkAdStandalone::HaveBlackSeparator(const cMark *mark) {
 // MT_NOBLACKSTOP (260383) ->  400ms -> MT_LOGOSTOP (260403) ->   80ms -> MT_NOBLACKSTART (260407) -> 24320ms -> MT_LOGOSTART (261623) -> zdf neo HD
 // MT_NOBLACKSTOP ( 42686) ->  880ms -> MT_LOGOSTOP ( 42708) ->    0ms -> MT_NOBLACKSTART ( 42708) ->   880ms -> MT_LOGOSTART ( 42730) -> SIXX
 // MT_NOBLACKSTOP ( 50967) ->    0ms -> MT_LOGOSTOP ( 50967) ->   80ms -> MT_NOBLACKSTART ( 50969) ->   760ms -> MT_LOGOSTART ( 50988) -> sixx
-                    if (    (diffBlackStartLogoStop >=   0) && (diffBlackStartLogoStop <=  1400) &&
+// MT_NOBLACKSTOP ( 93998) -> 1640ms -> MT_LOGOSTOP ( 94039) ->   40ms -> MT_NOBLACKSTART ( 94040) ->  1320ms -> MT_LOGOSTART ( 94073) -> kabel_eins
+                    if (    (diffBlackStartLogoStop >=   0) && (diffBlackStartLogoStop <=  1640) &&
                             (diffLogoStopBlackStop  >=   0) && (diffLogoStopBlackStop  <=   360) &&
                             (diffBlackStopLogoStart >= 520) && (diffBlackStopLogoStart <= 24320)) {
                         dsyslog("cMarkAdStandalone::HaveBlackSeparator(): logo stop mark (%d): black screen sequence around end mark is valid", mark->position);
