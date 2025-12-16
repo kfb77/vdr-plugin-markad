@@ -1631,11 +1631,14 @@ void cDetectLogoStopStart::ClosingCredit(int startPos, int endPos, sMarkPos *end
         }
     }
 
-    if (evaluateLogoStopStartPair && ((endPos - startPos) / decoder->GetVideoFrameRate() >= MAX_CLOSING_CREDITS_SEARCH)) {
-        dsyslog("cDetectLogoStopStart::ClosingCredit(): full range check was done, store result");
+    if (evaluateLogoStopStartPair &&
+            ((length > 10000) ||  // at least 10s long closing credit detected, in case of logo visible direct after closing credits
+             ((endPos - startPos) / decoder->GetVideoFrameRate() >= MAX_CLOSING_CREDITS_SEARCH))) { // search range was long enough, trust result
+        dsyslog("cDetectLogoStopStart::ClosingCredit(): valid check was done, store result: search range %ds, length %dms", (endPos - startPos) / decoder->GetVideoFrameRate(), length);
         if (endClosingCredits->position >= 0) evaluateLogoStopStartPair->SetIsClosingCredits(startPos, endPos, endClosingCredits->position, endClosingCredits->pts, STATUS_YES);
         else evaluateLogoStopStartPair->SetIsClosingCredits(startPos, endPos, endClosingCredits->position, endClosingCredits->pts, STATUS_NO);
     }
+    else dsyslog("cDetectLogoStopStart::ClosingCredit(): no valid check was done, search range %ds, length %dms", (endPos - startPos) / decoder->GetVideoFrameRate(), length);
     return;
 }
 
