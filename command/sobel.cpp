@@ -301,9 +301,9 @@ sLogoSize cSobel::GetMaxLogoSize() const {
         logoSizeMax.width  =  470;  // changed from 440 to 470 for ANIXE HD
         logoSizeMax.height =  220;
         break;
-    case 3840:
+    case 3840:                      // UHD
         logoSizeMax.width  = 750;
-        logoSizeMax.height = 250;
+        logoSizeMax.height = 300;
         break;
     default:
         esyslog("cSobel::GetMaxLogoSize() no default logo size rule for video width %d", videoWidth);
