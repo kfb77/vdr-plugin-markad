@@ -3839,16 +3839,13 @@ void cMarkAdStandalone::CheckMarks() {           // cleanup marks that make no s
 
         case MT_LOGOSTOP:
             // example of invalid logo stop mark sequence (short last ad is between two long broadcasts)
-            // MT_START ( 73336) ->  960s -> MT_STOP ( 97358)         ->  18s -> MT_START ( 97817) ->  83s -> MT_STOP ( 99916)
-            // MT_START ( 97756) ->    0s -> MT_STOP ( 97761)         ->   0s -> MT_START ( 97766) ->  86s -> MT_STOP ( 99916)        -> more than one false logo stop
-            // MT_START ( 97460) ->    0s -> MT_STOP ( 97465)         ->   0s -> MT_START ( 97469) ->  86s -> MT_STOP ( 99619)        -> more than one false logo stop
-            // MT_START ( 66619) ->  694s -> MT_STOP ( 83973)         ->  10s -> MT_START ( 84240) -> 610s -> MT_STOP ( 99507)
-            // MT_START ( 39172) ->  931s -> MT_STOP ( 62463) |-280s| ->   5s -> MT_START ( 62601) -> 408s -> MT_STOP ( 72811) |133s|
-            // MT_START ( 42975) ->  423s -> MT_STOP ( 53574) |-166s| ->  39s -> MT_START ( 54564) -> 232s -> MT_STOP ( 60368) |105s|
-            // MT_START ( 12594) -> 1226s -> MT_STOP ( 43264) |-273s| ->  21s -> MT_START ( 43789) -> 177s -> MT_STOP ( 48232) |-74s| -> Comedy_Central: length too big
-            // MT_START ( 36120) ->  675s -> MT_STOP ( 53011) |-140s| ->  21s -> MT_START ( 53536) -> 113s -> MT_STOP ( 56371) | -5s| -> Comedy_Central: length too big
-            // MT_START ( 30964) ->  635s -> MT_STOP ( 46844) |-124s| ->  59s -> MT_START ( 48324) ->  95s -> MT_STOP ( 50712) | 30s| -> Comedy_Central: length too big
-            if ((diffPrevStopAssumed >= -280) && (lastAd <= 59) && (diffLastStopAssumed >= -74)) {
+            // MT_START ( 39172) ->  931s -> MT_STOP ( 62463) |-280s| ->   5s -> MT_START ( 62601) -> 408s -> MT_STOP ( 72811) | 133s|
+            // MT_START ( 42975) ->  423s -> MT_STOP ( 53574) |-166s| ->  39s -> MT_START ( 54564) -> 232s -> MT_STOP ( 60368) | 105s|
+            // MT_START ( 12594) -> 1226s -> MT_STOP ( 43264) |-273s| ->  21s -> MT_START ( 43789) -> 177s -> MT_STOP ( 48232) | -74s| -> Comedy_Central: length too big
+            // MT_START ( 36120) ->  675s -> MT_STOP ( 53011) |-140s| ->  21s -> MT_START ( 53536) -> 113s -> MT_STOP ( 56371) |  -5s| -> Comedy_Central: length too big
+            // MT_START ( 30964) ->  635s -> MT_STOP ( 46844) |-124s| ->  59s -> MT_START ( 48324) ->  95s -> MT_STOP ( 50712) |  30s| -> Comedy_Central: length too big
+            // MT_START ( 44269) ->  498s -> MT_STOP ( 56722) |-307s| ->  45s -> MT_START ( 57848) -> 185s -> MT_STOP ( 62473) | -77s| -> RTL_HD (Preview after broadcast)
+            if ((diffPrevStopAssumed >= -307) && (lastAd <= 59) && (diffLastStopAssumed >= -77)) {
                 dsyslog("cMarkAdStandalone::CheckMarks(): invalid MT_LOGOSTOP, use stop mark (%d) before as end mark, last ad too short", prevStopMark->position);
                 marks.Del(lastStopMark->position);
                 marks.Del(lastStartMark->position);
