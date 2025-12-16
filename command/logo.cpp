@@ -1014,12 +1014,21 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         if (logo.heightMax == 0) logo.heightMax =  210; // arte_HD                 16:9 1920W 1080H:->  130W 200H TOP_LEFT
         break;
 
-    case 3840:
+    case 3840:   // UHD
+
+//   1 Pro7Sat_1_UHD           16:9 3840W 2160H:->  404W 262H TOP_RIGHT  (SAT.1 logo)
+        if (CompareChannelName(channelName, "Pro7Sat_1_UHD", IGNORE_NOTHING)) {
+            logo.widthMin  = 394;
+            logo.widthMax  = 414;
+            logo.heightMin = 252;
+            logo.heightMax = 272;
+        }
+
         // default values
-        if (logo.widthMin  == 0) logo.widthMin  = 696; // RTL_UHD                 16:9 3840W 2160H:->  706W 218H TOP_LEFT
+        if (logo.widthMin  == 0) logo.widthMin  = 394; // Pro7Sat_1_UHD           16:9 3840W 2160H:->  404W 262H TOP_RIGHT  (SAT.1 logo)
         if (logo.widthMax  == 0) logo.widthMax  = 716; // RTL_UHD                 16:9 3840W 2160H:->  706W 218H TOP_LEFT
         if (logo.heightMin == 0) logo.heightMin = 208; // RTL_UHD                 16:9 3840W 2160H:->  706W 218H TOP_LEFT
-        if (logo.heightMax == 0) logo.heightMax = 228; // RTL_UHD                 16:9 3840W 2160H:->  706W 218H TOP_LEFT
+        if (logo.heightMax == 0) logo.heightMax = 272; // Pro7Sat_1_UHD           16:9 3840W 2160H:->  404W 262H TOP_RIGHT  (SAT.1 logo)
         break;
 
     default:
