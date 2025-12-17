@@ -6984,6 +6984,17 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
         delete marksTMP;
     }
 
+    // send OSD message
+    if (title[0]) ptitle = title;
+    else ptitle = const_cast<char *>(directory);
+    if (config->osd) {
+        osd = new cOSDMessage(config->svdrphost, config->svdrpport);
+        if (osd) {
+            ALLOC(sizeof(*osd), "osd");
+            osd->Send("%s '%s'", tr("starting markad for"), ptitle);
+        }
+    }
+
     // check if we have a logo or we can extract it from recording
     if (!CheckLogo(frameRate) && (config->autoLogo == 0)) {
         isyslog("no logo found, logo detection disabled");
@@ -6992,17 +7003,6 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     isyslog("pre-timer:        %2d:%02d:%02dh", macontext.Info.tStart / 60 / 60, abs((macontext.Info.tStart / 60) % 60), abs(macontext.Info.tStart % 60));
     if (length) isyslog("broadcast length: %2d:%02d:%02dh", length / 60 / 60, ( length / 60) % 60,  length % 60 );
-
-    if (title[0]) ptitle = title;
-    else ptitle = const_cast<char *>(directory);
-
-    if (config->osd) {
-        osd = new cOSDMessage(config->svdrphost, config->svdrpport);
-        if (osd) {
-            ALLOC(sizeof(*osd), "osd");
-            osd->Send("%s '%s'", tr("starting markad for"), ptitle);
-        }
-    }
 
     if (config->markFileName[0]) marks.SetFileName(config->markFileName);
 
