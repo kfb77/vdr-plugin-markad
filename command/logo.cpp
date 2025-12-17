@@ -1235,8 +1235,9 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 //
                 // example of part of the logo, do nt delete
                 // line 101 -> 113, height 13 (18), column 267 -> 289, width 23 (17)   -> Das Erste "HD" under logo
+                // line 127 -> 153, height 27 (25), column 321 -> 375, width 55 (28)   -> Pro7_MAXX_HD "HD" under logo
                 if ((textHeight <= 2) || // pixel error
-                        ((textHeightQuote > 18) && (textWidthQuote > 17))) {
+                        ((textHeightQuote > 18) && (textWidthQuote > 28))) {
 #ifdef DEBUG_LOGO_RESIZE
                     dsyslog("cExtractLogo::Resize(): repeat %d, top logo: cut out valid text under logo", repeat);
 #endif
