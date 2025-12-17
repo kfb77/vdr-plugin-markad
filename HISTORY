@@ -1,6 +1,14 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2025-xx-xx: Version 4.2.17
+- cMarkAdStandalone::Check_HBORDERSTART(): optimize detection of invalid hborder
+  thx to FireFly@www.vdr-portal.de for reporting
+- send OSD start before logo search
+  thx to FireFly@www.vdr-portal.de for reporting
+- fix missing analyse of each frame with --fulldecode of H.264 interlaced
+- some minor bug fixes and optimizations, see git
+
 2025-11-30: Version 4.2.16
 - new feature: add config parameter to quiet plugin logging if VDR runs with debug log level
 - declare parameter --extractlogo as deprecated
