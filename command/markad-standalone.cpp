@@ -2533,9 +2533,10 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): check closing credits: MT_HBORDERSTART (%d) -> %ds -> MT_LOGOSTOP (%d) -> %ds -> MT_HBORDERSTOP (%d)", hStart->position, hStartLogoStop, logoStop->position, logoStopBorderStop, hStopNext->position);
                         // invalid hborder start from closing credits of previous broadcast
                         // MT_HBORDERSTART (10678) -> 13s -> MT_LOGOSTOP (11024) -> 72s -> MT_HBORDERSTOP (12840)
-                        if ((hStartLogoStop >= 13) && (logoStopBorderStop <= 72))
+                        if ((hStartLogoStop >= 13) && (logoStopBorderStop <= 72)) {
                             dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): invalid hborder start from closing credits of previous broadcast");
-                        return nullptr;
+                            return nullptr;
+                        }
                     }
                 }
             }
