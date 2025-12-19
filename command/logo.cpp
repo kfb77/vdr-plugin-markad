@@ -892,6 +892,17 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
         break;
 
     case 1440:
+
+//   1 TLC_HD                  16:9 1440W 1080H:->  192W 130H TOP_LEFT -> TLC without HD from preview
+//
+//   1 TLC_HD                  16:9 1440W 1080H:->  184W 112H TOP_LEFT
+        if (CompareChannelName(channelName, "TLC_HD", IGNORE_NOTHING)) {
+            logo.widthMin  = 174;
+            logo.widthMax  = 194;
+            logo.heightMin = 102;
+            logo.heightMax = 122;
+        }
+
         if (CompareChannelName(channelName, "WELT_HD", IGNORE_NOTHING)) {               // WELT_HD                 16:9 1440W 1080H:->  396W 116H BOTTOM_LEFT
             logo.widthMax  = INT_MAX;  // news ticker
         }
@@ -1228,16 +1239,18 @@ bool cExtractLogo::Resize(sLogoInfo *bestLogoInfo, sLogoSize *logoSizeFinal, con
                 int textWidthQuote  = 1000 * textWidth / decoder->GetVideoWidth();
                 int textHeightQuote = 1000 * textHeight / decoder->GetVideoHeight();
 #ifdef DEBUG_LOGO_RESIZE
-                dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found text under logo: line %3d -> %3d, height %d (%d), column %d -> %d, width %d (%d)", repeat, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, textHeightQuote, leftColumn, rightColumn, textWidth, textWidthQuote);
+                dsyslog("cExtractLogo::Resize(): repeat %d, top logo: found text under logo: %3d -> %3d, height %3d (%3d), column %3d -> %3d, width %3d (%3d)", repeat, bottomWhiteLine + 1, logoSizeFinal->height - 1, textHeight, textHeightQuote, leftColumn, rightColumn, textWidth, textWidthQuote);
 #endif
-                // example of valid test to delete
-                // line  86 ->  97, height 12 (20), column 185 -> 205, width 21 (29)   -> Pro7 MAXX "neu" under logo
+                // example of valid text to delete
+                //  86 ->  97, height  12 ( 20), column 185 -> 205, width  21 ( 29)  -> Pro7 MAXX "neu" under logo
                 //
-                // example of part of the logo, do nt delete
-                // line 101 -> 113, height 13 (18), column 267 -> 289, width 23 (17)   -> Das Erste "HD" under logo
-                // line 127 -> 153, height 27 (25), column 321 -> 375, width 55 (28)   -> Pro7_MAXX_HD "HD" under logo
+                // example of part of the logo, do not delete
+                // 101 -> 113, height  13 ( 18), column 267 -> 289, width  23 ( 17)  -> Das Erste "HD" under logo
+                // 127 -> 153, height  27 ( 25), column 321 -> 375, width  55 ( 28)  -> Pro7_MAXX_HD "HD" under logo
+                //  73 -> 111, height  39 ( 36), column  86 -> 165, width  80 ( 55)  -> TLC_HD "TLC" under "HD"
                 if ((textHeight <= 2) || // pixel error
-                        ((textHeightQuote > 18) && (textWidthQuote > 28))) {
+                        ((textHeightQuote > 18) &&
+                         (textWidthQuote >= 29) && (textWidthQuote < 55))) {
 #ifdef DEBUG_LOGO_RESIZE
                     dsyslog("cExtractLogo::Resize(): repeat %d, top logo: cut out valid text under logo", repeat);
 #endif
