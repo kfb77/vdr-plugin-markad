@@ -3196,20 +3196,21 @@ bool cMarkAdStandalone::CheckStartMark() {
                         int logoStartAssumed1   = (startMark->position  - startTimer)           / decoder->GetVideoFrameRate();  // delta after timer start event
                         int logoStartAssumed2   = (logoStart2->position - startTimer)           / decoder->GetVideoFrameRate();
                         dsyslog("cMarkAdStandalone::CheckStartMark(): MT_LOGOSTART (%5d) |%4ds| -> %3ds -> MT_LOGOSTOP (%5d) -> %4ds ->  MT_LOGOSTART (%5d) |%4ds| -> %4ds -> MT_LOGOSTOP (%6d) -> %s",  startMark->position, logoStartAssumed1, lengthBroadcast1,  logoStop1->position, lengthAd, logoStart2->position, logoStartAssumed2, lengthBroadcast2, stop2->position, macontext.Info.ChannelName);
-// check for short broadcast before start mark (preview) and long broadcast after (first part of broadcast)
+// check for first short broadcast before start mark (preview) and long broadcast after (first part of broadcast)
 // example of invalid logo start mark
-// MT_LOGOSTART ( 4675)         ->  11s -> MT_LOGOSTOP ( 4962) ->  150s ->  MT_LOGOSTART ( 8715)        -> 1312s -> MT_LOGOSTOP ( 41526) -> Nickelodeon, ad with false detected logo
-// MT_LOGOSTART ( 2944)         ->  25s -> MT_LOGOSTOP ( 3584) ->   50s ->  MT_LOGOSTART ( 4848)        -> 1213s -> MT_LOGOSTOP ( 35173) -> sixx, start of preview before broadcast
-// MT_LOGOSTART ( 3828)         ->  28s -> MT_LOGOSTOP ( 4549) ->   37s ->  MT_LOGOSTART ( 5487)        -> 1237s -> MT_LOGOSTOP ( 36427) -> SIXX, start of preview before broadcast
-// MT_LOGOSTART ( 3785)         ->  28s -> MT_LOGOSTOP ( 4507) ->   31s ->  MT_LOGOSTART ( 5285)        -> 1202s -> MT_LOGOSTOP ( 35355) -> SIXX, start of preview before broadcast
-// MT_LOGOSTART ( 2979)         ->  33s -> MT_LOGOSTOP ( 3824) ->   54s ->  MT_LOGOSTART ( 5183)        ->  955s -> MT_LOGOSTOP ( 29081) -> SIXX, start of preview before broadcast
-// MT_LOGOSTART ( 2870)         ->  56s -> MT_LOGOSTOP ( 4276) ->   50s ->  MT_LOGOSTART ( 5532)        -> 1218s -> MT_LOGOSTOP ( 35991) -> SIXX, start of preview before broadcast
-// MT_LOGOSTART ( 3867)         ->  34s -> MT_LOGOSTOP ( 4718) ->   29s ->  MT_LOGOSTART ( 5458)        -> 1229s -> MT_LOGOSTOP ( 36205) -> SIXX, start of preview before broadcast
-// MT_LOGOSTART ( 1015)         ->  63s -> MT_LOGOSTOP ( 2611) ->   87s ->  MT_LOGOSTART ( 4804)        -> 1236s -> MT_LOGOSTOP ( 35723) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 4675)         ->  11s -> MT_LOGOSTOP ( 4962) ->  150s ->  MT_LOGOSTART ( 8715)         -> 1312s -> MT_LOGOSTOP ( 41526) -> Nickelodeon, ad with false detected logo
+// MT_LOGOSTART ( 2944)         ->  25s -> MT_LOGOSTOP ( 3584) ->   50s ->  MT_LOGOSTART ( 4848)         -> 1213s -> MT_LOGOSTOP ( 35173) -> sixx, start of preview before broadcast
+// MT_LOGOSTART ( 3828)         ->  28s -> MT_LOGOSTOP ( 4549) ->   37s ->  MT_LOGOSTART ( 5487)         -> 1237s -> MT_LOGOSTOP ( 36427) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 3785)         ->  28s -> MT_LOGOSTOP ( 4507) ->   31s ->  MT_LOGOSTART ( 5285)         -> 1202s -> MT_LOGOSTOP ( 35355) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 2979)         ->  33s -> MT_LOGOSTOP ( 3824) ->   54s ->  MT_LOGOSTART ( 5183)         ->  955s -> MT_LOGOSTOP ( 29081) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 2870)         ->  56s -> MT_LOGOSTOP ( 4276) ->   50s ->  MT_LOGOSTART ( 5532)         -> 1218s -> MT_LOGOSTOP ( 35991) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 3867)         ->  34s -> MT_LOGOSTOP ( 4718) ->   29s ->  MT_LOGOSTART ( 5458)         -> 1229s -> MT_LOGOSTOP ( 36205) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 1015)         ->  63s -> MT_LOGOSTOP ( 2611) ->   87s ->  MT_LOGOSTART ( 4804)         -> 1236s -> MT_LOGOSTOP ( 35723) -> SIXX, start of preview before broadcast
+// MT_LOGOSTART ( 7668) |  15s| ->  20s -> MT_LOGOSTOP ( 8174) ->    2s ->  MT_LOGOSTART ( 8225) |  38s| ->    3s -> MT_LOGOSTOP (  8310) -> Comedy_Central
 //
 // example of valid logo start mark
-// MT_LOGOSTART ( 8542) |  40s| -> 113s -> MT_LOGOSTOP (11377) ->  197s ->  MT_LOGOSTART (16305) | 351s| -> 1149s -> MT_LOGOSTOP ( 45049) -> Comedy_Central, vera short first broadcast
-                        if ((lengthBroadcast1 < 113) && (lengthBroadcast2 >= 955)) {
+// MT_LOGOSTART ( 8542) |  40s| -> 113s -> MT_LOGOSTOP (11377) ->  197s ->  MT_LOGOSTART (16305) | 351s| -> 1149s -> MT_LOGOSTOP ( 45049) -> Comedy_Central, very short first broadcast
+                        if (lengthBroadcast1 <= 63) {
                             dsyslog("cMarkAdStandalone::CheckStartMark(): too short first broadcast part, delete start (%d) and stop (%d) mark", startMark->position, logoStop1->position);
                             marks.Del(startMark->position);
                             marks.Del(logoStop1->position);
