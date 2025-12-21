@@ -6569,9 +6569,7 @@ void cMarkAdStandalone::LoadInfo() {
             macontext.Info.AspectRatio = aspectRatio_F;
             dsyslog("use aspect ratio %d:%d (vdr info, line F and X)", macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den);
         }
-        else {
-            esyslog("different aspect ratio from vdr info file in line F and X is invalid");
-        }
+        else isyslog("aspect ratio from vdr info file in line F and X is inconsistent");
     }
     else if ((aspectRatio_F.num != 0) && (aspectRatio_F.den != 0) && (aspectRatio_X.num == 0) && (aspectRatio_X.den == 0)) { // aspect ratio only in F line
         macontext.Info.AspectRatio = aspectRatio_F;
