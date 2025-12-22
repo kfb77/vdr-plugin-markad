@@ -1028,10 +1028,12 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
     case 3840:   // UHD
 
 //   1 Pro7Sat_1_UHD           16:9 3840W 2160H:->  404W 262H TOP_RIGHT  (SAT.1 logo)
+//   1 Pro7Sat_1_UHD           16:9 3840W 2160H:->  442W 244H TOP_RIGHT  (Pro7  logo)
+//   1 Pro7Sat_1_UHD           16:9 3840W 2160H:->  694W 232H TOP_RIGHT  (kabel eins Doku
         if (CompareChannelName(channelName, "Pro7Sat_1_UHD", IGNORE_NOTHING)) {
             logo.widthMin  = 394;
-            logo.widthMax  = 414;
-            logo.heightMin = 252;
+            logo.widthMax  = 704;
+            logo.heightMin = 222;
             logo.heightMax = 272;
         }
 
@@ -2002,6 +2004,8 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
             }
             if (topLogoLine >= 0) {
                 // search for end of logo
+                int maxFalsePixel = 10;
+                if (CompareChannelName(channelName, "Pro7Sat_1_UHD", IGNORE_NOTHING)) maxFalsePixel = 3; // Pro7 UHD has very thin logo lines
                 int whiteLines     = 0;
                 int bottomLogoLine = -1;
                 for (int line = topLogoLine; line < height; line++) {
@@ -2010,13 +2014,16 @@ void cExtractLogo::RemovePixelDefects(sLogoInfo *logoInfo, const int corner) {
                     for (int column = 0; column < width; column++) {
                         if (logoInfo->sobel[plane][(line) * width + column] == 0) {
                             blackPixel++;
-                            if (blackPixel > 10) {
+                            if (blackPixel > maxFalsePixel) {
                                 haveBlack  = true;
                                 whiteLines = 0;
                                 break;
                             }
                         }
                     }
+#if defined(DEBUG_LOGO_CORNER) && defined(DEBUG_LOGO_SAVE) && DEBUG_LOGO_SAVE == 1
+                    dsyslog("cExtractLogo::RemovePixelDefects(): frame (%d), plane %d, line %3d: ignore %d false black pixel", logoInfo->frameNumber, plane, line, blackPixel);
+#endif
                     if (!haveBlack) whiteLines++;
                     else bottomLogoLine = line;
                     if (whiteLines >= 30) break;    // we are now under logo
