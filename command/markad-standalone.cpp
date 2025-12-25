@@ -1609,15 +1609,18 @@ void cMarkAdStandalone::CheckStop() {
     // cleanup invalid marks
     //
     // cleanup near logo stop and start marks around aspect ratio marks, they are from a fading in/out logo
-    cMark *aspectMark = marks.GetNext(0, MT_ASPECTCHANGE, 0xF0);
-    while (aspectMark) {
-        cMark *logoMark = marks.GetAround(5 * decoder->GetVideoFrameRate(), aspectMark->position, MT_LOGOCHANGE, 0xF0);
-        while (logoMark) {
-            dsyslog("cMarkAdStandalone::CheckStop(): logo mark (%d) near aspect ratio mark (%d) found, this is a fading in/out logo, delete", logoMark->position, aspectMark->position);
-            marks.Del(logoMark->position);
-            logoMark = marks.GetAround(5 * decoder->GetVideoFrameRate(), aspectMark->position, MT_LOGOCHANGE, 0xF0);
+    // but only if aspect ratio marks are used, logo stop near before aspect stop with 16:9 broadcast is valid
+    if (criteria->GetMarkTypeState(MT_ASPECTCHANGE) == CRITERIA_USED) {
+        cMark *aspectMark = marks.GetNext(0, MT_ASPECTCHANGE, 0xF0);
+        while (aspectMark) {
+            cMark *logoMark = marks.GetAround(5 * decoder->GetVideoFrameRate(), aspectMark->position, MT_LOGOCHANGE, 0xF0);
+            while (logoMark) {
+                dsyslog("cMarkAdStandalone::CheckStop(): logo mark (%d) near aspect ratio mark (%d) found, this is a fading in/out logo, delete", logoMark->position, aspectMark->position);
+                marks.Del(logoMark->position);
+                logoMark = marks.GetAround(5 * decoder->GetVideoFrameRate(), aspectMark->position, MT_LOGOCHANGE, 0xF0);
+            }
+            aspectMark = marks.GetNext(aspectMark->position, MT_ASPECTCHANGE, 0xF0);
         }
-        aspectMark = marks.GetNext(aspectMark->position, MT_ASPECTCHANGE, 0xF0);
     }
 
     // remove logo change marks
