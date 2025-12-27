@@ -1,6 +1,13 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2026-02-16: Version 4.2.18
+- Makefile: fix rebuilding of markad-standalone.cpp in git tree despite no changes
+  thx to SHofmann@www.vdr-portal.de for contribution
+- fix svdrpsend plug mark command not working with setup mark during:
+  thx to FireFly@www.vdr-portal.de for reporting
+- fix crash of svdrpsend plug mark command with missing filename
+
 2025-12-24: Version 4.2.17
 - cMarkAdStandalone::Check_HBORDERSTART(): optimize detection of invalid hborder
   thx to FireFly@www.vdr-portal.de for reporting
