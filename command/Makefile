@@ -18,8 +18,8 @@ PKG_CONFIG ?= pkg-config
 STRIP ?= strip
 
 ### The version number of this plugin (taken from the main source file):
-$(shell GITVERSION=`git rev-parse --short HEAD 2> /dev/null`; if [ "$$GITVERSION" ]; then sed "s/\";/ ($$GITVERSION)\";/" ../version.dist > ../version.h; else cp -p ../version.dist ../version.h; fi)
 VERSION = $(shell grep 'static const char \*VERSION *=' ../version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
+$(shell GITVERSION=`git rev-parse --short HEAD 2> /dev/null``git status -uno --porcelain 2> /dev/null | grep -qc . && echo " patched"`; if [ "$$GITVERSION" ]; then if [ -r ../version.h ]; then LASTVERSION=`grep VERSION ../version.h | sed "s/^.*(\(.*\)).*$$/\1/"`; fi; if [ "$$GITVERSION" != "$$LASTVERSION" ]; then sed "s/\";/ ($$GITVERSION)\";/" ../version.dist > ../version.h; fi; else cp -p ../version.dist ../version.h; fi)
 
 # check if we want to build without vdr
 ifndef NO_VDR

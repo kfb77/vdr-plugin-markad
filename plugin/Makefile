@@ -28,6 +28,7 @@ export Q
 
 ### The version number of this plugin (taken from the version header file):
 VERSION = $(shell grep 'static const char \*VERSION *=' version.h | awk '{ print $$6 }' | sed -e 's/[";]//g')
+$(shell GITVERSION=`git rev-parse --short HEAD 2> /dev/null``git status -uno --porcelain 2> /dev/null | grep -qc . && echo " patched"`; if [ "$$GITVERSION" ]; then if [ -f ../version.h ]; then LASTVERSION=`grep VERSION ../version.h | sed "s/^.*(\(.*\)).*$$/\1/"`; fi; if [ "$$GITVERSION" != "$$LASTVERSION" ]; then sed "s/\";/ ($$GITVERSION)\";/" ../version.dist > ../version.h; fi; else cp -p ../version.dist ../version.h; fi)
 
 ### The directory environment:
 # Use package data if installed...otherwise assume we're under the VDR source directory:
