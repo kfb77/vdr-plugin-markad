@@ -2784,12 +2784,24 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete too early vertical border start found at (%d)", vStart->position);
         const cMark *vBorderStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);
         marks.Del(vStart->position);
-        if (!vBorderStop || (vBorderStop->position > startA + 420 * decoder->GetVideoFrameRate())) {
+        if (!vBorderStop) {
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border since start, use it for mark detection");
             criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
             if (!criteria->LogoInBorder()) {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): logo marks can not be valid, delete it");
                 marks.DelType(MT_LOGOCHANGE, 0xF0);
+            }
+        }
+        else {
+            int diffA = (vBorderStop->position - startA) / decoder->GetVideoFrameRate();
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop (%d) %ds after assumed start (%d)", vBorderStop->position, diffA, startA);
+            if (diffA >= 288) {
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border since start, and valid vertical border stop, use it for mark detection");
+                criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
+                if (!criteria->LogoInBorder()) {
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): logo marks can not be valid, delete it");
+                    marks.DelType(MT_LOGOCHANGE, 0xF0);
+                }
             }
         }
         return nullptr;
