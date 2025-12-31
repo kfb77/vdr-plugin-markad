@@ -2492,6 +2492,25 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 
 cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): search for hborder start mark");
+
+    // check for false hborder start/stop during aktive vborder
+    // check sequence MT_VBORDERSTART -> MT_HBORDERSTART -> MT_HBORDERSTOP -> MT_VBORDERSTOP
+    cMark *vStart = marks.GetNext(-1, MT_VBORDERSTART);
+    if (vStart) {
+        cMark *hStart = marks.GetNext(vStart->position, MT_HBORDERSTART);
+        if (hStart) {
+            cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);
+            if (hStop) {
+                cMark *vStop = marks.GetNext(-1, MT_VBORDERSTOP);
+                if (vStop) {
+                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): found invalid squence MT_VBORDERSTART (%d) -> MT_HBORDERSTART (%d) -> MT_HBORDERSTOP (%d) -> MT_VBORDERSTOP (%d)", vStart->position, hStart->position, hStop->position, vStop->position);
+                    marks.Del(hStart->position);
+                    marks.Del(hStop->position);
+                }
+            }
+        }
+    }
+
     cMark *hStart = marks.GetAround(1.4 * MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_HBORDERSTART);  // trust late hborder start mark, changed from 1.3 to 1.4
     if (hStart) { // we found a hborder start mark
         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): horizontal border start found at (%d)", hStart->position);
@@ -2565,7 +2584,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                             (diffBorderStarthBorderStop <= 223) && (diffhBorderStopLogoStop >= 960)) {
                         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): false detected hborder from opening credits found, delete hborder marks");
                         // there can also be a false vborder start from opening credits around logo start
-                        const cMark *vStart = marks.GetAround(decoder->GetVideoFrameRate(), logoStartBefore->position, MT_VBORDERSTART);
+                        vStart = marks.GetAround(decoder->GetVideoFrameRate(), logoStartBefore->position, MT_VBORDERSTART);
                         if (vStart) marks.Del(vStart->position);
                         marks.Del(hStart->position);
                         marks.Del(hStop->position);
