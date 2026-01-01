@@ -2603,15 +2603,16 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                     }
                 }
             }
-            // some dokus have more than one hborder parts
+            // some dokus have more than one invalid hborder parts
             // check hborder sequence MT_HBORDERSTART -> MT_HBORDERSTOP -> MT_HBORDERSTART
             cMark *hNextStart = marks.GetNext(hStop->position, MT_HBORDERSTART);
             if (hNextStart) {
                 int lengthAd = (hNextStart->position - hStop->position) / decoder->GetVideoFrameRate();
-                dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): MT_HBORDERSTART (%d) -> %ds -> MT_HBORDERSTOP (%d) -> %ds -> MT_HBORDERSTART (%d) -> %s", hStart->position, lengthBroadcast, hStop->position, lengthAd, hNextStart->position, macontext.Info.ChannelName);
-                // example of more than one hborder part in broadcast
+                dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): MT_HBORDERSTART (%d) -> %ds -> MT_HBORDERSTOP (%3d) -> %ds -> MT_HBORDERSTART (%5d) -> %s", hStart->position, lengthBroadcast, hStop->position, lengthAd, hNextStart->position, macontext.Info.ChannelName);
+                // example of more than one invalid hborder part in broadcast
                 // MT_HBORDERSTART (36238) -> 87s -> MT_HBORDERSTOP (40601) -> 1602s -> MT_HBORDERSTART (120704)
-                if ((lengthBroadcast <= 87) && (lengthAd >= 1602)) {
+                // MT_HBORDERSTART (10291) -> 81s -> MT_HBORDERSTOP (12317) ->  217s -> MT_HBORDERSTART ( 17756) -> TELE_5
+                if ((lengthBroadcast <= 87) && (lengthAd >= 217)) {
                     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): hborder sequence invalid, assume hborder are in broadcast");
                     marks.DelType(MT_HBORDERCHANGE, 0xF0);
                     return nullptr;
