@@ -629,7 +629,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
             break;
         }
     }
-    // for broadcast without hborder delete hborder start mark from next broadcast before logo stop
+    // for broadcast without hborder delete hborder start mark from next broadcast or false detection before logo stop
     // logo in border: logo stop short before hborder start: too early hborder start because of black screen in closing credits
     // logo not in border: logo stop mark is from next recording, use border start mark as end mark
     bool typeChange = false;
@@ -639,10 +639,11 @@ cMark *cMarkAdStandalone::Check_LOGOSTOP() {
             const cMark *hBorderStartPrev = marks.GetPrev(hBorderStart->position, MT_HBORDERSTART);
             if (!hBorderStartPrev) {
                 int hBorderStopLogoStart = (end->position - hBorderStart->position) / decoder->GetVideoFrameRate();
-                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): LogoInBorder %d: MT_HBORDERSTART (%d) -> %ds -> MT_LOGOSTOP (%d)", criteria->LogoInBorder(), hBorderStart->position, hBorderStopLogoStart, end->position);
+                dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): LogoInBorder %d: MT_HBORDERSTART (%5d) -> %3ds -> MT_LOGOSTOP (%5d)", criteria->LogoInBorder(), hBorderStart->position, hBorderStopLogoStart, end->position);
                 // example of invalid MT_HBORDERSTART
-                // LogoInBorder 1: MT_HBORDERSTART (189909) -> 8s -> MT_LOGOSTOP (190117)
-                if (criteria->LogoInBorder() && (hBorderStopLogoStart <= 10)) {
+                // LogoInBorder 1: MT_HBORDERSTART (189909) ->   8s -> MT_LOGOSTOP (190117)
+                // LogoInBorder 1: MT_HBORDERSTART ( 94428) -> 169s -> MT_LOGOSTOP ( 98664)  // very long dark scene before end
+                if (criteria->LogoInBorder() && (hBorderStopLogoStart <= 169)) {
                     dsyslog("cMarkAdStandalone::Check_LOGOSTOP(): logo in border, MT_HBORDERSTART invalid, dark closing credit");
                     marks.Del(hBorderStart->position);
                 }
