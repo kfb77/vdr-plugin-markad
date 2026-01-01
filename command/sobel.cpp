@@ -274,6 +274,9 @@ bool cSobel::SobelPlane(const sVideoPicture *picture, sAreaT *area, const int pl
     if (plane == 0) {
         area->intensity = intensity / (area->logoSize.width * area->logoSize.height);
     }
+#ifdef DEBUG_SOBEL
+    dsyslog("cSobel::SobelPlane(): plane %d: area->rPixel[plane] %d", plane,  area->rPixel[plane]);
+#endif
     return true;
 }
 
