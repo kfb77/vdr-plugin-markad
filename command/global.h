@@ -278,37 +278,39 @@ typedef struct sAudioAC3Channels {
  * corner area after sobel transformation
  */
 typedef struct sAreaT {
-    uchar **sobel         = nullptr;              //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
+    uchar **sobel                = nullptr;              //!< monochrome picture from edge after sobel transformation, memory will be allocated after we know video resolution
     //!<
-    uchar **logo          = nullptr;              //!< monochrome mask of logo, memory will be allocated after we know video resolution
+    uchar **logo                 = nullptr;              //!< monochrome mask of logo, memory will be allocated after we know video resolution
     //!<
-    uchar **result        = nullptr;              //!< result of sobel + mask, memory will be allocated after we know video resolution
+    uchar **result               = nullptr;              //!< result of sobel + mask, memory will be allocated after we know video resolution
     //!<
-    uchar **inverse       = nullptr;              //!< inverse result of sobel + mask, memory will be allocated after we know video resolution
+    uchar **inverse              = nullptr;              //!< inverse result of sobel + mask, memory will be allocated after we know video resolution
     //!<
-    bool valid[PLANES]    = {false};              //!< true if plane is valid
+    bool valid[PLANES]           = {false};              //!< true if plane is valid
     //!<
-    int mPixel[PLANES]    = {0};                  //!< black pixel in mask
+    int mPixel[PLANES]           = {0};                  //!< black pixel in mask
     //!<
-    int rPixel[PLANES]    = {0};                  //!< black pixel in result
+    int rPixel[PLANES]           = {0};                  //!< black pixel in result
     //!<
-    int iPixel[PLANES]    = {0};                  //!< black pixel in inverse result
+    int iPixel[PLANES]           = {0};                  //!< black pixel in inverse result
     //!<
-    int status            = LOGO_UNINITIALIZED;   //!< logo status: on, off, uninitialized
+    int status                   = LOGO_UNINITIALIZED;   //!< logo status: on, off, uninitialized
     //!<
-    int statePacketNumber = -1;                   //!< packet number last detected logo start/stop state change frame number
+    int statePacketNumber        = -1;                   //!< packet number last detected logo start/stop state change frame number
     //!<
-    int64_t stateFramePTS = -1;                   //!< frame PTS last detected logo start/stop state change frame number
+    int64_t stateFramePTS        = -1;                   //!< frame PTS last detected logo start/stop state change frame number
     //!<
-    int counter           = 0;                    //!< how many logo on, offs detected
+    int counter                  = 0;                    //!< how many logo on, offs detected
     //!<
-    int intensity         = 0;                    //!< area intensity (higher -> brighter)
+    int intensity                = 0;                    //!< area intensity (higher -> brighter)
     //!<
-    sLogoSize logoSize    = {0};                  //!< logo size
+    sLogoSize logoSize           = {0};                  //!< logo size
     //!<
-    int logoCorner        = -1;                   //!< corner of logo
+    int logoCorner               = -1;                   //!< corner of logo
     //!<
-    sAspectRatio logoAspectRatio = {};            //!< logo for video with this aspect ratio
+    sAspectRatio logoAspectRatio = {};                   //!< logo for video with this aspect ratio
+    //!<
+    bool isInitColourChange      = false;                //!< true if trnasformation of grey logo to coloured logo is done
     //!<
 } sAreaT;
 

@@ -613,9 +613,9 @@ bool cLogoDetect::LogoColourChange(int *rPixel, const int logo_vmark, const int 
     int mPixelColour = 0;
 
     // copy logo from plane 0 to plane 1 and 2
-    if (!isInitColourChange) {
+    if (!area.isInitColourChange) {
         LogoGreyToColour();
-        isInitColourChange = true;
+        area.isInitColourChange = true;
     }
     // sobel transformation of colored planes
     const sVideoPicture *picture = decoder->GetVideoPicture();

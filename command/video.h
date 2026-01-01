@@ -129,7 +129,6 @@ public:
         logo_xend          = origin.logo_xend;
         logo_ystart        = origin.logo_ystart;
         logo_yend          = origin.logo_yend;
-        isInitColourChange = origin.isInitColourChange;
         sobel              = nullptr;
         recDir             = origin.recDir;
         logoCorner         = origin.logoCorner;
@@ -151,7 +150,6 @@ public:
         logo_xend          = origin->logo_xend;
         logo_ystart        = origin->logo_ystart;
         logo_yend          = origin->logo_yend;
-        isInitColourChange = origin->isInitColourChange;
         sobel              = origin->sobel;
         recDir             = origin->recDir;
         logoCorner         = origin->logoCorner;
@@ -258,8 +256,6 @@ private:
     cSobel *sobel                     = nullptr;  //!< sobel transformation
     //!<
     sAreaT area                       = {};       //!< pixels of logo area
-    //!<
-    bool isInitColourChange           = false;    //!< true if trnasformation of grey logo to coloured logo is done
     //!<
     int logo_xstart                   = -1;       //!< x start coordinate of the visible part of the logo
     //!<
