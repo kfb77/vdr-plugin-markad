@@ -23,6 +23,9 @@
 
 #define LOCK_TIMEOUT 60000  // 0 for infinite wait
 
+extern int logLevel;
+void DebugLog(const char *fmt, ...);
+
 #ifdef DEBUG_MEM
 #include <vdr/plugin.h>
 

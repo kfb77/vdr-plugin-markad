@@ -5,6 +5,58 @@
  *
  */
 
+#include <vdr/tools.h>
+#include <stdarg.h>
+
+#include "debug.h"
+
+// 1 = error
+// 2 = info
+// 3 = debug  -> but log only if verbose plugin logging = ON
+// 4 = trace
+int logLevel = 3;
+
+void DebugLog(const char *fmt, ...) {
+    // Return immediately if log level is below 3 or format string is null
+    if (logLevel < 3 || fmt == nullptr)
+        return;
+
+    va_list ap;
+    va_start(ap, fmt);
+
+    // Calculate required buffer size by first using vsnprintf with a small buffer
+    int required_size = vsnprintf(nullptr, 0, fmt, ap) + 1;  // +1 for null terminator
+    va_end(ap);  // Reset va_list before reusing
+
+    // If vsnprintf failed to determine the size, return early
+    if (required_size <= 0) {
+        esyslog("markad: DebugLog(): error determining required buffer size");
+        return;
+    }
+
+    // Dynamically allocate memory for the log message
+    // We need space for "markad: " + formatted message + null terminator
+    char* buffer = static_cast<char*>(malloc(required_size + 9)); // +9 for "markad: " and null terminator
+    if (!buffer) {
+        esyslog("markad: DebugLog(): memory allocation failed");
+        return;
+    }
+
+    // Prepend "markad: " to the message
+    snprintf(buffer, 9, "markad: ");  // "markad: " + null terminator
+
+    // Format the original message after "markad: "
+    va_start(ap, fmt);
+    vsnprintf(buffer + 8, required_size, fmt, ap);  // Format the message starting after "markad: "
+    va_end(ap);
+
+    // Send the final message to VDR logging
+    dsyslog("%s", buffer);
+
+    // Free the dynamically allocated memory
+    free(buffer);
+}
+
 
 #ifdef DEBUG_MEM
 #include <stdlib.h>
@@ -12,8 +64,6 @@
 #include <vector>
 #include <pthread.h>
 #include <vdr/plugin.h>
-#include "debug.h"
-
 
 int memUseSum = 0;
 struct memUse {

@@ -149,6 +149,15 @@ void cSetupMarkAd::Store(void) {
     setup->hwaccel           = static_cast<int>(hwaccel);
     setup->Log2Rec           = log2rec;
     setup->LogoOnly          = logoonly;
+
+    if (setup->verbosePlugin) {
+        logLevel = 3;
+        isyslog("markad: change loglevel to %d", logLevel);
+    }
+    else {
+        logLevel = 2;
+        isyslog("markad: change loglevel to %d", logLevel);
+    }
 }
 
 
@@ -178,11 +187,11 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH)
 #if APIVERSNUM>=20301
                 cStateKey StateKey;
 #ifdef DEBUG_LOCKS
-                dsyslog("markad: cSetupMarkAdList(): WANT   channels READ");
+                DebugLog("cSetupMarkAdList(): WANT   channels READ");
 #endif
                 if (const cChannels *Channels = cChannels::GetChannelsRead(StateKey, LOCK_TIMEOUT)) {
 #ifdef DEBUG_LOCKS
-                    dsyslog("markad: cSetupMarkAdList(): LOCKED channels READ");
+                    DebugLog("cSetupMarkAdList(): LOCKED channels READ");
 #endif
                     for (const cChannel *channel=Channels->First(); channel; channel=Channels->Next(channel))
 #else
@@ -213,7 +222,7 @@ cSetupMarkAdList::cSetupMarkAdList(struct setup *Setup) :cOsdMenu("",CHNUMWIDTH)
                     free(name);
 #if APIVERSNUM>=20301
 #ifdef DEBUG_LOCKS
-                    dsyslog("markad: cSetupMarkAdList(): UNLOCK channels READ");
+                    DebugLog("cSetupMarkAdList(): UNLOCK channels READ");
 #endif
                     StateKey.Remove();
                 }

@@ -147,7 +147,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
         if ((osd) && (osd->Selectable())) {
             struct sRecording *entry=osd->GetEntry();
             if ((entry) && (entry->pid) && (entry->status!='T')) {
-                dsyslog("sending TSTP to %i",entry->pid);
+                DebugLog("sending TSTP to %i",entry->pid);
                 kill(entry->pid,SIGTSTP);
                 entry->changedByUser=true;
                 SetHelp(nullptr,tr("Continue"));
@@ -159,7 +159,7 @@ eOSState cMenuMarkAd::ProcessKey(eKeys Key) {
         if ((osd) && (osd->Selectable())) {
             struct sRecording *entry=osd->GetEntry();
             if ((entry) && (entry->pid)) {
-                dsyslog("sending CONT to %i",entry->pid);
+                DebugLog("sending CONT to %i",entry->pid);
                 kill(entry->pid,SIGCONT);
                 entry->changedByUser=true;
                 SetHelp(tr("Pause"),nullptr);

@@ -167,7 +167,7 @@ bool cPluginMarkAd::ProcessArgs(int argc, char *argv[]) {
 
 bool cPluginMarkAd::Initialize(void) {
     // Initialize any background activities the plugin shall perform.
-    if (setup.verbosePlugin) dsyslog("markad: cPluginMarkAd::Initialize() called");
+    isyslog("markad: start markad plugin with loglevel %d", logLevel);
     char *path;
     if (asprintf(&path, "%s/markad", bindir) == -1) return false;
     ALLOC(strlen(path)+1, "path");
@@ -183,7 +183,7 @@ bool cPluginMarkAd::Initialize(void) {
     FREE(strlen(path)+1, "path");
     free(path);
 
-    if (setup.verbosePlugin) dsyslog("markad: cPluginMarkAd::Initialize(): create status monitor");
+    DebugLog("cPluginMarkAd::Initialize(): create status monitor");
     statusMonitor = new cStatusMarkAd(bindir, logodir, &setup);
     ALLOC(sizeof(*statusMonitor), "statusMonitor");
     return (statusMonitor!=nullptr);
@@ -192,7 +192,7 @@ bool cPluginMarkAd::Initialize(void) {
 
 bool cPluginMarkAd::Start(void) {
     // Start any background activities the plugin shall perform.
-    if (setup.verbosePlugin) dsyslog("markad: cPluginMarkAd::Start() called");
+    DebugLog("cPluginMarkAd::Start() called");
     lastcheck = 0;
     setup.PluginName = Name();
     if (loglevel) {
@@ -215,7 +215,7 @@ bool cPluginMarkAd::Start(void) {
 
 void cPluginMarkAd::Stop(void) {
     // Stop any background activities the plugin is performing.
-    if (setup.verbosePlugin) dsyslog("markad: cPluginMarkAd::Stop() called");
+    DebugLog("cPluginMarkAd::Stop() called");
 }
 
 
@@ -227,7 +227,7 @@ void cPluginMarkAd::Housekeeping(void) {
 cString cPluginMarkAd::Active(void) {
     // Return a message string if shutdown should be postponed
     if (statusMonitor->MarkAdRunning() && (setup.DeferredShutdown)) {
-        if (setup.verbosePlugin) dsyslog("markad: markad still running, shutdown request rejected");
+        DebugLog("markad still running, shutdown request rejected");
         return tr("markad still running");
     }
     return nullptr;
@@ -271,6 +271,9 @@ bool cPluginMarkAd::SetupParse(const char *Name, const char *Value) {
     else if (!strcasecmp(Name,"FullDecode"))         setup.fulldecode        = atoi(Value);
     else if (!strcasecmp(Name,"hwaccel"))            setup.hwaccel           = atoi(Value);
     else return false;
+
+    if (setup.verbosePlugin) logLevel = 3;
+    else                     logLevel = 2;
     return true;
 }
 
