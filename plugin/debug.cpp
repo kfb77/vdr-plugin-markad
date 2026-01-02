@@ -89,7 +89,20 @@ void memAlloc(int size, int line, char *file, char *var) {
             return;
         }
     }
-    memUseVector.push_back({size, line, strdup(file), strdup(var), 1});
+
+    // Allocate memory safely for file and var
+    char *dupFile = strdup(file);
+    char *dupVar = strdup(var);
+    if (!dupFile || !dupVar) {
+        esyslog("markad: memAlloc(): allocation failed at %s:%d for variable %s", file, line, var);
+        if (dupFile) free(dupFile);
+        if (dupVar)  free(dupVar);
+        pthread_mutex_unlock(&mutex);
+        return;
+    }
+    memUseVector.push_back({size, line, dupFile, dupVar, 1});
+
+    // Unlock mutex and exit function
     pthread_mutex_unlock(&mutex);
     return;
 }
