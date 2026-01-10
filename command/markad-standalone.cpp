@@ -449,10 +449,10 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
             // check logo stop short before vborder stop, maybe delayed vborder stop from dark opening credits of next broascast
             logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
             if (logoStop) {
-                int deltaLogoStop = 1000 * (end->position - logoStop->position) / decoder->GetVideoFrameRate();
+                int deltaLogoStop = (end->position - logoStop->position) / decoder->GetVideoFrameRate();
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_LOGOSTOP (%d) %dms before vborder stop", logoStop->position, deltaLogoStop);
-                if (deltaLogoStop <= 2000) {
-                    dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): use logo stop mark at (%d) short before vborder stop (%d)", logoStop->position, end->position);
+                if (deltaLogoStop <= 23) {  // next broadcast start with dark scene, trust logo stop in black vborder
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): use logo stop mark at (%d) before vborder stop (%d)", logoStop->position, end->position);
                     end = logoStop;
                     CleanupUndetectedInfoLogo(end); // we are sure this is correct end, cleanup invalid logo marks
                 }
