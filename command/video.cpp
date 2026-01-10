@@ -1135,7 +1135,7 @@ int cSceneChangeDetect::Process(int *changePacketNumber, int64_t *changeFramePTS
     free(prevHistogram);
 
 #define DIFF_SCENE_NEW         342   // new scene during blend, force new scene stop/start, changed from 400 to 342, detect very fast scene blend as scene change
-#define DIFF_SCENE_CHANGE      165   // do not increase, will loss real scene changes
+#define DIFF_SCENE_CHANGE      159   // do not increase, will loss real scene changes, change from 165 to 159
 #define DIFF_SCENE_BLEND_START  70
 #define DIFF_SCENE_BLEND_STOP   50   // changed from 60 to 50 for long soft scene blend at start mark
 #define SCENE_BLEND_COUNTER       6
