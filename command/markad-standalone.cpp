@@ -3098,7 +3098,8 @@ void cMarkAdStandalone::CheckStart() {
     }
 
     // still no start mark found, try hborder stop marks from previous broadcast
-    if (!begin) { // try hborder stop mark as start mark
+    // for channel with good VPS events better use this, there maybe an ad after end of previous broadcast
+    if (!begin && !criteria->GoodVPS()) { // try hborder stop mark as start mark
         cMark *hborderStop  = marks.GetNext(0, MT_HBORDERSTOP);
         if (hborderStop) {
             cMark *vborderStop = marks.GetAround(decoder->GetVideoFrameRate(), hborderStop->position, MT_VBORDERSTOP);  // closing credit or documentation in frame can end with both stop types, use later
