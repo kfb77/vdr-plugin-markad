@@ -756,7 +756,7 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
         ALLOC(strlen(hwaccelOption) + 1, "hwaccelOption");
     }
 
-    cString cmd = cString::sprintf("\"%s\"/markad %s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
+    cString cmd = cString::sprintf("%s/markad %s%s%s%s%s%s%s%s%s%s%s -l \"%s\" %s \"%s\"",
                                    bindir,
                                    setup->verboseMarkad ? " -v " : "",
                                    setup->OSDMessage ? svdrPortOption : "",
