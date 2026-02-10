@@ -360,8 +360,9 @@ bool cPluginMarkAd::ReadTitle(const char *Directory) {
 cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int &ReplyCode) {
 // Process SVDRP command
     // start markad via SVDRP command, timerVPS will be detected by markad, we don't know this here
+    DebugLog("cPluginMarkAd::SVDRPCommand(): command: %s %s", Command, Option ? Option : "(null)");
     if (strcasecmp(Command, "MARK") == 0) {
-        if (Option) {
+        if (Option && *Option != '\0') {
             const char *Title = nullptr;
             if (ReadTitle(Option)) Title = reinterpret_cast<char *>(&title);
             sRecording recording;
