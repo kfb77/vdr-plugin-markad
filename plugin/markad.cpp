@@ -366,7 +366,7 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
             const char *Title = nullptr;
             if (ReadTitle(Option)) Title = reinterpret_cast<char *>(&title);
             sRecording recording;
-            if (statusMonitor->Start(Title, Option, true, &recording)) {
+            if (statusMonitor->Start(Title, Option, false, &recording)) {
                 return cString::sprintf("Started markad for %s", Option);
             }
             else {

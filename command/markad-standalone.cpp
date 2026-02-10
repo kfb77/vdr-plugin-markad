@@ -71,7 +71,7 @@ static inline int ioprio_set(int which, int who, int ioprio) {
         return syscall(__NR_ioprio_set, which, who, ioprio);
     }
     else {
-        fprintf(stderr,"set io prio not supported on this system\n");
+        fprintf(stderr,"markad: set io prio not supported on this system\n");
         return 0; // just do nothing
     }
 }
@@ -97,7 +97,7 @@ static inline int ioprio_get(int which, int who) {
         return syscall(__NR_ioprio_get, which, who);
     }
     else {
-        fprintf(stderr,"get io prio not supported on this system\n");
+        fprintf(stderr,"markad: get io prio not supported on this system\n");
         return 0; // just do nothing
     }
 
@@ -6771,7 +6771,7 @@ bool cMarkAdStandalone::CreatePidfile() {
             struct stat statbuf;
             if (stat(procname,&statbuf) != -1) {
                 // found another, running markad
-                fprintf(stderr, "another instance is running on %s", directory);
+                fprintf(stderr, "markad: another instance is running on %s", directory);
                 abortNow = duplicate = true;
             }
         }
@@ -7675,7 +7675,7 @@ int main(int argc, char *argv[]) {
                 if (strstr(argv[optind], ".rec") != nullptr ) {
                     recDir = realpath(argv[optind], nullptr);
                     if (!recDir) {
-                        fprintf(stderr, "invalid recording directory: %s\n", argv[optind]);
+                        fprintf(stderr, "markad: invalid recording directory: %s\n", argv[optind]);
                         return EXIT_FAILURE;
                     }
                     config.recDir = recDir;
@@ -7693,10 +7693,13 @@ int main(int argc, char *argv[]) {
 
     if (bEdited) return EXIT_SUCCESS; // do nothing if called from vdr before/after the video is cutted
     if ((bAfter) && (config.online > 0)) { // online not valid together with after
-        fprintf(stderr, "parameter --online is invalid for start markad after recording end\n");
+        fprintf(stderr, "markad: parameter --online is invalid for start markad after recording end\n");
         return EXIT_FAILURE;
     }
-    if ((config.before) && (config.online == 1) && recDir && (!strchr(recDir, '@'))) return EXIT_SUCCESS;
+    if ((config.before) && (config.online == 1) && recDir && (!strchr(recDir, '@'))) {
+        fprintf(stderr, "markad: --online==1 but no instand recording\n");
+        return EXIT_SUCCESS;
+    }
 
     // we can run, if one of bImmediateCall, bAfter, bBefore or bNice is true
     // and recDir is given
@@ -7708,7 +7711,7 @@ int main(int argc, char *argv[]) {
             pid_t pid = fork();
             if (pid < 0) {
                 const char *err = strerror(errno);
-                fprintf(stderr, "%s\n", err);
+                fprintf(stderr, "markad: %s\n", err);
                 return EXIT_FAILURE;
             }
             if (pid != 0) {
@@ -7771,38 +7774,38 @@ int main(int argc, char *argv[]) {
         // should we renice ?
         if (bNice) {
             if (setpriority(PRIO_PROCESS, 0, niceLevel) == -1) {
-                fprintf(stderr, "failed to set nice to %d\n", niceLevel);
+                fprintf(stderr, "markad: failed to set nice to %d\n", niceLevel);
             }
             if (ioprio_set(1,getpid(), ioprio | ioprio_class << 13) == -1) {
-                fprintf(stderr, "failed to set ioprio to %i,%i\n", ioprio_class, ioprio);
+                fprintf(stderr, "markad: failed to set ioprio to %i,%i\n", ioprio_class, ioprio);
             }
         }
         // store the real values, maybe set by calling nice
         errno = 0;
         int PrioProcess = getpriority(PRIO_PROCESS, 0);
         if ( errno ) {  // use errno because -1 is a valid return value
-            fprintf(stderr,"failed to get nice value\n");
+            fprintf(stderr,"markad: failed to get nice value\n");
         }
         int IOPrio = ioprio_get(1, getpid());
         if (IOPrio < 0) {
-            fprintf(stderr,"failed to get ioprio, rc = %d\n", IOPrio);
+            fprintf(stderr,"markad: failed to get ioprio, rc = %d\n", IOPrio);
         }
         else IOPrio = IOPrio >> 13;
 
         // now do the work...
         struct stat statbuf;
         if (stat(recDir, &statbuf) == -1) {
-            fprintf(stderr,"%s not found\n", recDir);
+            fprintf(stderr,"markad: %s not found\n", recDir);
             return EXIT_FAILURE;
         }
 
         if (!S_ISDIR(statbuf.st_mode)) {
-            fprintf(stderr, "%s is not a directory\n", recDir);
+            fprintf(stderr, "markad: %s is not a directory\n", recDir);
             return EXIT_FAILURE;
         }
 
         if (access(recDir, W_OK|R_OK) == -1) {
-            fprintf(stderr,"cannot access %s\n", recDir);
+            fprintf(stderr,"markad: cannot access %s\n", recDir);
             return EXIT_FAILURE;
         }
 
