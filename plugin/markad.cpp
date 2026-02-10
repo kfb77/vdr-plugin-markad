@@ -296,7 +296,7 @@ const char **cPluginMarkAd::SVDRPHelpPages(void) {
     // Return help text for SVDRP
     static const char *HelpPage[] = {
         "MARK <filename>\n"
-        "     Start markad for the recording with the given filename.",
+        "     Start markad for the recording with the given directory name.",
         "STATUS\n"
         "     show active recordings with running markad",
 #ifdef DEBUG_MEM
