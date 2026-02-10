@@ -699,9 +699,7 @@ void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSE
 }
 
 
-bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool direct, sRecording *recording) {
-    if ((direct) && (Get(FileName) != -1)) return false;
-
+bool cStatusMarkAd::Start(const char *Name, const char *FileName, sRecording *recording) {
     // prepare autoLogo Option
     char *autoLogoOption = nullptr;
     if (setup->autoLogoConf >= 0) {
@@ -731,7 +729,7 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
     // prepare cmd option
     char *cmdOption = nullptr;
     if (setup->ProcessDuring == PROCESS_DURING) {
-        if(!asprintf(&cmdOption, " --online=%d before ", direct ? 1 : 2)) {
+        if(!asprintf(&cmdOption, " --online=2 before ")) {
             esyslog("markad: asprintf cmdOption ouf of memory");
             return false;
         }
@@ -795,19 +793,13 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, const bool dir
         DebugLog("cStatusMarkAd::Start(): index %d, pid %d, filename %s: running markad stored in list", pos, recs[pos].pid, FileName ? FileName : "<nullptr>");
         if (gotPID && getStatus(pos)) {
             if (setup->ProcessDuring == PROCESS_AFTER) {
-                if (!direct) {
-                    if (!setup->whileRecording) {
-                        DebugLog("cStatusMarkAd::Start(): recording started, pause all markad");
-                        Pause(nullptr);
-                    }
-                    else {
-                        DebugLog("cStatusMarkAd::Start(): recording started with PROCESS_AFTER, pause %s", FileName ? FileName : "<nullptr>");
-                        Pause(FileName);
-                    }
+                if (!setup->whileRecording) {
+                    DebugLog("cStatusMarkAd::Start(): recording started, pause all markad");
+                    Pause(nullptr);
                 }
                 else {
-                    if (!setup->whileRecording && (runningRecordings > 0)) Pause(FileName);
-                    if (!setup->whileReplaying && Replaying()) Pause(FileName);
+                    DebugLog("cStatusMarkAd::Start(): recording started with PROCESS_AFTER, pause %s", FileName ? FileName : "<nullptr>");
+                    Pause(FileName);  // pause anyway, will wake up at end of recording
                 }
             }
         }
@@ -983,7 +975,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         }
 
         // Start markad with recording
-        if (!Start(Name, FileName, false, &recording)) {
+        if (!Start(Name, FileName, &recording)) {
             esyslog("markad: failed starting on <%s>", FileName);
         }
     }

@@ -121,7 +121,7 @@ public:
     char *GetStatus();
     void Check(void);
     bool GetNextActive(struct sRecording **RecEntry);
-    bool Start(const char *Name, const char *FileName, const bool direct, sRecording *recording);
+    bool Start(const char *Name, const char *FileName, sRecording *recording);
     int Get_EIT_EventID(const sRecording *recording, const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *schedule, const bool nextEvent);
     void FindRecording(const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *Schedule);
     void SetVPSStatus(const int index, int runningStatus, const bool eventEIT);
