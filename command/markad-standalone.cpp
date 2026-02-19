@@ -5687,12 +5687,11 @@ void cMarkAdStandalone::SilenceOptimization() {
             long int diffBefore     = INT_MAX;
             int diffAfter           = INT_MAX;
             cMark *soundStopBefore  = silenceMarks.GetPrev(mark->position + 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
-            cMark *soundStartBefore = nullptr;
             cMark *soundStopAfter   = silenceMarks.GetNext(mark->position - 1, MT_SOUNDSTOP);  // try after stop mark for fading out logo in broadcast
-            cMark *soundStartAfter  = nullptr;
             int lengthBefore        = 0;
             int lengthAfter         = 0;
             if (soundStopBefore) {
+                cMark *soundStartBefore = nullptr;
                 diffBefore = 1000 * (mark->position - soundStopBefore->position) / decoder->GetVideoFrameRate();
                 soundStartBefore = silenceMarks.GetNext(soundStopBefore->position, MT_SOUNDSTART);
                 if (soundStartBefore) {
@@ -5704,6 +5703,7 @@ void cMarkAdStandalone::SilenceOptimization() {
                 }
             }
             if (soundStopAfter) {
+                cMark *soundStartAfter  = nullptr;
                 diffAfter = 1000 * (soundStopAfter->position - mark->position) / decoder->GetVideoFrameRate();
                 soundStartAfter = silenceMarks.GetNext(soundStopAfter->position, MT_SOUNDSTART);
                 if (soundStartAfter) {
