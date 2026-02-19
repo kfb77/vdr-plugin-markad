@@ -678,17 +678,13 @@ bool cStatusMarkAd::Replaying() {
 
 void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSED(Name), const char *FileName, bool On) {
     DebugLog("cStatusMarkAd::Replaying(): %s playing %s", On ? "start" : "stop", FileName ? FileName : "<nullptr>");
-    if (setup->ProcessDuring != PROCESS_AFTER) return;
-    if (setup->whileReplaying) return;
     if (On) {
         DebugLog("cStatusMarkAd::Replaying(): replaying started, pause all markad");
-        Pause(nullptr);
+        Pause(nullptr, false);
     }
     else {
-        if (runningRecordings == 0) {
-            DebugLog("cStatusMarkAd::Replaying(): replaying stopped, continue all markad");
-            Continue(nullptr);
-        }
+        DebugLog("cStatusMarkAd::Replaying(): replaying stopped, continue all markad");
+        Continue(nullptr);
     }
 }
 
@@ -786,14 +782,12 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, sRecording *re
         DebugLog("cStatusMarkAd::Start(): index: %d, pid: %d, filename: %s, status %c: stored in recording list", pos, recs[pos].pid, FileName ? FileName : "<nullptr>", recs[pos].status);
         if (gotPID && getStatus(pos)) {
             if (setup->ProcessDuring == PROCESS_AFTER) {
-                if (!setup->whileRecording) {
-                    DebugLog("cStatusMarkAd::Start(): recording started, pause all markad");
-                    Pause(nullptr);
-                }
-                else {
-                    DebugLog("cStatusMarkAd::Start(): recording started with PROCESS_AFTER, pause %s", FileName ? FileName : "<nullptr>");
-                    Pause(FileName);  // pause anyway, will wake up at end of recording
-                }
+                DebugLog("cStatusMarkAd::Start(): recording started with PROCESS_AFTER, pause %s", FileName ? FileName : "<nullptr>");
+                Pause(FileName, true);  // pause anyway, will wake up at end of recording
+            }
+            else {
+                DebugLog("cStatusMarkAd::Start(): recording started, check if we have to pause all markad");
+                Pause(nullptr, false);  // pause all
             }
         }
         else esyslog("markad: cannot find running process");
@@ -930,7 +924,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
     if (!bindir)   return; // we cannot operate without bindir
     if (!logodir)  return; // we don't want to operate without logodir
 
-    Check();  // refresh and cleanup running recording list
+    RefreshStatus();  // refresh and cleanup running recording list
 // recording started
     if (On) {
         runningRecordings++;
@@ -975,49 +969,40 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
     }
 // recording ended
     else {
-        runningRecordings--;
+        runningRecordings--;      // reduce recording counter
         if (runningRecordings < 0) runningRecordings = 0;
         DebugLog("cStatusMarkAd::Recording(): recording stopped, recording count now %d", runningRecordings);
-        DebugLog("cStatusMarkAd::Recording(): setup->ProcessDuring %d, setup->whileRecording %d, setup->whileReplaying %d", setup->ProcessDuring, setup->whileRecording, setup->whileReplaying);
+        // check if recording is in list
         int pos = Get(FileName, Name);
         if (pos >= 0) {
-            DebugLog("cStatusMarkAd::Recording(): recording: %s, index %d, pid %d, recording stopped", recs[pos].title, pos, recs[pos].pid);
+            DebugLog("cStatusMarkAd::Recording(): index: %d, recording: %s, pid: %d, status: %c recording stopped", pos, recs[pos].title, recs[pos].status, recs[pos].pid);
             if (setup->useVPS) SaveVPSEvents(pos);  // store to get error messages for incomplete sequence
-            if ((setup->ProcessDuring == PROCESS_DURING) || (setup->ProcessDuring == PROCESS_NEVER)) { // PROCESS_NEVER: recording maybe in list from vps detection
+            if ((recs[pos].status == 'R') || (recs[pos].status == 'S')) {
+                DebugLog("cStatusMarkAd::Recording(): index: %d, recording: %s, pid: %d, status: %c markad still running", pos, recs[pos].title, recs[pos].status, recs[pos].pid);
+                return;
+            }
+            // check if we have to continue waiting markad
+            switch (setup->ProcessDuring) {
+            case PROCESS_AFTER:
+                DebugLog("cStatusMarkAd:::Recording(): recording stopped, continue markad for %s", FileName ? FileName : "<nullptr>");
+                Continue(FileName);
+                return;
+            case PROCESS_DURING:
+                DebugLog("cStatusMarkAd:::Recording(): recording stopped, continue all markad");
+                Continue(nullptr);
+                return;
+            case PROCESS_NEVER:
                 DebugLog("cStatusMarkAd::Recording(): recording: %s, remove from list", recs[pos].title);
                 Remove(pos, false);
-            }
-
-            if (setup->ProcessDuring == PROCESS_AFTER) {
-                if (!setup->whileRecording) {
-                    DebugLog("cStatusMarkAd::Recording(): PROCESS_AFTER");
-                    if (!setup->whileReplaying) {
-                        DebugLog("cStatusMarkAd::Recording(): replaying status %d", Replaying());
-                        if ((runningRecordings == 0) && !Replaying()) {
-                            DebugLog("cStatusMarkAd::Replaying(): recording stopped, continue all markad");
-                            Continue(nullptr);
-                        }
-                    }
-                    else {
-                        if (runningRecordings == 0) {
-                            DebugLog("cStatusMarkAd::Replaying(): recording stopped, continue all markad");
-                            Continue(nullptr);
-                        }
-                        else DebugLog("cStatusMarkAd::Recording(): resume not possible, still %d running recording(s)", runningRecordings);
-                    }
-                }
-                else {
-                    DebugLog("markad: cStatusMarkAd::Replaying(): recording stopped, continue markad for %s", FileName ? FileName : "<nullptr>");
-                    Continue(FileName);
-                }
+            default:
+                esyslog("cStatusMarkAd::Recording(): invalid setup->ProcessDuring %d", setup->ProcessDuring);
             }
         }
         else {
-            // no error message if recording is not tracked
-            if ((setup->ProcessDuring == PROCESS_NEVER) && !setup->useVPS) {
+            if ((setup->ProcessDuring == PROCESS_NEVER) && !setup->useVPS) {   // no error message if recording is not tracked
                 DebugLog("cStatusMarkAd::Recording(): recording %s stopped: not found in recording list", FileName);
             }
-            else esyslog("markad: cStatusMarkAd::Recording(): recording %s stopped: not found in recording list", FileName);
+            else esyslog("markad: recording %s stopped: not found in recording list", FileName);
         }
     }
 }
@@ -1138,7 +1123,7 @@ bool cStatusMarkAd::getStatus(int Position) {
         if (errno == ENOENT) {
             // no such file or directory -> markad done or crashed
             // remove filename from list
-            isyslog("markad: state -> end: %s", recs[Position].fileName ? recs[Position].fileName : "<nullptr>");
+            isyslog("markad: end: %s", recs[Position].fileName ? recs[Position].fileName : "<nullptr>");
             Remove(Position);
         }
     }
@@ -1205,7 +1190,7 @@ bool cStatusMarkAd::GetNextActive(struct sRecording **RecEntry) {
 }
 
 
-void cStatusMarkAd::Check() {
+void cStatusMarkAd::RefreshStatus() {
     struct sRecording *tmpRecs = nullptr;
     ResetActPos();
     while (GetNextActive(&tmpRecs)) ;
@@ -1217,8 +1202,8 @@ bool cStatusMarkAd::MarkAdRunning() {
     ResetActPos();
     bool running = false;
     while (GetNextActive(&tmpRecs)) {
-        if (tmpRecs->title) DebugLog("cStatusMarkAd::MarkAdRunning(): markad is running for recording %s, defere shutdown", tmpRecs->title);
-        else                DebugLog("cStatusMarkAd::MarkAdRunning(): markad is running for unknown recording, defere shutdown");
+        if (tmpRecs->title) DebugLog("cStatusMarkAd::MarkAdRunning(): markad is running for recording %s, defer shutdown", tmpRecs->title);
+        else                DebugLog("cStatusMarkAd::MarkAdRunning(): markad is running for unknown recording, defer shutdown");
         running = true;
     }
     return (running);
@@ -1494,29 +1479,51 @@ int cStatusMarkAd::Add(const char *Name, const char *FileName, sRecording *recor
 }
 
 
-void cStatusMarkAd::Pause(const char *FileName) {
-    DebugLog("cStatusMarkAd::Pause(): called with filename %s", FileName ? FileName : "<nullptr>");
-    for (int i = 0; i < (MAXDEVICES * MAXRECEIVERS); i++) {
-        if (FileName) {
-            if ((recs[i].fileName) && (!strcmp(recs[i].fileName,FileName)) && (recs[i].pid) && (!recs[i].changedByUser)) {
-                isyslog("markad: pause: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
-                DebugLog("cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].pid, recs[i].fileName ? recs[i].fileName : "<nullptr>");
-                kill(recs[i].pid, SIGTSTP);
+void cStatusMarkAd::Pause(const char *FileName, bool force) {
+    DebugLog("cStatusMarkAd::Pause(): filename %s", FileName ? FileName : "<nullptr>");
+    // check if we need to pause
+    if (force || ((!setup->whileRecording) && (runningRecordings > 0)) || ((!setup->whileReplaying) && Replaying())) {
+        for (int i = 0; i < (MAXDEVICES * MAXRECEIVERS); i++) {
+            if (FileName) {
+                if ((recs[i].fileName) && (!strcmp(recs[i].fileName,FileName)) && (recs[i].pid) && (!recs[i].changedByUser)) {
+                    isyslog("markad: pause: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
+                    DebugLog("cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].pid, recs[i].fileName ? recs[i].fileName : "<nullptr>");
+                    kill(recs[i].pid, SIGTSTP);
+                }
+            }
+            else {
+                if ((recs[i].pid) && (!recs[i].changedByUser)) {
+                    isyslog("markad: pause: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
+                    DebugLog("cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].pid, recs[i].fileName ? recs[i].fileName : "<nullptr>");
+                    kill(recs[i].pid, SIGTSTP);
+                }
             }
         }
-        else {
-            if ((recs[i].pid) && (!recs[i].changedByUser)) {
-                isyslog("markad: pause: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
-                DebugLog("cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].pid, recs[i].fileName ? recs[i].fileName : "<nullptr>");
-                kill(recs[i].pid, SIGTSTP);
-            }
-        }
+    }
+    else {
+        DebugLog("cStatusMarkAd::Pause(): no need for pause, setup->whileRecording: %d, runningRecording: %d, setup->whileReplaying: %d, Replaying: %d", setup->whileRecording, runningRecordings, setup->whileReplaying, Replaying());
+        return;
     }
 }
 
 
 void cStatusMarkAd::Continue(const char *FileName) {
     DebugLog("cStatusMarkAd::Continue(): called with filename %s", FileName ? FileName : "<nullptr>");
+    if ((setup->ProcessDuring == PROCESS_AFTER) && !FileName) {  // no global continue on PROCESS_AFTER, only dedicated per recording
+        DebugLog("cStatusMarkAd::Continue(): ignore continue due to PROCESS_AFTER");
+        return;
+    }
+
+    // check if it is allowed to continue
+    if ((!setup->whileRecording) && (runningRecordings > 0)) {
+        DebugLog("cStatusMarkAd::Continue(): preventing continuation due to ongoing recordings: %d", runningRecordings);
+        return;
+    }
+    if ((!setup->whileReplaying) && Replaying()) {
+        DebugLog("cStatusMarkAd::Continue(): preventing continuation due to ongoing replaying");
+        return;
+    }
+
     for (int i = 0; i < (MAXDEVICES*MAXRECEIVERS); i++) {
         if (FileName) {
             if ((recs[i].fileName) && (!strcmp(recs[i].fileName,FileName)) && (recs[i].pid) && (!recs[i].changedByUser) ) {

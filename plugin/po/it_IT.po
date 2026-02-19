@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2025-11-25 16:27+0100\n"
+"POT-Creation-Date: 2026-02-19 16:37+0100\n"
 "PO-Revision-Date: 2011-07-10 00:56+0100\n"
 "Last-Translator: Diego Pierotto <vdr-italian@tiscali.it>\n"
 "Language-Team: Italian <vdr@linuxtv.org>\n"
@@ -85,11 +85,11 @@ msgstr ""
 msgid "verbose logging (plugin)"
 msgstr ""
 
-msgid "  during another recording"
-msgstr "  durante un'altra registrazione"
+msgid "during another recording"
+msgstr ""
 
-msgid "  while replaying"
-msgstr "  durante la riproduzione"
+msgid "while replaying"
+msgstr ""
 
 msgid "scan only channels with logo"
 msgstr "Scansione solo canali con loghi"
@@ -132,6 +132,12 @@ msgstr "Indietro"
 
 msgid "off"
 msgstr ""
+
+#~ msgid "  during another recording"
+#~ msgstr "  durante un'altra registrazione"
+
+#~ msgid "  while replaying"
+#~ msgstr "  durante la riproduzione"
 
 #~ msgid "verbose logging"
 #~ msgstr "Log dettagliato"

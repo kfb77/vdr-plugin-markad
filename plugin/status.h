@@ -31,11 +31,11 @@ struct sRecording {
     char        *fileName          = nullptr;
     pid_t        pid               = 0;
     char         status            = 0;        // R=running
-                                               // S=sleeping  -> markad sleeping to wait for new recording data
-                                               // D=inactive
-                                               // Z=zombie
-                                               // T=stopped
-                                               // rest=unknown
+    // S=sleeping   -> markad sleeping to wait for new recording data
+    // D=inactive
+    // Z=zombie
+    // T=stopped    -> by user or during recording if running after
+    // rest=unknown
     bool         changedByUser     = false;
     bool         ignoreEIT         = false;
     // event
@@ -104,7 +104,7 @@ private:
     int Add(const char *Name, const char *FileName, sRecording *recording);
     void Remove(int pos, bool Kill = false);
     void Remove(const char *Name, bool Kill = false);
-    void Pause(const char *FileName);
+    void Pause(const char *FileName, bool force);
     void Continue(const char *FileName);
     bool LogoExists(const cDevice *Device, const char *FileName);
     void GetEventID(const cDevice *Device,const char *Name, sRecording *recording);
@@ -124,7 +124,7 @@ public:
         actpos=0;
     }
     char *GetStatus();
-    void Check(void);
+    void RefreshStatus(void);
     bool GetNextActive(struct sRecording **RecEntry);
     bool Start(const char *Name, const char *FileName, sRecording *recording);
     int Get_EIT_EventID(const sRecording *recording, const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *schedule, const bool nextEvent);

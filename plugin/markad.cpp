@@ -192,7 +192,7 @@ bool cPluginMarkAd::Initialize(void) {
 
 bool cPluginMarkAd::Start(void) {
     // Start any background activities the plugin shall perform.
-    DebugLog("cPluginMarkAd::Start() called");
+    DebugLog("cPluginMarkAd::Start(): called");
     lastcheck = 0;
     setup.PluginName = Name();
     if (loglevel) {
@@ -215,12 +215,16 @@ bool cPluginMarkAd::Start(void) {
 
 void cPluginMarkAd::Stop(void) {
     // Stop any background activities the plugin is performing.
-    DebugLog("cPluginMarkAd::Stop() called");
+    DebugLog("cPluginMarkAd::Stop(): called");
 }
 
 
 void cPluginMarkAd::Housekeeping(void) {
     // Perform any cleanup or other regular tasks.
+    // looks like only called if no recording is running, but that's enough to keep track of whether all the marks have been completed
+    // DebugLog("cPluginMarkAd::Housekeeping(): called");
+    // refresh markad status
+    if (setup.ProcessDuring != PROCESS_NEVER) statusMonitor->RefreshStatus();
 }
 
 
@@ -380,7 +384,7 @@ cString cPluginMarkAd::SVDRPCommand(const char *Command, const char *Option, int
         }
     }
     if (strcasecmp(Command, "STATUS") == 0) {
-        statusMonitor->Check();
+        statusMonitor->RefreshStatus();
         return statusMonitor->GetStatus();
     }
 #ifdef DEBUG_MEM

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr\n"
 "Report-Msgid-Bugs-To: <vdr@dolze.de>\n"
-"POT-Creation-Date: 2025-11-25 16:27+0100\n"
+"POT-Creation-Date: 2026-02-19 16:37+0100\n"
 "PO-Revision-Date: 2021-07-23 01:07+0300\n"
 "Last-Translator: Ville-Pekka Vainio <vpvainio@iki.fi>\n"
 "Language-Team: Finnish <vdr@linuxtv.org>\n"
@@ -84,11 +84,11 @@ msgstr "Kirjoita VPS-tapahtumat lokiin"
 msgid "verbose logging (plugin)"
 msgstr ""
 
-msgid "  during another recording"
-msgstr "  toisen tallennuksen aikana"
+msgid "during another recording"
+msgstr ""
 
-msgid "  while replaying"
-msgstr "  tallenteen toiston aikana"
+msgid "while replaying"
+msgstr ""
 
 msgid "scan only channels with logo"
 msgstr "Käytä vain logollisilla kanavilla"
@@ -131,6 +131,12 @@ msgstr "Takaisin"
 
 msgid "off"
 msgstr ""
+
+#~ msgid "  during another recording"
+#~ msgstr "  toisen tallennuksen aikana"
+
+#~ msgid "  while replaying"
+#~ msgstr "  tallenteen toiston aikana"
 
 #~ msgid "verbose logging"
 #~ msgstr "Käytä laajennettua lokikirjoitusta"

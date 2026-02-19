@@ -51,10 +51,8 @@ void cSetupMarkAd::write(void) {
     if (usevps && (processduring != PROCESS_DURING)) Add(new cMenuEditBoolItem(tr("log VPS events"), &logvps));
     Add(new cMenuEditBoolItem(tr("verbose logging (plugin)"), &verbosePlugin));
     if (processduring < PROCESS_NEVER) {
-        if (!processduring) {
-            Add(new cMenuEditBoolItem(tr("  during another recording"), &whilerecording));
-            Add(new cMenuEditBoolItem(tr("  while replaying"), &whilereplaying));
-        }
+        if (!processduring) Add(new cMenuEditBoolItem(tr("during another recording"), &whilerecording));
+        Add(new cMenuEditBoolItem(tr("while replaying"), &whilereplaying));
         Add(new cMenuEditBoolItem(tr("scan only channels with logo"), &logoonly), true);
         lpos = Current();
         Add(new cMenuEditBoolItem(tr("deferred shutdown"), &deferredshutdown));
@@ -114,7 +112,6 @@ void cSetupMarkAd::Store(void) {
     SetupStore("Execution", processduring);
     if (processduring == PROCESS_DURING) {
         whilerecording = 1;
-        whilereplaying = 1;
         usevps         = 0;    // VPS not possible during recording
     }
     SetupStore("useVPS", usevps);
