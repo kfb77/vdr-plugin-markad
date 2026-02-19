@@ -9,9 +9,6 @@
 #define __debug_h_
 
 
-// debug pause und resume of markad process
-// #define DEBUG_PAUSE_CONTINUE
-
 // debug all VPS EIT events with runningStatus > 0 from <channel>
 // #define DEBUG_VPS_EIT "<channel>"
 

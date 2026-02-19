@@ -667,9 +667,7 @@ bool cStatusMarkAd::Replaying() {
         cDevice *dev = cDevice::GetDevice(i);
         if (dev) {
             if (dev->Replaying()) {
-#ifdef DEBUG_PAUSE_CONTINUE
                 DebugLog("cStatusMarkAd::Replaying(): device %d is playing",i);
-#endif
                 return true;
             }
         }
@@ -678,12 +676,8 @@ bool cStatusMarkAd::Replaying() {
 }
 
 
-#ifdef DEBUG_PAUSE_CONTINUE
 void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSED(Name), const char *FileName, bool On) {
     DebugLog("cStatusMarkAd::Replaying(): %s playing %s", On ? "start" : "stop", FileName ? FileName : "<nullptr>");
-#else
-void cStatusMarkAd::Replaying(const cControl *UNUSED(Control), const char *UNUSED(Name), const char *UNUSED(FileName), bool On) {
-#endif
     if (setup->ProcessDuring != PROCESS_AFTER) return;
     if (setup->whileReplaying) return;
     if (On) {
@@ -783,14 +777,13 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, sRecording *re
         free(hwaccelOption);
     }
 
-    usleep(1000000); // wait 1 second
+    usleep(5000000); // wait 5 second to get some bytes of recording
+    DebugLog("cStatusMarkAd::Start(): executing %s", *cmd);
     if (SystemExec(cmd) != -1) {
-        isyslog("markad: state -> start: %s", FileName);
-        DebugLog("cStatusMarkAd::Start(): executing %s", *cmd);
-        usleep(200000);
+        usleep(1000000); // wait 1 second to start markad
         int pos = Add(Name, FileName, recording);
         bool gotPID = getPid(pos); // will set recs[pos].pid
-        DebugLog("cStatusMarkAd::Start(): index %d, pid %d, filename %s: running markad stored in list", pos, recs[pos].pid, FileName ? FileName : "<nullptr>");
+        DebugLog("cStatusMarkAd::Start(): index: %d, pid: %d, filename: %s, status %c: stored in recording list", pos, recs[pos].pid, FileName ? FileName : "<nullptr>", recs[pos].status);
         if (gotPID && getStatus(pos)) {
             if (setup->ProcessDuring == PROCESS_AFTER) {
                 if (!setup->whileRecording) {
@@ -803,9 +796,10 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, sRecording *re
                 }
             }
         }
-        else isyslog("markad: cannot find running process");
+        else esyslog("markad: cannot find running process");
         return true;
     }
+    esyslog("markad: failed to start markad");
     return false;
 }
 
@@ -984,9 +978,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         runningRecordings--;
         if (runningRecordings < 0) runningRecordings = 0;
         DebugLog("cStatusMarkAd::Recording(): recording stopped, recording count now %d", runningRecordings);
-#ifdef DEBUG_PAUSE_CONTINUE
         DebugLog("cStatusMarkAd::Recording(): setup->ProcessDuring %d, setup->whileRecording %d, setup->whileReplaying %d", setup->ProcessDuring, setup->whileRecording, setup->whileReplaying);
-#endif
         int pos = Get(FileName, Name);
         if (pos >= 0) {
             DebugLog("cStatusMarkAd::Recording(): recording: %s, index %d, pid %d, recording stopped", recs[pos].title, pos, recs[pos].pid);
@@ -998,13 +990,9 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
 
             if (setup->ProcessDuring == PROCESS_AFTER) {
                 if (!setup->whileRecording) {
-#ifdef DEBUG_PAUSE_CONTINUE
                     DebugLog("cStatusMarkAd::Recording(): PROCESS_AFTER");
-#endif
                     if (!setup->whileReplaying) {
-#ifdef DEBUG_PAUSE_CONTINUE
                         DebugLog("cStatusMarkAd::Recording(): replaying status %d", Replaying());
-#endif
                         if ((runningRecordings == 0) && !Replaying()) {
                             DebugLog("cStatusMarkAd::Replaying(): recording stopped, continue all markad");
                             Continue(nullptr);
@@ -1132,16 +1120,18 @@ bool cStatusMarkAd::LogoExists(const cDevice *Device, const char *FileName) {
 }
 
 
+// check if markad is running
 bool cStatusMarkAd::getStatus(int Position) {
     if (Position < 0) return false;
-    if (!recs[Position].pid) return false;
+    if (recs[Position].pid <= 0) return false;
     int ret = 0;
     char procname[256] = "";
     snprintf(procname, sizeof(procname), "/proc/%i/stat", recs[Position].pid);
     FILE *fstat = fopen(procname, "r");
     if (fstat) {
-        // found a running markad
+        // found a running markad, get running status
         ret = fscanf(fstat, "%*10d %*255s %c", &recs[Position].status);
+        DebugLog("pid: %d, status: %c", recs[Position].pid, recs[Position].status);
         fclose(fstat);
     }
     else {
@@ -1227,10 +1217,8 @@ bool cStatusMarkAd::MarkAdRunning() {
     ResetActPos();
     bool running = false;
     while (GetNextActive(&tmpRecs)) {
-        if (setup->verbosePlugin) {
-            if (tmpRecs->title) DebugLog("markad is running for recording %s, defere shutdown", tmpRecs->title);
-            else                DebugLog("markad is running for unknown recording, defere shutdown");
-        }
+        if (tmpRecs->title) DebugLog("cStatusMarkAd::MarkAdRunning(): markad is running for recording %s, defere shutdown", tmpRecs->title);
+        else                DebugLog("cStatusMarkAd::MarkAdRunning(): markad is running for unknown recording, defere shutdown");
         running = true;
     }
     return (running);
@@ -1352,7 +1340,23 @@ char *cStatusMarkAd::GetStatus() {
 }
 
 
+// add new recording to active recording list
 int cStatusMarkAd::Add(const char *Name, const char *FileName, sRecording *recording) {
+    if (!Name) {
+        esyslog("cStatusMarkAd::Add(): Name missing");
+        return -1;
+    }
+    if (!FileName) {
+        esyslog("cStatusMarkAd::Add(): FileName missing");
+        return -1;
+    }
+    if (!recording) {
+        esyslog("cStatusMarkAd::Add(): recodring missing");
+        return -1;
+    }
+    DebugLog("cStatusMarkAd::Add(): markad started for Name: %s, FileName: %s");
+
+
     for (int pos = 0; pos < (MAXDEVICES * MAXRECEIVERS); pos++) {
         if (!recs[pos].fileName) {
             // file name
@@ -1369,7 +1373,7 @@ int cStatusMarkAd::Add(const char *Name, const char *FileName, sRecording *recor
             // event title
             recs[pos].eventTitle = recording->eventTitle;  // allocated by GetEventID
 
-            recs[pos].status            = 0;
+            recs[pos].status            = 'R';  // markad was started, now running
             recs[pos].pid               = 0;
             recs[pos].changedByUser     = false;
             recs[pos].eventID           = recording->eventID;
@@ -1491,20 +1495,18 @@ int cStatusMarkAd::Add(const char *Name, const char *FileName, sRecording *recor
 
 
 void cStatusMarkAd::Pause(const char *FileName) {
-#ifdef DEBUG_PAUSE_CONTINUE
     DebugLog("cStatusMarkAd::Pause(): called with filename %s", FileName ? FileName : "<nullptr>");
-#endif
     for (int i = 0; i < (MAXDEVICES * MAXRECEIVERS); i++) {
         if (FileName) {
             if ((recs[i].fileName) && (!strcmp(recs[i].fileName,FileName)) && (recs[i].pid) && (!recs[i].changedByUser)) {
-                isyslog("markad: state -> pause: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
+                isyslog("markad: pause: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
                 DebugLog("cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].pid, recs[i].fileName ? recs[i].fileName : "<nullptr>");
                 kill(recs[i].pid, SIGTSTP);
             }
         }
         else {
             if ((recs[i].pid) && (!recs[i].changedByUser)) {
-                isyslog("markad: state -> pause: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
+                isyslog("markad: pause: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
                 DebugLog("cStatusMarkAd::Pause(): index %d, pid %d, filename %s: pause markad process", i, recs[i].pid, recs[i].fileName ? recs[i].fileName : "<nullptr>");
                 kill(recs[i].pid, SIGTSTP);
             }
@@ -1514,20 +1516,18 @@ void cStatusMarkAd::Pause(const char *FileName) {
 
 
 void cStatusMarkAd::Continue(const char *FileName) {
-#ifdef DEBUG_PAUSE_CONTINUE
     DebugLog("cStatusMarkAd::Continue(): called with filename %s", FileName ? FileName : "<nullptr>");
-#endif
     for (int i = 0; i < (MAXDEVICES*MAXRECEIVERS); i++) {
         if (FileName) {
             if ((recs[i].fileName) && (!strcmp(recs[i].fileName,FileName)) && (recs[i].pid) && (!recs[i].changedByUser) ) {
-                isyslog("markad: state -> continue: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
+                isyslog("markad: continue: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
                 DebugLog("cStatusMarkAd::Continue(): index %d, pid %d, filename %s: resume markad process", i, recs[i].pid, recs[i].fileName ? recs[i].fileName : "<nullptr>");
                 kill(recs[i].pid, SIGCONT);
             }
         }
         else {
             if ((recs[i].pid) && (!recs[i].changedByUser)) {
-                isyslog("markad: state -> continue: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
+                isyslog("markad: continue: %s", recs[i].fileName ? recs[i].fileName : "<nullptr>");
                 DebugLog("cStatusMarkAd::Continue(): index %d, pid %d, filename %s: resume markad process", i, recs[i].pid, recs[i].fileName ? recs[i].fileName : "<nullptr>");
                 kill(recs[i].pid, SIGCONT);
             }

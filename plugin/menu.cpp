@@ -80,6 +80,7 @@ cMenuMarkAd::cMenuMarkAd(cStatusMarkAd *Status):cOsdMenu(tr("markad status")) {
 }
 
 
+// markad state menue
 bool cMenuMarkAd::write() {
     Clear();
 
@@ -90,9 +91,10 @@ bool cMenuMarkAd::write() {
     do {
         status->GetNextActive(&Entry);
         if (Entry) {
+            DebugLog("cMenuMarkAd::write(): OSD Entry: title: %s, status: %d -> %c", Entry->title, Entry->status, Entry->status);
             if (!header) {
                 header=true;
-                Add(new cOsdItem(tr("Recording\t Status"),osUnknown,false));  // freed by vdr on menu close
+                Add(new cOsdItem(tr("Recording\t Status"), osUnknown, false));  // freed by vdr on menu close
             }
             cOsdMarkAd *osd = new cOsdMarkAd(Entry);  // freed by vdr on menu close
             if (osd) {
