@@ -613,26 +613,27 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMin =  48;
         }
 
-        //   1 TELE_5                  16:9  720W  576H:->  108W  64H BOTTOM_RIGHT
-        //   9 TELE_5                  16:9  720W  576H:->  108W  66H BOTTOM_RIGHT
-        //   1 TELE_5                  16:9  720W  576H:->  108W  68H BOTTOM_RIGHT
-        //   2 TELE_5                  16:9  720W  576H:->  108W  72H BOTTOM_RIGHT
-        //   1 TELE_5                   4:3  720W  576H:->  144W  66H BOTTOM_RIGHT
+        //   1 TELE_5                  16:9  720W  576H:->  122W  64H BOTTOM_RIGHT  -> add logo
         //
-        //   2 TELE_5                  16:9  720W  576H:->   70W  76H TOP_LEFT
+        //   1 TELE_5                  16:9  720W  576H:->  108W  64H BOTTOM_RIGHT  -> old logo
+        //   9 TELE_5                  16:9  720W  576H:->  108W  66H BOTTOM_RIGHT  -> old logo
+        //   1 TELE_5                  16:9  720W  576H:->  108W  68H BOTTOM_RIGHT  -> old logo
+        //   2 TELE_5                  16:9  720W  576H:->  108W  72H BOTTOM_RIGHT  -> old logo
+        //
+        //  19 TELE_5                  16:9  720W  576H:->   70W  76H TOP_LEFT      -> current logo
         if (CompareChannelName(channelName, "TELE_5", IGNORE_NOTHING)) {
             switch (logoCorner) {
-            case TOP_LEFT:
-                logo.heightMin =  64;
-                logo.heightMax =  76;
-                logo.widthMin  =  69;
-                logo.widthMax  =  71;
+            case TOP_LEFT:     // current logo
+                logo.heightMin =  60;
+                logo.heightMax =  80;
+                logo.widthMin  =  66;
+                logo.widthMax  =  76;
                 break;
-            case BOTTOM_RIGHT:
+            case BOTTOM_RIGHT:  // old logo
                 logo.heightMin =  54;
                 logo.heightMax =  82;
                 logo.widthMin  =  98;
-                logo.widthMax  = 154;
+                logo.widthMax  = 118;
                 break;
             default:                   // no logo possible
                 logo.heightMin =  INT_MAX;
