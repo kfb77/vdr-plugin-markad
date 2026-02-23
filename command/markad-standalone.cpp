@@ -459,7 +459,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
 
             }
         }
-        if (end->type == MT_VBORDERSTOP) { // we have not replaced vborder top with logo stop
+        if (end->type == MT_VBORDERSTOP) { // we have not replaced vborder stop with logo stop
             cMark *prevVStart = marks.GetPrev(end->position, MT_VBORDERSTART);
             if (prevVStart) {
                 if (prevVStart->position > stopA) {
@@ -477,6 +477,12 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
         }
     }
     else dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): no MT_VBORDERSTOP mark found");
+
+    // we use vborder and we found an end mark, cleanup invalid hborder marks
+    if (end && (criteria->GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_USED)) {
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): end mark found, cleanup invalid hborder marks");
+        marks.DelFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_HBORDERCHANGE, 0xF0);  // keep start mark, maybe inverted hborder stop from previous recording
+    }
     return end;
 }
 
