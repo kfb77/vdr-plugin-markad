@@ -2729,7 +2729,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     // search vborder start mark
     vStart = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_VBORDERSTART);
     if (!vStart) {
-        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no vertical border at start found");
+        dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no valid vertical border start mark found found");
         // check for vborder double episode
         // sequence MT_VBORDERSTART -> startA -> MT_VBORDERSTOP
         vStart             = marks.GetNext(-1, MT_VBORDERSTART);
@@ -2739,10 +2739,11 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
                 int vStartstartA = (startA          - vStart->position) / decoder->GetVideoFrameRate();
                 int startAvStop  = (vStop->position - startA)           / decoder->GetVideoFrameRate();
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_VBORDERSTART (%d) -> %ds -> startA (%d) -> %ds -> MT_VBORDERSTOP (%ds)", vStart->position, vStartstartA, startA, startAvStop, vStop->position);
-                // exampe of double episode
+                // example of double episode
                 // MT_VBORDERSTART (0) -> 467s -> startA (11675) -> 288s -> MT_VBORDERSTOP (18894s)
                 // MT_VBORDERSTART (0) -> 496s -> startA (12400) -> 178s -> MT_VBORDERSTOP (16864s)
-                if ((vStart->position < IGNORE_AT_START) && (startAvStop >= 178)) {
+                // MT_VBORDERSTART (0) -> 535s -> startA (13375) -> 175s -> MT_VBORDERSTOP (17770s)
+                if ((vStart->position < IGNORE_AT_START) && (startAvStop >= 175)) {
                     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder double episode detected, vborder stop is from first ad");
                     criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
                     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete HBORDER marks if any");
