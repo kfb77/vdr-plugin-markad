@@ -4559,7 +4559,10 @@ void cMarkAdStandalone::CheckIndexGrowing()
             double slepttime = 0;
             while ((unsigned int)slepttime < sleeptime) {
                 while (sleeptime > 0) {
-                    macontext.Info.isRunningRecording = true;
+                    if (!macontext.Info.isRunningRecording) {
+                        dsyslog("cMarkAdStandalone::CheckIndexGrowing(): running recording detected");
+                        macontext.Info.isRunningRecording = true;
+                    }
                     unsigned int ret = sleep(sleeptime); // now we sleep and hopefully the index will grow
                     if ((errno) && (ret)) {
                         if (abortNow) return;
