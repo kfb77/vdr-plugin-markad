@@ -2526,7 +2526,18 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
             hStart = marks.GetNext(hStart->position, MT_HBORDERSTART);
             if (hStart) dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): next horizontal border start found at (%d)", hStart->position);
         }
+        // check if hborder marks are valid
+        if (criteria->LogoInBorder()) {  // only possible if we have logo in bordermarks
+            // we should have a logo start mark around hborder start mark
+            cMark *logoStart = marks.GetAround(30 * decoder->GetVideoFrameRate(), hStart->position, MT_LOGOSTART);
+            if (!logoStart) {
+                dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): hborder start without logo start, hborder marks are invalid");
+                marks.DelType(MT_HBORDERCHANGE, 0xF0);
+                return nullptr;
+            }
+        }
     }
+
     if (hStart) { // we found a hborder start mark
         cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);
         if (hStop) { // we have a hborder stop mark in start area, check if hborder marks are valid
@@ -2552,7 +2563,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
             }
             // check if hborder marks are from long black closing credits
             // check sequence MT_HBORDERSTART -> MT_LOGOSTOP -> MT_HBORDERSTOP
-            if (criteria->LogoInBorder()) {  // only possible if we have logo marks
+            if (criteria->LogoInBorder()) {  // only possible if we have logo in border
                 const cMark *logoStop = marks.GetNext(hStart->position, MT_LOGOSTART);
                 if (logoStop) {
                     const cMark *hStopNext = marks.GetNext(logoStop->position, MT_HBORDERSTOP);
