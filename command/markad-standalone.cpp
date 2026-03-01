@@ -6363,12 +6363,11 @@ time_t cMarkAdStandalone::GetRecordingStart(time_t start, int fd) {
     struct mntent *ent;
     struct stat   statbuf;
     FILE *mounts = setmntent(_PATH_MOUNTED, "r");
-    int  mlen;
     int  oldmlen  = 0;
     bool useatime = false;
     while ((ent = getmntent(mounts)) != nullptr) {
         if (strstr(directory, ent->mnt_dir)) {
-            mlen = strlen(ent->mnt_dir);
+            int mlen = strlen(ent->mnt_dir);
             if (mlen > oldmlen) {
                 if (strstr(ent->mnt_opts, "noatime")) {
                     useatime = true;
@@ -6512,44 +6511,47 @@ void cMarkAdStandalone::LoadInfo() {
 
     char *line = nullptr;
     size_t linelen = 0;
+
     while (getline(&line, &linelen, f) != -1) {
         if (line[0] == 'C') {
-            char channelname[256];
-            memset(channelname, 0, sizeof(channelname));
-            int result = sscanf(line, "%*c %*80s %250c", reinterpret_cast<char *>(&channelname));
-            if (result == 1) {
-                macontext.Info.ChannelName = strdup(channelname);
-                ALLOC(strlen(macontext.Info.ChannelName)+1, "macontext.Info.ChannelName");
-                char *lf = strchr(macontext.Info.ChannelName, 10);
-                if (lf) {
-                    *lf = 0;
-                    char *tmpName = strdup(macontext.Info.ChannelName);
-                    ALLOC(strlen(tmpName)+1, "macontext.Info.ChannelName");
-                    *lf = 10;
-                    FREE(strlen(macontext.Info.ChannelName)+1, "macontext.Info.ChannelName");
-                    free(macontext.Info.ChannelName);
-                    macontext.Info.ChannelName = tmpName;
+            // Find the first space (after the 'C' identifier)
+            char *firstSpace = strchr(line, ' ');
+            if (firstSpace) {
+                // Find the second space (after the technical channel ID like S19.2E-...)
+                char *secondSpace = strchr(firstSpace + 1, ' ');
+                if (secondSpace) {
+                    // The actual channel name starts after the second space
+                    char *rawName = secondSpace + 1;
+
+                    // Strip trailing line breaks (CR / LF)
+                    size_t len = strlen(rawName);
+                    while (len > 0 && (rawName[len - 1] == '\n' || rawName[len - 1] == '\r')) {
+                        rawName[--len] = '\0';
+                    }
+
+                    // Allocate memory and copy the name
+                    macontext.Info.ChannelName = strdup(rawName);
+                    if (macontext.Info.ChannelName) {
+                        ALLOC(strlen(macontext.Info.ChannelName) + 1, "macontext.Info.ChannelName");
+
+                        // Replace special characters with underscores as in the original logic
+                        for (int i = 0; macontext.Info.ChannelName[i] != '\0'; i++) {
+                            if (macontext.Info.ChannelName[i] == ' ' ||
+                                    macontext.Info.ChannelName[i] == '.' ||
+                                    macontext.Info.ChannelName[i] == '/') {
+                                macontext.Info.ChannelName[i] = '_';
+                            }
+                        }
+                        dsyslog("cMarkAdStandalone::LoadInfo(): channel name: %s", macontext.Info.ChannelName);
+                    }
+                } else {
+                    esyslog("vdr info file: channel name part not found after ID");
                 }
-                char *cr = strchr(macontext.Info.ChannelName, 13);
-                if (cr) {
-                    *cr = 0;
-                    char *tmpName = strdup(macontext.Info.ChannelName);
-                    ALLOC(strlen(tmpName)+1, "macontext.Info.ChannelName");
-                    *lf = 13;
-                    FREE(strlen(macontext.Info.ChannelName)+1, "macontext.Info.ChannelName");
-                    free(macontext.Info.ChannelName);
-                    macontext.Info.ChannelName = tmpName;
-                }
-                for (int i = 0; i < static_cast<int> (strlen(macontext.Info.ChannelName)); i++) {
-                    if (macontext.Info.ChannelName[i] == ' ') macontext.Info.ChannelName[i] = '_';
-                    if (macontext.Info.ChannelName[i] == '.') macontext.Info.ChannelName[i] = '_';
-                    if (macontext.Info.ChannelName[i] == '/') macontext.Info.ChannelName[i] = '_';
-                }
-            }
-            else {
-                esyslog("vdr info file: no channel name found");
+            } else {
+                esyslog("vdr info file: no space after C-code found");
             }
         }
+
         if ((line[0] == 'E') && (!bLiveRecording)) {
             long st;
             int result = sscanf(line,"%*c %*10i %20li %6i %*2x %*2x", &st, &length);
