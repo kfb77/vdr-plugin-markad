@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2026-03-02: Version 4.2.19
+- fix channel name not detected with new glib on archlinux
+  thx to androderdon@www.vdr-portal.de for reporting
+- rewrite markad state monitoring
+  thx to FireFly@www.vdr-portal.de for finding a design flaw
+
 2026-02-16: Version 4.2.18
 - Makefile: fix rebuilding of markad-standalone.cpp in git tree despite no changes
   thx to SHofmann@www.vdr-portal.de for contribution
