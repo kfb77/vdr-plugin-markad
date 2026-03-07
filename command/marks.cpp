@@ -446,6 +446,12 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, int pos
         dsyslog("cMarks::Add(): start vborder and start logo on same position, move vborder start to (%d)", position);
         dupMark = Get(position);  // now check duplicate with new position
     }
+    // move aspect stop after logo start mark, need both to detect valid aspect start mark for recording with wrong aspect ratio in VDR info file
+    else if (dupMark && (type == MT_LOGOSTART) && (dupMark->type == MT_ASPECTSTOP)) {
+        position = index->GetPacketNumberAfter(position);
+        dsyslog("cMarks::Add(): aspect ration stop mark and logo start mark on same position, move  MT_ASPECTSTOP to (%d)", position);
+        dupMark = Get(position);  // now check duplicate with new position
+    }
     if (dupMark) {
         if ((type & 0xF0) != MT_SCENECHANGE) dsyslog("cMarks::Add(): duplicate mark on position (%d) type 0x%X and type 0x%X", position, type, dupMark->type); // duplicate scene changes happens frequently
 #ifdef DEBUG_SCENECHANGE
