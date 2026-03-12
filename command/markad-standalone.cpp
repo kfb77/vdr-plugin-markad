@@ -2527,7 +2527,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
             if (hStart) dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): next horizontal border start found at (%d)", hStart->position);
         }
         // check if hborder marks are valid
-        if (criteria->LogoInBorder()) {  // only possible if we have logo in bordermarks
+        if (hStart && criteria->LogoInBorder()) {  // only possible if we have logo in bordermarks
             // we should have a logo start mark around hborder start mark
             cMark *logoStart = marks.GetAround(30 * decoder->GetVideoFrameRate(), hStart->position, MT_LOGOSTART);
             if (!logoStart) {
