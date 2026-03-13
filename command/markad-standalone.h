@@ -350,6 +350,11 @@ private:
     cMark *Check_LOGOSTART();
 
     /**
+     * check for border double episode
+     */
+    bool CheckBorderDoubleEpisode(cMark *bStart, cMark *bStop);
+
+    /**
      * check for hborder start mark
      */
     cMark *Check_HBORDERSTART();

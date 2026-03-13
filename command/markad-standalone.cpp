@@ -2704,9 +2704,63 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     return hStart;
 }
 
+
+
+bool cMarkAdStandalone::CheckBorderDoubleEpisode(cMark *bStart, cMark *bStop) {
+    // we need a valid start mark
+    if (!bStart) return false;
+    if ((bStart->type != MT_VBORDERSTART) && (bStart->type != MT_HBORDERSTART)) return false;
+
+    // border start at recording start but no border stop in start part is a double episode
+    bool doubleEpisode = false;
+    if (!bStop) {  // we have no border stop mark in start part
+        if (bStart->position < IGNORE_AT_START) {
+            dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisode(): border start mark but no border stop mark, double episode detected");
+            doubleEpisode =true;
+        }
+        else {
+            dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisode(): late border start mark, no border double episode detected");
+            return false;
+        }
+    }
+    else { // we have a border stop mark in start part
+        if ((bStop->type != MT_VBORDERSTOP) && (bStop->type != MT_HBORDERSTOP)) return false;
+
+        int bStart_startA = (startA          - bStart->position) / decoder->GetVideoFrameRate();
+        int startA_bStop  = (bStop->position - startA)           / decoder->GetVideoFrameRate();
+        dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisode(): MT_xBORDERSTART (%5d) -> %ds -> startA (%3d) -> %ds -> MT_xBORDERSTOP (%5ds)", bStart->position, bStart_startA, startA, startA_bStop, bStop->position);
+        // example of double episode
+        // MT_xBORDERSTART (0) -> 467s -> startA (11675) -> 288s -> MT_xBORDERSTOP (18894s)
+        // MT_xBORDERSTART (0) -> 496s -> startA (12400) -> 178s -> MT_xBORDERSTOP (16864s)
+        // MT_xBORDERSTART (0) -> 535s -> startA (13375) -> 175s -> MT_xBORDERSTOP (17770s)
+        // MT_xBORDERSTART (0) -> 305s -> startA (7625) ->   82s -> MT_xBORDERSTOP ( 9692s)
+        if ((bStart->position < IGNORE_AT_START) && (startA_bStop >= 82)) {
+            dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisode(): border double episode detected, border stop is from first ad");
+            doubleEpisode = true;
+        }
+        else {
+            dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisode(): no border double episode detected");
+            return false;
+        }
+    }
+
+    // set border detection state
+    if (doubleEpisode) {
+        criteria->SetMarkTypeState(bStart->type & 0xF0, CRITERIA_USED, macontext.Config->fullDecode);
+        dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisode(): delete opposite border marks if any");
+        int oppositeType = MT_HBORDERCHANGE;
+        if (bStart->type == MT_HBORDERSTART) oppositeType = MT_VBORDERCHANGE;
+        marks.DelType(oppositeType, 0xF0); // delete detection failure
+        return true;
+    }
+    return false;
+}
+
+
+
 cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): search for vborder start mark");
-    // check if we have short vbroder start/stop marks from an unreliable small vborder
+    // check if we have short vborder start/stop marks from an unreliable small vborder
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): check if vborder marks are valid");
     cMark *vStart = marks.GetNext(-1, MT_VBORDERSTART);
     while (vStart) {
@@ -2730,35 +2784,11 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     vStart = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_VBORDERSTART);
     if (!vStart) {
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no valid vertical border start mark found found");
-        // check for vborder double episode
+        // check for vborder double episode in case of vborder start mark at recording start is out of search range
         // sequence MT_VBORDERSTART -> startA -> MT_VBORDERSTOP
-        vStart             = marks.GetNext(-1, MT_VBORDERSTART);
-        const cMark *vStop = marks.GetNext( 0, MT_VBORDERSTOP);
-        if (vStart) {
-            if (vStop) {
-                int vStartstartA = (startA          - vStart->position) / decoder->GetVideoFrameRate();
-                int startAvStop  = (vStop->position - startA)           / decoder->GetVideoFrameRate();
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_VBORDERSTART (%d) -> %ds -> startA (%d) -> %ds -> MT_VBORDERSTOP (%ds)", vStart->position, vStartstartA, startA, startAvStop, vStop->position);
-                // example of double episode
-                // MT_VBORDERSTART (0) -> 467s -> startA (11675) -> 288s -> MT_VBORDERSTOP (18894s)
-                // MT_VBORDERSTART (0) -> 496s -> startA (12400) -> 178s -> MT_VBORDERSTOP (16864s)
-                // MT_VBORDERSTART (0) -> 535s -> startA (13375) -> 175s -> MT_VBORDERSTOP (17770s)
-                if ((vStart->position < IGNORE_AT_START) && (startAvStop >= 175)) {
-                    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder double episode detected, vborder stop is from first ad");
-                    criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
-                    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete HBORDER marks if any");
-                    marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
-                    return nullptr;
-                }
-            }
-            else if (vStart->position < IGNORE_AT_START) {
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vborder double episode detected, continuous activ vborder in start part");
-                criteria->SetMarkTypeState(MT_VBORDERCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): delete HBORDER marks if any");
-                marks.DelType(MT_HBORDERCHANGE, 0xF0); // delete wrong hborder marks
-                return nullptr;
-            }
-        }
+        vStart        = marks.GetNext(-1, MT_VBORDERSTART);
+        cMark *vStop = marks.GetNext( 0, MT_VBORDERSTOP);
+        if (CheckBorderDoubleEpisode(vStart, vStop)) return nullptr;
         criteria->SetDetectionState(MT_VBORDERCHANGE, false);
         marks.DelType(MT_VBORDERSTART, 0xFF);  // maybe we have a vborder start from a preview or in a doku, delete it
         if (vStop) {
@@ -2783,6 +2813,10 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     // found vborder start, check if it is valid
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start found at (%d)", vStart->position);
     cMark *vStopAfter = marks.GetNext(vStart->position, MT_VBORDERSTOP);  // if there is a MT_VBORDERSTOP short after the MT_VBORDERSTART, MT_VBORDERSTART is invalid
+
+    // check for vborder double episode in case of vborder start mark at recording start is in search range
+    if (CheckBorderDoubleEpisode(vStart, vStopAfter)) return nullptr;
+
     if (vStopAfter) {
         int vBorderStartvBorderStop = (vStopAfter->position - vStart->position) / decoder->GetVideoFrameRate();
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border stop found at (%d), %ds after vertical border start", vStopAfter->position, vBorderStartvBorderStop);
