@@ -2276,7 +2276,8 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         }
         else return nullptr;
     }
-    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): nearest logo start mark (%d) to assumed start (%d)", lStartAssumed->position, startA);
+    int diff = (lStartAssumed->position - startA) / decoder->GetVideoFrameRate();
+    dsyslog("cMarkAdStandalone::Check_LOGOSTART(): nearest logo start mark (%d) %ds before assumed start (%d)", lStartAssumed->position, diff, startA);
 
 
 // try to select best logo start mark based on closing credits follow

@@ -34,7 +34,7 @@ class cOSDMessage;
 #define MAX_LOWER_BORDER 16400    // longest lower border found 16400
 
 #define MAX_ASSUMED        300    // max distance for valid mark from assumed start/stop
-#define MAX_ASSUMED_VPS     30    // max distance for valid mark from channel with good VPS events
+#define MAX_ASSUMED_VPS     25    // max distance for valid mark from channel with good VPS events, prevent to get logo start from preview
 
 
 /**
