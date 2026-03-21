@@ -1329,13 +1329,13 @@ bool cDetectLogoStopStart::IsInfoLogo(int startPos, int endPos, const bool hasBo
         int diffStart = 1000 * (infoLogo.startFinal - startPos) / frameRate;
         int diffEnd = 1000 * (endPos - infoLogo.endFinal) / frameRate;
         int newStartPos = startPos;
-        int newEndPos = endPos;
         dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo start diff %dms, end diff %dms", diffStart, diffEnd);
         if (diffStart > INFO_LOGO_MAX_AFTER_START) {
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): info logo start (%d) too far from logo stop (%d)", infoLogo.startFinal, startPos);
             found = false;
         }
         else {
+            int newEndPos = endPos;
             if (diffStart <  1920) newStartPos = infoLogo.startFinal;  // do not increase
             if (diffEnd   <= 1800) newEndPos   = infoLogo.endFinal;    // changed from 1440 to 1800
             dsyslog("cDetectLogoStopStart::IsInfoLogo(): final info logo range start (%d) end (%d)", newStartPos, newEndPos);
