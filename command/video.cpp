@@ -1583,7 +1583,7 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
     *vBorderFramePTS     = -1;
     // no vertical border detection with 4:3 broadcast
     // some 4:3 broadcasts has additional a very small vborder with result in false flapping vborder detection
-    sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
+    const sAspectRatio *aspectRatio = decoder->GetFrameAspectRatio();
     if ((aspectRatio->num == 4) && (aspectRatio->den == 3)) return HBORDER_INVISIBLE;
 
     if (frameRate == 0) {
