@@ -2400,7 +2400,7 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
         // check for too late logo start, can be of first ad
         if (diffAssumed < -maxAssumed) {  // do not accept start mark if it is more than maxAssumed min after assumed start
             // if logo start mark is after a long part without logo, it should be valid, maybe too late broadcast start
-            cMark *logoStopBefore = marks.GetPrev(lStart->position, MT_LOGOSTOP);
+            const cMark *logoStopBefore = marks.GetPrev(lStart->position, MT_LOGOSTOP);
             if (!logoStopBefore) {
                 dsyslog("cMarkAdStandalone::Check_LOGOSTART(): logo start mark (%d) %ds after assumed start is valid, first logo start mark", lStart->position, -diffAssumed);
                 begin = lStart;  // start with nearest start mark to assumed start
