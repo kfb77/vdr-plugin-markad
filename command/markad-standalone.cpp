@@ -1723,7 +1723,7 @@ void cMarkAdStandalone::CheckStop() {
         }
         // no valid stop mark found, try if there is a MT_CHANNELSTART from next broadcast
         if (!end && (criteria->GetMarkTypeState(MT_CHANNELCHANGE) != CRITERIA_USED)) { // not possible is we use channel mark in this broadcast
-            cMark *channelStart = marks.GetNext(stopA, MT_CHANNELSTART);
+            cMark *channelStart = marks.GetAround(60 * decoder->GetVideoFrameRate(), stopA, MT_CHANNELSTART);
             if (channelStart) {
                 dsyslog("cMarkAdStandalone::CheckStop(): use channel start mark (%d) from next broadcast as end mark", channelStart->position);
                 marks.ChangeType(channelStart, MT_STOP);
