@@ -1595,7 +1595,8 @@ int cVertBorderDetect::Process(int *vBorderPacketNumber, int64_t *vBorderFramePT
         dsyslog("cVertBorderDetect::Process(): packet (%d): picture not valid", decoder->GetPacketNumber());
         return VBORDER_ERROR;
     }
-#define CHECKWIDTH 10           // do not reduce, very small vborder are unreliable to detect, better use logo in this case
+#define CHECKWIDTH 11           // do not reduce, very small vborder are unreliable to detect, better use logo in this case
+    //                             changed from 10 to 11 because of unreliable detection of very small vborder at Comedy Central
 #define BRIGHTNESS_V_SURE   27  // changed from 33 to 27, some channels has dark separator before vborder start
 #define BRIGHTNESS_V_MAYBE 101  // some channel have logo or infos in one border, so we must accept a higher value, changed from 100 to 101
     // set limits
