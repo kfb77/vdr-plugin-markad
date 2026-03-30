@@ -755,16 +755,14 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMax = 100;
         }
 
-//  13 KiKA_HD                 16:9 1280W  720H:->  228W  96H TOP_LEFT
-//  17 KiKA_HD                 16:9 1280W  720H:->  230W  96H TOP_LEFT
+//   1 KiKA_HD                 16:9 1280W  720H:->  202W 112H TOP_LEFT
+//   1 KiKA_HD                 16:9 1280W  720H:->  228W 114H TOP_LEFT
 //   4 KiKA_HD                 16:9 1280W  720H:->  230W  98H TOP_LEFT
-//   1 KiKA_HD                 16:9 1280W  720H:->  298W 122H TOP_LEFT    -> special logo with rabbit left of logo
-
         if (CompareChannelName(channelName, "KiKA_HD", IGNORE_NOTHING)) {
-            logo.widthMin  = 218;
-            logo.widthMax  = 308;
-            logo.heightMin =  86;
-            logo.heightMax = 132;
+            logo.widthMin  = 192;
+            logo.widthMax  = 240;
+            logo.heightMin =  88;
+            logo.heightMax = 124;
         }
 
         if (CompareChannelName(channelName, "MDR_HD", IGNORE_CITY)) {        // MDR_Sachsen_HD          16:9 1280W  720H:->  160W  70H TOP_LEFT
