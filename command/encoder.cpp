@@ -198,21 +198,21 @@ cEncoder::cEncoder(cDecoder *decoderParam, cIndex *indexParam, const char *recDi
 
 
 cEncoder::~cEncoder() {
-    dsyslog("cEncoder::~cEncoder(): delete object");
-    for (unsigned int i = 0; i < avctxOut->nb_streams; i++) {
-        if (volumeFilterAC3[i]) {
-            FREE(sizeof(*volumeFilterAC3[i]), "volumeFilterAC3");
-            delete volumeFilterAC3[i];
+    if (avctxOut) {
+        for (unsigned int i = 0; i < avctxOut->nb_streams; i++) {
+            if (volumeFilterAC3[i]) {
+                FREE(sizeof(*volumeFilterAC3[i]), "volumeFilterAC3");
+                delete volumeFilterAC3[i];
+            }
         }
+        FREE(sizeof(*avctxOut), "avctxOut");
+        avformat_free_context(avctxOut);
     }
 
     if (stats_in.data) {
         FREE(stats_in.size, "stats_in");
         free(stats_in.data);
     }
-
-    FREE(sizeof(*avctxOut), "avctxOut");
-    avformat_free_context(avctxOut);
 
     if (decoderLocal) {
         dsyslog("cEncoder::~cEncoder(): delete local decoder");
