@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2026-04-05: Version 4.2.20
+- fix encoder nullptr crash
+- fix crash with hborder double episode
+- some minor bug fixes and optimizations, see git
+
 2026-03-02: Version 4.2.19
 - fix channel name not detected with new glib on archlinux
   thx to androderdon@www.vdr-portal.de for reporting
