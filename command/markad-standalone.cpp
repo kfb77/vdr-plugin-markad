@@ -428,6 +428,33 @@ cMark *cMarkAdStandalone::Check_HBORDERSTOP() {
 }
 
 
+cMark *cMarkAdStandalone::CheckBorderDoubleEpisodeAtEnd(const cMark *bStop) {
+    // we need a valid border stop mark
+    if (!bStop) return nullptr;
+    if ((bStop->type != MT_VBORDERSTOP) && (bStop->type != MT_HBORDERSTOP)) return nullptr;
+
+    // only possible if we used border for detection
+    if ((bStop->type == MT_VBORDERSTOP) && (criteria->GetMarkTypeState(MT_VBORDERCHANGE) != CRITERIA_USED)) return nullptr;
+    if ((bStop->type == MT_HBORDERSTOP) && (criteria->GetMarkTypeState(MT_HBORDERCHANGE) != CRITERIA_USED)) return nullptr;
+
+    // we need a valid logo mark to detect double episode
+    if (!criteria->LogoInBorder()) return nullptr;
+
+
+    int borderDelta = (bStop->position - stopA) / decoder->GetVideoFrameRate();
+
+    // check if there is a logo stop near assumed stop, maybe double vborder broadcast with short first part of second broadcast
+    cMark *logoStop = marks.GetAround((borderDelta - 1) * decoder->GetVideoFrameRate(), stopA, MT_LOGOSTOP);
+    if (logoStop) {
+        int deltaLogoStop = (logoStop->position - stopA) / decoder->GetVideoFrameRate();
+        dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisodeAtEnd(): double border episode: MT_LOGOSTOP (%d) %ds after assumed stop", logoStop->position, deltaLogoStop);
+        return logoStop;
+    }
+    dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisodeAtEnd(): no border double episode");
+    return nullptr;
+}
+
+
 // try MT_VBORDERSTOP
 cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
     cMark *end = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), stopA, MT_VBORDERSTOP); // do not increase, found start of first ad from next broadcast after 306s
@@ -435,17 +462,8 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
         int vBorderDelta = (end->position - stopA) / decoder->GetVideoFrameRate();
         dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_VBORDERSTOP found at frame (%d), %ds after assumed stop", end->position, vBorderDelta);
         if (criteria->LogoInBorder()) { // no random logo interruption, but reliable logo detection because logo is in black border
-            // check if there is a logo stop near assumed stop, maybe double vborder broadcast with short first part of second broadcast
-            cMark *logoStop = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), stopA, MT_LOGOSTOP);
-            if (logoStop) {
-                int deltaLogoStop = (logoStop->position - stopA) / decoder->GetVideoFrameRate();
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): MT_LOGOSTOP (%d) %ds after assumed stop", logoStop->position, deltaLogoStop);
-                if ((deltaLogoStop >= -6) && (deltaLogoStop <= 4) && (vBorderDelta >= 174)) { // changed from -4 to -6, from 281 to 174
-                    dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): double vborder broadcast with short first part of second broadcast, delete vborder stop");
-                    marks.Del(end);
-                    return nullptr;
-                }
-            }
+            cMark *logoStop = CheckBorderDoubleEpisodeAtEnd(end);
+            if (logoStop) return logoStop;  // use logo stop for double episode at and
             // check logo stop short before vborder stop, maybe delayed vborder stop from dark opening credits of next broascast
             logoStop = marks.GetPrev(end->position, MT_LOGOSTOP);
             if (logoStop) {

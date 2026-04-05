@@ -355,6 +355,11 @@ private:
     bool CheckBorderDoubleEpisodeAtStart(cMark *bStart, cMark *bStop);
 
     /**
+     * check for border double episode in end part
+     */
+    cMark *CheckBorderDoubleEpisodeAtEnd(const cMark *bStop);
+
+    /**
      * check for hborder start mark
      */
     cMark *Check_HBORDERSTART();
