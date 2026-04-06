@@ -2779,11 +2779,15 @@ bool cMarkAdStandalone::CheckBorderDoubleEpisodeAtStart(cMark *bStart, cMark *bS
 
 cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): search for vborder start mark");
+
+    cMark *vStart = nullptr;
+    cMark *vStop  = nullptr;
+
     // check if we have short vborder start/stop marks from an unreliable small vborder
-    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): check if vborder marks are valid");
-    cMark *vStart = marks.GetNext(-1, MT_VBORDERSTART);
+    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): check if vborder start/stop sequences are valid");
+    vStart = marks.GetNext(-1, MT_VBORDERSTART);
     while (vStart) {
-        cMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);
+        vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);
         if (vStop) {
             int diff = (vStop->position - vStart->position) /  decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_VBORDERSTART (%5d) -> %3ds -> MT_VBORDERSTOP (%5d)", vStart->position, diff, vStop->position);
@@ -2799,17 +2803,35 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         vStart = marks.GetNext(vStart->position, MT_VBORDERSTART);
     }
 
+    // check if we have short vborder stop/start marks from a doko with vborder scenes
+    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): check if vborder stop/start sequences are valid");
+    vStop = marks.GetNext(startA, MT_VBORDERSTOP);
+    while (vStop) {
+        vStart = marks.GetNext(vStop->position, MT_VBORDERSTART);
+        if (vStart) {
+            int diff = (vStart->position - vStop->position) /  decoder->GetVideoFrameRate();
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_VBORDERSTOP (%5d) -> %3ds -> MT_VBORDERSTART (%5d)", vStop->position, diff, vStart->position);
+            if (diff <= 39) {  // too short for valid ad
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): too short vborder stop/start, vborder marks are invalid, delete all");
+                marks.DelType(MT_VBORDERCHANGE, 0xF0);  // maybe we have a doku with short hborder scenes
+                return nullptr;
+            }
+        }
+        vStop = marks.GetNext(vStop->position, MT_VBORDERSTOP);
+    }
+
+
     // search vborder start mark
     vStart = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_VBORDERSTART);
     if (!vStart) {
         dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no valid vertical border start mark found found");
         // check for vborder double episode in case of vborder start mark at recording start is out of search range
         // sequence MT_VBORDERSTART -> startA -> MT_VBORDERSTOP
-        vStart        = marks.GetNext(-1, MT_VBORDERSTART);
-        cMark *vStop = marks.GetNext( 0, MT_VBORDERSTOP);
+        vStart = marks.GetNext(-1, MT_VBORDERSTART);
+        vStop  = marks.GetNext( 0, MT_VBORDERSTOP);
         if (CheckBorderDoubleEpisodeAtStart(vStart, vStop)) return nullptr;
         criteria->SetDetectionState(MT_VBORDERCHANGE, false);
-        marks.DelType(MT_VBORDERSTART, 0xFF);  // maybe we have a vborder start from a preview or in a doku, delete it
+        marks.DelType(MT_VBORDERSTART, 0xFF);  // maybe we have a vborder start from a preview, delete it
         if (vStop) {
             int pos         = vStop->position;
             int64_t pts     = vStop->pts;
