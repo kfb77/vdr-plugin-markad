@@ -344,10 +344,10 @@ void cOverlapAroundAd::Process(const sVideoPicture *picture, const int frameCoun
 #endif
 
     if ((lastFrameNumber > 0) && (similarMinLength == 0)) {
-        similarCutOff = 49000;            // lower is harder
-        // do not increase, we will get false positive
-        if (h264) similarCutOff = 196000; // reduce false similar detection in H.264 streams
-        similarMinLength = 4040;          // shortest valid length of an overlap with 4040ms found
+        // lower is harder, do not increase, we will get false positive
+        if (decoder->GetVideoWidth() <= 720) similarCutOff = 49000;   // SD Video
+        else similarCutOff = 196000;                                  // HD Viedeo
+        similarMinLength = 4040;                                      // shortest valid length of an overlap with 4040ms found
     }
 
     if (beforeAd) {
