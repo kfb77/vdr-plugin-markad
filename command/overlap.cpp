@@ -340,7 +340,7 @@ cOverlapAroundAd::~cOverlapAroundAd() {
 
 void cOverlapAroundAd::Process(const sVideoPicture *picture, const int frameCount, const bool beforeAd, const bool h264) {
 #ifdef DEBUG_OVERLAP
-    dsyslog("cOverlapAroundAd::Process(): frameNumber %d, frameCount %d, beforeAd %d, isH264 %d", frameNumber, frameCount, beforeAd, h264);
+    dsyslog("cOverlapAroundAd::Process(): frameNumber %d, frameCount %d, beforeAd %d, isH264 %d",  picture->packetNumber, frameCount, beforeAd, h264);
 #endif
 
     if ((lastFrameNumber > 0) && (similarMinLength == 0)) {
@@ -510,7 +510,7 @@ void cOverlapAroundAd::Detect(sOverlapPos *overlapPos) {
             }
         }
 #ifdef DEBUG_OVERLAP
-        dsyslog("cOverlapAroundAd::Detect(): current overlap from (%d) to (%d) and (%d) to (%d)", overlapPos->similarBeforeStart, overlapPos->similarBeforeEnd, overlapPos->similarAfterStart, overlapPos->similarAfterEnd);
+        dsyslog("cOverlapAroundAd::Detect(): current overlap from (%d) to (%d) and (%d) to (%d)", overlapPos->similarBeforeStartPacketNumber, overlapPos->similarBeforeEndPacketNumber, overlapPos->similarAfterStartPacketNumber, overlapPos->similarAfterEndPacketNumber);
 #endif
     }
     return;
