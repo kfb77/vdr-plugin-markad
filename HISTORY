@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2026-04-09: Version 4.2.21
+- cOverlapAroundAd::Process(): fix overlap detection of H.264 SD video
+  Thx to Mike838@www.vdr-portal.de for reporting
+- some minor bug fixes and optimizations, see git
+
 2026-04-05: Version 4.2.20
 - fix encoder nullptr crash
 - fix crash with hborder double episode
