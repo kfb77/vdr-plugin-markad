@@ -357,6 +357,16 @@ public:
      */
     bool Backup(const char *directory);
 
+
+    /**
+     * calculates the difference in seconds between two timestamps
+     * @param timeVDR   first timestamp (format "H:MM:SS.ms")
+     * @param timePTS   second timestamp (format "H:MM:SS")
+     * @return difference in seconds (handles midnight wrap-around)
+     */
+    static int getSecondsDifference(const char* timeVDR, const char* timePTS);
+
+
     /**
      * save marks to recording directory
      * @param directory recording directory

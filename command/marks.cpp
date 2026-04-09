@@ -882,6 +882,24 @@ int cMarks::Length() const {
 }
 
 
+int cMarks::getSecondsDifference(const char* timeVDR, const char* timePTS) {
+    if (!timeVDR) {
+        esyslog("cMarks::getSecondsDifference: VDR time missing");
+        return 0;
+    }
+    if (!timePTS) {
+        esyslog("cMarks::getSecondsDifference: PTS time missing");
+        return 0;
+    }
+    int h1, m1, s1, h2, m2, s2;
+    sscanf(timeVDR, "%d:%d:%d", &h1, &m1, &s1);
+    sscanf(timePTS, "%d:%d:%d", &h2, &m2, &s2);
+    long sec1 = h1 * 3600L + m1 * 60L + s1;
+    long sec2 = h2 * 3600L + m2 * 60L + s2;
+    return (sec2 - sec1 + 86400L) % 86400L;
+}
+
+
 bool cMarks::Save(const char *directory, const bool isRunningRecording, const bool writePTS, const bool force) {
     if (!directory) return false;
     if (abortNow) return false;  // do not save marks if aborted
@@ -936,11 +954,12 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
         }
         ALLOC(strlen(indexToHMSF_VDR) + 1, "indexToHMSF_VDR");
 
-#ifdef DEBUG_SAVEMARKS
-        dsyslog("cMarks::Save(): offset PTS %s", indexToHMSF_PTS);
-        dsyslog("cMarks::Save(): offset VDR %s", indexToHMSF_VDR);
-#endif
+        // check is timestamps are valid
+        int diff=getSecondsDifference(indexToHMSF_VDR, indexToHMSF_PTS);
+        if (diff >= 0) dsyslog("cMarks::Save(): VDR: %s %ds before PTS: %s", indexToHMSF_VDR, diff, indexToHMSF_PTS);
+        else           esyslog("cMarks::Save(): VDR: %s %ds before PTS: %s is invalid", indexToHMSF_VDR, diff, indexToHMSF_PTS);
 
+        // save mark line
         if (writePTS) fprintf(mf, "%s (%6d) <%6d>%s %s <- %s\n", indexToHMSF_VDR, iFrame, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
         else fprintf(mf, "%s (%6d)%s %s\n", indexToHMSF_VDR, iFrame, ((mark->type & 0x0F) == MT_START) ? "*" : " ", mark->comment ? mark->comment : "");
 
