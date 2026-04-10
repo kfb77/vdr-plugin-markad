@@ -954,10 +954,9 @@ bool cMarks::Save(const char *directory, const bool isRunningRecording, const bo
         }
         ALLOC(strlen(indexToHMSF_VDR) + 1, "indexToHMSF_VDR");
 
-        // check is timestamps are valid
+        // log timestamps
         int diff=getSecondsDifference(indexToHMSF_VDR, indexToHMSF_PTS);
-        if (diff >= 0) dsyslog("cMarks::Save(): VDR: %s %ds before PTS: %s", indexToHMSF_VDR, diff, indexToHMSF_PTS);
-        else           esyslog("cMarks::Save(): VDR: %s %ds before PTS: %s is invalid", indexToHMSF_VDR, diff, indexToHMSF_PTS);
+        dsyslog("cMarks::Save(): VDR: %s %ds before PTS: %s", indexToHMSF_VDR, diff, indexToHMSF_PTS);
 
         // save mark line
         if (writePTS) fprintf(mf, "%s (%6d) <%6d>%s %s <- %s\n", indexToHMSF_VDR, iFrame, mark->position, ((mark->type & 0x0F) == MT_START) ? "*" : " ", indexToHMSF_PTS, mark->comment ? mark->comment : "");
