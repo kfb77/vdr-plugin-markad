@@ -5082,6 +5082,11 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                 }
                 else stopBlackAfter = nullptr; // no pair, this is invalid
             }
+            // filter out very long black screen before recording start, they are from opening credits or from closing credits of recording before
+            if (mark->position == marks.First()->position) {
+                if (stopBlackBefore && (lengthBefore >= 13440)) stopBlackBefore = nullptr;
+                if (stopBlackAfter  && (lengthAfter  >= 13440)) stopBlackAfter  = nullptr;
+            }
             // try black screen before start mark
             if (stopBlackBefore) {
                 int maxBefore = -1;
