@@ -5715,7 +5715,7 @@ void cMarkAdStandalone::SilenceOptimization() {
 
                     if (criteria->LogoFadeInOut() & FADE_IN) {
                         if ((lengthBefore >= 880) && blackBefore) maxBefore = 10720;
-                        else if (lengthBefore > 120)              maxBefore =  4159;
+                        else if (lengthBefore > 120)              maxBefore =  3839;
                         else                                      maxBefore =  3799;
                     }
                     else                                          maxBefore =  2480;
