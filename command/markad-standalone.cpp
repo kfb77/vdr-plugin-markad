@@ -3221,9 +3221,16 @@ void cMarkAdStandalone::CheckStart() {
     if (!begin) { // try hborder stop mark as start mark
         cMark *vborderStop = marks.GetNext(0, MT_VBORDERSTOP);
         if (vborderStop) {
-            dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_VBORDERSTOP (%d) from previous recoring as start mark", vborderStop->position);
-            begin = marks.ChangeType(vborderStop, MT_START);
-            marks.DelTill(begin->position);
+            // prevent to select first stop mark in double episode
+            int diff = (vborderStop->position - startA) / decoder->GetVideoFrameRate();
+            if (diff > MAX_ASSUMED) {
+                dsyslog("cMarkAdStandalone::CheckStart(): double episide, first MT_VBORDERSTOP (%d) to late", vborderStop->position);
+            }
+            else {
+                dsyslog("cMarkAdStandalone::CheckStart(): no valid start mark found, use MT_VBORDERSTOP (%d) from previous recoring as start mark", vborderStop->position);
+                begin = marks.ChangeType(vborderStop, MT_START);
+                marks.DelTill(begin->position);
+            }
         }
     }
 
