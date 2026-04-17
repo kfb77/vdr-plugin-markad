@@ -1779,7 +1779,8 @@ void cMarkAdStandalone::CheckStop() {
                             }
                         }
                         if (!end) {
-                            end = marks.ChangeType(hBorderStart, MT_STOP);
+                            marks.DelTill(hBorderStart->position + 1, false);              // delete all marks after end mark to prevent sequence error in type change
+                            end = marks.ChangeType(hBorderStart, MT_STOP); // use hborder start of next recording as end mark
                             if (end) end = marks.Move(end, end->position, end->pts, MT_TYPECHANGESTOP);  // one frame before hborder start is end mark
                         }
                     }
