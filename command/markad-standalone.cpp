@@ -2520,19 +2520,30 @@ cMark *cMarkAdStandalone::Check_LOGOSTART() {
 cMark *cMarkAdStandalone::Check_HBORDERSTART() {
     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): search for hborder start mark");
 
-    // check for false hborder start/stop during aktive vborder
-    // check sequence MT_VBORDERSTART -> MT_HBORDERSTART -> MT_HBORDERSTOP -> MT_VBORDERSTOP
+    // check if hborder marks are valid
     cMark *vStart = marks.GetNext(-1, MT_VBORDERSTART);
     if (vStart) {
         cMark *hStart = marks.GetNext(vStart->position, MT_HBORDERSTART);
         if (hStart) {
             cMark *hStop = marks.GetNext(hStart->position, MT_HBORDERSTOP);
             if (hStop) {
-                cMark *vStop = marks.GetNext(-1, MT_VBORDERSTOP);
+                // check for false hborder start/stop during aktive vborder (often in SiFi)
+                // check sequence MT_VBORDERSTART -> MT_HBORDERSTART -> MT_HBORDERSTOP -> MT_VBORDERSTOP
+                cMark *vStop = marks.GetNext(vStart->position, MT_VBORDERSTOP);
                 if (vStop) {
-                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): found invalid squence MT_VBORDERSTART (%d) -> MT_HBORDERSTART (%d) -> MT_HBORDERSTOP (%d) -> MT_VBORDERSTOP (%d)", vStart->position, hStart->position, hStop->position, vStop->position);
+                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): found invalid squence: MT_VBORDERSTART (%d) -> MT_HBORDERSTART (%d) -> MT_HBORDERSTOP (%d) -> MT_VBORDERSTOP (%d)", vStart->position, hStart->position, hStop->position, vStop->position);
                     marks.Del(hStart->position);
                     marks.Del(hStop->position);
+                    marks.DelType(MT_HBORDERCHANGE, 0xF0);
+                    return nullptr;
+                }
+                else if (vStart->position <= IGNORE_AT_START) {
+                    // check for false hborder start/stop during aktive vborder double episode (often in SiFi)
+                    // check sequence MT_VBORDERSTART (at recording start) -> MT_HBORDERSTART -> MT_HBORDERSTOP -> no MT_VBORDERSTOP
+                    dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): invalid hborder during vborder double episode: MT_VBORDERSTART (%d) -> MT_HBORDERSTART (%d) -> MT_HBORDERSTOP (%d)", vStart->position, hStart->position, hStop->position);
+                    marks.Del(hStart->position);
+                    marks.Del(hStop->position);
+
                 }
             }
         }
