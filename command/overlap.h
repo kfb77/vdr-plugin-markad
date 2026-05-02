@@ -81,7 +81,7 @@ private:
         //!<
         bool valid      = false;   //!< true if buffer is valid
         //!<
-        simpleHistogram histogram; //!< simple frame histogram
+        simpleHistogram histogram = {0}; //!< simple frame histogram
         //!<
     } sHistBuffer;
 
