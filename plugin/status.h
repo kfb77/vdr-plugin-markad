@@ -60,7 +60,7 @@ struct sRecording {
     time_t       vpsStopTime       = 0;
     time_t       vpsPauseStartTime = 0;
     time_t       vpsPauseStopTime  = 0;
-    cEpgEventLog *epgEventLog;
+    cEpgEventLog *epgEventLog      = nullptr;
 };
 
 
