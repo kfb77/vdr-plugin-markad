@@ -2795,7 +2795,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
     cMark *vStart = nullptr;
     cMark *vStop  = nullptr;
 
-    // check if we have short vborder start/stop marks from an unreliable small vborder
+    // check if we have short vborder start/stop marks from an unreliable small vborder or very dark opening credits
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): check if vborder start/stop sequences are valid");
     vStart = marks.GetNext(-1, MT_VBORDERSTART);
     while (vStart) {
@@ -2803,8 +2803,23 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         if (vStop) {
             int diff = (vStop->position - vStart->position) /  decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): MT_VBORDERSTART (%5d) -> %3ds -> MT_VBORDERSTOP (%5d)", vStart->position, diff, vStop->position);
+            // check logo start/stop around vborder start/stop
+            if (criteria->LogoInBorder()) {
+                // check if we have logo start mark around vborder start mark
+                const cMark *logoStart = marks.GetAround(30 * decoder->GetVideoFrameRate(), vStart->position, MT_LOGOSTART);
+                if (!logoStart) {
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no logo start mark around vborder start (%d)", vStart->position);
+                    diff = 0; // mark for delete
+                }
+                // check if we have logo stop mark around vborder stop mark
+                const cMark *logoStop = marks.GetAround(30 * decoder->GetVideoFrameRate(), vStop->position, MT_LOGOSTOP);
+                if (!logoStop) {
+                    dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): no logo stop mark around vborder stop (%d)", vStop->position);
+                    diff = 0; // mark for delete
+                }
+            }
             if (diff < 82) { // changed from 90 to 82, short first valid part found
-                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): too short vborder start/stop, delete marks");
+                dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): invalid short vborder start/stop, delete marks");
                 cMark *tmpMark = marks.GetNext(vStart->position, MT_VBORDERSTART);
                 marks.Del(vStart->position);
                 marks.Del(vStop->position);
@@ -2815,7 +2830,7 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
         vStart = marks.GetNext(vStart->position, MT_VBORDERSTART);
     }
 
-    // check if we have short vborder stop/start marks from a doko with vborder scenes
+    // check if we have short vborder stop/start marks from a doku with vborder scenes
     dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): check if vborder stop/start sequences are valid");
     vStop = marks.GetNext(startA, MT_VBORDERSTOP);
     while (vStop) {
