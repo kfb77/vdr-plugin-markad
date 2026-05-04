@@ -87,7 +87,7 @@ bool cCriteria::LogoInBorder() {
     if (CompareChannelName(channelName, "Bibel_TV",       IGNORE_HD))      return true;
     if (CompareChannelName(channelName, "C8",             IGNORE_NOTHING)) return true;
     if (CompareChannelName(channelName, "Comedy_Central", IGNORE_HD))      return true;
-    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD))      return true;
+//    if (CompareChannelName(channelName, "Disney_Channel", IGNORE_HD))      return true;  // not in border
     if (CompareChannelName(channelName, "N24_DOKU",       IGNORE_HD))      return true;
 //    if (CompareChannelName(channelName, "NITRO",          IGNORE_HD)) return true;       // not in border
     if (CompareChannelName(channelName, "ONE_HD",         IGNORE_HD))      return true;
