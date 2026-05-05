@@ -2898,14 +2898,14 @@ cMark *cMarkAdStandalone::Check_VBORDERSTART(const int maxStart) {
             int vBorderStoppacketCheckStart = (decoder->GetPacketNumber() - vStopAfter->position) / decoder->GetVideoFrameRate();
             dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): startA (%5d) -> %4ds -> MT_VBORDERSTART (%5d) -> %3ds -> MT_VBORDERSTOP (%5d) -> %4ds -> packetCheckStart (%5d)", startA, startAvBorderStart,  vStart->position, vBorderStartvBorderStop, vStopAfter->position, vBorderStoppacketCheckStart, packetCheckStart);
             // example of valid vborder marks
-            // startA ( 7475) ->  -31s -> MT_VBORDERSTART ( 6685) -> 149s -> MT_VBORDERSTOP (10432) -> 331s -> packetCheckStart (18725)
+            // startA ( 7475) ->  -31s -> MT_VBORDERSTART ( 6685) -> 149s -> MT_VBORDERSTOP (10432) ->  331s -> packetCheckStart (18725)
+            // startA ( 7525) ->  -56s -> MT_VBORDERSTART ( 6113) -> 310s -> MT_VBORDERSTOP (13886) ->  453s -> packetCheckStart (19525)
             //
             // example of invalid vborder from dark scene or from broadcast before
             // startA ( 4075) ->    9s -> MT_VBORDERSTART ( 4310) -> 115s -> MT_VBORDERSTOP ( 7188) ->  355s -> packetCheckStart (16075)
             // startA (16350) -> -288s -> MT_VBORDERSTART ( 1933) -> 281s -> MT_VBORDERSTOP (16019) ->  456s -> packetCheckStart (38850) -> vborder from previous recording
-            // startA ( 7450) -> -298s -> MT_VBORDERSTART (    0) -> 329s -> MT_VBORDERSTOP ( 8238) ->  448s -> PacketCheckStart (19450)
             // startA (18500) -> -172s -> MT_VBORDERSTART ( 9897) -> 122s -> MT_VBORDERSTOP (16016) -> 3015s -> packetCheckStart (42500)
-            if ((startAvBorderStart <= 9) && (vBorderStartvBorderStop <= 329) && (vBorderStoppacketCheckStart > 331)) {
+            if ((startAvBorderStart <= 9) && (vBorderStartvBorderStop < 310) && (vBorderStoppacketCheckStart > 331)) {
                 dsyslog("cMarkAdStandalone::Check_VBORDERSTART(): vertical border start (%d) and stop (%d) from closing credits or dark scene, delete marks", vStart->position, vStopAfter->position);
                 marks.Del(vStart->position);
                 marks.DelFromTo(0, vStopAfter->position, MT_VBORDERSTOP, 0xFF);  // prevent to use invalid vborder stop marks in start part as type change marks
