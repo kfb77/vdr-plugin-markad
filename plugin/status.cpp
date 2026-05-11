@@ -945,7 +945,10 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         // if we start no marad and don't use VPS detection, no need to track recording
         if ((setup->ProcessDuring == PROCESS_NEVER) && setup->useVPS) {
             int pos = Add(Name, FileName, &recording);
-            if (pos >= 0) DebugLog("cStatusMarkAd::Recording(): added recording <%s> channelID %s, event ID %u, eventNextID %u at index %i only for VPS detection", Name, *recording.eventChannelID.ToString(), recording.eventID, recording.eventNextID, pos);
+            if (pos >= 0) {
+                DebugLog("cStatusMarkAd::Recording(): added recording <%s> channelID %s, event ID %u, eventNextID %u at index %d only for VPS detection", Name, *recording.eventChannelID.ToString(), recording.eventID, recording.eventNextID, pos);
+                recs[pos].status = 'D';  // markad start disabled in plugin
+            }
             return;
         }
         if (setup->ProcessDuring == PROCESS_NEVER) {
@@ -975,10 +978,10 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         // check if recording is in list
         int pos = Get(FileName, Name);
         if (pos >= 0) {
-            DebugLog("cStatusMarkAd::Recording(): index: %d, recording: %s, pid: %d, status: %c recording stopped", pos, recs[pos].title, recs[pos].status, recs[pos].pid);
+            DebugLog("cStatusMarkAd::Recording(): index: %d, recording: %s, pid: %d, status: %c recording stopped", pos, recs[pos].title, recs[pos].pid, recs[pos].status);
             if (setup->useVPS) SaveVPSEvents(pos);  // store to get error messages for incomplete sequence
             if ((recs[pos].status == 'R') || (recs[pos].status == 'S')) {
-                DebugLog("cStatusMarkAd::Recording(): index: %d, recording: %s, pid: %d, status: %c markad still running", pos, recs[pos].title, recs[pos].status, recs[pos].pid);
+                DebugLog("cStatusMarkAd::Recording(): index: %d, recording: %s, pid: %d, status: %c markad still running", pos, recs[pos].title, recs[pos].pid, recs[pos].status);
                 return;
             }
             // check if we have to continue waiting markad
@@ -994,6 +997,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
             case PROCESS_NEVER:
                 DebugLog("cStatusMarkAd::Recording(): recording: %s, remove from list", recs[pos].title);
                 Remove(pos, false);
+                return;
             default:
                 esyslog("cStatusMarkAd::Recording(): invalid setup->ProcessDuring %d", setup->ProcessDuring);
             }
@@ -1271,7 +1275,7 @@ void cStatusMarkAd::Remove(int pos, bool Kill) {
             }
         }
     }
-    recs[pos].status            = 0;
+    recs[pos].status            = 'U';
     recs[pos].pid               = 0;
     recs[pos].changedByUser     = false;
     recs[pos].ignoreEIT         = false;
@@ -1358,7 +1362,7 @@ int cStatusMarkAd::Add(const char *Name, const char *FileName, sRecording *recor
             // event title
             recs[pos].eventTitle = recording->eventTitle;  // allocated by GetEventID
 
-            recs[pos].status            = 'R';  // markad was started, now running
+            recs[pos].status            = 'U';
             recs[pos].pid               = 0;
             recs[pos].changedByUser     = false;
             recs[pos].eventID           = recording->eventID;

@@ -30,11 +30,12 @@ struct sRecording {
     char        *title             = nullptr;
     char        *fileName          = nullptr;
     pid_t        pid               = 0;
-    char         status            = 0;        // R=running
+    char         status            = 'U';
     // S=sleeping   -> markad sleeping to wait for new recording data
     // D=inactive
     // Z=zombie
     // T=stopped    -> by user or during recording if running after
+    // U=unknown    -> default init value
     // rest=unknown
     bool         changedByUser     = false;
     bool         ignoreEIT         = false;
