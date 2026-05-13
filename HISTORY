@@ -1,6 +1,11 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2026-05-13: Version 4.2.22
+- fix running state if markad start is disabled
+  thx to MarkusE@www.vdr-portal.de for reporting
+- some minor bug fixes and optimizations, see git
+
 2026-04-09: Version 4.2.21
 - cOverlapAroundAd::Process(): fix overlap detection of H.264 SD video
   Thx to Mike838@www.vdr-portal.de for reporting
