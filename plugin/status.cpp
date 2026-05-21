@@ -56,21 +56,21 @@ void cEpgEventLog::LogState(const int severity, const sRecording *recording, con
     switch (severity) {
     case VPS_ERROR:
         esyslog("markad: VPS -> %s: offset: %02d:%02d:%02d, eventID: %d, state: %d, new state: %d -> %s", recording->title, h, m, s, recording->eventID, recording->runningStatus, newState, action);
-        if (asprintf(&message, "%s ERROR: time offset: %02d:%02d:%02d, eventID: %d, old state %d, new state: %d -> %s", timeNow, h, m, s, recording->eventID, recording->runningStatus, newState, action) == -1) {
+        if (asprintf(&message, "%s ERROR: offset: %02d:%02d:%02d -> eventID: %d, old state %d, new state: %d -> %s", timeNow, h, m, s, recording->eventID, recording->runningStatus, newState, action) == -1) {
             esyslog("markad: cEpgEventLog::Log(): asprintf failed");
             return;
         }
         break;
     case VPS_INFO:
         isyslog("markad: VPS -> %s: offset: %02d:%02d:%02d, eventID: %d, state: %d, new state: %d -> %s", recording->title, h, m, s, recording->eventID, recording->runningStatus, newState, action);
-        if (asprintf(&message, "%s INFO:  time offset: %02d:%02d:%02d, eventID: %d, old state %d, new state: %d -> %s", timeNow, h, m, s, recording->eventID, recording->runningStatus, newState, action) == -1) {
+        if (asprintf(&message, "%s INFO:  offset: %02d:%02d:%02d -> eventID: %d, old state %d, new state: %d -> %s", timeNow, h, m, s, recording->eventID, recording->runningStatus, newState, action) == -1) {
             esyslog("markad: cEpgEventLog::Log(): asprintf failed");
             return;
         }
         break;
     case VPS_DEBUG:
         DebugLog("VPS -> %s: offset: %02d:%02d:%02d, eventID: %d, state: %d, new state: %d -> %s", recording->title, h, m, s, recording->eventID, recording->runningStatus, newState, action);
-        if (asprintf(&message, "%s DEBUG: time offset: %02d:%02d:%02d, eventID: %d, old state %d, new state: %d -> %s", timeNow, h, m, s, recording->eventID, recording->runningStatus, newState, action) == -1) {
+        if (asprintf(&message, "%s DEBUG: offset: %02d:%02d:%02d -> eventID: %d, old state %d, new state: %d -> %s", timeNow, h, m, s, recording->eventID, recording->runningStatus, newState, action) == -1) {
             esyslog("markad: cEpgEventLog::Log(): asprintf failed");
             return;
         }
