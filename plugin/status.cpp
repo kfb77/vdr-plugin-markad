@@ -604,7 +604,7 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
         }
     }
     if (strcmp(status,"PAUSE_STOP") == 0) {
-        if (curr_time >= recs[index].vpsPauseStartTime + 40) { // PAUSE STOP must be at least 40s after PAUSE START, changed from 50 to 40
+        if (curr_time >= recs[index].vpsPauseStartTime + 9) { // min time for PAUSE STOP after PAUSE START, changed from 40 to 9, some channel send PAUSE in closing credits
             if (recs[index].vpsPauseStopTime == 0) {
                 recs[index].vpsPauseStopTime=curr_time;
                 return true;
