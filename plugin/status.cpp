@@ -580,12 +580,13 @@ bool cStatusMarkAd::StoreVPSStatus(const char *status, const int index) {
         return false;
     }
     char *eventLog = nullptr;
-
     time_t curr_time = time(nullptr);
-    struct tm now = *localtime(&curr_time);
-    char timeVPS[20] = {0};
-    strftime(timeVPS, 20, "%d.%m.%Y %H:%M:%S", &now);
-    if ((recs[index].epgEventLog) && (asprintf(&eventLog, "VPS %s event at %s", status, timeVPS) != -1)) {
+    int offset = difftime(curr_time, recs[index].recStart);
+    int h = offset/60/60;
+    int m = (offset - h*60*60) / 60;
+    int s = offset - h*60*60 - m*60;
+
+    if ((recs[index].epgEventLog) && (asprintf(&eventLog, "offset: %02d:%02d:%02d -> VPS %s event", h, m, s, status) != -1)) {
         ALLOC(strlen(eventLog) + 1, "eventLog");
         recs[index].epgEventLog->LogEvent(VPS_INFO, recs[index].title, eventLog);
     }
