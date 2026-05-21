@@ -657,11 +657,13 @@ bool cExtractLogo::CheckLogoSize(sLogoSize *logoSizeFinal, const int logoCorner)
             logo.heightMin =  56;
         }
 
-        // VOX                     16:9  720W  576H:->  108W  70H TOP_LEFT
-        // VOX                      4:3  720W  576H:->  126W  70H TOP_LEFT
+// 2 VOX                     16:9  720W  576H:->  108W  70H TOP_LEFT
+// 1 VOX                      4:3  720W  576H:->  126W  70H TOP_LEFT
         if (CompareChannelName(channelName, "VOX", IGNORE_NOTHING)) {
-            logo.heightMin =  70;
-            logo.heightMax =  70;
+            logo.widthMin  =  98;
+            logo.widthMax  = 136;
+            logo.heightMin =  60;
+            logo.heightMax =  80;
         }
 
 //   2 VOXup                   16:9  720W  576H:->  108W  66H TOP_LEFT
