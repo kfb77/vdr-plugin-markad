@@ -423,7 +423,7 @@ void cStatusMarkAd::SetVPSStatus(const int index, int runningStatus, const bool 
         }
         else {
             if (StoreVPSStatus("START", index)) {
-                if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_DEBUG, &recs[index], runningStatus, "broadcast start");
+                if (recs[index].epgEventLog) recs[index].epgEventLog->LogState(VPS_INFO, &recs[index], runningStatus, "broadcast started");
                 recs[index].runningStatus = 4;
             }
             else {
