@@ -1884,10 +1884,10 @@ int cExtractLogo::CountFrames() {
 }
 
 
-bool cExtractLogo::WaitForFrames(const cDecoder *decoder, const int minFrame = 0) {
-    if (!decoder) return false;
+bool cExtractLogo::WaitForFrames(const cDecoder *decoderPTR, const int minFrame = 0) {
+    if (!decoderPTR) return false;
 
-    if ((recordingFrameCount > (decoder->GetPacketNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
+    if ((recordingFrameCount > (decoderPTR->GetPacketNumber() + 200)) && (recordingFrameCount > minFrame)) return true; // we have already found enough frames
 
 #define WAITTIME 60
     char *indexFile = nullptr;
@@ -1906,8 +1906,8 @@ bool cExtractLogo::WaitForFrames(const cDecoder *decoder, const int minFrame = 0
             break;
         }
         recordingFrameCount = indexStatus.st_size / 8;
-        dsyslog("cExtractLogo::WaitForFrames(): frames recorded (%d) read frames (%d) minFrame (%d)", recordingFrameCount, decoder->GetPacketNumber(), minFrame);
-        if ((recordingFrameCount > (decoder->GetPacketNumber() + 200)) && (recordingFrameCount > minFrame)) {
+        dsyslog("cExtractLogo::WaitForFrames(): frames recorded (%d) read frames (%d) minFrame (%d)", recordingFrameCount, decoderPTR->GetPacketNumber(), minFrame);
+        if ((recordingFrameCount > (decoderPTR->GetPacketNumber() + 200)) && (recordingFrameCount > minFrame)) {
             ret = true;  // recording has enough frames
             break;
         }
@@ -1918,7 +1918,7 @@ bool cExtractLogo::WaitForFrames(const cDecoder *decoder, const int minFrame = 0
         strftime(indexTime, sizeof(indexTime), "%d-%m-%Y %H:%M:%S", localtime(&indexStatus.st_mtime));
         dsyslog("cExtractLogo::WaitForFrames(): index file size %" PRId64 " bytes, system time %s index time %s, wait %ds", indexStatus.st_size, systemTime, indexTime, WAITTIME);
         if ((difftime(now, indexStatus.st_mtime)) >= 2 * WAITTIME) {
-            dsyslog("cExtractLogo::WaitForFrames(): index not growing at frame (%d), old or interrupted recording", decoder->GetPacketNumber());
+            dsyslog("cExtractLogo::WaitForFrames(): index not growing at frame (%d), old or interrupted recording", decoderPTR->GetPacketNumber());
             ret = false;
             break;
         }

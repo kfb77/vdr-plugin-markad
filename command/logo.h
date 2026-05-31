@@ -229,11 +229,11 @@ private:
 
     /**
      * wait for more frames if markad runs during recording
-     * @param decoder   pointer to decoder
-     * @param minFrame  minimum framenumber we need
-     * @return          true if we have enough frames, false otherwise
+     * @param decoderPTR   pointer to decoder
+     * @param minFrame     minimum framenumber we need
+     * @return             true if we have enough frames, false otherwise
      */
-    bool WaitForFrames(const cDecoder *decoder, const int minFrame);
+    bool WaitForFrames(const cDecoder *decoderPTR, const int minFrame);
 
     /**
      * get first frame number of stored logos
