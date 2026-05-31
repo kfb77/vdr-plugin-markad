@@ -1698,19 +1698,34 @@ void cMarkAdStandalone::CheckStop() {
     if (!end && (criteria->GetMarkTypeState(MT_VBORDERCHANGE) <= CRITERIA_UNKNOWN)) {
         cMark *vBorderStart = marks.GetNext(stopA - (MAX_ASSUMED * decoder->GetVideoFrameRate()), MT_VBORDERSTART); // changed from 60 to MAX_ASSUMED
         if (vBorderStart) {
-            // use logo stop mark short after vborder as end mark
-            cMark *logoStop = marks.GetNext(vBorderStart->position, MT_LOGOSTOP);
-            if (logoStop) {
-                int diff = (logoStop->position - vBorderStart->position) / decoder->GetVideoFrameRate();
-                if (diff <= 2) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) %ds after vborder start mark (%d), use it as end mark", logoStop->position, diff, vBorderStart->position);
+            // check if vborder is long enough to be a valid vborder broadcast after
+            cMark *vBorderStop = marks.GetNext(vBorderStart->position,  MT_VBORDERSTOP);
+            if (vBorderStop) {
+                int diff = (vBorderStop->position - vBorderStart->position) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::CheckStop(): MT_VBORDERSTART (%d) -> %ds -> MT_VBORDERSTOP (%d)", vBorderStart->position, diff, vBorderStop->position);
+                if (diff <= 113) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): too short for vborder broadcast start after, delete marks");
                     marks.Del(vBorderStart->position);
-                    end = logoStop;
+                    vBorderStart = nullptr;
+                    marks.Del(vBorderStop->position);
                 }
             }
-            if (!end) {
-                dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after vborder start (%d) from next broadcast", vBorderStart->position);
-                marks.DelTill(vBorderStart->position, false);
+
+            // use logo stop mark short after vborder as end mark
+            if (vBorderStart) {  // can be deleted above
+                cMark *logoStop = marks.GetNext(vBorderStart->position, MT_LOGOSTOP);
+                if (logoStop) {
+                    int diff = (logoStop->position - vBorderStart->position) / decoder->GetVideoFrameRate();
+                    if (diff <= 2) {
+                        dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) %ds after vborder start mark (%d), use it as end mark", logoStop->position, diff, vBorderStart->position);
+                        marks.Del(vBorderStart->position);
+                        end = logoStop;
+                    }
+                }
+                if (!end) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after vborder start (%d) from next broadcast", vBorderStart->position);
+                    marks.DelTill(vBorderStart->position, false);
+                }
             }
         }
     }
