@@ -120,7 +120,7 @@ typedef struct sMarkAdConfig {
  * markad context structure
  */
 typedef struct sMarkAdContext {
-    sMarkAdConfig *Config; //!< markad configuration
+    sMarkAdConfig *Config = nullptr; //!< markad configuration
     //!<
 
     /**
