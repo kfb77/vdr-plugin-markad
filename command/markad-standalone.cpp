@@ -2776,13 +2776,14 @@ bool cMarkAdStandalone::CheckBorderDoubleEpisodeAtStart(cMark *bStart, cMark *bS
 
         int bStart_startA = (startA          - bStart->position) / decoder->GetVideoFrameRate();
         int startA_bStop  = (bStop->position - startA)           / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisodeAtStart(): MT_xBORDERSTART (%5d) -> %ds -> startA (%3d) -> %ds -> MT_xBORDERSTOP (%5ds)", bStart->position, bStart_startA, startA, startA_bStop, bStop->position);
+        dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisodeAtStart(): MT_xBORDERSTART (%d) -> %ds -> startA (%5d) -> %3ds -> MT_xBORDERSTOP (%5d)", bStart->position, bStart_startA, startA, startA_bStop, bStop->position);
         // example of double episode
-        // MT_xBORDERSTART (0) -> 467s -> startA (11675) -> 288s -> MT_xBORDERSTOP (18894s)
-        // MT_xBORDERSTART (0) -> 496s -> startA (12400) -> 178s -> MT_xBORDERSTOP (16864s)
-        // MT_xBORDERSTART (0) -> 535s -> startA (13375) -> 175s -> MT_xBORDERSTOP (17770s)
-        // MT_xBORDERSTART (0) -> 305s -> startA (7625) ->   82s -> MT_xBORDERSTOP ( 9692s)
-        if ((bStart->position < IGNORE_AT_START) && (startA_bStop >= 82)) {
+        // MT_xBORDERSTART (0) -> 467s -> startA (11675) -> 288s -> MT_xBORDERSTOP (18894)
+        // MT_xBORDERSTART (0) -> 496s -> startA (12400) -> 178s -> MT_xBORDERSTOP (16864)
+        // MT_xBORDERSTART (0) -> 535s -> startA (13375) -> 175s -> MT_xBORDERSTOP (17770)
+        // MT_xBORDERSTART (0) -> 305s -> startA ( 7625) ->  82s -> MT_xBORDERSTOP ( 9692)
+        // MT_xBORDERSTART (0) -> 374s -> startA ( 9350) ->  70s -> MT_xBORDERSTOP (11110)
+        if ((bStart->position < IGNORE_AT_START) && (startA_bStop >= 70)) {
             dsyslog("cMarkAdStandalone::CheckBorderDoubleEpisodeAtStart(): border double episode detected, border stop is from first ad");
             doubleEpisode = true;
         }
