@@ -518,7 +518,7 @@ void cOverlapAroundAd::Detect(sOverlapPos *overlapPos) {
 
 
 void cOverlapAroundAd::GetHistogram(const sVideoPicture *picture, simpleHistogram &dest) const {
-    memset(dest, 0, sizeof(simpleHistogram));
+    dest.fill(0);
     int videoHeight = decoder->GetVideoHeight();
     int videoWidth  = decoder->GetVideoWidth();
 

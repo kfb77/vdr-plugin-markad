@@ -8,6 +8,8 @@
 #ifndef __overlap_h_
 #define __overlap_h_
 
+#include <array>
+
 #include "tools.h"
 #include "marks.h"
 #include "decoder.h"
@@ -52,9 +54,7 @@ private:
         OV_BEFORE = 0,
         OV_AFTER  = 1
     };
-
-    typedef int simpleHistogram[256];     //!< histogram array
-    //!<
+    using simpleHistogram = std::array<int, 256>; //!< histogram array
 
     /**
      * check if two histogram are similar
