@@ -534,7 +534,7 @@ void cOverlapAroundAd::GetHistogram(const sVideoPicture *picture, simpleHistogra
 }
 
 
-int cOverlapAroundAd::AreSimilar(const simpleHistogram &hist1, const simpleHistogram &hist2) const { // return > 0 if similar, else <= 0
+int cOverlapAroundAd::AreSimilar(const simpleHistogram &hist1, const simpleHistogram &hist2) const { // return >= 0 if similar, else < 0
     long int similar = 0;  // prevent integer overflow
     for (int i = 0; i < 256; i++) {
         similar += abs(hist1[i] - hist2[i]);  // calculte difference, smaller is more similar
