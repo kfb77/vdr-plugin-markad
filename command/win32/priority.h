@@ -10,7 +10,7 @@
 
 #define PRIO_PROCESS 0 /* any integer, not evaluated. */
 
-int getpriority(int, int);
-int setpriority(int, int, int);
-int ioprio_get(int, int);
-int ioprio_set(int, int, int);
+int getpriority(int which, int who);
+int setpriority(int which, int who, int prio);
+int ioprio_get(int which, int who);
+int ioprio_set(int which, int who, int ioprio);

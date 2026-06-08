@@ -22,6 +22,6 @@ struct mntent {
   char* mnt_opts;
 };
 
-FILE* setmntent(const char*, const char*);
-struct mntent* getmntent(FILE*);
-int endmntent(FILE*);
+FILE* setmntent(const char* filename, const char* type);
+struct mntent* getmntent(FILE* fp);
+int endmntent(FILE* fp);
