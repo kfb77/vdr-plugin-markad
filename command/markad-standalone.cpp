@@ -5381,8 +5381,10 @@ void cMarkAdStandalone::BlackScreenOptimization() {
                     maxAfter = -1;
                 }
                 if (diffAfter <= maxAfter) {  // move even to same position to prevent scene change for move again
-                    if (mark->position == marks.GetLast()->position) mark = marks.Move(mark, stopBlackAfter->position,  stopBlackAfter->pts,  MT_NOBLACKSTOP);  // allow some black pictures at end of broadcast
-                    else                                             mark = marks.Move(mark, startBlackAfter->position, startBlackAfter->pts, MT_NOBLACKSTOP);
+                    if ((mark->position == marks.GetLast()->position) && (lengthAfter < 13200)) {  // long blackscreen is from openeing credits of next broadcast
+                        mark = marks.Move(mark, stopBlackAfter->position,  stopBlackAfter->pts,  MT_NOBLACKSTOP);  // allow some black pictures at end of broadcast
+                    }
+                    else mark = marks.Move(mark, startBlackAfter->position, startBlackAfter->pts, MT_NOBLACKSTOP);
                     if (mark) {
                         moved = true;
                         save  = true;
