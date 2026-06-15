@@ -52,6 +52,7 @@ extern "C" {
 //
 // full supported FFmpeg versions for markad
 //
+//  #if LIBAVCODEC_VERSION_INT >= ((62<<16)+( 11<<8)+100) FFmpeg 8.0.1  (Ubuntu 26.04, End of Standard Support: April 2031)
 //  #if LIBAVCODEC_VERSION_INT >= ((60<<16)+( 31<<8)+102) FFmpeg 6.1.1  (Ubuntu 24.04, End of Standard Support: April 2029)
 //  #if LIBAVCODEC_VERSION_INT >= ((58<<16)+(134<<8)+100) FFmpeg 4.4.2  (Ubuntu 22.04, End of Standard Support: April 2027)
 #define LIBAVCODEC_VERSION_VALID  ((58<<16)+(134<<8)+100) // oldest full supported version
