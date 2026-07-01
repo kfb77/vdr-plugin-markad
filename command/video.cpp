@@ -774,7 +774,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         logo_imark *= 0.9;
     }
 
-    bool logoStatus     = false;
+    bool logoStatus = false;
 
     // in dark scene we can use stronger detection
     // don't miss logo invisible for:
@@ -841,7 +841,7 @@ int cLogoDetect::Detect(int *logoPacketNumber, int64_t *logoFramePTS) {
         }
 
 // if current state is logo uninitialized (to get an early logo start) and we have a lot of matches, trust logo is there
-        if (!logoStatus && (area.status == LOGO_UNINITIALIZED) && (rPixel > logo_imark)) {
+        if ((area.status == LOGO_UNINITIALIZED) && (rPixel > logo_imark)) {
 #ifdef DEBUG_LOGO_DETECTION
             dsyslog("cLogoDetect::Detect(): frame (%6d) state uninitialized and some machtes, trust logo visible", decoder->GetPacketNumber());
 #endif
