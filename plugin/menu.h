@@ -24,7 +24,7 @@ public:
 class cMenuMarkAd : public cOsdMenu {
 private:
     cStatusMarkAd *status = nullptr;
-    void SetHelpText(struct sRecording *Entry);
+    void SetHelpText(const struct sRecording *Entry);
     bool write();
     time_t last = time(nullptr);;
     int lastpos = 0;

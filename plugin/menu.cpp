@@ -114,7 +114,7 @@ bool cMenuMarkAd::write() {
 }
 
 
-void cMenuMarkAd::SetHelpText(struct sRecording *Entry) {
+void cMenuMarkAd::SetHelpText(const struct sRecording *Entry) {
     if (!Entry) {
         SetHelp(nullptr,nullptr);
         return;
