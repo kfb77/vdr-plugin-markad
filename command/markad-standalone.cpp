@@ -1954,7 +1954,8 @@ void cMarkAdStandalone::RemoveLogoChangeMarks(const bool checkStart) {
     // use local variables with same name as global
     cDecoder *decoder_local = decoder;
     if (checkStart) {
-        decoder_local = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW,  macontext.Config->forceInterlaced, nullptr);  // no index
+        decoder_local = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->hwaccelDevice,
+                                     macontext.Config->vaapiDriver, macontext.Config->forceHW,  macontext.Config->forceInterlaced, nullptr);  // no index
         ALLOC(sizeof(*decoder_local), "decoder_local");
         if (!decoder_local->ReadNextFile()) { // force init decoder to get infos about video (frame rate is used by cEvaluateLogoStopStartPair)
             esyslog("cMarkAdStandalone::RemoveLogoChangeMarks(): failed to open first video file");
@@ -6589,7 +6590,8 @@ bool cMarkAdStandalone::CheckLogo(const int frameRate) {
         isyslog("no logo for %s %d:%d found in recording directory %s, trying to extract logo from recording", macontext.Info.ChannelName, macontext.Info.AspectRatio.num, macontext.Info.AspectRatio.den, macontext.Config->recDir);
 
         // only full decode if we have to because og H.264 interlaced
-        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->forcedFullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
+        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->forcedFullDecode, macontext.Config->hwaccel,
+                                       macontext.Config->hwaccelDevice,  macontext.Config->vaapiDriver, macontext.Config->forceHW, macontext.Info.AspectRatio);
         ALLOC(sizeof(*extractLogo), "extractLogo");
 
         int startPos =  (macontext.Info.tStart + 2 *60) * frameRate;  // search logo from assumed start + 2 min to prevent to get logos from ad
@@ -7112,7 +7114,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     // manually extract logo from recording
     if (config->logoExtraction >= 0) {
-        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->forcedFullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Info.AspectRatio);
+        extractLogo = new cExtractLogo(macontext.Config->recDir, macontext.Info.ChannelName, macontext.Config->threads, macontext.Config->forcedFullDecode, macontext.Config->hwaccel,
+                                       macontext.Config->hwaccelDevice,  macontext.Config->vaapiDriver, macontext.Config->forceHW, macontext.Info.AspectRatio);
         ALLOC(sizeof(*extractLogo), "extractLogo");
         extractLogo->ManuallyExtractLogo(config->logoExtraction, config->logoWidth, config->logoHeight);
         ALLOC(sizeof(*extractLogo), "extractLogo");
@@ -7122,8 +7125,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
 
     // check if requested decoding parameter are valid for this video codec and used FFmpeg version
     dsyslog("cMarkAdStandalone::cMarkAdStandalone(): check codec");
-    char hwaccel[1] = {0};      //!< no hardware acceleration
-    cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, 1, true, hwaccel, false, false, nullptr); // one thread, full decocode, no hwaccel, no force interlaced, no index
+    const char hwaccel[1] = {0};      //!< no hardware acceleration
+    cDecoder *decoderTest = new cDecoder(macontext.Config->recDir, 1, true, hwaccel, nullptr, nullptr, false, false, nullptr); // one thread, full decocode, no hwaccel, no force interlaced, no index
     ALLOC(sizeof(*decoderTest), "decoderTest");
     if (!decoderTest->DecodeNextFrame(false)) {  // decode one video frame to get video info
         esyslog("cMarkAdStandalone::cMarkAdStandalone(): decode of first video packet failed");
@@ -7215,7 +7218,8 @@ cMarkAdStandalone::cMarkAdStandalone(const char *directoryParam, sMarkAdConfig *
     blackMarks.SetIndex(index);
 
     // create decoder object
-    decoder = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel, macontext.Config->forceHW, macontext.Config->forceInterlaced, index);
+    decoder = new cDecoder(macontext.Config->recDir, macontext.Config->threads, macontext.Config->fullDecode, macontext.Config->hwaccel,  macontext.Config->hwaccelDevice,
+                           macontext.Config->vaapiDriver, macontext.Config->forceHW, macontext.Config->forceInterlaced, index);
     ALLOC(sizeof(*decoder), "decoder");
 }
 
@@ -7434,6 +7438,10 @@ int usage(int svdrpport) {
            "                  use hardware acceleration for decoding\n"
            "                  <hardware acceleration method> all methods supported by FFmpeg (ffmpeg -hide_banner -hwaccels)\n"
            "                                                 e.g.: vdpau, cuda, vaapi, vulkan, ...\n"
+           "                --hwaccel-device=<path to hardware acceleration device>\n"
+           "                  (e.g. /dev/dri/renderD129)\n"
+           "                --vaapi-driver=<force specific VA-API driver name>\n"
+           "                  (e.g. i965, iHD)\n"
            "                --perftest>\n"
            "                  run decoder performance test and compare software and hardware decoder\n"
            "\ncmd: one of\n"
@@ -7545,35 +7553,37 @@ int main(int argc, char *argv[]) {
         int option_index = 0;
         static struct option long_options[] =
         {
-            {"background",   0, 0, 'b'},
-            {"disable",      1, 0, 'd'},
-            {"logocachedir", 1, 0, 'l'},
-            {"priority",     1, 0, 'p'},
-            {"ioprio",       1, 0, 'r'},
-            {"verbose",      0, 0, 'v'},
-            {"backupmarks",  0, 0, 'B'},
-            {"extractlogo",  1, 0, 'L'},
-            {"OSD",          0, 0, 'O' },
-            {"log2rec",      0, 0, 'R'},
-            {"threads",      1, 0, 'T'},
-            {"version",      0, 0, 'V'},
-            {"markfile",     1, 0,  1},
-            {"loglevel",     1, 0,  2},
-            {"online",       2, 0,  3},
-            {"nopid",        0, 0,  4},
-            {"svdrphost",    1, 0,  5},
-            {"svdrpport",    1, 0,  6},
-            {"cut",          0, 0,  7},
-            {"ac3reencode",  0, 0,  8},
-            {"vps",          0, 0,  9},
-            {"logfile",      1, 0, 10},
-            {"autologo",     1, 0, 11},
-            {"fulldecode",   0, 0, 12},
-            {"smartencode",  0, 0, 13},
-            {"fullencode",   1, 0, 14},
-            {"pts",          0, 0, 15},     // undocumented, only for development use
-            {"hwaccel",      1, 0, 16},
-            {"perftest",     0, 0, 17},     // undocumented, only for development use
+            {"background",     0, 0, 'b'},
+            {"disable",        1, 0, 'd'},
+            {"logocachedir",   1, 0, 'l'},
+            {"priority",       1, 0, 'p'},
+            {"ioprio",         1, 0, 'r'},
+            {"verbose",        0, 0, 'v'},
+            {"backupmarks",    0, 0, 'B'},
+            {"extractlogo",    1, 0, 'L'},
+            {"OSD",            0, 0, 'O' },
+            {"log2rec",        0, 0, 'R'},
+            {"threads",        1, 0, 'T'},
+            {"version",        0, 0, 'V'},
+            {"markfile",       1, 0,  1},
+            {"loglevel",       1, 0,  2},
+            {"online",         2, 0,  3},
+            {"nopid",          0, 0,  4},
+            {"svdrphost",      1, 0,  5},
+            {"svdrpport",      1, 0,  6},
+            {"cut",            0, 0,  7},
+            {"ac3reencode",    0, 0,  8},
+            {"vps",            0, 0,  9},
+            {"logfile",        1, 0, 10},
+            {"autologo",       1, 0, 11},
+            {"fulldecode",     0, 0, 12},
+            {"smartencode",    0, 0, 13},
+            {"fullencode",     1, 0, 14},
+            {"pts",            0, 0, 15},     // undocumented, only for development use
+            {"hwaccel",        1, 0, 16},
+            {"hwaccel-device", 1, 0, 17},
+            {"vaapi-driver",   1, 0, 18},
+            {"perftest",       0, 0, 19},     // undocumented, only for development use
 
             {0, 0, 0, 0}
         };
@@ -7802,7 +7812,21 @@ int main(int argc, char *argv[]) {
                 strncpy(config.hwaccel, optarg, sizeof(config.hwaccel) - 1);
             }
             break;
-        case 17: // --perftest
+        case 17: // --hwaccel-device
+            if ((strlen(optarg) + 1) > sizeof(config.hwaccelDevice)) {
+                fprintf(stderr, "markad: hwaccel device too long: %s\n", optarg);
+                return EXIT_FAILURE;
+            }
+            strncpy(config.hwaccelDevice, optarg, sizeof(config.hwaccelDevice) - 1);
+            break;
+        case 18: // --vaapi-driver
+            if ((strlen(optarg) + 1) > sizeof(config.vaapiDriver)) {
+                fprintf(stderr, "markad: vaapi driver too long: %s\n", optarg);
+                return EXIT_FAILURE;
+            }
+            strncpy(config.vaapiDriver, optarg, sizeof(config.vaapiDriver) - 1);
+            break;
+        case 19: // --perftest
             config.perftest = true;
             break;
         default:

@@ -60,7 +60,8 @@ public:
      * @param forceHW              force hwaccel for MPEG2 codec
      * @param requestedAspectRatio video aspect ratio for requested logo
      */
-    explicit cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, const bool fullDecodeParam, char *hwaccel, const bool forceHW, const sAspectRatio requestedAspectRatio);
+    explicit cExtractLogo(const char *recDirParam, const char *channelNameParam, const int threads, const bool fullDecodeParam, const char *hwaccel, const char *hwaccelDevice,
+                          const char *vaapiDriver, const bool forceHW, const sAspectRatio requestedAspectRatio);
     ~cExtractLogo();
 
     /**

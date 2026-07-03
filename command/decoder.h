@@ -86,11 +86,14 @@ public:
      * @param threadsParam         count threads of FFmpeg decoder
      * @param fullDecodeParam      true if full decode, fals if only decode i-frames
      * @param hwaccelParam         true if we use hwaccel
+     * @param hwaccelDeviceParam   hwaccel device name (nullptr: use first device)
+     * @param vaapiDriverParam     VAAPI Driver Name (nullptr: use system default)
      * @param forceHWparam         true if force use of hwaccel on MPEG2 codec
      * @param forceInterlacedParam true to inform decoder with hwaccel, video is interlaced
      * @param indexParam           recording index class
      */
-    explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccelParam, const bool forceHWparam, const bool forceInterlacedParam, cIndex *indexParam);
+    explicit cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, const char *hwaccelParam, const char *hwaccelDeviceParam, const char *vaapiDriverParam,
+                      const bool forceHWparam, const bool forceInterlacedParam, cIndex *indexParam);
 
     ~cDecoder();
 
@@ -111,6 +114,8 @@ public:
         threads                = origin.threads;
         fullDecode             = origin.fullDecode;
         hwaccel                = origin.hwaccel;
+        hwaccelDevice          = origin.hwaccelDevice;
+        vaapiDriver            = origin.vaapiDriver;
         forceInterlaced        = origin.forceInterlaced;
         useHWaccel             = origin.useHWaccel;
         forceHWaccel           = origin.forceHWaccel;
@@ -157,6 +162,8 @@ public:
         threads                = origin->threads;
         fullDecode             = origin->fullDecode;
         hwaccel                = origin->hwaccel;
+        hwaccelDevice          = origin->hwaccelDevice;
+        vaapiDriver            = origin->vaapiDriver;
         forceInterlaced        = origin->forceInterlaced;
         useHWaccel             = origin->useHWaccel;
         forceHWaccel           = origin->forceHWaccel;
@@ -222,7 +229,19 @@ public:
     * get name of hwaccel methode
     * @return name of hwaccel methode
     */
-    char *GetHWaccelName();
+    const char *GetHWaccelName() const;
+
+    /**
+    * get hwaccel devic3
+    * @return hwaccel device
+    */
+    const char *GetHWaccelDevice() const;
+
+    /**
+    * get name of VAAPI driver
+    * @return name of VAAPI driver
+    */
+    const char *GetVAAPIdriver() const;
 
     /**
     * get recording directory
@@ -612,7 +631,11 @@ private:
     //!<
     bool fullDecode                    = false;                   //!< false if we decode only i-frames, true if we decode all frames
     //!<
-    char *hwaccel                      = nullptr;                 //!< hardware accelerated methode
+    const char *hwaccel                = nullptr;                 //!< hardware accelerated methode
+    //!<
+    const char *hwaccelDevice          = nullptr;                 //!< hardware device (eg. /dev/dri/renderD128)
+    //!<
+    const char *vaapiDriver            = nullptr;                 //!< VAAPI Driver (eg. i965 or iHD)
     //!<
     bool firstHWaccelReceivedOK        = false;                   //!< true if first video packet was successful received from decoder
     //!<

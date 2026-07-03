@@ -587,7 +587,7 @@ char *cEncoder::GetEncoderName(const int streamIndexIn) {
     // h264       -> h264_vaapi      h264_nvenc
     // HVEC
     char *encoderName = nullptr;
-    char *hwaccelName = decoder->GetHWaccelName();
+    const char *hwaccelName = decoder->GetHWaccelName();
     if (!hwaccelName) {
         esyslog("cEncoder::GetEncoderName(): hwaccel name not set");
         return nullptr;
@@ -1198,7 +1198,8 @@ int cEncoder::GetPSliceKeyPacketNumberAfterPTS(int64_t pts, int64_t *pSlicePTS, 
     }
     if (!decoderLocal) {
         // full decode, no force interlaced
-        decoderLocal = new cDecoder(decoder->GetRecordingDir(), decoder->GetThreads(), true, decoder->GetHWaccelName(), decoder->GetForceHWaccel(), false, indexLocal);
+        decoderLocal = new cDecoder(decoder->GetRecordingDir(), decoder->GetThreads(), true, decoder->GetHWaccelName(), decoder->GetHWaccelDevice(), decoder->GetVAAPIdriver(),
+                                    decoder->GetForceHWaccel(), false, indexLocal);
         ALLOC(sizeof(*decoderLocal), "decoderLocal");
     }
     int startDecodePacketNumber = index->GetKeyPacketNumberBeforePTS(pts);

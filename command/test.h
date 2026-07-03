@@ -34,19 +34,23 @@ private:
      * performance test result structure
     */
     typedef struct sPerfResult {
-        int pass        = 0;          //!< test run pass
+        int pass            = 0;          //!< test run pass
         //!<
-        int threads     = 0;          //!< count threads
+        int threads         = 0;          //!< count threads
         //!<
-        char *hwaccel   = nullptr;    //!< hwaccel methode
+        char *hwaccel       = nullptr;    //!< hwaccel methode
         //!<
-        double decode   = 0;          //!< avg time to read from file and decoding
+        char *hwaccelDevice = nullptr;    //!< hwaccel device
         //!<
-        double transfer = 0;          //!< avg time to transfert picture from GPU to CPU and convert pixel format
+        char *vaapiDriver   = nullptr;    //!< vaapi driver
         //!<
-        double read     = 0;          //!< avg time to read picture from memory
+        double decode       = 0;          //!< avg time to read from file and decoding
         //!<
-        double test     = 0;          //!< time of whole test
+        double transfer     = 0;          //!< avg time to transfert picture from GPU to CPU and convert pixel format
+        //!<
+        double read         = 0;          //!< avg time to read picture from memory
+        //!<
+        double test         = 0;          //!< time of whole test
         //!<
 
     } sPerfResult;

@@ -75,7 +75,8 @@ static enum AVPixelFormat get_hw_format(__attribute__((unused)) AVCodecContext *
 }
 
 
-cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, char *hwaccelParam, const bool forceHWparam, const bool forceInterlacedParam, cIndex *indexParam) {
+cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodeParam, const char *hwaccelParam, const char *hwaccelDeviceParam, const char *vaapiDriverParam,
+                   const bool forceHWparam, const bool forceInterlacedParam, cIndex *indexParam) {
     LogSeparator(true);
     dsyslog("cDecoder::cDecoder(): create decoder object");
     // recording directory
@@ -100,11 +101,17 @@ cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodePa
     forceHWaccel    = forceHWparam;
     forceInterlaced = forceInterlacedParam;
     if (hwaccelParam && hwaccelParam[0] != 0) hwaccel = hwaccelParam;
-    dsyslog("cDecoder::cDecoder(): init with %d thread(s), %s, hwaccel: %s %s %s", threads, (fullDecode) ? "full decode" : "i-frame decode", (hwaccel) ? hwaccel : "none", (forceHWaccel) ? "(force)" : "", (forceInterlaced) ? ", force interlaced" : "");
+
+    dsyslog("cDecoder::cDecoder(): init with %d thread(s), %s, hwaccel: %s (device: %s, driver: %s) %s %s",
+            threads, (fullDecode) ? "full decode" : "i-frame decode",
+            (hwaccel) ? hwaccel : "none",
+            (hwaccelDeviceParam) ? hwaccelDeviceParam : "default",
+            (vaapiDriverParam) ? vaapiDriverParam : "default",
+            (forceHWaccel) ? "(force)" : "", (forceInterlaced) ? ", force interlaced" : "");
 
     av_frame_unref(&avFrame);    // reset all fields to default
 
-// init hwaccel device
+    // init hwaccel device
     if (hwaccel) {
         hwDeviceType = av_hwdevice_find_type_by_name(hwaccel);
         if (hwDeviceType == AV_HWDEVICE_TYPE_NONE) {
@@ -116,6 +123,15 @@ cDecoder::cDecoder(const char *recDir, int threadsParam, const bool fullDecodePa
         else {
             dsyslog("cDecoder::cDecoder(): hardware acceleration device type %s found", av_hwdevice_get_type_name(hwDeviceType));
             useHWaccel = true;
+            // hwaccel device
+            if (hwaccelDeviceParam && hwaccelDeviceParam[0] != 0) {
+                hwaccelDevice = hwaccelDeviceParam;
+                dsyslog("cDecoder::cDecoder(): use hardware acceleration device %s", hwaccelDevice);
+            }
+            if (vaapiDriverParam && vaapiDriverParam[0] != 0 && (strcmp(hwaccel, "vaapi") == 0)) {
+                vaapiDriver = vaapiDriverParam;
+                dsyslog("cDecoder::cDecoder(): use vaapi driver %s", vaapiDriver);
+            }
         }
     }
 }
@@ -204,9 +220,18 @@ int cDecoder::GetThreads() const {
     return threads;
 }
 
-
-char *cDecoder::GetHWaccelName() {
+const char *cDecoder::GetHWaccelName() const {
     if (useHWaccel && hwaccel) return hwaccel;
+    return nullptr;
+}
+
+const char *cDecoder::GetHWaccelDevice() const {
+    if (useHWaccel && hwaccelDevice) return hwaccelDevice;
+    return nullptr;
+}
+
+const char *cDecoder::GetVAAPIdriver() const {
+    if (useHWaccel && vaapiDriver) return vaapiDriver;
     return nullptr;
 }
 
@@ -566,8 +591,23 @@ bool cDecoder::InitDecoder(const char *filename) {
         // link hardware acceleration to codec context
         if (useHWaccel && (hw_pix_fmt != AV_PIX_FMT_NONE) && IsVideoStream(streamIndex)) {
             dsyslog("cDecoder::InitDecoder(): create hardware device context for %s", av_hwdevice_get_type_name(hwDeviceType));
+
             if (!hw_device_ctx) {
-                int ret = av_hwdevice_ctx_create(&hw_device_ctx, hwDeviceType, NULL, NULL, 0);
+                AVDictionary *opts = nullptr;
+                if (vaapiDriver) {
+                    // connection_type=drm ist zwingend notwendig bei expliziter Treiberwahl,
+                    // da FFmpeg sonst versucht, X11/Wayland-Displays zu initialisieren.
+                    av_dict_set(&opts, "connection_type", "drm", 0);
+                    av_dict_set(&opts, "driver", vaapiDriver, 0);
+                    // Leak-Tracking über die Zeiger-Größe, da die interne Struktur "incomplete" ist
+                    if (opts) ALLOC(sizeof(opts), "opts");
+                }
+
+                int ret = av_hwdevice_ctx_create(&hw_device_ctx, hwDeviceType, hwaccelDevice, opts, 0);
+
+                if (opts) FREE(sizeof(opts), "opts");
+                av_dict_free(&opts);
+
                 if (ret >= 0) {
                     ALLOC(sizeof(*hw_device_ctx), "hw_device_ctx");
                     dsyslog("cDecoder::InitDecoder(): hardware device context created successful for stream %d", streamIndex);

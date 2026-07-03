@@ -79,7 +79,8 @@ void cTest::PerfDecoder(sPerfResult *result) const {
     const sVideoPicture *picture = nullptr;
 
     // init decoder
-    cDecoder *decoder = new cDecoder(recDir, result->threads, fullDecode, result->hwaccel, true, false, nullptr);  // recording directory, threads, full decode, hwaccel methode, force hwaccel, interlaced, index
+    // recording directory, threads, full decode, hwaccel methode, hwaccel device, vappi driver, force hwaccel, interlaced, index
+    cDecoder *decoder = new cDecoder(recDir, result->threads, fullDecode, result->hwaccel, result->hwaccelDevice, result->vaapiDriver, true, false, nullptr);
 
     auto startTest = std::chrono::high_resolution_clock::now();
     while (nextFrame) {  // no audio decode

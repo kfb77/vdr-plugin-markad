@@ -107,6 +107,10 @@ typedef struct sMarkAdConfig {
     //!< <b>false:</b> otherwise
     char hwaccel[16]               = {0};      //!< hardware acceleration methode
     //!<
+    char hwaccelDevice[32]         = {0};      //!< hardware acceleration device
+    //!<
+    char vaapiDriver[16]           = {0};      //!< vaapi Driver Name
+    //!<
     bool forceHW                   = false;    //!< force hwaccel for MPEG2
     //!<
     bool forceInterlaced           = false;    //!< inform decoder who use hwaccel, the video is interlaced. In this case not possible to detect from decoder because HW deinterlaces

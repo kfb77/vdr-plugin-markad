@@ -181,6 +181,17 @@ all methods supported by FFmpeg (ffmpeg -hide_banner -hwaccels)
 e.g.: vaapi, vdpau, vulkan, cuda ...
 .TP
 
+.BI \-\-hwaccel-device= <path_to_device>
+path to the hardware acceleration device to use
+useful for multi-GPU systems to bypass the default device
+e.g.: /dev/dri/renderD129
+.TP
+.BI \-\-vaapi-driver= <driver_name>
+force a specific VA-API driver name via FFmpeg dictionary
+bypasses dropped environment variables when running via sudo
+e.g.: i965, iHD
+.TP
+
 .BI \-\-perftest
 run decoder performance test and compare software and hardware decoder
 .TP
