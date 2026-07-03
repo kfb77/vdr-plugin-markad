@@ -270,7 +270,7 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
     tEventID eitEventID  = 0;
 
     if (eitEvent) {
-        eitEventID       = eitEvent->getEventId();
+        eitEventID    = eitEvent->getEventId();
         runningStatus = eitEvent->getRunningStatus();
     }
 
@@ -312,7 +312,7 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
             }
             if ((recs[i].eitEventID == eitEventID)) {
                 if (recs[i].runningStatus != runningStatus) {
-                    SetVPSStatus(i, runningStatus, (eitEvent)); // store recording running status from EIT Event, with epg2vdr it is different from VDR event
+                    SetVPSStatus(i, runningStatus, true); // store recording running status from EIT Event, with epg2vdr it is different from VDR event
                 }
             }
             if ((recs[i].runningStatus == 4) && (runningStatus == 4) && (eitEventID == recs[i].eitEventNextID)) {  // next event got EIT start, for private channels this is the only stop event
@@ -321,7 +321,7 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
                     ALLOC(strlen(eventLog) + 1, "eventLog");
                     recs[i].epgEventLog->LogEvent(VPS_INFO, recs[i].title, eventLog);
                 }
-                SetVPSStatus(i, 1, (eitEvent)); // store recording stop
+                SetVPSStatus(i, 1, true); // store recording stop
             }
         }
 
@@ -337,7 +337,7 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
                     recs[i].ignoreEIT = true;
                 }
                 if (recs[i].runningStatus != runningStatus) {
-                    SetVPSStatus(i, runningStatus, (eitEvent)); // store recording running status
+                    SetVPSStatus(i, runningStatus, false); // store recording running status
                 }
             }
             if ((recs[i].runningStatus == 4) && (runningStatus == 4) && (eventID == recs[i].eventNextID) && (channelID == recs[i].eventChannelID)) {  // next event got VPS start, for private channels this is the only stop event
@@ -346,7 +346,7 @@ void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eit
                     ALLOC(strlen(eventLog) + 1, "eventLog");
                     recs[i].epgEventLog->LogEvent(VPS_INFO, recs[i].title, eventLog);
                 }
-                SetVPSStatus(i, 1, (eitEvent)); // store recording stop
+                SetVPSStatus(i, 1, false); // store recording stop
             }
         }
     }
