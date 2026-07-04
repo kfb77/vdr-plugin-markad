@@ -1,6 +1,12 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2026-07-04: Version 4.3.0
+- new feature: parameter --hwaccel-device (specify GPU Device) and --vaapi-driver (specify VAAPI Driver to use)
+- fix logo extraction in case of 'Neue Folge'
+  thx to Schwabe@www.vdr-portal.de for reporting
+- some minor bug fixes and optimizations, see git
+
 2026-05-13: Version 4.2.22
 - fix running state if markad start is disabled
   thx to MarkusE@www.vdr-portal.de for reporting
