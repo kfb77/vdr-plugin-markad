@@ -595,11 +595,11 @@ bool cDecoder::InitDecoder(const char *filename) {
             if (!hw_device_ctx) {
                 AVDictionary *opts = nullptr;
                 if (vaapiDriver) {
-                    // connection_type=drm ist zwingend notwendig bei expliziter Treiberwahl,
-                    // da FFmpeg sonst versucht, X11/Wayland-Displays zu initialisieren.
+                    // connection_type=drm is mandatory when explicitly selecting a driver,
+                    // because otherwise FFmpeg attempts to initialize X11/Wayland displays.
                     av_dict_set(&opts, "connection_type", "drm", 0);
                     av_dict_set(&opts, "driver", vaapiDriver, 0);
-                    // Leak-Tracking über die Zeiger-Größe, da die interne Struktur "incomplete" ist
+                    // Leak tracking via pointer size, since the internal structure is "incomplete"
                     if (opts) ALLOC(sizeof(opts), "opts");
                 }
 
