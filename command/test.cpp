@@ -16,10 +16,12 @@
 extern bool abortNow;
 
 
-cTest::cTest(const char *recDirParam, const bool fullDecodeParam, char *hwaccelParam) {
-    recDir     = recDirParam;
-    fullDecode = fullDecodeParam;
-    hwaccel    = hwaccelParam;
+cTest::cTest(const char *recDirParam, const bool fullDecodeParam, char *hwaccelParam, char *hwaccelDeviceParam, char *vaapiDriverParam) {
+    recDir        = recDirParam;
+    fullDecode    = fullDecodeParam;
+    hwaccel       = hwaccelParam;
+    hwaccelDevice = hwaccelDeviceParam;
+    vaapiDriver   = vaapiDriverParam;
 }
 
 
@@ -48,9 +50,11 @@ void cTest::Perf() const {
             PerfDecoder(&result[index]);
             index++;
             // hwaccel
-            result[index].pass    = pass;
-            result[index].threads = threads;
-            result[index].hwaccel = hwaccel;
+            result[index].pass          = pass;
+            result[index].threads       = threads;
+            result[index].hwaccel       = hwaccel;
+            result[index].hwaccelDevice = hwaccelDevice;
+            result[index].vaapiDriver   = vaapiDriver;
             dsyslog("pass %d, threads %d: decoder hwaccel: %-10s *****************************************************************", pass, threads, hwaccel);
             PerfDecoder(&result[index]);
             index++;

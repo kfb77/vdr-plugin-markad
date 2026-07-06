@@ -8062,7 +8062,7 @@ int main(int argc, char *argv[]) {
         if (config.logoExtraction == -1) {
             // performance test
             if (!abortNow && config.perftest) {
-                cTest *test = new cTest(config.recDir, config.fullDecode, config.hwaccel);
+                cTest *test = new cTest(config.recDir, config.fullDecode, config.hwaccel, config.hwaccelDevice, config.vaapiDriver);
                 test->Perf();
                 delete test;
             }

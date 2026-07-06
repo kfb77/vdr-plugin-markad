@@ -21,7 +21,7 @@ public:
      * @param fullDecodeParam  true if full decoding, false if decoding only i-frames
      * @param hwaccelParam     hwaccel methode
      */
-    explicit cTest(const char *recDirParam, const bool fullDecodeParam, char *hwaccelParam);
+    explicit cTest(const char *recDirParam, const bool fullDecodeParam, char *hwaccelParam, char *hwaccelDeviceParam, char *vaapiDriverParam);
     ~cTest();
 
     /**
@@ -66,6 +66,10 @@ private:
     bool fullDecode        = false;    //!< true if full decoding, false if decoding only i-frames
     //!<
     char *hwaccel          = nullptr;  //!< hwaccel methode
+    //!<
+    char *hwaccelDevice    = nullptr;  //!< hwaccel device
+    //!<
+    char *vaapiDriver      = nullptr;  //!< vaapi driver
     //!<
 };
 
