@@ -535,6 +535,7 @@ class CheckPath:
         newPath = newPath.replace(')','\\)')
         newPath = newPath.replace("'","\\\'")
         newPath = newPath.replace(';','\\;')
+        newPath = newPath.replace('$','\\$')
         return(newPath)
 
     def CheckMirrorDelete(self):
