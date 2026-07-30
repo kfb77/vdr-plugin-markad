@@ -20,7 +20,7 @@ cVPS::cVPS(const char *directory) {
     FILE *mf;
     mf = fopen(fpath, "r+");
     if (!mf) {
-        dsyslog("cVPS::cVPS(): %s not found", fpath);
+        isyslog("cVPS::cVPS(): %s not found", fpath);
         free(fpath);
         return;
     }
