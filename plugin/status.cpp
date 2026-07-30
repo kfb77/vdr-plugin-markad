@@ -774,10 +774,10 @@ bool cStatusMarkAd::Start(const char *Name, const char *FileName, sRecording *re
         free(hwaccelOption);
     }
 
-    usleep(5000000); // wait 5 second to get some bytes of recording
+    // usleep(5000000); // wait 5 second to get some bytes of recording
     DebugLog("cStatusMarkAd::Start(): executing %s", *cmd);
     if (SystemExec(cmd) != -1) {
-        usleep(1000000); // wait 1 second to start markad
+        // usleep(1000000); // wait 1 second to start markad
         int pos = Add(Name, FileName, recording);
         bool gotPID = getPid(pos); // will set recs[pos].pid
         DebugLog("cStatusMarkAd::Start(): index: %d, pid: %d, filename: %s, status %c: stored in recording list", pos, recs[pos].pid, FileName ? FileName : "<nullptr>", recs[pos].status);
@@ -1145,27 +1145,59 @@ bool cStatusMarkAd::getPid(int Position) {
     if (asprintf(&buf, "%s/markad.pid", recs[Position].fileName) == -1) return false;
     ALLOC(strlen(buf)+1, "buf");
 
-    usleep(500*1000);   // wait 500ms to give markad time to create pid file
-    FILE *fpid = fopen(buf,"r");
-    if (fpid) {
+    FILE *fpid = nullptr;
+    int pid = 0;
+
+    // Loop 5 times with 100ms sleep to ensure file exists AND contains a valid PID
+    for (int attempt = 1; attempt <= 5; ++attempt) {
+        fpid = fopen(buf, "r");
+        if (fpid) {
+            ret = fscanf(fpid, "%10i\n", &pid);
+            fclose(fpid);
+
+            if (ret == 1 && pid > 0) {
+                dsyslog("markad: pid found and successfully parsed, attempt %d", attempt);
+                break; // Valid numeric PID found, exit loop
+            }
+
+            // File exists but is empty or doesn't have a numeric value yet
+            dsyslog("markad: pid file exists but does not contain a numeric value yet, retry %d", attempt);
+            ret = 0; // Reset state for the next attempt
+            fpid = nullptr; // Reset pointer to reflect that we don't have a valid handle/result
+        }
+        else {
+            dsyslog("markad: pid file does not exist, retry %d", attempt);
+        }
+
+        if (attempt < 5) {
+            usleep(100000); // Sleep 100ms before next attempt
+        }
+    }
+
+    if (ret == 1) {
         FREE(strlen(buf)+1, "buf");
         free(buf);
-        int pid;
-        ret = fscanf(fpid, "%10i\n", &pid);
-        if (ret == 1) recs[Position].pid = pid;
-        fclose(fpid);
+        recs[Position].pid = pid;
+        return true;
     }
     else {
-        esyslog("markad: failed to open pid file %s with errno %i", buf, errno);
+        // Only log an error and remove after all 5 attempts failed
+        if (fpid == nullptr && errno == ENOENT) {
+            esyslog("markad: failed to open pid file %s after 5 attempts with errno %i", buf, errno);
+        } else {
+            esyslog("markad: pid file %s exists but does not contain a valid numeric PID after 5 attempts", buf);
+            errno = ENOENT; // Force ENOENT so the entry gets removed below
+        }
+
         if (errno == ENOENT) {
-            // no such file or directory -> markad done or crashed
+            // no such file or directory, or invalid content -> markad done or crashed
             // remove entry from list
             Remove(Position);
         }
         FREE(strlen(buf)+1, "buf");
         free(buf);
+        return false;
     }
-    return (ret == 1);
 }
 
 
