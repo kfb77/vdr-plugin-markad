@@ -211,26 +211,22 @@ typedef struct sVideoPicture {
 /**
  * video aspect ratio (DAR or PAR)
  */
-typedef struct sAspectRatio {
+struct sAspectRatio {
     int num = 0;  //!< video aspectio ratio numerator
-    //!<
     int den = 0;  //!< video aspectio ratio denominator
-    //!<
 
     /**
      *  operator !=
      */
     bool operator != (const sAspectRatio& other) const {
-        if ((this->num != other.num) || (this->den != other.den)) return true;
-        return false;
-
+        return (this->num != other.num) || (this->den != other.den);
     }
+
     /**
      *  operator ==
      */
     bool operator == (const sAspectRatio& other) const {
-        if ((this->num == other.num) && (this->den == other.den)) return true;
-        return false;
+        return (this->num == other.num) && (this->den == other.den);
     }
 
     /**
@@ -241,7 +237,8 @@ typedef struct sAspectRatio {
         den = other.den;
         return *this;
     }
-} sAspectRatio;
+};
+
 
 
 /**
