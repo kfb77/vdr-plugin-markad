@@ -2156,10 +2156,19 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
         if (channelStart->position < IGNORE_AT_START) marks.Del(channelStart->position);
     }
     // 6 channel double episode, there is no channel start mark
-    if (decoder->GetAC3ChannelCount() >= 5) criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);  // there is a 6 channel audio in broadcast, may we can use it later
+    if (decoder->GetAC3ChannelCount() >= 5) {
+        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): found 6 channel audio in broadcast");
+        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);  // there is a 6 channel audio in broadcast, may we can use it later
+    }
 
     // search channel start mark
     channelStart = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_CHANNELSTART);
+    // if we have only a channel start mark but no channel stop mark in start area, it can be a 6 channel braoscast with very laste start
+    if (!channelStart && (marks.Count(MT_CHANNELSTART) == 1) && (marks.Count(MT_CHANNELSTOP) == 0)) {
+        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): found late MT_CHANNELSTART without MT_CHANNELSTOP, maybe late broadcast start");
+        channelStart = marks.GetAround(2 * MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_CHANNELSTART);
+        if (channelStart && (channelStart->position <= startA)) channelStart = nullptr; // only accept after assumed start, before is from double episode
+    }
     // check audio streams
     if (channelStart) {
         dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): channels start at (%d)", channelStart->position);
