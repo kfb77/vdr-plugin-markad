@@ -3352,14 +3352,15 @@ void cMarkAdStandalone::CheckStart() {
     int countStopStart = 0;
     cMark *mark = marks.GetFirst();
     while (mark) {
-        if ((mark->type == MT_LOGOSTOP) && mark->Next() && (mark->Next()->type == MT_LOGOSTART)) {
+        // only count in start area in case of we check start area at end of recording
+        if ((mark->type == MT_LOGOSTOP) && mark->Next() && (mark->Next()->type == MT_LOGOSTART) && mark->position <= packetCheckStart) {
             countStopStart++;
         }
         mark = mark->Next();
     }
     if (countStopStart > 6) {  // changed from 5 to 6, sometimes there are a lot of previews in start area
         video->ReducePlanes();
-        isyslog("%d logo STOP/START pairs found after start mark, something is wrong with your logo", countStopStart);
+        isyslog("%d logo STOP/START pairs found in start area after start mark, something is wrong with your logo", countStopStart);
         dsyslog("cMarkAdStandalone::CheckStart(): reduce logo processing to first plane and delete all marks after start mark (%d)", begin->position);
         marks.DelAfterFromToEnd(begin->position);
     }
