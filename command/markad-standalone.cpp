@@ -2136,7 +2136,7 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
         cMark *channelStop = marks.GetNext(channelStart->position, MT_CHANNELSTOP);
         if (channelStop) {
             int diff = 1000 * (channelStop->position - channelStart->position) / decoder->GetVideoFrameRate();
-            dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): channel start (%d), channel stop (%d), length broadcast %dms", channelStart->position, channelStop->position, diff);
+            dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): channel start (%d), channel stop (%d), check length broadcast %dms", channelStart->position, channelStop->position, diff);
             if (diff < 200) {
                 dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): broadcast too short, delete invalid marks");
                 cMark *channelStartNext = marks.GetNext(channelStart->position, MT_CHANNELSTART);
@@ -2161,55 +2161,76 @@ cMark *cMarkAdStandalone::Check_CHANNELSTART() {
         criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);  // there is a 6 channel audio in broadcast, may we can use it later
     }
 
-    // search channel start mark
+    // search channel start mark in valid range
     channelStart = marks.GetAround(MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_CHANNELSTART);
-    // if we have only a channel start mark but no channel stop mark in start area, it can be a 6 channel braoscast with very laste start
+
+    // if we have no channel start mark in valid range and only a channel start mark but no channel stop mark in start area, it can be a 6 channel braoscast with very laste start
     if (!channelStart && (marks.Count(MT_CHANNELSTART) == 1) && (marks.Count(MT_CHANNELSTOP) == 0)) {
         dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): found late MT_CHANNELSTART without MT_CHANNELSTOP, maybe late broadcast start");
         channelStart = marks.GetAround(2 * MAX_ASSUMED * decoder->GetVideoFrameRate(), startA, MT_CHANNELSTART);
         if (channelStart && (channelStart->position <= startA)) channelStart = nullptr; // only accept after assumed start, before is from double episode
     }
-    // check audio streams
-    if (channelStart) {
-        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): channels start at (%d)", channelStart->position);
-        // we have a channel change, cleanup border and aspect ratio
-        video->ClearBorder();
-        marks.DelType(MT_ASPECTCHANGE, 0xF0);
 
-        int diffAssumed = (channelStart->position - startA) / decoder->GetVideoFrameRate();
-        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): audio channel start mark found at (%d) %ds after assumed start", channelStart->position, diffAssumed);
-        if (channelStart->position > stopA) {  // this could be a very short recording, 6 channel is in post recording
-            dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): audio channel start mark after assumed stop mark not valid");
-            return nullptr;
+    // still no valid channel start mark in start area, give up
+    if (!channelStart) {
+        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): no audio channel start mark found");
+        return nullptr;
+    }
+
+    // check if channel marks are only from previous broadcast
+    cMark *channelStop = marks.GetNext(channelStart->position, MT_CHANNELSTOP);
+    if (channelStop) {
+        const cMark *channelStartAfter = marks.GetNext(channelStop->position, MT_CHANNELSTART);
+        if (!channelStartAfter) {  // we have MT_CHANNELSTART -> MT_CHANNELSTOP and no next MT_CHANNELSTART in start part, MT_CHANNELSTOP must be far after assumed start
+            int diff = (channelStop->position - startA) / decoder->GetVideoFrameRate();
+            dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): MT_CHANNELSTART (%d) -> startA (%d) -> %ds -> MT_CHANNELSTOP (%d)", channelStart->position, startA, diff, channelStop->position);
+            if (diff <= 39) {  // channel marks are from previous recording, ignore
+                dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): delete channel marks from previous recording");
+                marks.Del(channelStart->position);
+                marks.Del(channelStop->position);
+                criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
+                return nullptr;
+            }
         }
+    }
 
-        // for early channel start mark, check if there is a logo start mark stop/start pair near assumed start
-        // this can happen if previous broadcast has also 6 channel
-        if (diffAssumed <= -121) {
-            const cMark *logoStop = marks.GetNext(channelStart->position, MT_LOGOSTOP);
-            if (logoStop) {  // if channel start is from previous recording, we should have a logo stop mark near assumed start
-                cMark *logoStart = marks.GetNext(logoStop->position, MT_LOGOSTART);
-                if (logoStart) {
-                    int diffLogoStart = (logoStart->position - startA) / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): found logo start mark (%d) %ds after assumed start", logoStart->position, diffLogoStart);
-                    if ((diffLogoStart >= -4) && (diffLogoStart <= 56)) {  // changed from -1 to -4, changed from 17 to 56
-                        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): use logo start mark (%d) as start mark", logoStart->position);
-                        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
-                        return logoStart;
-                    }
+    // check found channel start mark
+    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): channels start at (%d)", channelStart->position);
+    // we have a channel change, cleanup border and aspect ratio
+    video->ClearBorder();
+    marks.DelType(MT_ASPECTCHANGE, 0xF0);
+
+    int diffAssumed = (channelStart->position - startA) / decoder->GetVideoFrameRate();
+    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): audio channel start mark found at (%d) %ds after assumed start", channelStart->position, diffAssumed);
+    if (channelStart->position > stopA) {  // this could be a very short recording, 6 channel is in post recording
+        dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): audio channel start mark after assumed stop mark not valid");
+        return nullptr;
+    }
+
+    // for early channel start mark, check if there is a logo start mark stop/start pair near assumed start
+    // this can happen if previous broadcast has also 6 channel
+    if (diffAssumed <= -121) {
+        const cMark *logoStop = marks.GetNext(channelStart->position, MT_LOGOSTOP);
+        if (logoStop) {  // if channel start is from previous recording, we should have a logo stop mark near assumed start
+            cMark *logoStart = marks.GetNext(logoStop->position, MT_LOGOSTART);
+            if (logoStart) {
+                int diffLogoStart = (logoStart->position - startA) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): found logo start mark (%d) %ds after assumed start", logoStart->position, diffLogoStart);
+                if ((diffLogoStart >= -4) && (diffLogoStart <= 56)) {  // changed from -1 to -4, changed from 17 to 56
+                    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): use logo start mark (%d) as start mark", logoStart->position);
+                    criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
+                    return logoStart;
                 }
             }
         }
-        // now we have a final channel start mark
-        marks.DelType(MT_LOGOCHANGE,    0xF0);
-        marks.DelType(MT_HBORDERCHANGE, 0xF0);
-        marks.DelType(MT_VBORDERCHANGE, 0xF0);
-        marks.DelWeakFromTo(0, INT_MAX, MT_CHANNELCHANGE); // we have a channel start mark, delete all weak marks
-        criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
-        return channelStart;
     }
-    dsyslog("cMarkAdStandalone::Check_CHANNELSTART(): no audio channel start mark found");
-    return nullptr;
+    // now we have a final channel start mark
+    marks.DelType(MT_LOGOCHANGE,    0xF0);
+    marks.DelType(MT_HBORDERCHANGE, 0xF0);
+    marks.DelType(MT_VBORDERCHANGE, 0xF0);
+    marks.DelWeakFromTo(0, INT_MAX, MT_CHANNELCHANGE); // we have a channel start mark, delete all weak marks
+    criteria->SetMarkTypeState(MT_CHANNELCHANGE, CRITERIA_USED, macontext.Config->fullDecode);
+    return channelStart;
 }
 
 
