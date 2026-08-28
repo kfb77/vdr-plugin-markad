@@ -5782,11 +5782,12 @@ void cMarkAdStandalone::SilenceOptimization() {
             }
             // check if new position can be valid
             if (soundStartAfter) {
-                cMark *nextStop = marks.GetNext(soundStartAfter->position, MT_STOP, 0x0F);
+                cMark *nextStop = marks.GetNext(mark->position, MT_STOP, 0x0F);
                 if (nextStop) {
-                    int diff = (nextStop->position - soundStartAfter->position) / decoder->GetVideoFrameRate();
-                    if (diff < 60) { // min length broadcast after move to silence
-                        dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence after (%d) is only %ds before next stop mark (%d), ignore invalid", mark->position, soundStartAfter->position, diff, nextStop->position);
+                    int diffStop    = (nextStop->position - mark->position) / decoder->GetVideoFrameRate();
+                    int diffSilence = (nextStop->position - soundStartAfter->position) / decoder->GetVideoFrameRate();
+                    if ((diffStop < 60) || (diffSilence < 60)) { // min length of a valid broadcast part
+                        dsyslog("cMarkAdStandalone::SilenceOptimization(): start mark (%6d): silence after (%d) is only %ds before next stop mark (%d), ignore invalid", mark->position, soundStartAfter->position, diffSilence, nextStop->position);
                         soundStartAfter = nullptr;
                     }
                 }
