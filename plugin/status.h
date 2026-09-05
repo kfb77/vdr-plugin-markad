@@ -47,6 +47,7 @@ struct sRecording {
     tEventID     eitEventNextID    = 0;
     time_t       eventStartTime    = 0;
     time_t       eventStopTime     = 0;
+    time_t       eventDuration     = 0;
     tChannelID   eventChannelID    = tChannelID::InvalidID;
     // timer
     time_t       timerStartTime    = 0;

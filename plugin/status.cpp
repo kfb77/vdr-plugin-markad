@@ -879,6 +879,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecordi
             recording->eventChannelID = event->ChannelID();
             recording->eventStartTime = event->StartTime();
             recording->eventStopTime  = event->EndTime();
+            recording->eventDuration  = recording->eventStopTime - recording->eventStartTime;
             const cSchedule *schedule = event->Schedule();
             if (schedule) {
                 const cEvent *eventNext = schedule->GetFollowingEvent();
@@ -894,10 +895,11 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecordi
     DebugLog("GetEventID(): UNLOCK timers READ");
 #endif
     StateKey.Remove();
-    DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event title: %s, channelID: %s", Name, recording->eventTitle, *recording->eventChannelID.ToString());
-    DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event eventID: %u, eventNextID: %u", Name, recording->eventID, recording->eventNextID);
-    DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event start: %s", Name, strtok(ctime(&recording->eventStartTime), "\n"));
-    DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event stop:  %s", Name, strtok(ctime(&recording->eventStopTime), "\n"));
+    DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event title:    %s, channelID: %s",   Name, recording->eventTitle, *recording->eventChannelID.ToString());
+    DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event eventID:  %u, eventNextID: %u", Name, recording->eventID, recording->eventNextID);
+    DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event start:    %s",                  Name, strtok(ctime(&recording->eventStartTime), "\n"));
+    DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event stop:     %s",                  Name, strtok(ctime(&recording->eventStopTime), "\n"));
+    DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event Duration: %d",                  Name, recording->eventDuration);
     if (timer->HasFlags(tfVps)) {
         DebugLog("cStatusMarkAd::GetEventID(): timer <%s> uses VPS", timer->File());
         recording->timerVPS = true;
@@ -1394,6 +1396,7 @@ int cStatusMarkAd::Add(const char *Name, const char *FileName, sRecording *recor
             recs[pos].timerStopTime     = recording->timerStopTime;
             recs[pos].eventStartTime    = recording->eventStartTime;
             recs[pos].eventStopTime     = recording->eventStopTime;
+            recs[pos].eventDuration     = recording->eventDuration;
             recs[pos].runningStatus     = 0;
             recs[pos].recStart          = time(nullptr);
             recs[pos].vpsStartTime      = 0;
@@ -1464,7 +1467,7 @@ int cStatusMarkAd::Add(const char *Name, const char *FileName, sRecording *recor
                 char eventStop[20] = {0};
                 strftime(eventStop, 20, "%d.%m.%Y %H:%M:%S", &stop);
 
-                if (asprintf(&eventLog, "VDR event title: %s", recs[pos].eventTitle) != -1) {
+                if (asprintf(&eventLog, "VDR event title:     %s", recs[pos].eventTitle) != -1) {
                     ALLOC(strlen(eventLog) + 1, "eventLog");
                     recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
                 }
@@ -1480,11 +1483,11 @@ int cStatusMarkAd::Add(const char *Name, const char *FileName, sRecording *recor
                         recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
                     }
                 }
-                if (asprintf(&eventLog, "VDR event eventID: %u, eventNextID: %u", recs[pos].eventID, recs[pos].eventNextID) != -1) {
+                if (asprintf(&eventLog, "VDR event eventID:   %u, eventNextID: %u", recs[pos].eventID, recs[pos].eventNextID) != -1) {
                     ALLOC(strlen(eventLog) + 1, "eventLog");
                     recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
                 }
-                if (asprintf(&eventLog, "VDR event start: %s, stop: %s", eventStart, eventStop) != -1) {
+                if (asprintf(&eventLog, "VDR event start:     %s, stop: %s, duration: %d Min", eventStart, eventStop, static_cast<int>(recs[pos].eventDuration / 60)) != -1) {
                     ALLOC(strlen(eventLog) + 1, "eventLog");
                     recs[pos].epgEventLog->LogEvent(VPS_DEBUG, recs[pos].title, eventLog);
                 }
