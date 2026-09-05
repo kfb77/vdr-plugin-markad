@@ -201,29 +201,13 @@ int cStatusMarkAd::Get_EIT_EventID(const sRecording *recording, const cEvent *ev
     if ((!nextEvent && (startTimeEIT > recording->timerStartTime) && (stopTimeEIT < recording->timerStopTime)) ||       // current event, VPS range is in timer range
             (nextEvent  && (startTimeEIT >  recording->timerStartTime) && (stopTimeEIT  > recording->timerStopTime))) { // next event, VPS range is after timer range
 
-        struct tm startTimer = *localtime(&recording->timerStartTime);
-        char timerStartTimer[20] = {0};
-        strftime(timerStartTimer, 20, "%d.%m.%Y %H:%M:%S", &startTimer);
-        struct tm stopTimer = *localtime(&recording->timerStopTime);
-        char timerStopTimer[20] = {0};
-        strftime(timerStopTimer, 20, "%d.%m.%Y %H:%M:%S", &stopTimer);
-
+        // EIT Timestamps
         struct tm startEIT = *localtime(&startTimeEIT);
         char timerStartEIT[20] = {0};
         strftime(timerStartEIT, 20, "%d.%m.%Y %H:%M:%S", &startEIT);
         struct tm stopEIT = *localtime(&stopTimeEIT);
         char timerStopEIT[20] = {0};
         strftime(timerStopEIT, 20, "%d.%m.%Y %H:%M:%S", &stopEIT);
-
-        time_t startTimeEvent = event->StartTime();
-        struct tm startEvent = *localtime(&startTimeEvent);
-        char timerStartEvent[20] = {0};
-        strftime(timerStartEvent, 20, "%d.%m.%Y %H:%M:%S", &startEvent);
-        time_t stopTimeEvent  = event->EndTime();
-        struct tm stopEvent = *localtime(&stopTimeEvent);
-        char timerStopEvent[20] = {0};
-        strftime(timerStopEvent, 20, "%d.%m.%Y %H:%M:%S", &stopEvent);
-
 
         char *eventLog = nullptr;
         if (nextEvent) {
