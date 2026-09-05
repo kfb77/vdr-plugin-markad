@@ -195,23 +195,27 @@ int cStatusMarkAd::Get_EIT_EventID(const sRecording *recording, const cEvent *ev
     if (nextEvent) event = schedule->GetFollowingEvent();
 
     //  this is no real VPS control, we can only handle VPS events in the timer start/stop range, keep pre/post timer big enough, try to find in each EIT event
-    time_t startTimeEIT   = eitEvent->getStartTime();
-    time_t stopTimeEIT    = startTimeEIT + eitEvent->getDuration();
+    time_t startTimeEIT = eitEvent->getStartTime();
+    time_t duration     = eitEvent->getDuration();
+    time_t stopTimeEIT  = startTimeEIT + duration;
 
-    if ((!nextEvent && (startTimeEIT > recording->timerStartTime) && (stopTimeEIT < recording->timerStopTime)) ||       // current event, VPS range is in timer range
-            (nextEvent  && (startTimeEIT >  recording->timerStartTime) && (stopTimeEIT  > recording->timerStopTime))) { // next event, VPS range is after timer range
+    if ((!nextEvent && (startTimeEIT > recording->timerStartTime) && (stopTimeEIT < recording->timerStopTime)) ||       // current event: VPS range must be in timer range
+            (nextEvent  && (startTimeEIT >  recording->timerStartTime) && (stopTimeEIT  > recording->timerStopTime))) { // next event:     VPS range must after timer range
 
         // EIT Timestamps
         struct tm startEIT = *localtime(&startTimeEIT);
         char timerStartEIT[20] = {0};
         strftime(timerStartEIT, 20, "%d.%m.%Y %H:%M:%S", &startEIT);
+
         struct tm stopEIT = *localtime(&stopTimeEIT);
         char timerStopEIT[20] = {0};
         strftime(timerStopEIT, 20, "%d.%m.%Y %H:%M:%S", &stopEIT);
 
+
+
         char *eventLog = nullptr;
         if (nextEvent) {
-            if (recording->epgEventLog && (asprintf(&eventLog, "received EIT event for VDR next    event -> start: %s, stop: %s, eitEventID: %7u, channelID: %s", timerStartEIT, timerStopEIT, eitEventID, *schedule->ChannelID().ToString()) != -1)) {
+            if (recording->epgEventLog && (asprintf(&eventLog, "received EIT event for VDR next    event -> start: %s, stop: %s, duration: %3d Min, eitEventID: %7u, channelID: %s", timerStartEIT, timerStopEIT, static_cast<int>(duration / 60), eitEventID, *schedule->ChannelID().ToString()) != -1)) {
                 ALLOC(strlen(eventLog) + 1, "eventLog");
                 recording->epgEventLog->LogEvent(VPS_DEBUG, recording->title, eventLog);
             }
@@ -228,7 +232,7 @@ int cStatusMarkAd::Get_EIT_EventID(const sRecording *recording, const cEvent *ev
                 }
                 return 0;
             }
-            if (recording->epgEventLog && (asprintf(&eventLog, "received EIT event for VDR current event -> start: %s, stop: %s, eitEventID: %7u, channelID: %s", timerStartEIT, timerStopEIT, eitEventID, *schedule->ChannelID().ToString()) != -1)) {
+            if (recording->epgEventLog && (asprintf(&eventLog, "received EIT event for VDR current event -> start: %s, stop: %s, duration: %3d Min, eitEventID: %7u, channelID: %s", timerStartEIT, timerStopEIT, static_cast<int>(duration / 60), eitEventID, *schedule->ChannelID().ToString()) != -1)) {
                 ALLOC(strlen(eventLog) + 1, "eventLog");
                 recording->epgEventLog->LogEvent(VPS_DEBUG, recording->title, eventLog);
             }
@@ -240,7 +244,7 @@ int cStatusMarkAd::Get_EIT_EventID(const sRecording *recording, const cEvent *ev
         return eitEventID;
     }
 #endif
-    return 0;
+    return 0;  // no matching EIT Event found
 }
 
 void cStatusMarkAd::FindRecording(const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *Schedule) {
