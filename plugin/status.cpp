@@ -199,8 +199,11 @@ int cStatusMarkAd::Get_EIT_EventID(const sRecording *recording, const cEvent *ev
     time_t duration     = eitEvent->getDuration();
     time_t stopTimeEIT  = startTimeEIT + duration;
 
-    if ((!nextEvent && (startTimeEIT > recording->timerStartTime) && (stopTimeEIT < recording->timerStopTime)) ||       // current event: VPS range must be in timer range
-            (nextEvent  && (startTimeEIT >  recording->timerStartTime) && (stopTimeEIT  > recording->timerStopTime))) { // next event:     VPS range must after timer range
+    // valid current event: VPS range must be in timer range, duration must be simiar (+-25%) to event duration
+    // valid next event:    VPS range must after timer range
+    if ((!nextEvent && (startTimeEIT > recording->timerStartTime) && (stopTimeEIT < recording->timerStopTime) &&
+            (duration >= recording->eventDuration * 0.75) && (duration <= recording->eventDuration * 1.25)) ||
+            (nextEvent  && (startTimeEIT >  recording->timerStartTime) && (stopTimeEIT  > recording->timerStopTime))) {
 
         // EIT Timestamps
         struct tm startEIT = *localtime(&startTimeEIT);
