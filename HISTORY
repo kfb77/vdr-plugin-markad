@@ -1,6 +1,13 @@
 VDR Plugin 'markad' Revision History
 ----------------------------------
 
+2026-09-07: Version 4.3.1
+- remove unconditionally sleep for PID file exists
+  thx to FireFly@www.vdr-portal.de for reporting
+- fix getting wrong VPS event from very short broadcast before
+- optimize channel start mark selection
+- some minor bug fixes and optimizations, see git
+
 2026-07-04: Version 4.3.0
 - new feature: parameter --hwaccel-device (specify GPU Device) and --vaapi-driver (specify VAAPI Driver to use)
 - fix logo extraction in case of 'Neue Folge'
