@@ -2673,7 +2673,7 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                     int diffhBorderStopLogoStop    = (logoStopAfter->position - hStop->position)           / decoder->GetVideoFrameRate();
                     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): check for false detected hborder from opening credits or documentation");
                     dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): MT_LOGOSTART (%6d) -> %3ds -> MT_HBORDERSTART (%6d) -> %3ds -> MT_HBORDERSTOP (%6d) -> %4ds -> MT_LOGOSTOP (%6d) -> %s", logoStartBefore->position, diffLogoStarthBorderStart, hStart->position, diffBorderStarthBorderStop, hStop->position, diffhBorderStopLogoStop, logoStopAfter->position, macontext.Info.ChannelName);
-                    // exampe false detected hborder from opening credits
+                    // example of false detected hborder from opening credits
                     // MT_LOGOSTART ( 15994) ->   3s -> MT_HBORDERSTART ( 16074) ->  82s -> MT_HBORDERSTOP ( 18131) -> 1460s -> MT_LOGOSTOP ( 52588)
                     // MT_LOGOSTART ( 39468) -> -19s -> MT_HBORDERSTART ( 38502) -> 119s -> MT_HBORDERSTOP ( 44474) -> 1593s -> MT_LOGOSTOP (118182)
                     // MT_LOGOSTART (  7421) ->   0s -> MT_HBORDERSTART (  7422) -> 223s -> MT_HBORDERSTOP ( 13016) ->  960s -> MT_LOGOSTOP ( 31422)
@@ -2693,7 +2693,8 @@ cMark *cMarkAdStandalone::Check_HBORDERSTART() {
                     // MT_LOGOSTART ( 21731) -> 189s -> MT_HBORDERSTART ( 31188) -> 141s -> MT_HBORDERSTOP ( 38279) -> 2210s -> MT_LOGOSTOP (148817)
                     // MT_LOGOSTART ( 23761) -> 159s -> MT_HBORDERSTART ( 31756) -> 178s -> MT_HBORDERSTOP ( 40669) -> 2242s -> MT_LOGOSTOP (152787) -> zdf_neo_HD
                     // MT_LOGOSTART ( 14860) ->  43s -> MT_HBORDERSTART ( 17058) -> 224s -> MT_HBORDERSTOP ( 28300) -> 1651s -> MT_LOGOSTOP (110876) -> ProSieben_HD (Live Show)
-                    if ((diffLogoStarthBorderStart <= 189) && (diffBorderStarthBorderStop <= 224) && (diffhBorderStopLogoStop >= 1651)) {
+                    // MT_LOGOSTART ( 10135) -> 159s -> MT_HBORDERSTART ( 18129) -> 178s -> MT_HBORDERSTOP ( 27042) -> 1020s -> MT_LOGOSTOP ( 78069) -> ZDFinfo
+                    if ((diffLogoStarthBorderStart <= 189) && (diffBorderStarthBorderStop <= 224) && (diffhBorderStopLogoStop >= 1020)) {
                         dsyslog("cMarkAdStandalone::Check_HBORDERSTART(): invalid hborder marks from hborder scene in broadcast, delete hborder marks");
                         marks.Del(hStart->position);
                         marks.Del(hStop->position);
