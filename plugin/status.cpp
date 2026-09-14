@@ -192,7 +192,7 @@ bool cEpgHandlerMarkad::HandleEvent(cEvent *Event) {
 int cStatusMarkAd::Get_EIT_EventID(const sRecording *recording, const cEvent *event, const SI::EIT::Event *eitEvent, const cSchedule *schedule, const bool nextEvent) {
 #if APIVERSNUM>=20301  // feature not supported with old VDRs
     tEventID eitEventID  = eitEvent->getEventId();
-    if (nextEvent) event = schedule->GetFollowingEvent();
+    // if (nextEvent) event = schedule->GetFollowingEvent();
 
     //  this is no real VPS control, we can only handle VPS events in the timer start/stop range, keep pre/post timer big enough, try to find in each EIT event
     time_t startTimeEIT = eitEvent->getStartTime();
