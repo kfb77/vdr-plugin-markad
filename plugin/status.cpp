@@ -903,10 +903,6 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecordi
     DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event start:    %s",                  Name, strtok(ctime(&recording->eventStartTime), "\n"));
     DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event stop:     %s",                  Name, strtok(ctime(&recording->eventStopTime), "\n"));
     DebugLog("cStatusMarkAd::GetEventID(): recording: %s, event Duration: %d",                  Name, recording->eventDuration);
-    if (timer->HasFlags(tfVps)) {
-        DebugLog("cStatusMarkAd::GetEventID(): timer <%s> uses VPS", timer->File());
-        recording->timerVPS = true;
-    }
 #endif
 #endif
     return;
