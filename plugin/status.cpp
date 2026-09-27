@@ -1,3 +1,4 @@
+#include "markad-recording-name.h"
 /*
  * status.cpp: A plugin for the Video Disk Recorder
  *
@@ -799,7 +800,7 @@ void cStatusMarkAd::TimerChange(const cTimer *Timer, eTimerChange Change) {
 }
 
 
-void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecording *recording) {
+void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, const char *FileName, sRecording *recording) {
     if (!Name)           return;
     if (!Device)         return;
     if (!recording)      return;
@@ -810,6 +811,10 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecordi
     recording->eventID        = 0;
     recording->eventNextID    = 0;
     int timeDiff              = INT_MAX;
+    bool ambiguous = false;
+    cRecordingInfo recInfo(FileName);
+    recInfo.Read();
+    const tChannelID recChannel=recInfo.ChannelID();
 
 
 // search for timer to recording
@@ -832,11 +837,17 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecordi
         {
             if (Timer->Recording() && Timer->Local()) {
                 DebugLog("cStatusMarkAd::GetEventID(): timer recording: %s", Timer->File());
-                if (Timer->File() && (strcmp(Name, Timer->File()) == 0)) {
-                    if (abs(Timer->StartTime() - time(nullptr)) < timeDiff) {  // maybe we have two timer the same file name, take the nearest start time
-                        timer = Timer;
-                        timeDiff = abs(Timer->StartTime() - time(nullptr));
-                    }
+                if (!Timer->File() || !Timer->Channel()) continue;
+                if (!(recChannel == tChannelID::InvalidID) && !(Timer->Channel()->GetChannelID()==recChannel)) continue;
+                if (!const_cast<cDevice *>(Device)->IsTunedToTransponder(Timer->Channel())) continue;
+                const cEvent *candidateEvent=Timer->Event();
+                std::string expanded=MarkadRecordingName(Timer->File(),Timer->IsSingleEvent(),Setup.UseSubtitle,
+                    candidateEvent ? candidateEvent->Title() : nullptr,
+                    candidateEvent ? candidateEvent->ShortText() : nullptr,Timer->Channel()->Name());
+                if (expanded==Name || strcmp(Name,Timer->File())==0) {
+                    int distance=abs(Timer->StartTime()-time(nullptr));
+                    if (distance<timeDiff) {timer=Timer;timeDiff=distance;ambiguous=false;}
+                    else if (distance==timeDiff) ambiguous=true;
                 }
             }
         }
@@ -846,6 +857,7 @@ void cStatusMarkAd::GetEventID(const cDevice *Device, const char *Name, sRecordi
         esyslog("markad: cStatusMarkAd::GetEventID(): lock timers failed");
     }
 #endif
+    if (ambiguous) timer=nullptr; // No guess when two equally suitable timers exist.
     if (!timer) {
         esyslog("markad: timer for <%s> not found", Name);
 #if APIVERSNUM>=20301
@@ -927,7 +939,7 @@ void cStatusMarkAd::Recording(const cDevice *Device, const char *Name, const cha
         }
 
         sRecording recording;
-        GetEventID(Device, Name, &recording);
+        GetEventID(Device, Name, FileName, &recording);
         SaveVPSTimer(FileName, recording.timerVPS);
 
         // recording is usually added in recording list by markad start

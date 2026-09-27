@@ -109,7 +109,7 @@ private:
     void Pause(const char *FileName, bool force);
     void Continue(const char *FileName);
     bool LogoExists(const cDevice *Device, const char *FileName);
-    void GetEventID(const cDevice *Device,const char *Name, sRecording *recording);
+    void GetEventID(const cDevice *Device,const char *Name, const char *FileName, sRecording *recording);
     void SaveVPSTimer(const char *FileName, const bool timerVPS);
     void SaveVPSEvents(const int index);
     bool StoreVPSStatus(const char *status, const int index);
