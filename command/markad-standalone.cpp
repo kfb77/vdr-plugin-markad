@@ -4275,10 +4275,10 @@ void cMarkAdStandalone::AddMarkVPS(const int offset, const int type) {
         }
         int diff = abs(vpsFrame - nearMark->position) / decoder->GetVideoFrameRate();
         char *nearMarkType = marks.TypeToText(nearMark->type);
-        dsyslog("cMarkAdStandalone::AddMarkVPS(): current end mark (%d), VPS stop event (%d), nearest stop mark (%d) stop %s is %ds before VPS event", mark->position, vpsFrame, nearMark->position, nearMarkType, diff);
+        dsyslog("cMarkAdStandalone::AddMarkVPS(): current end mark (%d), VPS stop event (%d), nearest stop mark (%d) stop %s is %ds after VPS event", mark->position, vpsFrame, nearMark->position, nearMarkType, diff);
         FREE(strlen(nearMarkType) + 1, "text");
         free(nearMarkType);
-        // keep strong end marks, they are better than VPS marks
+        // keep strong end marks, they are better than bad VPS marks
         if ((mark->type != MT_ASSUMEDSTOP) &&
                 ((mark->type != MT_TYPECHANGESTOP) || !criteria->GoodVPS())) {
             char *markType = marks.TypeToText(mark->type);
