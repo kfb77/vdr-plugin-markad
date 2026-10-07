@@ -496,10 +496,18 @@ cMark *cMarkAdStandalone::Check_VBORDERSTOP() {
     }
     else dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): no MT_VBORDERSTOP mark found");
 
-    // we use vborder and we found an end mark, cleanup invalid hborder marks
-    if (end && (criteria->GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_USED)) {
-        dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): end mark found, cleanup invalid hborder marks");
-        marks.DelFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_HBORDERCHANGE, 0xF0);  // keep start mark, maybe inverted hborder stop from previous recording
+    // cleanup invalid marks
+    if (criteria->GetMarkTypeState(MT_VBORDERCHANGE) == CRITERIA_USED) {
+        // we use vborder and we found an end mark, cleanup invalid hborder marks
+        if (end) {
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): end mark found, cleanup invalid hborder marks");
+            marks.DelFromTo(marks.GetFirst()->position + 1, INT_MAX, MT_HBORDERCHANGE, 0xF0);  // keep start mark, maybe inverted hborder stop from previous recording
+        }
+        // no logo in border, no vborder end mark -> we have a vborder double episode, logo marks are invalid (eg. from preview)
+        else if (!criteria->LogoInBorder()) {
+            dsyslog("cMarkAdStandalone::Check_VBORDERSTOP(): delete invalid logo marks");
+            marks.DelType(MT_LOGOCHANGE, 0xF0);
+        }
     }
     return end;
 }
