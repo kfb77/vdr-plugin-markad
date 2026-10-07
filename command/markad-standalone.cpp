@@ -1681,26 +1681,7 @@ void cMarkAdStandalone::CheckStop() {
         cMark *hBorder = Check_HBORDERSTOP();
         if (hBorder) end = hBorder;  // do not override an existing end mark with nullptr
     }
-    // cleanup all marks after hborder start from next broadcast
-    if (!end && (criteria->GetMarkTypeState(MT_HBORDERCHANGE) <= CRITERIA_UNKNOWN)) {
-        cMark *hBorderStart = marks.GetNext(stopA - (60 * decoder->GetVideoFrameRate()), MT_HBORDERSTART);
-        if (hBorderStart) {
-            // use logo stop mark short after hborder as end mark
-            cMark *logoStop = marks.GetNext(hBorderStart->position, MT_LOGOSTOP);
-            if (logoStop) {
-                int diff = (logoStop->position - hBorderStart->position) / decoder->GetVideoFrameRate();
-                if (diff <= 2) {
-                    dsyslog("cMarkAdStandalone::CheckStop(): logo stop mark (%d) %ds after hborder start mark (%d), use it as end mark", logoStop->position, diff, hBorderStart->position);
-                    marks.Del(hBorderStart->position);
-                    end = logoStop;
-                }
-            }
-            else {
-                dsyslog("cMarkAdStandalone::CheckStop(): delete all marks after hborder start (%d) from next broadcast", hBorderStart->position);
-                marks.DelTill(hBorderStart->position, false);
-            }
-        }
-    }
+    // do not delete hborder marks here, maybe we need them later to search for a valid hborder start mark of next recording
 
 // try MT_VBORDERSTOP
     if (!end && (criteria->GetMarkTypeState(MT_VBORDERCHANGE) >= CRITERIA_UNKNOWN)) end = Check_VBORDERSTOP();
@@ -1776,44 +1757,50 @@ void cMarkAdStandalone::CheckStop() {
         }
         // try to get hborder start mark from next broadcast as stop mark
         if (!end && (criteria->GetMarkTypeState(MT_HBORDERCHANGE) != CRITERIA_USED)) {
-            cMark *hBorderStart = marks.GetNext((stopA - (240 *  decoder->GetVideoFrameRate())), MT_HBORDERSTART);  // accept max 4 min before stopA
-            if (hBorderStart) {
+            // cleanup invalid hborder marks
+            cMark *hBorderStart = marks.GetNext(-1, MT_HBORDERSTART);
+            while (hBorderStart) {
                 cMark *hBorderStop = marks.GetNext(hBorderStart->position, MT_HBORDERSTOP);
-                if (hBorderStop) { // check length of hborder
-                    int diff = (hBorderStop->position - hBorderStart->position) / decoder->GetVideoFrameRate();
-                    dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTART (%ds) -> %ds -> MT_HBORDERSTOP (%d)", hBorderStart->position, diff, hBorderStop->position);
-                    // example of hborder from closing credits
-                    //  MT_HBORDERSTART (284293s) -> 81s -> MT_HBORDERSTOP (288356)
-                    if (diff <= 81) {
-                        dsyslog("cMarkAdStandalone::CheckStop(): hborder too short, maybe from closing credists, delete marks");
-                        marks.Del(hBorderStart);
-                        marks.Del(hBorderStop);
-                        hBorderStart = nullptr;
+                if (!hBorderStop) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): hborder start mark without hborder stop mark found");
+                    break;
+                }
+                int diff = (hBorderStop->position - hBorderStart->position) / decoder->GetVideoFrameRate();
+                dsyslog("cMarkAdStandalone::CheckStop(): MT_HBORDERSTART (%ds) -> %ds -> MT_HBORDERSTOP (%d)", hBorderStart->position, diff, hBorderStop->position);
+                // example of hborder from closing credits
+                //  MT_HBORDERSTART (284293s) -> 81s -> MT_HBORDERSTOP (288356)
+                if (diff <= 139) { // changed from 81 to 139
+                    dsyslog("cMarkAdStandalone::CheckStop(): hborder too short, maybe from closing credists, delete marks");
+                    marks.Del(hBorderStart);
+                    marks.Del(hBorderStop);
+                    hBorderStart = nullptr;
+                }
+                else break;
+                hBorderStart = marks.GetNext(-1, MT_HBORDERSTART);
+            }
+
+            if (hBorderStart) {  // can be deleted above
+                dsyslog("cMarkAdStandalone::CheckStop(): found hborder start mark (%d) from next broadcast at end of recording", hBorderStart->position);
+                cMark *prevMark = marks.GetPrev(hBorderStart->position, MT_ALL);
+                if ((prevMark->type & 0x0F) == MT_START) {
+                    dsyslog("cMarkAdStandalone::CheckStop(): start mark (%d) before found, use hborder start mark (%d) from next broadcast as end mark", prevMark->position, hBorderStart->position);
+                    if (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_USED) {  // if we use logo marks, there must be a valid logo stop mark before hborder start
+                        cMark *lStop = marks.GetPrev(hBorderStart->position, MT_LOGOSTOP);  // try to find a early logo stop, maybe too long broadcast from info fileA
+                        if (lStop) {
+                            int diffAssumed = (stopA - lStop->position) / decoder->GetVideoFrameRate();
+                            dsyslog("cMarkAdStandalone::CheckStop(): logo stop (%d) %ds before hborder start (%d)", lStop->position, diffAssumed, hBorderStart->position);
+                            if (diffAssumed <= 251) end = lStop;
+                        }
+                    }
+                    if (!end) {
+                        marks.DelTill(hBorderStart->position + 1, false);              // delete all marks after end mark to prevent sequence error in type change
+                        end = marks.ChangeType(hBorderStart, MT_STOP); // use hborder start of next recording as end mark
+                        if (end) end = marks.Move(end, end->position, end->pts, MT_TYPECHANGESTOP);  // one frame before hborder start is end mark
                     }
                 }
-                if (hBorderStart) {  // can be deleted above
-                    dsyslog("cMarkAdStandalone::CheckStop(): found hborder start mark (%d) from next broadcast at end of recording", hBorderStart->position);
-                    cMark *prevMark = marks.GetPrev(hBorderStart->position, MT_ALL);
-                    if ((prevMark->type & 0x0F) == MT_START) {
-                        dsyslog("cMarkAdStandalone::CheckStop(): start mark (%d) before found, use hborder start mark (%d) from next broadcast as end mark", prevMark->position, hBorderStart->position);
-                        if (criteria->GetMarkTypeState(MT_LOGOCHANGE) == CRITERIA_USED) {  // if we use logo marks, there must be a valid logo stop mark before hborder start
-                            cMark *lStop = marks.GetPrev(hBorderStart->position, MT_LOGOSTOP);  // try to find a early logo stop, maybe too long broadcast from info fileA
-                            if (lStop) {
-                                int diffAssumed = (stopA - lStop->position) / decoder->GetVideoFrameRate();
-                                dsyslog("cMarkAdStandalone::CheckStop(): logo stop (%d) %ds before hborder start (%d)", lStop->position, diffAssumed, hBorderStart->position);
-                                if (diffAssumed <= 251) end = lStop;
-                            }
-                        }
-                        if (!end) {
-                            marks.DelTill(hBorderStart->position + 1, false);              // delete all marks after end mark to prevent sequence error in type change
-                            end = marks.ChangeType(hBorderStart, MT_STOP); // use hborder start of next recording as end mark
-                            if (end) end = marks.Move(end, end->position, end->pts, MT_TYPECHANGESTOP);  // one frame before hborder start is end mark
-                        }
-                    }
-                    else {
-                        dsyslog("cMarkAdStandalone::CheckStop(): use stop mark (%d) before hborder start mark (%d) ", prevMark->position, hBorderStart->position);
-                        end = prevMark;
-                    }
+                else {
+                    dsyslog("cMarkAdStandalone::CheckStop(): use stop mark (%d) before hborder start mark (%d) ", prevMark->position, hBorderStart->position);
+                    end = prevMark;
                 }
             }
         }
