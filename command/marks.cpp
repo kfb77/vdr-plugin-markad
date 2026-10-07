@@ -449,7 +449,13 @@ cMark *cMarks::Add(const int type, const int oldType, const int newType, int pos
     // move aspect stop after logo start mark, need both to detect valid aspect start mark for recording with wrong aspect ratio in VDR info file
     else if (dupMark && (type == MT_LOGOSTART) && (dupMark->type == MT_ASPECTSTOP)) {
         position = index->GetPacketNumberAfter(position);
-        dsyslog("cMarks::Add(): aspect ration stop mark and logo start mark on same position, move  MT_ASPECTSTOP to (%d)", position);
+        dsyslog("cMarks::Add(): aspect ration stop mark and logo start mark on same position, move MT_ASPECTSTOP to (%d)", position);
+        dupMark = Get(position);  // now check duplicate with new position
+    }
+    // move vborder startp after hborder start mark, need both to detect valid start of broadcast with very dark scene or openeing credits
+    else if (dupMark && (type == MT_HBORDERSTART) && (dupMark->type == MT_VBORDERSTART)) {
+        position = index->GetPacketNumberAfter(position);
+        dsyslog("cMarks::Add(): hborder start mark and vborder start mark on same position, move MT_HBORDERSTART to (%d)", position);
         dupMark = Get(position);  // now check duplicate with new position
     }
     if (dupMark) {
