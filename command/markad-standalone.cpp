@@ -3079,8 +3079,14 @@ void cMarkAdStandalone::CheckStart() {
         criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_UNAVAILABLE, macontext.Config->fullDecode);
     }
     if ((marks.Count(MT_HBORDERSTART) == 1) && (marks.Count(MT_HBORDERSTOP) == 0)) {
-        dsyslog("cMarkAdStandalone::CheckStart(): one hborder start, no hborder stop -> broadcast must have hborder");
+        dsyslog("cMarkAdStandalone::CheckStart(): one hborder start, no hborder stop -> hborder double episode");
         criteria->SetMarkTypeState(MT_HBORDERCHANGE, CRITERIA_AVAILABLE, macontext.Config->fullDecode);
+        if (!criteria->LogoInBorder()) {
+            dsyslog("cMarkAdStandalone::CheckStart(): hborder double episode with logo not in border, all logo marks are invalid");
+            criteria->SetMarkTypeState(MT_LOGOCHANGE, CRITERIA_DISABLED, macontext.Config->fullDecode);
+            marks.DelType(MT_LOGOCHANGE, 0xF0);
+        }
+
     }
 
     // if we have no vborder start, broadcast can not have vborder
